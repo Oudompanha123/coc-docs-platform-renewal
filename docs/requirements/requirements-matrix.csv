@@ -1,0 +1,85 @@
+req_id,category,area,title,priority,source_type,source_id,source_ref,verification_method,use_case,phase,status,note
+FR-CONT-001,FR,content,Open an existing page in a WYSIWYG editor,Must,BR,BR-006,BUSINESS-REQUIREMENTS.md#BR-006,E2E test,UC-001,MVP,SPECIFIED,Core of the Q2 driver
+FR-CONT-002,FR,content,Edit page body with the block vocabulary without code or markup,Must,BR,BR-006,BUSINESS-REQUIREMENTS.md#BR-006,E2E test,UC-001,MVP,SPECIFIED,Non-technical editor requirement
+FR-CONT-003,FR,content,Save a page as a draft without publishing,Must,AMB,AMB-001,questions-log.md#AMB-001,E2E test,UC-001,MVP,SPECIFIED,Resolves contradiction C-01
+FR-CONT-004,FR,content,Preview a draft exactly as readers will see it,Must,PM,Q5,planning/questions-log.md#Q5,E2E test,UC-001,MVP,SPECIFIED,PM addition at Q5
+FR-CONT-005,FR,content,Publish a draft live with no build and no deploy,Must,BR,BR-005,BUSINESS-REQUIREMENTS.md#BR-005,E2E test,UC-001,MVP,SPECIFIED,Amended by AMB-001: publish not save
+FR-CONT-006,FR,content,Create a new page within an existing section,Must,PM,Q4-S2,planning/questions-log.md#Q4,E2E test,UC-002,MVP,SPECIFIED,MVP scenario 2
+FR-CONT-007,FR,content,Soft-delete a page and flag dangling internal references,Must,GAP,G-09,questions-log.md#G-09,E2E test,UC-002,MVP,SPECIFIED,Default applied without query
+FR-CONT-008,FR,content,Edit page metadata title description slug,Must,BR,BR-001,BUSINESS-REQUIREMENTS.md#BR-001,E2E test,UC-002,MVP,SPECIFIED,
+FR-CONT-009,FR,content,Store page body as ordered typed blocks from a fixed 8-10 vocabulary,Must,CONST,CONST-TECH-04,REQUIREMENTS-SPEC.md#CONST-TECH-04,Schema review + unit test,UC-002,MVP,SPECIFIED,Largest cost lever
+FR-CONT-010,FR,content,Embed block referencing a code-resident component with props,Must,BR,BR-007,BUSINESS-REQUIREMENTS.md#BR-007,Integration test,UC-002,MVP,SPECIFIED,Tier B content HarnessDemo OwnerTree
+FR-CONT-011,FR,content,Copyable code block as a distinct block type,Must,BR,BR-010,BUSINESS-REQUIREMENTS.md#BR-010,E2E test,UC-001,MVP,SPECIFIED,183 instances in AS-IS
+FR-CONT-012,FR,content,Version page edits and restore a previous version,Must,BR,BR-024,BUSINESS-REQUIREMENTS.md#BR-024,E2E test,UC-001,MVP,SPECIFIED,Replaces git history lost at migration
+FR-CONT-013,FR,content,Optimistic locking warns the second concurrent saver,Must,GAP,G-07,questions-log.md#G-07,Integration test,UC-001,MVP,SPECIFIED,Default applied without query
+FR-CONT-014,FR,content,Duplicate an existing page as a starting point,Could,DERIVED,-,-,E2E test,UC-002,MVP,SPECIFIED,Convenience
+FR-NAV-001,FR,navigation,Reorder pages within a section,Must,PM,Q4-S3,planning/questions-log.md#Q4,E2E test,UC-003,MVP,SPECIFIED,MVP scenario 3
+FR-NAV-002,FR,navigation,Rename a navigation label independently of the title,Must,PM,Q4-S3,planning/questions-log.md#Q4,E2E test,UC-003,MVP,SPECIFIED,
+FR-NAV-003,FR,navigation,Move a page between sections,Should,DERIVED,-,-,E2E test,UC-003,MVP,SPECIFIED,
+FR-NAV-004,FR,navigation,Store page order as a single explicit value not duplicated,Must,BR,BR-003,BUSINESS-REQUIREMENTS.md#BR-003,Schema review,UC-003,MVP,SPECIFIED,Replaces 3 hand-synced arrays
+FR-NAV-005,FR,navigation,Render reader navigation from the database not code arrays,Must,BR,BR-002,BUSINESS-REQUIREMENTS.md#BR-002,Integration test,UC-003,MVP,SPECIFIED,
+FR-NAV-006,FR,navigation,Mark a page with a badge such as New,Could,ASIS,Sidebar.tsx:497,-,E2E test,UC-003,MVP,SPECIFIED,Feature parity with AS-IS
+FR-I18N-001,FR,i18n,Every page supports en km ko with en as reference,Must,BR,BR-004,BUSINESS-REQUIREMENTS.md#BR-004,Schema review,UC-002,MVP,SPECIFIED,
+FR-I18N-002,FR,i18n,Publishing the en version marks km and ko stale,Must,BR,BR-013,BUSINESS-REQUIREMENTS.md#BR-013,Integration test,UC-007,MVP,SPECIFIED,
+FR-I18N-003,FR,i18n,Translation status screen lists missing and stale pages per language,Must,BR,BR-012,BUSINESS-REQUIREMENTS.md#BR-012,E2E test,UC-007,MVP,SPECIFIED,Compensating control for lost compile-time check
+FR-I18N-004,FR,i18n,A stale translation remains published and readable,Must,BR,BR-014,BUSINESS-REQUIREMENTS.md#BR-014,Integration test,UC-007,MVP,SPECIFIED,
+FR-I18N-005,FR,i18n,Edit one language version without touching the others,Must,DERIVED,-,-,E2E test,UC-007,MVP,SPECIFIED,
+FR-I18N-006,FR,i18n,Warn when publishing a page missing a translation,Should,BR,BR-014,BUSINESS-REQUIREMENTS.md#BR-014,E2E test,UC-002,MVP,SPECIFIED,
+FR-MEDIA-001,FR,media,Upload an image,Must,PM,Q5-images,planning/questions-log.md#Q5,E2E test,UC-006,MVP,SPECIFIED,New capability - zero images exist in AS-IS
+FR-MEDIA-002,FR,media,Insert an uploaded image into a page body,Must,PM,Q5-images,planning/questions-log.md#Q5,E2E test,UC-006,MVP,SPECIFIED,
+FR-MEDIA-003,FR,media,Browse and delete previously uploaded media,Should,DERIVED,-,-,E2E test,UC-006,MVP,SPECIFIED,
+FR-MEDIA-004,FR,media,Reject uploads failing type and size validation,Must,BR,BR-022,BUSINESS-REQUIREMENTS.md#BR-022,Security test,UC-006,MVP,SPECIFIED,RISK-006
+FR-MEDIA-005,FR,media,Set alternative text on an inserted image,Should,DERIVED,-,-,E2E test,UC-006,MVP,SPECIFIED,Accessibility
+FR-AUTH-001,FR,auth,Sign in with Google,Must,BR,BR-019,BUSINESS-REQUIREMENTS.md#BR-019,E2E test,UC-004,MVP,SPECIFIED,Replaces shared password
+FR-AUTH-002,FR,auth,Store no passwords,Must,BR,BR-019,BUSINESS-REQUIREMENTS.md#BR-019,Security audit,UC-004,MVP,SPECIFIED,
+FR-AUTH-003,FR,auth,Super admin creates and deactivates accounts without hard delete,Must,GAP,G-06,questions-log.md#G-06,E2E test,UC-004,MVP,SPECIFIED,Preserves audit attribution
+FR-AUTH-004,FR,auth,Super admin assigns a role to an account,Must,BR,BR-018,BUSINESS-REQUIREMENTS.md#BR-018,E2E test,UC-004,MVP,SPECIFIED,MVP scenario 5
+FR-AUTH-005,FR,auth,Enforce the role ladder on every request,Must,BR,BR-015,BUSINESS-REQUIREMENTS.md#BR-015,Integration test + security audit,UC-005,MVP,SPECIFIED,guest<user<admin<super admin
+FR-AUTH-006,FR,auth,Every page carries a server-enforced minimum role to view,Must,BR,BR-016,BUSINESS-REQUIREMENTS.md#BR-016,Integration test,UC-005,MVP,SPECIFIED,Defined in MVP enforced fully in phase 2
+FR-AUTH-007,FR,auth,Sign out and invalidate the session,Must,DERIVED,-,-,E2E test,UC-004,MVP,SPECIFIED,
+FR-AUTH-008,FR,auth,Admin may not access account management,Must,BR,BR-017,BUSINESS-REQUIREMENTS.md#BR-017,Security test negative,UC-004,MVP,SPECIFIED,Negative test required
+FR-READ-001,FR,reader,View a published page in the selected language,Must,BR,BR-004,BUSINESS-REQUIREMENTS.md#BR-004,E2E test,UC-005,MVP,SPECIFIED,
+FR-READ-002,FR,reader,Legacy hash URLs continue to resolve,Must,BR,BR-009,BUSINESS-REQUIREMENTS.md#BR-009,E2E test,UC-005,MVP,SPECIFIED,LegacyHashRedirect.tsx:11-21
+FR-READ-003,FR,reader,Slug change creates a permanent redirect from the old path,Must,GAP,G-08,questions-log.md#G-08,Integration test,UC-005,MVP,SPECIFIED,Default applied without query
+FR-READ-004,FR,reader,Deleted unpublished or missing page returns the styled 404,Must,ASIS,not-found.tsx,-,E2E test,UC-005,MVP,SPECIFIED,
+FR-READ-005,FR,reader,Language switch keeps the reader on the equivalent page,Must,ASIS,LangSwitcher.tsx,-,E2E test,UC-005,MVP,SPECIFIED,
+FR-READ-006,FR,reader,Untranslated page falls back with a visible notice and link to English,Should,ASIS,PendingTranslation.tsx,-,E2E test,UC-005,MVP,SPECIFIED,Generalises the AS-IS per-page hack
+FR-OPS-001,FR,ops,Record actor action target and timestamp for every content change,Must,BR,BR-023,BUSINESS-REQUIREMENTS.md#BR-023,Integration test,UC-001,MVP,SPECIFIED,Also proves the KPI
+FR-OPS-002,FR,ops,Log failed sign-ins and permission-denied events,Must,BR,BR-029,BUSINESS-REQUIREMENTS.md#BR-029,Integration test,UC-004,MVP,SPECIFIED,
+FR-OPS-003,FR,ops,Log rejected uploads with the reason,Must,BR,BR-030,BUSINESS-REQUIREMENTS.md#BR-030,Integration test,UC-006,MVP,SPECIFIED,
+NFR-USE-01,NFR,usability,Non-technical colleague edits and publishes unaided without asking the PM,Must,AMB,AMB-003,questions-log.md#AMB-003,Observed task test,UC-001,MVP,SPECIFIED,THE central claim of the project
+NFR-USE-02,NFR,usability,No knowledge of TypeScript JSX Markdown HTML git or deployment required,Must,AMB,AMB-003,questions-log.md#AMB-003,Task test + review,UC-001,MVP,SPECIFIED,
+NFR-PERF-01,NFR,performance,Reader page response P95 under 1s,Must,AMB,AMB-005,questions-log.md#AMB-005,Load test,UC-005,MVP,SPECIFIED,Slower than AS-IS - deliberate trade
+NFR-PERF-02,NFR,performance,Admin save completes P95 under 2s,Must,AMB,AMB-005,questions-log.md#AMB-005,Load test,UC-001,MVP,SPECIFIED,
+NFR-PERF-03,NFR,performance,Page editor interactive P95 under 2s,Must,AMB,AMB-005,questions-log.md#AMB-005,Load test,UC-001,MVP,SPECIFIED,
+NFR-SEC-AUTH,NFR,security,Google OIDC with no password storage or reset flow,Must,SKILL02-S7,mandatory-card,SKILL.md#7,Security audit,UC-004,MVP,SPECIFIED,MANDATORY CARD - user authentication
+NFR-SEC-PII,NFR,security,Personal data access-restricted by role and never exposed to guest,Must,SKILL02-S7,mandatory-card,SKILL.md#7,Security audit,UC-004,MVP,SPECIFIED,MANDATORY CARD - personal data storage
+NFR-SEC-SANITIZE,NFR,security,All rich content sanitised before rendering,Must,BR,BR-021,BUSINESS-REQUIREMENTS.md#BR-021,Security test + code review,UC-001,MVP,SPECIFIED,RISK-005 XSS
+NFR-SEC-UPLOAD,NFR,security,Uploads validated on declared type actual content type and size and stored outside executable paths,Must,BR,BR-022,BUSINESS-REQUIREMENTS.md#BR-022,Security test,UC-006,MVP,SPECIFIED,RISK-006
+NFR-SEC-CHANNEL,NFR,security,TLS on all external calls and ingest bearer secret scope-limited,Must,SKILL02-S7,mandatory-card,SKILL.md#7,Security audit,UC-005,MVP,SPECIFIED,MANDATORY CARD - external channels
+NFR-SEC-SESSION,NFR,security,Session cookies httpOnly secure sameSite with one defined TTL,Must,GAP,AMB-006,questions-log.md#AMB-006,Security audit,UC-004,MVP,SPECIFIED,BLOCKED ON AMB-006 - AS-IS says 1 day and 30 days
+NFR-AVAIL-01,NFR,availability,Best effort with no uptime SLA committed,Must,PM,Q7,planning/questions-log.md#Q7,Review - declaration of no SLA,UC-005,MVP,SPECIFIED,
+NFR-AVAIL-02,NFR,availability,Reader pages servable from cache during brief database unavailability,Should,DERIVED,-,-,Failure-injection test,UC-005,MVP,SPECIFIED,Regression - AS-IS pages survive backend outage
+NFR-SCALE-01,NFR,scalability,200 pages per language 10 concurrent editors internal reader volume,Must,GAP,G-03,questions-log.md#G-03,Load test + architecture review,UC-001,MVP,SPECIFIED,Default applied without query
+NFR-COMPAT-01,NFR,compatibility,Reader works on current Chrome Edge Firefox Safari including mobile,Must,GAP,G-04,questions-log.md#G-04,Cross-browser test,UC-005,MVP,SPECIFIED,Default applied without query
+NFR-COMPAT-02,NFR,compatibility,Admin console works on current Chrome and Edge desktop-first,Must,GAP,G-04,questions-log.md#G-04,Cross-browser test,UC-001,MVP,SPECIFIED,Mobile admin not required
+NFR-OPS-AUDIT,NFR,operations,Audit trail retained at least 1 year append-only,Must,SKILL02-S7,mandatory-card,SKILL.md#7,Operational audit,UC-001,MVP,SPECIFIED,MANDATORY CARD - audit logs
+NFR-OPS-BACKUP,NFR,operations,Daily database backup with restore verified before go-live,Must,BR,BR-027,BUSINESS-REQUIREMENTS.md#BR-027,Backup inspection + restore drill,UC-001,MVP,SPECIFIED,Replaces implicit git backup lost at migration
+NFR-OPS-VERSION,NFR,operations,Retain at least the last 20 versions of each page,Should,BR,BR-024,BUSINESS-REQUIREMENTS.md#BR-024,Schema review,UC-001,MVP,SPECIFIED,
+NFR-I18N-01,NFR,i18n,Translation coverage 100 percent measured as published version exists in all three locales,Must,AMB,AMB-002,questions-log.md#AMB-002,Translation status screen,UC-007,MVP,SPECIFIED,Staleness tracked separately not a coverage breach
+NFR-EXT-01,NFR,extensibility,New managed entity types addable without reworking schema or editor core,Must,PM,Q1,planning/questions-log.md#Q1,Architecture review,UC-002,MVP,SPECIFIED,From PM next time have more
+CONST-TECH-01,CONST,technology,Next.js 15 React 19 TypeScript retained as frontend base,Must,PM,Q8,planning/questions-log.md#Q8,Architecture review,-,MVP,SPECIFIED,
+CONST-TECH-02,CONST,technology,Vercel retained as hosting,Must,PM,Q8,planning/questions-log.md#Q8,Architecture review,-,MVP,SPECIFIED,
+CONST-TECH-03,CONST,technology,Content model is a block schema not MDX,Must,PM,Q2,planning/questions-log.md#Q2,Architecture review + ADR,-,MVP,SPECIFIED,MDX is code and would not remove the bottleneck
+CONST-TECH-04,CONST,technology,Block vocabulary limited to 8-10 types,Must,PM,Q-block,planning/questions-log.md#Q-block,Schema review,-,MVP,SPECIFIED,Reduced from 32 in AS-IS
+CONST-OPS-01,CONST,operations,Never bulk-edit content with Windows PowerShell 5.1 due to UTF-8 codepage corruption,Must,ASIS,CLAUDE.md:152,-,Tooling review,-,MVP,SPECIFIED,Corrupts em-dash Korean and Khmer - binding on migration tooling
+CONST-OPS-02,CONST,operations,Legacy hash URLs must keep resolving,Must,ASIS,LegacyHashRedirect.tsx:11-21,-,E2E test,-,MVP,SPECIFIED,
+CONST-OPS-03,CONST,operations,Database authoritative from cutover with site branch deployable as rollback until sign-off,Must,GAP,G-12,questions-log.md#G-12,Release review,-,MVP,SPECIFIED,Default applied without query
+CONST-SEC-01,CONST,security,Separate security ADR mandatory in Skill 3,Must,SKILL01-S6,pii-triggered,planning/PROJECT-PROPOSAL.md#12,ADR review,-,MVP,SPECIFIED,Triggered by personal data processing
+CONST-PROC-01,CONST,process,Gate approvals recorded by a human never by the AI,Must,STANDARD,4.8-CQ3,HARNESS-PROCESS-STANDARD.md#4.8,Gate record inspection,-,MVP,SPECIFIED,
+CONST-RES-01,CONST,resourcing,One part-time developer - scope shippable in independently valuable slices,Must,PM,Q8,planning/questions-log.md#Q8,Plan review,-,MVP,SPECIFIED,jex2.0 5 pages is the pilot
+FR-WORKFLOW-001,FR,workflow,Draft to Review to Publish approval workflow with author and publisher roles,Won't,AMB,AMB-001,questions-log.md#AMB-001,-,-,PHASE2,EXCLUDED,Requires a second editor which does not yet exist
+FR-SEARCH-001,FR,reader,Full-text search across documentation,Won't,GAP,G-10,questions-log.md#G-10,-,-,PHASE2,EXCLUDED,No search exists today and it does not serve the Q2 driver
+FR-PUBLIC-001,FR,auth,Anonymous guest reading of public pages,Won't,PM,Q4,planning/questions-log.md#Q4,-,-,PHASE2,EXCLUDED,Keeps migration and public exposure from landing together
+FR-SECTION-001,FR,navigation,Create and delete whole sections from the admin console,Won't,PM,Q5,planning/questions-log.md#Q5,-,-,PHASE2,EXCLUDED,Remains a developer task
+FR-USAGE-001,FR,ops,Migrate ai-usage from Google Sheets into the database,Won't,AMB,AMB-004,questions-log.md#AMB-004,-,-,PHASE2,EXCLUDED,Supersedes the Q6 answer - does not reduce the content bottleneck
