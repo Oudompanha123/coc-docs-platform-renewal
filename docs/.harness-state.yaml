@@ -1,0 +1,28 @@
+# Harness project state file (docs/.harness-state.yaml)
+# Rules (HARNESS-PROCESS-STANDARD v1.2 / specs/2026-06-12-harness-assistant-design.md §3):
+#   1. Gate approved + approver must be recorded by a human (no arbitrary AI approval — §4.8 CQ3)
+#   2. Files are the source of truth, state is a hint — /08-harness cross-checks against actual deliverables and proposes corrections
+#   3. Tracked in git (team sharing / history)
+
+harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
+project: "{project name}"
+current_step: "01"              # Setup §0 complete (package, git init, L1 hook verified 2026-09-08); entering Skill 1
+
+steps:
+  "01": { status: in_progress, at: 2026-09-08 }   # status: not_started | in_progress | done
+  "02": { status: not_started }   # when done, add outputs_verified: true, at: YYYY-MM-DD
+  "03": { status: not_started }
+  "04": { status: not_started }   # Runs repeatedly per sprint (each sprint is tracked via docs/sprints/ logs)
+  "05": { status: not_started }
+  "06": { status: not_started }
+
+gates:
+  G1: { status: not_reached }     # status: not_reached | pending | approved
+  G2: { status: not_reached }     # when approved: approver: "name", at: YYYY-MM-DD (recorded by a human)
+  G3: { status: not_reached }
+
+last_audit:                       # Updated by /08-harness audit mode
+  date: 2026-09-08
+  score: 96
+  verdict: WARN                   # PASS | WARN | FAIL
+  report: reviews/standard-validation-20260908-r2.md  # reviews/standard-validation-{YYYYMMDD}.md
