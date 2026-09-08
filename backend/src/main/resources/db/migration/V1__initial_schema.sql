@@ -9,7 +9,6 @@
 --   translation coverage -> derivable, not compiler-enforced  // req: NFR-I18N-01
 --   backup               -> operational, see NFR-OPS-BACKUP
 
-begin;
 
 -- ---------------------------------------------------------------------------
 -- Enums
@@ -214,4 +213,3 @@ left join published pub on pub.page_id = p.id and pub.locale = l.locale
 left join en_current e   on e.page_id = p.id
 where p.deleted_at is null;
 
-commit;

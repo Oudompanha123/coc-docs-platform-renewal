@@ -1,2 +1,15 @@
-# Upstream harness package clone — reference only, never a project deliverable (VS-001)
+# Upstream harness package clone — reference only (VS-001)
 harness-standards/
+
+# Backend
+backend/target/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Local env — never commit credentials (L1 gitleaks also blocks these)
+.env
+.env.local
+*.local.yml
