@@ -1,6 +1,23 @@
 # ADR-001: Technology Stack
 
 ## Status
+**SUPERSEDED IN PART** by [ADR-012](ADR-012-revision-of-001-backend-stack.md) — 2026-09-08, same day.
+
+> **Do not read the stack sections below as current.** This ADR listed language, framework and runtime as *"Already fixed, not under evaluation"*, citing `CONST-TECH-01` — a constraint that had been **inferred rather than asked** (recorded as `Q11 — DERIVED`), written into the requirements, and then cited here as grounds for skipping the comparison. The PM's Q1 wording, *"I want to separate have backend, front end"*, in fact meant two services, and the organisation's baseline language is Java (§5.7).
+>
+> | Section | Status |
+> |---|---|
+> | Language / framework / runtime | **Superseded** — Java 21 · Spring Boot 3.4 · Maven backend + Next.js frontend (ADR-012 §1) |
+> | Decision 1 — Database | **Reopened** — the 1.8% Supabase win rested on JavaScript-SDK bundling a Spring backend will not use (ADR-012 §2) |
+> | Decision 2 — Object storage | **Reopened** — provider deferred; the S3 API is fixed as the abstraction (ADR-012 §2) |
+> | Decision 3 — Editor library (BlockNote) | **Still valid** — a frontend decision, unaffected |
+> | Rejected alternatives (MDX, off-the-shelf CMS, git-backed) | **Still valid** |
+>
+> Retained unedited as the record of how the decision was actually made, including the error.
+
+---
+
+## Original Status (as recorded 2026-09-08, before revision)
 **ACCEPTED** — 2026-09-08.
 
 Two of the three decisions fell inside the <10% runner-up margin, so PM approval was mandatory (Skill 03 §2). Both were put to the PM and confirmed:

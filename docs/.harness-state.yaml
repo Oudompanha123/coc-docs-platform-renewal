@@ -6,19 +6,19 @@
 
 harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
 project: "Coc Docs Platform"
-current_step: "04"              # G2 approved 2026-09-08; Sprint 1 (pilot) in progress
+current_step: "03"              # reopened — backend stack changed after G2; see ADR-012
 
 steps:
   "01": { status: done, outputs_verified: true, at: 2026-09-08 }
   "02": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "03": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "04": { status: in_progress, at: 2026-09-08, sprint: 1 }   # Runs repeatedly per sprint (docs/sprints/ logs)
+  "03": { status: in_progress, at: 2026-09-08, awaiting: "ADR-012 + G2 re-approval" }  # reopened: stack premise changed
+  "04": { status: paused, at: 2026-09-08, note: "T2/T5 delivered; paused pending revised design" }
   "05": { status: not_started }
   "06": { status: not_started }
 
 gates:
   G1: { status: approved, approver: "Socheat-Hun", at: 2026-09-08, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
-  G2: { status: approved, approver: "Socheat-Hun", at: 2026-09-08, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
+  G2: { status: pending }         # REVERTED 2026-09-08 — approved against a single-service Next.js design; PM subsequently specified a two-service architecture with a Spring Boot backend. The approved design no longer matches the actual design. Re-approval required after ADR-012.
   G3: { status: not_reached }
 
 last_audit:                       # Updated by /08-harness audit mode

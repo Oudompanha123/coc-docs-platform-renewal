@@ -222,8 +222,12 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 
 | REQ-ID | Constraint | Basis |
 |--------|------|------|
-| CONST-TECH-01 | Next.js 15 / React 19 / TypeScript retained as the frontend base | Proposal §8 |
-| CONST-TECH-02 | Vercel retained as hosting | Proposal §8 |
+| CONST-TECH-01 | Next.js 15 / React 19 / TypeScript retained **as the frontend** — presentation only, no database access | Proposal §8, ADR-012 |
+| CONST-TECH-02 | Vercel retained as **frontend** hosting | Proposal §8, ADR-012 |
+| **CONST-TECH-05** | **Two-service architecture**: a Spring Boot backend exposing a versioned REST API, and a Next.js frontend consuming it. The frontend holds no database credentials and enforces no authorisation | PM, 2026-09-08 (ADR-012 §1) |
+| **CONST-TECH-06** | **Backend is Java 21 · Spring Boot 3.4 · Maven** — the organisation's baseline language (HARNESS-PROCESS-STANDARD §5.7) | PM, 2026-09-08 (ADR-012 §1) |
+| **CONST-TECH-07** | All validation and authorisation are **authoritative in the backend**. Client-side validation is advisory only and no write path may depend on it | ADR-012 §3 |
+| **CONST-TECH-08** | Database access targets **plain PostgreSQL 15+** via JDBC with Flyway migrations; object storage is accessed through the **S3 API**. No provider-proprietary features, so the provider remains replaceable while hosting is undecided | ADR-012 §2 |
 | CONST-TECH-03 | Content model is a **block schema**, not MDX. MDX is code, and would leave non-technical editors as blocked as today | Q2 driver, proposal §11 |
 | CONST-TECH-04 | Block vocabulary limited to 8–10 types | Q-block decision; largest cost lever |
 | **CONST-OPS-01** | Content must **never** be bulk-edited with Windows PowerShell 5.1 (`Get-Content`/`-replace`/`Set-Content`) — it reads UTF-8 as the Korean system codepage and corrupts em-dashes, Korean and Khmer text. Binding on all migration tooling | `CLAUDE.md:152` |
@@ -275,6 +279,19 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | Date | Version | Changes | Author |
 |------|------|----------|--------|
 | 2026-09-08 | 1.0 | Initial specification. 70 requirements, 7 use cases, 0 orphans. 3 contradictions and 12 gaps resolved | Socheat-Hun (PM) |
+| 2026-09-08 | **1.1** | **Amends the G1-approved baseline.** `CONST-TECH-01/02` scoped to the frontend; `CONST-TECH-05/06/07/08` added for the two-service Spring Boot architecture. See §7.1 | `architect` per PM decision |
+
+### 7.1 Amendment to an Approved Baseline — 2026-09-08
+
+Version 1.0 was **approved at G1** on 2026-09-08. Version 1.1 changes it the same day, which requires stating plainly what happened.
+
+**Cause**: `CONST-TECH-01` was never supplied by the PM. It was inferred during Skill 01 (recorded as `Q11 — DERIVED`, not asked), written into this document as a constraint, and subsequently cited in ADR-001 as grounds for not comparing stack candidates. The PM's Q1 wording — *"I want to separate have backend, front end"* — meant two services, not "content separated from code". The organisation's baseline language is Java (HARNESS-PROCESS-STANDARD §5.7), which should have prompted the question and did not.
+
+**Effect on the approved baseline**: no functional or non-functional requirement changed. All 53 FR, 21 NFR and 7 use cases stand exactly as approved — they were written in terms of *what the system does*, not how it is built, which is why the change is containable. Only the technology constraints move.
+
+**Consequence**: **G2 has been reverted to `pending`.** It was approved against a single-service design that no longer describes the system. G1 remains valid, since the requirements it approved are unchanged.
+
+**Open and blocking G2 re-approval**: backend hosting target is `[DEFERRED]` (PM, 2026-09-08), and the database and storage providers are coupled to it. `CONST-TECH-08` exists so that deferral is safe rather than merely postponed — the design stays provider-portable in the meantime.
 
 ---
 
