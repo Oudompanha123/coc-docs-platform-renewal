@@ -5,11 +5,11 @@
 #   3. Tracked in git (team sharing / history)
 
 harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
-project: "{project name}"
+project: "Coc Docs Platform"
 current_step: "01"              # Setup §0 complete (package, git init, L1 hook verified 2026-09-08); entering Skill 1
 
 steps:
-  "01": { status: in_progress, at: 2026-09-08 }   # status: not_started | in_progress | done
+  "01": { status: in_progress, at: 2026-09-08, outputs_written: true, pm_review: pending }
   "02": { status: not_started }   # when done, add outputs_verified: true, at: YYYY-MM-DD
   "03": { status: not_started }
   "04": { status: not_started }   # Runs repeatedly per sprint (each sprint is tracked via docs/sprints/ logs)
