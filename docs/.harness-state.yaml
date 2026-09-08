@@ -10,7 +10,7 @@ current_step: "02"              # Skill 1 deliverables accepted; requirements de
 
 steps:
   "01": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "02": { status: done, outputs_verified: true, at: 2026-09-08 }   # G1 approval still required before Skill 3
+  "02": { status: in_progress, outputs_verified: true, at: 2026-09-08, awaiting: G1 }  # deliverables complete; Skill 02 DoD also requires G1 (human)
   "03": { status: not_started }
   "04": { status: not_started }   # Runs repeatedly per sprint (each sprint is tracked via docs/sprints/ logs)
   "05": { status: not_started }

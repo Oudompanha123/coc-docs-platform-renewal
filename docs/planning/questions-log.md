@@ -556,7 +556,7 @@ requirements and design before G1 and G2. Stronger than self-approval. Approver 
 recorded by a human in `docs/.harness-state.yaml` — the AI must never record a gate approval
 (§4.8 CQ3).
 
-## Block vocabulary decision — **CUT TO ~8-10 CORE BLOCKS**
+## Q-block-vocabulary — Block vocabulary decision — **CUT TO ~8-10 CORE BLOCKS**
 The largest cost lever in the project. Today: **32 distinct block types**, 81 tables, 183
 copyable code blocks. Each block type in a WYSIWYG needs both an editing UI and a renderer, so
 32 types is a small CMS build — not viable solo/part-time. Accepted consequence: some pages will
