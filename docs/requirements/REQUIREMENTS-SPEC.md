@@ -260,7 +260,7 @@ Detailed flows: `use-cases/UC-NNN.md`.
 | AMB-003 | Usability measure (G-01) | A: unassisted task test / B: time-boxed / C: both / D: defer | **A** | RESOLVED |
 | AMB-004 | ai-usage migration scope (C-03) | A: defer to phase 2 / B: MVP / C: remove from platform | **A** — supersedes the Q6 answer | RESOLVED |
 | AMB-005 | Performance target (G-02) | A: P95<1s / B: P95<500ms / C: admin only / D: measure baseline | **A** | RESOLVED |
-| AMB-006 | Session TTL — `lib/auth.ts:9` says 1 day, `CLAUDE.md:172` says 30 days | A: 1 day / B: 30 days / C: other | Awaiting — inherited AS-IS defect | **PENDING → Skill 3** |
+| AMB-006 | Session TTL — `lib/auth.ts:9` says 1 day, `CLAUDE.md:172` says 30 days | A: 1 day / B: 30 days / C: other | **A — 1 day.** The code is authoritative; the documentation is stale | **RESOLVED** (Skill 3, 2026-09-08) |
 
 **Zero `[AMBIGUOUS]` items block G1.** AMB-006 is an inherited defect in the existing system, not a gap in these requirements; it must be settled before the session model is designed.
 
