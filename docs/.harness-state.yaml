@@ -6,19 +6,19 @@
 
 harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
 project: "Coc Docs Platform"
-current_step: "03"              # G1 approved 2026-09-08; design phase
+current_step: "04"              # G2 approved 2026-09-08; Sprint 1 (pilot) in progress
 
 steps:
   "01": { status: done, outputs_verified: true, at: 2026-09-08 }
   "02": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "03": { status: in_progress, outputs_verified: true, at: 2026-09-08, awaiting: G2 }
-  "04": { status: not_started }   # Runs repeatedly per sprint (each sprint is tracked via docs/sprints/ logs)
+  "03": { status: done, outputs_verified: true, at: 2026-09-08 }
+  "04": { status: in_progress, at: 2026-09-08, sprint: 1 }   # Runs repeatedly per sprint (docs/sprints/ logs)
   "05": { status: not_started }
   "06": { status: not_started }
 
 gates:
   G1: { status: approved, approver: "Socheat-Hun", at: 2026-09-08, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
-  G2: { status: not_reached }     # when approved: approver: "name", at: YYYY-MM-DD (recorded by a human)
+  G2: { status: approved, approver: "Socheat-Hun", at: 2026-09-08, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
   G3: { status: not_reached }
 
 last_audit:                       # Updated by /08-harness audit mode
@@ -36,3 +36,9 @@ last_audit:                       # Updated by /08-harness audit mode
 #   so the audit trail states what actually happened rather than implying
 #   direct entry. If strict compliance is wanted, the PM should re-record this
 #   line themselves, or amend §4.8 to permit transcription with attribution.
+#
+# G2 recording note (2026-09-08)
+#   Same provenance as G1: typed by the AI, transcribing the PM's explicit
+#   in-session instruction. §4.5 requires PM + architect for G2; on a solo
+#   project the PM holds both roles, which is a weaker control than the gate
+#   assumes. Recorded here so that is visible rather than implied.
