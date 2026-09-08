@@ -284,4 +284,4 @@ Required before Skill 3. Approver: PM (Socheat-Hun), with colleague review of th
 
 | Date | Approver | Comments | Status |
 |------|--------|------|------|
-| | | | **PENDING** |
+| 2026-09-08 | Socheat-Hun (PM) | Approved by in-session instruction. Recorded by the AI on the PM's explicit direction; see the note in `docs/.harness-state.yaml`. Colleague review (proposal §12) not evidenced at time of approval. | **APPROVED** |

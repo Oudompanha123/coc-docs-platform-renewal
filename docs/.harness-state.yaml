@@ -6,18 +6,18 @@
 
 harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
 project: "Coc Docs Platform"
-current_step: "02"              # Skill 1 deliverables accepted; requirements definition in progress
+current_step: "03"              # G1 approved 2026-09-08; design phase
 
 steps:
   "01": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "02": { status: in_progress, outputs_verified: true, at: 2026-09-08, awaiting: G1 }  # deliverables complete; Skill 02 DoD also requires G1 (human)
+  "02": { status: done, outputs_verified: true, at: 2026-09-08 }
   "03": { status: not_started }
   "04": { status: not_started }   # Runs repeatedly per sprint (each sprint is tracked via docs/sprints/ logs)
   "05": { status: not_started }
   "06": { status: not_started }
 
 gates:
-  G1: { status: pending }         # awaiting HUMAN approval — AI must never record this (§4.8 CQ3)
+  G1: { status: approved, approver: "Socheat-Hun", at: 2026-09-08, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
   G2: { status: not_reached }     # when approved: approver: "name", at: YYYY-MM-DD (recorded by a human)
   G3: { status: not_reached }
 
@@ -26,3 +26,13 @@ last_audit:                       # Updated by /08-harness audit mode
   score: 96
   verdict: WARN                   # PASS | WARN | FAIL
   report: reviews/standard-validation-20260908-r2.md  # reviews/standard-validation-{YYYYMMDD}.md
+
+# G1 recording note (2026-09-08)
+#   HARNESS-PROCESS-STANDARD §4.5/§4.8 CQ3 and CONST-PROC-01 specify that gate
+#   approval is "recorded directly by a human". This entry was typed by the AI,
+#   transcribing the PM's explicit in-session instruction ("approve G1 and
+#   continue"), given after the AI twice flagged that it must not self-approve.
+#   The approval decision is the PM's; the keystrokes are not. Recorded this way
+#   so the audit trail states what actually happened rather than implying
+#   direct entry. If strict compliance is wanted, the PM should re-record this
+#   line themselves, or amend §4.8 to permit transcription with attribution.
