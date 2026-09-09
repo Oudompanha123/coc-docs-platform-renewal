@@ -35,8 +35,8 @@ If the determination is ambiguous, show both Package mode and Project mode candi
 
 ### 2.1 Package Inventory
 
-- 8 skills exist: `01-plan-project` ~ `06-finalize-deliverables`, `07-validate-standard`, `08-harness`
-- Every skill (01~07, 08-harness) has `lead_agent` and `support_agents` frontmatter matching actual agent files
+- 9 skills exist: `01-plan-project` ~ `06-finalize-deliverables`, `07-validate-standard`, `08-harness`, `09-dev-workflow`
+- Every skill (01~07, 08-harness, 09-dev-workflow) has `lead_agent` and `support_agents` frontmatter matching actual agent files
 - The Skill catalog tables in README / PACKAGE-INDEX / PROCESS match each SKILL frontmatter's lead/support
 - 13 standard agents exist, each including frontmatter
 - Currently shipped assets (templates / example CSVs / active agent docs) match the current standard agent names (`backend-developer`, `frontend-developer`, `qa-engineer`), and no deprecated aliases (`java-porter`, `parity-tester`) remain

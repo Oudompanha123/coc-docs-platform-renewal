@@ -1,8 +1,8 @@
 # Standard Harness Process for IT Development Projects (Harness Process Standard)
 
-> **Version**: 1.5
+> **Version**: 1.6
 > **Date written**: 2026-05-29
-> **Last updated**: 2026-06-15
+> **Last updated**: 2026-09-09
 > **Basis**: One-month field validation on the Société Générale Gateway (sg-gw) C → Java/Spring Boot 3 migration + the attached standard harness composition proposal
 > **Scope**: New or renewal IT development projects (backend, full-stack, migration, data)
 > **Collaboration model**: Team-with-Leader (defined in §4 of this document)
@@ -11,7 +11,7 @@
 
 ## 0. Position of This Document
 
-This document is the master definition of the **standard development harness process**. It organizes the assets field-validated over one month on the sg-gw project into 8 standard skills (6 execution skills + 1 validation skill + 1 validation remediation guide) and a 5-step usage flow.
+This document is the master definition of the **standard development harness process**. It organizes the assets field-validated over one month on the sg-gw project into 9 standard skills (6 execution skills + 1 validation skill + 1 validation remediation guide + 1 developer workflow skill) and a 5-step usage flow.
 
 | sg-gw validated asset | Where it is reflected in this standard |
 |----------------|--------------------|
@@ -80,7 +80,7 @@ harness-standards/                          # Root of this package
 ├── PACKAGE-INDEX.md                        # Full asset catalog
 ├── README.md                               # Entry point + application guide
 ├── .claude/                                # AI tool assets (copied on download)
-│   ├── skills/                             # 8 standard skills (6 execution + 1 validation + 1 assistant)
+│   ├── skills/                             # 9 standard skills (6 execution + 1 validation + 1 assistant + 1 dev workflow)
 │   │   ├── 01-plan-project/
 │   │   │   └── SKILL.md
 │   │   ├── 02-define-requirements/
@@ -95,7 +95,9 @@ harness-standards/                          # Root of this package
 │   │   │   └── SKILL.md
 │   │   ├── 07-validate-standard/
 │   │   │   └── SKILL.md
-│   │   └── 08-harness/
+│   │   ├── 08-harness/
+│   │   │   └── SKILL.md
+│   │   └── 09-dev-workflow/
 │   │       └── SKILL.md
 │   └── agents/                             # Team agent definitions (13 types)
 │       ├── _team-leader.md
@@ -178,7 +180,7 @@ chmod +x .git/hooks/pre-commit
 
 ---
 
-## 3. Specifications of the 8 Standard Skills (6 execution + 1 validation + 1 assistant)
+## 3. Specifications of the 9 Standard Skills (6 execution + 1 validation + 1 assistant + 1 dev workflow)
 
 Each skill follows the `.claude/skills/<id>/SKILL.md` format (Claude Code Skill spec). The same SKILL.md can also be injected as a system prompt into other AI tools such as Codex and Cursor.
 
@@ -196,6 +198,7 @@ When each Skill runs, a `lead_agent` acts as the single owner while `support_age
 | `06-finalize-deliverables` | `docs-writer` | `architect`, `qa-engineer`, `security-auditor`, `trace-mapper` |
 | `07-validate-standard` | `code-reviewer` | `security-auditor`, `trace-mapper`, `docs-writer` |
 | `08-harness` | `team-leader` | `code-reviewer`, `docs-writer` |
+| `09-dev-workflow` | `team-leader` | `code-reviewer`, `docs-writer` |
 
 If the project has a role not covered by the standard agents, a dedicated agent may be added to the project-local `.claude/agents/` after PM approval. However, `write_dirs`, `phase`, `recommended_llm`, and the assigned Skill must be declared in the frontmatter, and if its write scope overlaps with an existing agent, `07-validate-standard` records it as WARN or higher.
 
@@ -496,7 +499,7 @@ Sprint start
 
 **Procedure**
 1. **Mode detection** — Identify whether this is the standard package root or an actual project root
-2. **Inventory validation** — Confirm the presence of 8 skills / 13 agents / 21 templates / 3 hooks / 2 scripts
+2. **Inventory validation** — Confirm the presence of 9 skills / 13 agents / 21 templates / 3 hooks / 2 scripts
 3. **Gate validation** — Check G1 / G2 / G3 approvers, required deliverables, and DoD
 4. **Guardrail validation** — Check L1 bypass approval evidence, L2 AI audit TODO pass status, and the L3 prod gate
 5. **Team-with-Leader validation** — Check Leader responsibilities, write_dirs, conflict prevention, and communication log rules
@@ -524,6 +527,38 @@ Sprint start
 **Principles**: Reuse existing skills without modification (thin dispatcher). Gate approval records are human-only (§4.8 CQ3). Files are the truth; state is a hint.
 **Output**: `docs/.harness-state.yaml` (new-project mode) / `reviews/standard-validation-{YYYYMMDD}.md` (audit mode, via /07)
 **Details**: `.claude/skills/08-harness/SKILL.md` · design document `docs/specs/2026-06-12-harness-assistant-design.md`
+
+---
+
+### 3.9 Skill 9 — Developer Workflow (start · ship · status)
+
+**Skill ID**: `09-dev-workflow`
+**Activation condition (when_to_use)**: Whenever a developer starts a piece of work, is ready to open a pull request, or wants to see where their work stands.
+**Nature**: A repeating **operational** skill, run many times per sprint inside Skill 4. Not a phase, and not a replacement for Skill 4.
+
+**Why it exists**: Skills 1–6 describe *what* a project produces. None of them describe the loop a developer actually repeats twenty times a sprint — branch, commit, check, push, review, merge — or how that loop stays in step with a task board. On a solo project that gap is harmless. With a team on protected branches it is where the process quietly stops being followed, because the correct path takes six commands across two systems and the wrong path takes one.
+
+**Three commands**
+
+| Command | Does |
+|---|---|
+| `start` | Pick an assigned task → verify a clean tree → pull the integration branch → create a branch named from the task → set the task in-progress |
+| `ship` | Refuse if on a protected branch → **run the same checks CI runs** → draft a Conventional Commits message → commit, push, open the PR → post the PR link to the task and move it to review |
+| `status` | Read-only. My tasks, my open PRs and their CI state, PRs awaiting my review, uncommitted work I have forgotten |
+
+**Principles**
+- **Show the plan, confirm once, then run.** One approval per command, not per step — but never silent action across two systems.
+- **Fail locally before failing in CI.** A branch that fails its own build must not be pushed.
+- **The board reflects the code.** A task in-progress with no branch, or a merged PR with an untouched task, is a lie the next person untangles.
+- **Degrade, never fail.** No `gh` → push and print the PR URL, and *say* that is what happened. No task board → skip those steps and say so once. The skill works on a bare repository.
+
+**Project-configurable** (§9 of the skill): integration branch, release branch, commit convention, pre-flight commands and task board are all read from the project — chiefly `CONTRIBUTING.md`. A project changes the behaviour by changing its own conventions, not by editing the skill.
+
+**Output deliverables**: a feature branch and a pull request; the task board carrying the PR link and its status.
+
+**Definition of Done**: see the skill. In short — pre-flight passed rather than skipped, PR targets the integration branch, and the skill stated plainly whether it opened the PR or only produced its URL.
+
+**Details**: `.claude/skills/09-dev-workflow/SKILL.md`
 
 ---
 
@@ -879,7 +914,7 @@ The final checklist the PM verifies when applying this standard to a new project
 ## 10. Reference Documents
 
 - Package catalog: `PACKAGE-INDEX.md` — **package root only**; §2.1 does not copy it into an adopting project, so this reference does not resolve from `docs/` in a project checkout
-- 8 standard skills: `.claude/skills/` (01~06 execution, 07 validation, 08-harness remediation guide)
+- 9 standard skills: `.claude/skills/` (01~06 execution, 07 validation, 08-harness remediation guide, 09-dev-workflow developer loop)
 - 13 agent definitions: `.claude/agents/*.md`
 - 21 deliverable templates: `templates/`
 - 3-level security hooks: `hooks/`
@@ -893,6 +928,7 @@ The final checklist the PM verifies when applying this standard to a new project
 
 | Version | Date | Content |
 |------|------|------|
+| **1.6** | **2026-09-09** | Added the `09-dev-workflow` developer-loop skill — start · ship · status (9 skills). Covers the branch → commit → check → PR → review loop and keeps a task board in step with the code. Added because Skills 1–6 describe what a project produces but nothing described the loop a developer repeats many times a sprint, which is where process compliance quietly fails on a team using protected branches. **Not yet ratified by the standards committee (§9)** — raised from field use on the Coc Docs Platform project |
 | 1.5 | 2026-06-15 | Renamed `00-harness` → `08-harness`. Redefined its role from "unified entry point" to "post-07-validation remediation guide (final stage of the development flow)" — establishing the order 01~06 development → 07 validation → 08 remediation |
 | 1.4 | 2026-06-12 | Added the frontend-developer agent (web publishing · UI · WCAG — 13 agents). Language-equivalent rule mapping §5.7 (Java·Python·JS/TS·C/C++). AI tool neutrality §5.8. Documented the 3-layer objectivity of compliance verdicts (07 §3.0) |
 | 1.3 | 2026-06-12 | Added the 08-harness validation remediation guide skill (audit guidance · new-project step guidance — 8 skills). Added the HARNESS-STATE state file template (21 templates). Introduced the skill numbering convention (initially 00-) |

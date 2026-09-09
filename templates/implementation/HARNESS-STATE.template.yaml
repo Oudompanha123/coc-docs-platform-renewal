@@ -4,7 +4,7 @@
 #   2. Files are the source of truth, state is a hint — /08-harness cross-checks against actual deliverables and proposes corrections
 #   3. Tracked in git (team sharing / history)
 
-harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
+harness_version: "1.6"          # Standard version in effect (an audit is recommended if it differs from the package version)
 project: "{project name}"
 current_step: "00"              # "00"=before Setup (pre-skill preparation) is complete, then "01"~"06"
 

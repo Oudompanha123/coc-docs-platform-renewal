@@ -4,7 +4,7 @@
 #   2. Files are the source of truth, state is a hint — /08-harness cross-checks against actual deliverables and proposes corrections
 #   3. Tracked in git (team sharing / history)
 
-harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
+harness_version: "1.6"          # Standard version in effect (an audit is recommended if it differs from the package version)
 project: "Coc Docs Platform"
 current_step: "04"              # G2 approved 2026-09-09; Sprint 0 open
 
