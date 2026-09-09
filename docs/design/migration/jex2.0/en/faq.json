@@ -1,0 +1,130 @@
+[
+  { "type": "paragraph", "text": [{ "text": "FAQ" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "When something doesn't work." }] },
+  { "type": "paragraph", "text": [{ "text": "The short answers first — every one of these has bitten someone." }] },
+  {
+    "type": "steps",
+    "items": [
+      {
+        "title": [{ "text": "Login fails with connection refused / timeout" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Studio v2 lives on the internal network only. Check VPN / office network first — then retry " },
+              { "text": "/jex2.0:init", "marks": ["code"] },
+              { "text": " step 4." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "Wrong password — where do I fix it?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Edit " },
+              { "text": ".claude/jex_v2.local.json", "marks": ["code"] },
+              { "text": " (the " },
+              { "text": "PWD", "marks": ["code"] },
+              { "text": " value) and try again. Changed your Studio password recently? Same fix." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "\"jex_project.json not found\"" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Init step 2 was skipped or you opened Claude Code in the wrong folder. Open it at the workspace " },
+              { "text": "root", "marks": ["italic"] },
+              { "text": " (the parent of " },
+              { "text": "*_BT", "marks": ["code"] },
+              { "text": " / " },
+              { "text": "*_ETC", "marks": ["code"] },
+              { "text": ") and run " },
+              { "text": "/jex2.0:init", "marks": ["code"] },
+              { "text": "." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "The tool is blocked before it runs" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "That's the validation hook: " },
+              { "text": "ido_input.sql", "marks": ["code"] },
+              { "text": " is missing or lacks its " },
+              { "text": "SQL:", "marks": ["code"] },
+              { "text": " / " },
+              { "text": "IN:", "marks": ["code"] },
+              { "text": " / " },
+              { "text": "OUT:", "marks": ["code"] },
+              { "text": " sections. The hook message says exactly which part." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "SVN conflict stops everything" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "The pre-update hook refuses to write over a dirty checkout. Resolve the conflict (or " },
+              { "text": "svn revert", "marks": ["code"] },
+              { "text": "), then repeat the request." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "Session expired mid-day?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Nothing to do — the next tool call detects the dead " },
+              { "text": "JSESSIONID_studio20", "marks": ["code"] },
+              { "text": " cookie and re-logs in automatically." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "Can I use jex2.0 and jexmcp3.0 on the same machine?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Yes — install both. They register different MCP servers (" },
+              { "text": "jex2", "marks": ["code"] },
+              { "text": " vs " },
+              { "text": "jex", "marks": ["code"] },
+              { "text": ") and different commands; each workspace uses whichever matches its layout." }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "Where did /install-mcp and /share-mcp go?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Retired with the zip. Installation is " },
+              { "text": "claude plugin install jex2.0@cocweb", "marks": ["code"] },
+              { "text": " now, and sharing = inviting a teammate to the GitHub repo — no more zip passing." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

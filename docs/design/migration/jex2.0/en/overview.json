@@ -1,0 +1,131 @@
+[
+  { "type": "heading", "level": 2, "text": [{ "text": "jex2.0" }] },
+  { "type": "paragraph", "text": [{ "text": "JexStudio v2 automation for CHECKPAY-family projects." }] },
+  { "type": "paragraph", "text": [{ "text": "The zip is retired. It's a plugin now." }] },
+  { "type": "paragraph", "text": [{ "text": "Get started", "link": { "pageId": "jex2.0/get-started" } }] },
+  { "type": "paragraph", "text": [{ "text": "Overview" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "Same engine. No more copying zips." }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "jex2.0 automates IDO work on the " },
+      { "text": "internal JexStudio v2 server", "marks": ["bold"] },
+      { "text": " for " },
+      { "text": "any workspace with the ", "marks": ["bold"] },
+      { "text": "*_BT", "marks": ["bold", "code"] },
+      { "text": " / ", "marks": ["bold"] },
+      { "text": "*_DOMAIN", "marks": ["bold", "code"] },
+      { "text": " / ", "marks": ["bold"] },
+      { "text": "*_PT", "marks": ["bold", "code"] },
+      { "text": " layout", "marks": ["bold"] },
+      { "text": " — DUREADMIN, CHECKPAY, and every future project of that family; the ones " },
+      { "text": "jexmcp3.0", "link": { "pageId": "jex3.0/overview" } },
+      { "text": " doesn't cover. Your project prefix can be anything — " },
+      { "text": "MYPROJ", "marks": ["code"] },
+      { "text": " in these docs stands for it. It replaces the old " },
+      { "text": "jex_mcp_dist.zip", "marks": ["code"] },
+      { "text": " + " },
+      { "text": "setup_jex_mcp.bat", "marks": ["code"] },
+      { "text": " flow: install once from the cocweb marketplace, run " },
+      { "text": "/jex2.0:init", "marks": ["code"] },
+      { "text": " in any CHECKPAY workspace, done." }
+    ]
+  },
+  {
+    "type": "cards",
+    "items": [
+      {
+        "icon": "zap",
+        "title": [{ "text": "Three IDO tools" }],
+        "body": [
+          { "text": "Create, update, and list IDOs straight against the Studio v2 API — " },
+          { "text": "jex_new_ido", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "jex_update_ido", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "jex_read_ido", "marks": ["code"] },
+          { "text": ". No browser, no clicks." }
+        ]
+      },
+      {
+        "icon": "shield",
+        "title": [{ "text": "Guarded by design" }],
+        "body": [
+          { "text": "SVN updates before and after every write, and " },
+          { "text": "ido_input.sql", "marks": ["code"] },
+          { "text": " is validated before any tool runs — same guardrails the dist version had." }
+        ]
+      },
+      {
+        "icon": "refresh-cw",
+        "title": [{ "text": "Session that heals itself" }],
+        "body": [
+          { "text": "Cookie expired? It re-logs into Studio v2 automatically with your stored credentials. You enter the password once, at init." }
+        ]
+      },
+      {
+        "icon": "package",
+        "title": [{ "text": "One install, every project" }],
+        "body": [
+          { "text": "The plugin lives on your machine; each workspace keeps only its own small config + credentials in " },
+          { "text": ".claude/", "marks": ["code"] },
+          { "text": "." }
+        ]
+      }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "jex2.0 or jexmcp3.0 — which one?" }] },
+  {
+    "type": "table",
+    "headers": [[], [{ "text": "jex2.0" }], [{ "text": "jexmcp3.0" }]],
+    "rows": [
+      [
+        [{ "text": "Workspace layout" }],
+        [
+          { "text": "*_BT", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "*_DOMAIN", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "*_ETC", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "*_PT", "marks": ["code"] },
+          { "text": "… (DUREADMIN, CHECKPAY)" }
+        ],
+        [
+          { "text": "PREFIX", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "PREFIX_ETC", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "PREFIX_STATIC", "marks": ["code"] },
+          { "text": " (PLUGIN, LOAN, INSU…)" }
+        ]
+      ],
+      [
+        [{ "text": "JexStudio server" }],
+        [{ "text": "Studio v2 — internal network" }],
+        [{ "text": "jexstudio.coocon.co.kr" }]
+      ],
+      [
+        [{ "text": "Tools" }],
+        [{ "text": "3 (IDO only)" }],
+        [{ "text": "14 (WSVC / IDO / package / clone)" }]
+      ],
+      [
+        [{ "text": "Project config" }],
+        [
+          { "text": "Explicit " },
+          { "text": "jex_project.json", "marks": ["code"] },
+          { "text": ", written by init" }
+        ],
+        [
+          { "text": "Auto-detected from " },
+          { "text": "*_ETC", "marks": ["code"] }
+        ]
+      ]
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": [{ "text": "Both can be installed side by side — each workspace simply uses the one that matches its layout." }]
+  }
+]

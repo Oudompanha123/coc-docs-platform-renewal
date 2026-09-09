@@ -1,0 +1,50 @@
+[
+  { "type": "paragraph", "text": [{ "text": "រចនាសម្ព័ន្ធ" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "អ្វីៗនៅទីណា។" }] },
+  {
+    "type": "paragraph",
+    "text": [{ "text": "ផែនទីពីរ៖ workspace ក្រុម CHECKPAY ជាមួយឯកសារតាម project និង plugin ខ្លួនឯង។" }]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "Workspace របស់អ្នក" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "MYPROJ", "marks": ["code"] },
+      { "text": " = prefix project របស់អ្នក — DUREADMIN, CHECKPAY ឬអ្វីផ្សេង។ " },
+      { "text": "/jex2.0:init", "marks": ["code"] },
+      { "text": " រកឃើញវាពី folders ដែលមានពិត។" }
+    ]
+  },
+  {
+    "type": "code",
+    "language": "text",
+    "copyable": false,
+    "source": "MYPROJ\\                     <- root workspace (បើក Claude Code ទីនេះ)\n├── MYPROJ_BT\\                 batch\n├── MYPROJ_DOMAIN\\             domain logic\n├── MYPROJ_DOMAIN_SVC\\         domain services (បើមាន)\n├── MYPROJ_ETC\\                service XML — Studio commit IDO មកទីនេះ\n├── MYPROJ_PT\\                 presentation\n├── MYPROJ_PT_STATIC\\          static JS / CSS\n├── ido_input.sql                 SQL / IN / OUT — កែតាម IDO នីមួយៗ\n└── .claude\\\n    ├── jex_project.json          HOST · PORT · PRJ_ID · SVR_ID · SVN_DIRS — init សរសេរ\n    ├── jex_v2.json               { USR_ID } — ID login Studio\n    ├── jex_v2.local.json         { PWD } — កុំ commit កុំចែករំលែក\n    ├── jex_cookies2.txt          cookie session Studio v2 (គ្រប់គ្រងស្វ័យប្រវត្តិ)\n    └── tmp\\                      snapshots ពី jex_read_ido"
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "Plugin (ដំឡើងម្តង, Claude Code គ្រប់គ្រង)" }] },
+  {
+    "type": "code",
+    "language": "text",
+    "copyable": false,
+    "source": "jex2.0                        <- ពី marketplace cocweb (branch jex2.0)\n├── commands\\                     init · new-ido · update-ido\n├── scripts\\                      server MCP jex2 + runners Studio v2 (Node)\n├── hooks\\                        validation ido_input.sql · SVN pre/post sync\n└── templates\\                    ឧទាហរណ៍ឯកសារ config"
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "Env overrides" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "អថេរ" }], [{ "text": "ឥទ្ធិពល" }]],
+    "rows": [
+      [
+        [{ "text": "JEX_SVN_ROOT", "marks": ["code"] }],
+        [{ "text": "Override root project (លំនាំដើម៖ folder ដែលបើក Claude Code)" }]
+      ],
+      [
+        [{ "text": "JEX_SKIP_SVN_UPDATE=1", "marks": ["code"] }],
+        [{ "text": "រំលង SVN sync ទាំងអស់ (pre + post)" }]
+      ],
+      [
+        [{ "text": "JEX_SKIP_SVN_PREFLIGHT=1", "marks": ["code"] }],
+        [{ "text": "រំលងតែ pre-sync" }]
+      ]
+    ]
+  }
+]

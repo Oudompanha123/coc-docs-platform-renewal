@@ -1,0 +1,130 @@
+[
+  { "type": "paragraph", "text": [{ "text": "សំណួរញឹកញាប់" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "ពេលអ្វីមួយមិនដំណើរការ។" }] },
+  { "type": "paragraph", "text": [{ "text": "ចម្លើយខ្លីមុនគេ — ទាំងអស់នេះធ្លាប់កើតលើនរណាម្នាក់ម្តងហើយ។" }] },
+  {
+    "type": "steps",
+    "items": [
+      {
+        "title": [{ "text": "Login បរាជ័យ connection refused / timeout" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Studio v2 នៅបណ្តាញខាងក្នុងប៉ុណ្ណោះ។ ពិនិត្យ VPN / បណ្តាញការិយាល័យមុន បន្ទាប់មកព្យាយាមជំហាន 4 នៃ " },
+              { "text": "/jex2.0:init", "marks": ["code"] },
+              { "text": " ម្តងទៀត។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "ពាក្យសម្ងាត់ខុស — កែនៅឯណា?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "កែតម្លៃ " },
+              { "text": "PWD", "marks": ["code"] },
+              { "text": " ក្នុង " },
+              { "text": ".claude/jex_v2.local.json", "marks": ["code"] },
+              { "text": " ហើយព្យាយាមម្តងទៀត។ ទើបប្តូរពាក្យសម្ងាត់ Studio? ដំណោះស្រាយដូចគ្នា។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "\"jex_project.json not found\"" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "ជំហាន 2 នៃ init ត្រូវរំលង ឬអ្នកបើក Claude Code ក្នុង folder ខុស។ បើកនៅ " },
+              { "text": "root", "marks": ["italic"] },
+              { "text": " workspace (មេរបស់ " },
+              { "text": "*_BT", "marks": ["code"] },
+              { "text": " / " },
+              { "text": "*_ETC", "marks": ["code"] },
+              { "text": ") ហើយដំណើរការ " },
+              { "text": "/jex2.0:init", "marks": ["code"] },
+              { "text": "។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "ឧបករណ៍ត្រូវទប់ស្កាត់មុនដំណើរការ" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "នោះជា hook validation៖ " },
+              { "text": "ido_input.sql", "marks": ["code"] },
+              { "text": " បាត់ ឬខ្វះផ្នែក " },
+              { "text": "SQL:", "marks": ["code"] },
+              { "text": " / " },
+              { "text": "IN:", "marks": ["code"] },
+              { "text": " / " },
+              { "text": "OUT:", "marks": ["code"] },
+              { "text": "។ សារ hook ប្រាប់ច្បាស់ថាផ្នែកណា។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "SVN conflict ធ្វើឲ្យអ្វីៗឈប់" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Hook pre-update បដិសេធសរសេរលើ checkout មិនស្អាត។ ដោះស្រាយ conflict (ឬ " },
+              { "text": "svn revert", "marks": ["code"] },
+              { "text": ") រួចធ្វើសំណើម្តងទៀត។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "Session ផុតកំណត់ពាក់កណ្តាលថ្ងៃ?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "មិនបាច់ធ្វើអ្វី — ការហៅឧបករណ៍បន្ទាប់រកឃើញ cookie " },
+              { "text": "JSESSIONID_studio20", "marks": ["code"] },
+              { "text": " ស្លាប់ ហើយ login ឡើងវិញដោយស្វ័យប្រវត្តិ។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "ប្រើ jex2.0 និង jexmcp3.0 លើម៉ាស៊ីនតែមួយបានទេ?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "បាន — ដំឡើងទាំងពីរ។ ពួកវាចុះឈ្មោះ server MCP ខុសគ្នា (" },
+              { "text": "jex2", "marks": ["code"] },
+              { "text": " vs " },
+              { "text": "jex", "marks": ["code"] },
+              { "text": ") និង commands ខុសគ្នា; workspace នីមួយៗប្រើមួយណាដែលត្រូវនឹងការរៀបចំរបស់វា។" }
+            ]
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "/install-mcp និង /share-mcp ទៅណា?" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "ចូលនិវត្តន៍ជាមួយ zip។ ការដំឡើងឥឡូវគឺ " },
+              { "text": "claude plugin install jex2.0@cocweb", "marks": ["code"] },
+              { "text": " ហើយការចែករំលែក = អញ្ជើញមិត្តរួមក្រុមចូល repo GitHub — លែងបញ្ជូន zip ទៀតហើយ។" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
