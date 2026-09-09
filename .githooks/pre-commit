@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Coc Docs Platform — pre-commit.
+# Delegates to the harness L1 secret scan (HARNESS-PROCESS-STANDARD §5.4).
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+exec "$ROOT/hooks/pre-commit-gitleaks.sh"
