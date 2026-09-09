@@ -47,6 +47,28 @@ fi
 command -v mvn  >/dev/null 2>&1 && echo "  [ok]  maven          $(mvn -version 2>/dev/null | head -1 | cut -d' ' -f1-3)" || { echo "  [!!]  maven          NOT FOUND — install Maven 3.9+"; fail=1; }
 command -v node >/dev/null 2>&1 && echo "  [ok]  node           $(node --version)" || echo "  [--]  node           not found (only needed for frontend work)"
 
+# gh, and specifically gh AUTH. Being able to `git push` is not the same as
+# being authenticated to gh — git credentials and GitHub CLI auth are separate
+# stores. Without gh auth, Skill 09 `ship` can only print a PR URL for you to
+# click; it cannot open the pull request. That is the difference between the
+# workflow running and the workflow being a document.
+if command -v gh >/dev/null 2>&1; then
+  if gh auth status >/dev/null 2>&1; then
+    echo "  [ok]  gh             installed and authenticated"
+  else
+    echo "  [!!]  gh             installed but NOT AUTHENTICATED — run: gh auth login"
+    echo "          Pull requests cannot be opened from the terminal until you do."
+    fail=1
+  fi
+else
+  echo "  [!!]  gh             NOT INSTALLED — pull requests must be opened in the browser"
+  echo "          Windows: winget install GitHub.cli"
+  echo "          macOS:   brew install gh"
+  echo "          Linux:   see https://github.com/cli/cli#installation"
+  echo "          Then:    gh auth login"
+  fail=1
+fi
+
 echo ""
 if [ "$fail" -eq 0 ]; then
   echo "Setup complete. You are ready to work."
