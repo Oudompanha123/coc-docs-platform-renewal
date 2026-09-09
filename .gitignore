@@ -4,6 +4,8 @@ harness-standards/
 # Backend
 backend/target/
 backend/.idea/
+# Personal local overrides (real DB/OAuth values) — see application.yml's header.
+backend/src/main/resources/application-local.yml
 
 # Frontend
 frontend/node_modules/

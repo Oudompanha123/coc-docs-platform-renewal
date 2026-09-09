@@ -1,21 +1,25 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
+import { AuthApiError, loginWithGoogleIdToken, requestNonce } from "@/lib/auth/api";
+import { GoogleSignInCancelledError, promptGoogleSignIn } from "@/lib/auth/googleIdentity";
 
 /**
- * Login — UI/validation-only implementation of the approved mockup.
+ * Login — UI/validation-only implementation of the approved mockup, except
+ * for "Continue with Google", which is wired to the real backend
+ * (FR-AUTH-001, FR-AUTH-002, FR-AUTH-007, TM-001; contract: docs/api/openapi.yaml).
  *
  * ADR-008 and ADR-011 make Google OIDC the sole human-facing auth mechanism
  * ("no password stored anywhere") and FR-AUTH-003/UC-004 make accounts
- * admin-provisioned, not self-registered — so this password form has no
- * backend to call. Built anyway per explicit product direction to match the
- * approved mockup pixel-for-pixel; every submit path below is a stub with a
- * TODO, not a real credential check. If this becomes the real flow, ADR-008
- * needs a follow-up revision to match.
+ * admin-provisioned, not self-registered — so the password form still has no
+ * backend to call and remains a stub, per explicit product direction to
+ * match the approved mockup pixel-for-pixel. If password login becomes the
+ * real flow, ADR-008 needs a follow-up revision to match.
  *
  * // req: FR-AUTH-001, FR-AUTH-002, ADR-008, ADR-011 §2.5
  */
@@ -25,6 +29,13 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [googleFeedback, setGoogleFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  // A ref, not state: guards against a second click landing between the
+  // first click and the state update that disables the button (React state
+  // updates are async; this check is synchronous).
+  const googleSignInInFlight = useRef(false);
 
   function validate() {
     const next: typeof errors = {};
@@ -51,12 +62,40 @@ export default function LoginPage() {
     console.info("[stub] Forgot password clicked");
   }
 
-  function handleGoogleSignIn() {
-    // TODO(ADR-012 Decision 1 / ADR-011 §2): the backend owns the OIDC
-    // authorization-code flow and session issuance. Navigate the browser to
-    // its sign-in endpoint once it exists, e.g.
-    // `window.location.href = \`${BACKEND_ORIGIN}/oauth2/authorization/google\`;`
-    console.info("[stub] Continue with Google clicked");
+  async function handleGoogleSignIn() {
+    if (googleSignInInFlight.current) return;
+    googleSignInInFlight.current = true;
+    setIsGoogleSubmitting(true);
+    setGoogleFeedback(null);
+
+    try {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        throw new AuthApiError("Google Sign-In isn't configured for this environment.");
+      }
+
+      // 1. Ask the backend for a one-time nonce (also sets the coc_oidc_nonce
+      //    cookie it will read back below) — TM-001's anti-replay control.
+      const nonce = await requestNonce();
+      // 2. Get a Google ID token for this specific nonce.
+      const idToken = await promptGoogleSignIn({ clientId, nonce });
+      // 3. Hand it to the backend: signature/issuer/audience/nonce verified
+      //    there, never trusted client-side. On success it sets the session
+      //    cookie (FR-AUTH-001, FR-AUTH-007, NFR-SEC-SESSION).
+      const account = await loginWithGoogleIdToken(idToken);
+
+      setGoogleFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+    } catch (err) {
+      if (err instanceof GoogleSignInCancelledError) {
+        // The user closed Google's prompt themselves — not a failure.
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Google sign-in failed. Please try again.";
+      setGoogleFeedback({ type: "error", message });
+    } finally {
+      googleSignInInFlight.current = false;
+      setIsGoogleSubmitting(false);
+    }
   }
 
   return (
@@ -77,8 +116,24 @@ export default function LoginPage() {
         </p>
       }
     >
+      {/* Google Identity Services — loaded here since only this page's Google button needs it. */}
+      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
+
       <h1 className="text-3xl font-extrabold text-ink">Login</h1>
       <p className="mt-2 text-sm text-muted">Please sign in to your account</p>
+
+      {googleFeedback && (
+        <div
+          role="alert"
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            googleFeedback.type === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {googleFeedback.message}
+        </div>
+      )}
 
       <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
         <FormField
@@ -137,10 +192,12 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2"
+          disabled={isGoogleSubmitting}
+          aria-busy={isGoogleSubmitting}
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <GoogleIcon className="h-5 w-5" aria-hidden="true" />
-          Continue with Google
+          {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
         </button>
       </form>
 
