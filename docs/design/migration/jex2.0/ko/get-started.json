@@ -1,0 +1,91 @@
+[
+  { "type": "paragraph", "text": [{ "text": "시작하기" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "3단계. 비밀번호 입력은 한 번." }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "1–2단계는 머신당 한 번, 3단계는 워크스페이스당 한 번. jexmcp3.0을 이미 쓰고 있다면 마켓플레이스는 추가돼 있으니 1단계는 건너뜁니다." }
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "important",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "요구사항:", "marks": ["bold"] },
+          { "text": " Node.js LTS, SVN CLI, 내부망 접속(Studio v2는 외부에서 접근 불가), 비공개 저장소에 초대된 GitHub 계정." }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "steps",
+    "items": [
+      {
+        "title": [{ "text": "cocweb 마켓플레이스 추가" }],
+        "body": [
+          { "type": "paragraph", "text": [{ "text": "머신당 한 번 — jexmcp3.0과 같은 마켓플레이스입니다." }] },
+          {
+            "type": "code",
+            "language": "bash",
+            "source": "claude plugin marketplace add https://github.com/Socheat-Hun/jexmcp3.0.git",
+            "copyable": true
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "플러그인 설치" }],
+        "body": [
+          { "type": "code", "language": "bash", "source": "claude plugin install jex2.0@cocweb", "copyable": true }
+        ]
+      },
+      {
+        "title": [{ "text": "워크스페이스 초기화" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "워크스페이스 루트(" },
+              { "text": "MYPROJ_BT", "marks": ["code"] },
+              { "text": ", " },
+              { "text": "MYPROJ_ETC", "marks": ["code"] },
+              { "text": "… 가 있는 폴더)에서 Claude Code를 열고:" }
+            ]
+          },
+          { "type": "code", "language": "text", "source": "/jex2.0:init", "copyable": true },
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "npm 의존성 설치, " },
+              { "text": ".claude/jex_project.json", "marks": ["code"] },
+              { "text": " 작성, JexStudio ID/비밀번호 1회 입력, 로그인 검증까지 해줍니다. 그 후 " },
+              { "text": "Claude Code를 재시작", "marks": ["bold"] },
+              { "text": "하면 jex2 MCP 서버가 올라옵니다." }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "note",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "확인:", "marks": ["bold"] },
+          { "text": " 재시작 후 " },
+          { "text": "/mcp", "marks": ["code"] },
+          { "text": "에 " },
+          { "text": "jex2", "marks": ["bold"] },
+          { "text": "가 connected로 보여야 합니다. 아니라면 " },
+          { "text": "/jex2.0:init", "marks": ["code"] },
+          { "text": "을 다시 실행하세요 — 뭐가 빠졌는지 정확히 알려줍니다." }
+        ]
+      }
+    ]
+  }
+]

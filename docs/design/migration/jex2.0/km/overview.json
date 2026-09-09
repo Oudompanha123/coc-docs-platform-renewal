@@ -1,0 +1,129 @@
+[
+  { "type": "heading", "level": 2, "text": [{ "text": "jex2.0" }] },
+  { "type": "paragraph", "text": [{ "text": "ស្វ័យប្រវត្តិកម្ម JexStudio v2 សម្រាប់ project ក្រុម CHECKPAY។" }] },
+  { "type": "paragraph", "text": [{ "text": "zip ចូលនិវត្តន៍ហើយ។ ឥឡូវជា plugin។" }] },
+  { "type": "paragraph", "text": [{ "text": "ចាប់ផ្តើម", "link": { "pageId": "jex2.0/get-started" } }] },
+  { "type": "paragraph", "text": [{ "text": "ទិដ្ឋភាពរួម" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "ម៉ាស៊ីនដដែល។ លែងចម្លង zip ទៀតហើយ។" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "jex2.0 ធ្វើស្វ័យប្រវត្តិកម្មការងារ IDO លើ " },
+      { "text": "server JexStudio v2 ខាងក្នុង", "marks": ["bold"] },
+      { "text": " សម្រាប់ " },
+      { "text": "គ្រប់ workspace ដែលមានការរៀបចំ ", "marks": ["bold"] },
+      { "text": "*_BT", "marks": ["bold", "code"] },
+      { "text": " / ", "marks": ["bold"] },
+      { "text": "*_DOMAIN", "marks": ["bold", "code"] },
+      { "text": " / ", "marks": ["bold"] },
+      { "text": "*_PT", "marks": ["bold", "code"] },
+      { "text": " — DUREADMIN, CHECKPAY និង project អនាគតទាំងអស់នៃក្រុមនេះ; ជា project ដែល " },
+      { "text": "jexmcp3.0", "link": { "pageId": "jex3.0/overview" } },
+      { "text": " មិនគ្របដណ្តប់។ Prefix របស់ project ជាអ្វីក៏បាន — " },
+      { "text": "MYPROJ", "marks": ["code"] },
+      { "text": " ក្នុងឯកសារនេះតំណាងវា។ វាជំនួសលំហូរ " },
+      { "text": "jex_mcp_dist.zip", "marks": ["code"] },
+      { "text": " + " },
+      { "text": "setup_jex_mcp.bat", "marks": ["code"] },
+      { "text": " ចាស់៖ ដំឡើងម្តងពី marketplace cocweb ដំណើរការ " },
+      { "text": "/jex2.0:init", "marks": ["code"] },
+      { "text": " ក្នុង workspace CHECKPAY ណាក៏បាន — រួចរាល់។" }
+    ]
+  },
+  {
+    "type": "cards",
+    "items": [
+      {
+        "icon": "zap",
+        "title": [{ "text": "ឧបករណ៍ IDO ៣" }],
+        "body": [
+          { "text": "បង្កើត កែប្រែ និងរាយ IDO ផ្ទាល់ទៅ API Studio v2 — " },
+          { "text": "jex_new_ido", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "jex_update_ido", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "jex_read_ido", "marks": ["code"] },
+          { "text": "។ គ្មាន browser គ្មានការចុច។" }
+        ]
+      },
+      {
+        "icon": "shield",
+        "title": [{ "text": "Guardrails ពីកំណើត" }],
+        "body": [
+          { "text": "SVN update មុននិងក្រោយគ្រប់ការសរសេរ ហើយ " },
+          { "text": "ido_input.sql", "marks": ["code"] },
+          { "text": " ត្រូវ validate មុនឧបករណ៍ដំណើរការ — សុវត្ថិភាពដូច dist ដដែល។" }
+        ]
+      },
+      {
+        "icon": "refresh-cw",
+        "title": [{ "text": "Session ព្យាបាលខ្លួនឯង" }],
+        "body": [
+          { "text": "Cookie ផុតកំណត់? វា login ចូល Studio v2 ឡើងវិញដោយស្វ័យប្រវត្តិ ដោយប្រើព័ត៌មានសម្ងាត់ដែលរក្សាទុក។ បញ្ចូលពាក្យសម្ងាត់តែម្តង ពេល init។" }
+        ]
+      },
+      {
+        "icon": "package",
+        "title": [{ "text": "ដំឡើងម្តង គ្រប់ project" }],
+        "body": [
+          { "text": "Plugin នៅលើម៉ាស៊ីនអ្នក; workspace នីមួយៗរក្សាតែ config តូច + ព័ត៌មានសម្ងាត់ក្នុង " },
+          { "text": ".claude/", "marks": ["code"] },
+          { "text": " ប៉ុណ្ណោះ។" }
+        ]
+      }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "jex2.0 ឬ jexmcp3.0 — មួយណា?" }] },
+  {
+    "type": "table",
+    "headers": [[], [{ "text": "jex2.0" }], [{ "text": "jexmcp3.0" }]],
+    "rows": [
+      [
+        [{ "text": "ការរៀបចំ workspace" }],
+        [
+          { "text": "*_BT", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "*_DOMAIN", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "*_ETC", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "*_PT", "marks": ["code"] },
+          { "text": "… (DUREADMIN, CHECKPAY)" }
+        ],
+        [
+          { "text": "PREFIX", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "PREFIX_ETC", "marks": ["code"] },
+          { "text": ", " },
+          { "text": "PREFIX_STATIC", "marks": ["code"] },
+          { "text": " (PLUGIN, LOAN, INSU…)" }
+        ]
+      ],
+      [
+        [{ "text": "Server JexStudio" }],
+        [{ "text": "Studio v2 — បណ្តាញខាងក្នុង" }],
+        [{ "text": "jexstudio.coocon.co.kr" }]
+      ],
+      [
+        [{ "text": "ឧបករណ៍" }],
+        [{ "text": "៣ (IDO ប៉ុណ្ណោះ)" }],
+        [{ "text": "១៤ (WSVC / IDO / package / clone)" }]
+      ],
+      [
+        [{ "text": "Config project" }],
+        [
+          { "text": "jex_project.json", "marks": ["code"] },
+          { "text": " ច្បាស់លាស់ សរសេរដោយ init" }
+        ],
+        [
+          { "text": "រកឃើញស្វ័យប្រវត្តិពី " },
+          { "text": "*_ETC", "marks": ["code"] }
+        ]
+      ]
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": [{ "text": "អាចដំឡើងទាំងពីរជាមួយគ្នា — workspace នីមួយៗប្រើមួយណាដែលត្រូវនឹងការរៀបចំរបស់វា។" }]
+  }
+]

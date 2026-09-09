@@ -1,0 +1,122 @@
+[
+  { "type": "paragraph", "text": [{ "text": "How to use" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "Write the SQL file. Say what you want." }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "Every IDO operation starts from one file — " },
+      { "text": "ido_input.sql", "marks": ["code"] },
+      { "text": " at the workspace root — and one sentence to Claude. The plugin does the rest: validation, Studio API call, SVN sync." }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "1 · The ido_input.sql format" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "Three sections. " },
+      { "text": "OUT:", "marks": ["code"] },
+      { "text": " only for SELECT; " },
+      { "text": "IN:", "marks": ["code"] },
+      { "text": " optional when there are no bind parameters." }
+    ]
+  },
+  {
+    "type": "code",
+    "language": "text",
+    "source": "SQL:\nSELECT ACCT_NO, ACCT_NM, BAL_AMT\nFROM TB_ACCT\nWHERE MEMB_CD = :MEMB_CD\n\nIN:\nMEMB_CD 회원코드\n\nOUT:\nACCT_NO 계좌번호\nACCT_NM 계좌명\nBAL_AMT 잔액 LONG",
+    "copyable": true
+  },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "Field lines are " },
+      { "text": "ENG_ID 한글명 [TYPE]", "marks": ["code"] },
+      { "text": " — omit the type for VARCHAR, or use " },
+      { "text": "LONG", "marks": ["code"] },
+      { "text": " / " },
+      { "text": "NUMBER", "marks": ["code"] },
+      { "text": " / " },
+      { "text": "INT", "marks": ["code"] },
+      { "text": " / " },
+      { "text": "FLOAT", "marks": ["code"] },
+      { "text": ". For a runtime-injected WHERE clause, put " },
+      { "text": "??", "marks": ["code"] },
+      { "text": " in the SQL and a " },
+      { "text": "DYNAMIC DYNAMIC DYNAMIC", "marks": ["code"] },
+      { "text": " line under " },
+      { "text": "IN:", "marks": ["code"] },
+      { "text": "." }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "2 · Create / update / list" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "You say" }], [{ "text": "What runs" }], [{ "text": "Result" }]],
+    "rows": [
+      [
+        [{ "text": "\"Create IDO ACCT_R0023, account list query\"" }],
+        [{ "text": "jex_new_ido", "marks": ["code"] }, { "text": " — reads ido_input.sql" }],
+        [{ "text": "IDO created in Studio, committed to SVN by Studio" }]
+      ],
+      [
+        [{ "text": "\"Update ACCT_R0023 with the new SQL\"" }],
+        [{ "text": "jex_update_ido", "marks": ["code"] }, { "text": " — hash regenerated" }],
+        [{ "text": "Existing IDO replaced, SVN synced" }]
+      ],
+      [
+        [{ "text": "\"List all ACCT IDOs\"" }],
+        [{ "text": "jex_read_ido", "marks": ["code"] }],
+        [{ "text": "Snapshot at " }, { "text": ".claude/tmp/ACCT_ido.json", "marks": ["code"] }]
+      ]
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "The SQL type is inferred from the ID suffix — " },
+      { "text": "_R###", "marks": ["code"] },
+      { "text": " SELECT, " },
+      { "text": "_C###", "marks": ["code"] },
+      { "text": " INSERT, " },
+      { "text": "_U###", "marks": ["code"] },
+      { "text": " UPDATE, " },
+      { "text": "_D###", "marks": ["code"] },
+      { "text": " DELETE — or say it explicitly." }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "3 · What the guardrails catch" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "Guardrail" }], [{ "text": "When" }], [{ "text": "Blocks if" }]],
+    "rows": [
+      [
+        [{ "text": "ido_input.sql validation" }],
+        [{ "text": "Before new/update" }],
+        [{ "text": "File missing, or SQL:/IN:/OUT: sections malformed" }]
+      ],
+      [
+        [{ "text": "SVN pre-update" }],
+        [{ "text": "Before every write" }],
+        [{ "text": "Any SVN_DIRS repo fails to update (conflicts…)" }]
+      ],
+      [
+        [{ "text": "SVN post-sync" }],
+        [{ "text": "After every successful write" }],
+        [{ "text": "— (pulls Studio's commit down to you)" }]
+      ]
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "note",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "Don't commit IDO XML by hand.", "marks": ["bold"] },
+          { "text": " JexStudio generates and commits the files itself — your job ends at the tool call; the post-sync brings Studio's commit into your checkout." }
+        ]
+      }
+    ]
+  }
+]
