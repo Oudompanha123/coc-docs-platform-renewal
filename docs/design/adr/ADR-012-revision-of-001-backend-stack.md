@@ -50,7 +50,39 @@ Skill 03 §2 requires ≥2 candidates. Here the choice is **constrained, not opt
 
 ---
 
-## Decision 2 — Database and storage *(DEFERRED — blocked on hosting)*
+## Decision 2 — Database and storage *(RESOLVED 2026-09-09)*
+
+> **Update, 2026-09-09.** The blocking question below has been answered by the PM: **deployment target is Google Cloud, and external cloud is permitted for this internal tool.** The original deferral text is retained beneath for the record; the resolution follows.
+>
+> ### 2.1 Hosting — **Google Cloud** *(ACCEPTED)*
+> PM decision, 2026-09-09. Confirmed that company policy permits an internal documentation tool to run on external cloud, which was the specific risk that made this a deferral rather than a comparison.
+>
+> ### 2.2 Development database — **local PostgreSQL** *(ACCEPTED)*
+> Developers run PostgreSQL locally, administered with pgAdmin. Flyway applies the identical `V1__initial_schema.sql` used everywhere else, so dev and production run the same schema from day one.
+>
+> **Note for setup instructions**: pgAdmin is the administration client, not the database. Both are needed — PostgreSQL 15+ server, plus pgAdmin to manage it.
+>
+> Chosen so implementation can start immediately: it costs nothing, needs no cloud account, works offline, and requires no provisioning before the first line of code.
+>
+> ### 2.3 Production database — **narrowed, decided before first deploy** *(OPEN, non-blocking)*
+> With hosting settled, three candidates remain, all viable on GCP:
+>
+> | Option | For | Against |
+> |---|---|---|
+> | **Cloud SQL for PostgreSQL** | GCP-native, managed, same-VPC latency, no external vendor | No always-free tier — a real monthly bill from day one |
+> | **Neon / Supabase free tier** | Free, quick, already scored in ADR-001 | External data store; adds a vendor and an internet hop |
+> | **Self-managed on Compute Engine** | Fits the always-free VM tier | You operate, patch and back it up yourself |
+>
+> **This no longer blocks G2.** It is a *deployment* decision, not an *architecture* decision — `CONST-TECH-08` keeps the design provider-portable (plain PostgreSQL 15+, JDBC, Flyway, S3-API storage), so switching provider costs a connection string and a storage endpoint. A design gate should settle the architecture; it need not settle the vendor SKU.
+>
+> Decide before the first deployment, not before the first commit.
+>
+> ### 2.4 Object storage — S3 API, provider deferred with the database
+> Unchanged from below: the S3 API is fixed as the abstraction. On GCP that is Cloud Storage's S3-compatible interface, or any S3 provider.
+
+---
+
+### Original deferral text (retained for the record)
 
 ADR-001 chose Supabase over Neon by **1.8%**, and that margin rested almost entirely on Supabase bundling storage, auth and row-level security behind **one JavaScript SDK**. A Spring backend reaches Postgres over JDBC and will not use that SDK, will not use Supabase Auth (Google OIDC is verified server-side), and will not use RLS (authorisation is enforced in the service layer). **The reason Supabase won no longer applies.**
 
@@ -76,6 +108,8 @@ Under these rules, changing the Postgres provider later costs a connection strin
 
 ### Closure criteria
 This decision closes when hosting is chosen. It **blocks G2 re-approval** — a design gate cannot pass with its deployment target unknown.
+
+> **Closed 2026-09-09** — hosting chosen (Google Cloud). See §2.1–2.4 above. G2 is no longer blocked by this decision.
 
 ---
 
@@ -139,12 +173,14 @@ ADR-011 and the threat model must be revised for the added boundary before G2.
 
 ## Open Items Blocking G2 Re-Approval
 
-| Item | Owner |
-|---|---|
-| **Backend hosting target** | PM — blocks Decision 2 |
-| Database and storage provider | Follows hosting |
-| Revised architecture, DEV-PLAN, threat model, ADR-011, TEST-PLAN | `architect` |
-| Re-scored risk register | `architect` |
+| Item | Owner | Status |
+|---|---|---|
+| ~~Backend hosting target~~ | PM | ✅ **Closed 2026-09-09 — Google Cloud** |
+| ~~Database and storage provider~~ | Follows hosting | ✅ **No longer blocking** — local PostgreSQL for development; production provider is a pre-deploy decision (§2.3) |
+| Revised architecture, DEV-PLAN, threat model, ADR-011, TEST-PLAN | `architect` | ⏳ In progress — **the only remaining blocker** |
+| Re-scored risk register | `architect` | ⏳ In progress |
+
+**One item now stands between here and G2**: the six design documents still describe the single-service Next.js system. Approving G2 against them would approve a design that is not being built.
 
 ---
 

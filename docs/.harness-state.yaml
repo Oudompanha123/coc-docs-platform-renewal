@@ -11,7 +11,7 @@ current_step: "03"              # reopened — backend stack changed after G2; s
 steps:
   "01": { status: done, outputs_verified: true, at: 2026-09-08 }
   "02": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "03": { status: in_progress, at: 2026-09-08, awaiting: "ADR-012 + G2 re-approval" }  # reopened: stack premise changed
+  "03": { status: in_progress, at: 2026-09-09, awaiting: "design-doc rebuild + G2 re-approval" }  # hosting resolved 2026-09-09: Google Cloud
   "04": { status: paused, at: 2026-09-08, note: "T2/T5 delivered; paused pending revised design" }
   "05": { status: not_started }
   "06": { status: not_started }
