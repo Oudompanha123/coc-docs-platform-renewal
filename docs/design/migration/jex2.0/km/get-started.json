@@ -1,0 +1,91 @@
+[
+  { "type": "paragraph", "text": [{ "text": "ចាប់ផ្តើម" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "៣ ជំហាន។ បញ្ចូលពាក្យសម្ងាត់តែម្តង។" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "ជំហាន 1–2 ម្តងក្នុងមួយម៉ាស៊ីន ជំហាន 3 ម្តងក្នុងមួយ workspace។ បើប្រើ jexmcp3.0 រួចហើយ marketplace បានបន្ថែមរួច — រំលងជំហាន 1។" }
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "important",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "តម្រូវការ៖", "marks": ["bold"] },
+          { "text": " Node.js LTS, SVN CLI, ការចូលបណ្តាញខាងក្នុង (Studio v2 មិនអាចចូលពីខាងក្រៅ) និងគណនី GitHub ដែលបានអញ្ជើញចូល repo ឯកជន។" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "steps",
+    "items": [
+      {
+        "title": [{ "text": "បន្ថែម marketplace cocweb" }],
+        "body": [
+          { "type": "paragraph", "text": [{ "text": "ម្តងក្នុងមួយម៉ាស៊ីន — marketplace ដូច jexmcp3.0 ដដែល។" }] },
+          {
+            "type": "code",
+            "language": "bash",
+            "source": "claude plugin marketplace add https://github.com/Socheat-Hun/jexmcp3.0.git",
+            "copyable": true
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "ដំឡើង plugin" }],
+        "body": [
+          { "type": "code", "language": "bash", "source": "claude plugin install jex2.0@cocweb", "copyable": true }
+        ]
+      },
+      {
+        "title": [{ "text": "Initialize workspace" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "បើក Claude Code នៅ root workspace (folder ដែលមាន " },
+              { "text": "MYPROJ_BT", "marks": ["code"] },
+              { "text": ", " },
+              { "text": "MYPROJ_ETC", "marks": ["code"] },
+              { "text": "…) ហើយដំណើរការ៖" }
+            ]
+          },
+          { "type": "code", "language": "text", "source": "/jex2.0:init", "copyable": true },
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "វាដំឡើង npm dependencies, សរសេរ " },
+              { "text": ".claude/jex_project.json", "marks": ["code"] },
+              { "text": ", សួរ ID/ពាក្យសម្ងាត់ JexStudio ម្តង ហើយផ្ទៀងផ្ទាត់ login។ បន្ទាប់មក " },
+              { "text": "restart Claude Code", "marks": ["bold"] },
+              { "text": " ដើម្បីឲ្យ server MCP jex2 ចាប់ផ្តើម។" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "note",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "ផ្ទៀងផ្ទាត់៖", "marks": ["bold"] },
+          { "text": " ក្រោយ restart, " },
+          { "text": "/mcp", "marks": ["code"] },
+          { "text": " គួរបង្ហាញ " },
+          { "text": "jex2", "marks": ["bold"] },
+          { "text": " ជា connected។ បើអត់ ដំណើរការ " },
+          { "text": "/jex2.0:init", "marks": ["code"] },
+          { "text": " ម្តងទៀត — វារាយការណ៍ច្បាស់ថាខ្វះអ្វី។" }
+        ]
+      }
+    ]
+  }
+]

@@ -99,21 +99,38 @@ jobs:
         run: npm run build
 
   # ─────────────────────────────────────────────────────────────
+  # Harness self-check — do the workflows only run paths that exist?
+  #
+  # Added after security-audit.yml shipped a build step calling ./mvnw, a
+  # wrapper never committed here. It was valid YAML, so nothing caught it;
+  # every PR burned a CodeQL minute then failed on a missing file. Seconds
+  # of checking here, instead of a developer reading Actions logs.
+  # ─────────────────────────────────────────────────────────────
+  harness:
+    name: Harness (workflow paths)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Workflows execute only paths that exist
+        run: bash scripts/check-workflow-paths.sh
+
+  # ─────────────────────────────────────────────────────────────
   # Single required check for branch protection.
-  # Point the protection rule at THIS job, not at the two above —
+  # Point the protection rule at THIS job, not at the ones above —
   # then adding or renaming a job never means editing the rule.
   # ─────────────────────────────────────────────────────────────
   ci:
     name: CI
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, harness]
     if: always()
     steps:
       - name: Verdict
         run: |
           set -euo pipefail
           FAILED=0
-          for r in "backend=${{ needs.backend.result }}" "frontend=${{ needs.frontend.result }}"; do
+          for r in "backend=${{ needs.backend.result }}" "frontend=${{ needs.frontend.result }}" "harness=${{ needs.harness.result }}"; do
             name="${r%%=*}"; result="${r#*=}"
             # 'skipped' is acceptable — the frontend job skips until the project exists.
             # Anything else that is not success blocks the merge.

@@ -61,6 +61,27 @@ This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as s
 
 **3. Node 24** for the frontend.
 
+**4. Authenticate the GitHub CLI** — this is the step everyone forgets:
+
+```bash
+gh auth login          # then: gh auth status
+```
+
+Being able to `git push` is **not** the same as being authenticated to `gh`. Git credentials and GitHub CLI auth are separate stores, and one working tells you nothing about the other. Without `gh` auth, the `ship` step of Skill 09 can only print a pull-request URL for you to click — it cannot open the PR. `scripts/install-hooks.sh` now checks this and says so.
+
+## Your tooling, shared
+
+Two files configure everyone's Claude Code the same way, so the workflow behaves identically on six machines:
+
+| File | What it does |
+|---|---|
+| `.mcp.json` | Registers the Flow board as an MCP server, so the task-board steps of Skill 09 work without per-person setup. Claude Code asks you to approve it the first time you open the project |
+| `.claude/settings.json` | Permission rules for the commands this repo actually runs — git, `mvn`, `npm`, `gh`, `gitleaks`, `scripts/*`. Without it every routine command prompts, and people stop using the workflow and go back to raw git |
+
+The `deny` rules in `.claude/settings.json` mirror the rules in Skill 09 §6 — no `--no-verify`, no force pushes, no direct pushes to `main` or `dev`. **Be clear about what they are worth**: permission rules match on a command prefix, so `git commit --no-verify` is caught and `git commit -m "x" --no-verify` is not. They stop the obvious path, not a determined one. The git hooks are the real control, and even those are discipline rather than security — see `.githooks/pre-push`.
+
+Keep personal overrides in `.claude/settings.local.json`, which is gitignored. Do not put them in the shared file.
+
 ## Commit messages
 
 Conventional Commits, per HARNESS-PROCESS-STANDARD §4.4:

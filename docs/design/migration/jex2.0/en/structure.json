@@ -1,0 +1,50 @@
+[
+  { "type": "paragraph", "text": [{ "text": "Structure" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "Where everything lives." }] },
+  {
+    "type": "paragraph",
+    "text": [{ "text": "Two maps: a CHECKPAY-family workspace with its per-project files, and the plugin itself." }]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "Your workspace" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "MYPROJ", "marks": ["code"] },
+      { "text": " = your project prefix — DUREADMIN, CHECKPAY, or any other. " },
+      { "text": "/jex2.0:init", "marks": ["code"] },
+      { "text": " detects it from the folders that actually exist." }
+    ]
+  },
+  {
+    "type": "code",
+    "language": "text",
+    "copyable": false,
+    "source": "MYPROJ\\                     <- workspace root (open Claude Code here)\n├── MYPROJ_BT\\                 batch\n├── MYPROJ_DOMAIN\\             domain logic\n├── MYPROJ_DOMAIN_SVC\\         domain services (if present)\n├── MYPROJ_ETC\\                service XML — IDOs land here via Studio\n├── MYPROJ_PT\\                 presentation\n├── MYPROJ_PT_STATIC\\          static JS / CSS\n├── ido_input.sql                 SQL / IN / OUT — you edit this per IDO\n└── .claude\\\n    ├── jex_project.json          HOST · PORT · PRJ_ID · SVR_ID · SVN_DIRS — written by init\n    ├── jex_v2.json               { USR_ID } — your Studio login id\n    ├── jex_v2.local.json         { PWD } — never commit, never share\n    ├── jex_cookies2.txt          Studio v2 session cookie (auto-managed)\n    └── tmp\\                      jex_read_ido snapshots"
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "The plugin (installed once, managed by Claude Code)" }] },
+  {
+    "type": "code",
+    "language": "text",
+    "copyable": false,
+    "source": "jex2.0                        <- from the cocweb marketplace (branch jex2.0)\n├── commands\\                     init · new-ido · update-ido\n├── scripts\\                      jex2 MCP server + Studio v2 runners (Node)\n├── hooks\\                        ido_input.sql validation · SVN pre/post sync\n└── templates\\                    config file examples"
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "Env overrides" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "Variable" }], [{ "text": "Effect" }]],
+    "rows": [
+      [
+        [{ "text": "JEX_SVN_ROOT", "marks": ["code"] }],
+        [{ "text": "Project root override (default: the folder Claude Code was opened in)" }]
+      ],
+      [
+        [{ "text": "JEX_SKIP_SVN_UPDATE=1", "marks": ["code"] }],
+        [{ "text": "Skip all SVN sync (pre + post)" }]
+      ],
+      [
+        [{ "text": "JEX_SKIP_SVN_PREFLIGHT=1", "marks": ["code"] }],
+        [{ "text": "Skip the pre-sync only" }]
+      ]
+    ]
+  }
+]
