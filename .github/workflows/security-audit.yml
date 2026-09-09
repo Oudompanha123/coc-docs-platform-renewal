@@ -15,10 +15,18 @@ on:
   schedule:
     - cron: "0 2 * * 1"  # Scheduled scan every Monday at 02:00
 
+# Listing permissions explicitly sets every scope NOT listed to 'none'.
+# codeql-action/analyze reads its own workflow run via the Actions API
+# (GET /repos/{owner}/{repo}/actions/runs/{run_id}) while post-processing the
+# SARIF, so without `actions: read` the analysis completes and then fails on
+# upload with "Resource not accessible by integration". `packages: read` is
+# the documented companion — CodeQL resolves query packs over it.
 permissions:
   contents: read
   security-events: write
   pull-requests: write
+  actions: read
+  packages: read
 
 jobs:
   # ─────────────────────────────────────────────────────────────
