@@ -3,6 +3,7 @@ harness-standards/
 
 # Backend
 backend/target/
+backend/.idea/
 
 # Frontend
 frontend/node_modules/

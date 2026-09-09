@@ -1,0 +1,196 @@
+# Coc Docs Platform API — OpenAPI contract snapshot
+#
+# This is a hand-authored SNAPSHOT of what the backend already self-generates
+# at runtime (springdoc-openapi is wired into backend/pom.xml — see
+# com.coc.docs.config.OpenApiConfig). It exists so the frontend workstream can
+# review and start coding against the auth contract now, in an environment
+# where the backend can't actually be booted (no local Postgres/Docker).
+#
+# THE APP, NOT THIS FILE, IS THE SOURCE OF TRUTH once it can run. Regenerate
+# with `scripts/export-openapi.sh` (curls a running instance's
+# /v3/api-docs.yaml) and commit the result in place of this file — do not
+# hand-edit this file and the controller annotations out of sync with each
+# other. RISK-018 (frontend/backend contract drift) is exactly the failure
+# mode this file, and the script, exist to prevent.
+#
+# Scope: the auth endpoints only (FR-AUTH-001, FR-AUTH-002, FR-AUTH-007). The
+# Sprint 0 pilot-slice content endpoints (read/save/publish a page, list
+# navigation) are a separate, not-yet-built part of this same contract.
+
+openapi: 3.0.3
+info:
+  title: Coc Docs Platform API
+  description: REST API for documentation content, navigation, media and accounts.
+  version: v1
+servers:
+  - url: http://localhost:8080
+    description: Local backend (default app.frontend-origin CORS allow-list is http://localhost:3000)
+
+tags:
+  - name: Authentication
+    description: Google OIDC sign-in, backend session issuance and sign-out.
+
+paths:
+  /api/auth/nonce:
+    post:
+      tags: [Authentication]
+      summary: Issue a one-time nonce for a Google sign-in attempt
+      description: >
+        Pass the returned value as the `nonce` option to Google Identity
+        Services' sign-in call, then submit the resulting credential to
+        POST /api/auth/login. The same value is also set as a short-lived
+        (5 minute) httpOnly cookie (`coc_oidc_nonce`), which /login reads
+        back itself — the caller never needs to resend it.
+      security: []
+      responses:
+        "200":
+          description: Nonce issued
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "coc_oidc_nonce=<value>; Max-Age=300; Path=/api/auth; HttpOnly; SameSite=Lax; Secure"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonceResponse"
+
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Verify a Google ID token and issue a backend session
+      description: >
+        Signature, issuer, audience and nonce are checked server-side against
+        Google's published JWK set before anything here is believed
+        (FR-AUTH-001, TM-001). No account is auto-provisioned: a valid Google
+        identity with no matching, active account is refused.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in; the `coc_session` cookie is now set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: "coc_session=<value>; Max-Age=86400; Path=/; HttpOnly; SameSite=Lax; Secure"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: >
+            Sign-in refused. Deliberately identical whether the token was
+            invalid, the nonce didn't match, no account is provisioned for
+            this email, or the account is deactivated — see UC-004 E-3 (no
+            account-state oracle). The specific reason is recorded
+            server-side in the audit log only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "400":
+          description: Malformed request body (e.g. missing idToken)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /api/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Sign out, invalidating the session server-side
+      description: >
+        A real server-side revocation (FR-AUTH-007): the session row backing
+        the cookie is deleted, not merely cleared client-side. The very next
+        request bearing the old cookie is rejected.
+      security:
+        - cookieAuth: []
+      responses:
+        "204":
+          description: Signed out; the old cookie no longer validates
+        "401":
+          description: No active session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /api/auth/me:
+    get:
+      tags: [Authentication]
+      summary: The signed-in caller's own account
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: The current session's account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: No active session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: coc_session
+      description: Backend-issued session cookie. Obtained from POST /api/auth/login.
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: The Google ID token (JWT credential) returned by Google Identity Services.
+
+    NonceResponse:
+      type: object
+      required: [nonce]
+      properties:
+        nonce:
+          type: string
+          description: Pass this value as the `nonce` option to Google Identity Services' sign-in call.
+
+    AuthResponse:
+      type: object
+      required: [id, email, displayName, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        role:
+          type: string
+          description: The role ladder, FR-AUTH-005.
+          enum: [GUEST, USER, ADMIN, SUPER_ADMIN]
+
+    ApiError:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+      example:
+        message: "Sign-in failed"
+
+security:
+  - cookieAuth: []
