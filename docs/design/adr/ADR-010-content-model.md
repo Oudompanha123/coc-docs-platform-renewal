@@ -8,6 +8,14 @@
 
 > This is the **most consequential decision in the project**. It determines whether NFR-USE-01 can be met, and it dominates the cost of migrating 105 panels.
 
+### Reversibility
+
+**This is the least reversible decision on the project**, and it is coupled to the editor choice in [ADR-001 §7](ADR-001-tech-stack.md).
+
+Once the 105 panels are stored in this block format, changing the model — or changing the editor, since BlockNote's block JSON is the canonical form — means migrating all of them a **second** time. ADR-001 §7 records the same point from the editor side: the database choice there is comparatively cheap to revisit, the editor decision is not.
+
+That is why §Validation below makes the pilot a genuine go/no-go rather than a formality: the cost of discovering this ADR is wrong rises from *two doc sets* to *a hundred panels* the moment mass migration starts.
+
 ---
 
 ## Context
@@ -64,12 +72,26 @@ type Block =
   | { type: 'code';      language: string; source: string; copyable: boolean; command?: string }
   | { type: 'callout';   variant: 'note' | 'important'; body: Block[] }
   | { type: 'steps';     items: { title: RichText; body: Block[] }[] }
-  | { type: 'cards';     items: { icon?: string; title: RichText; body: RichText; href?: PageRef }[] }
+  | { type: 'cards';     items: { icon?: string; title: RichText; body: RichText; link?: LinkTarget }[] }
   | { type: 'image';     assetId: string; alt: string; caption?: RichText }
   | { type: 'embed';     component: 'HarnessDemo' | 'OwnerTree'; props: Record<string, unknown> };
 ```
 
-**Ten block types.** `RichText` is an inline model supporting bold, emphasis, inline code, and links — links stored as `PageRef`, never as literal URL strings.
+**Ten block types.** `RichText` is an inline model supporting bold, emphasis, inline code, and links.
+
+A link is a `LinkTarget`, which is exactly one of two shapes — never both:
+
+```ts
+type LinkTarget = PageRef | ExternalRef;
+
+type PageRef     = { pageId: string; href?: never };   // internal — a page reference
+type ExternalRef = { pageId?: never; href: string };   // external — a validated URL
+```
+
+- **Internal links are stored as `pageId`, never as a literal URL.** Renaming a slug therefore cannot break an internal link, and finding references to a deleted page is a foreign-key lookup rather than a text search (FR-READ-003, FR-CONT-007).
+- **External links are stored as `href`**, and are validated at persistence time: only a same-site relative path (`/…`, not `//…`) or an absolute `http:` / `https:` URL is accepted. `javascript:`, `data:`, `vbscript:` and every other scheme are rejected before the value is written, rather than being escaped at render time (NFR-SEC-SANITIZE).
+
+The validator enforces that exactly one of `pageId` or `href` is present; supplying both, or neither, is a validation error.
 
 ### 2. The 32 → 10 mapping
 
