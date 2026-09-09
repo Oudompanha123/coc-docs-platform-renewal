@@ -6,19 +6,19 @@
 
 harness_version: "1.5"          # Standard version in effect (an audit is recommended if it differs from the package version)
 project: "Coc Docs Platform"
-current_step: "03"              # reopened — backend stack changed after G2; see ADR-012
+current_step: "04"              # G2 approved 2026-09-09; Sprint 0 open
 
 steps:
   "01": { status: done, outputs_verified: true, at: 2026-09-08 }
   "02": { status: done, outputs_verified: true, at: 2026-09-08 }
-  "03": { status: in_progress, at: 2026-09-09, awaiting: "design-doc rebuild + G2 re-approval" }  # hosting resolved 2026-09-09: Google Cloud
-  "04": { status: paused, at: 2026-09-08, note: "T2/T5 delivered; paused pending revised design" }
+  "03": { status: done, outputs_verified: true, at: 2026-09-09 }
+  "04": { status: in_progress, at: 2026-09-09, sprint: 0 }   # Sprint 0: API contract + Java 21 alignment
   "05": { status: not_started }
   "06": { status: not_started }
 
 gates:
   G1: { status: approved, approver: "Socheat-Hun", at: 2026-09-08, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
-  G2: { status: pending }         # REVERTED 2026-09-08 — approved against a single-service Next.js design; PM subsequently specified a two-service architecture with a Spring Boot backend. The approved design no longer matches the actual design. Re-approval required after ADR-012.
+  G2: { status: approved, approver: "Socheat-Hun", at: 2026-09-09, recorded_by: "AI transcribing PM in-session instruction — see note at end of file" }
   G3: { status: not_reached }
 
 last_audit:                       # Updated by /08-harness audit mode
@@ -42,3 +42,14 @@ last_audit:                       # Updated by /08-harness audit mode
 #   in-session instruction. §4.5 requires PM + architect for G2; on a solo
 #   project the PM holds both roles, which is a weaker control than the gate
 #   assumes. Recorded here so that is visible rather than implied.
+#
+# G2 re-approval note (2026-09-09)
+#   G2 was approved 2026-09-08, then REVERTED the same day when the stack
+#   changed from a single Next.js service to a two-service Java backend —
+#   the approved design no longer described the system being built.
+#   Re-approved 2026-09-09 against the rebuilt design: architecture-overview
+#   v2.0, DEV-PLAN v2.0, risk-register v2.0, threat-model v1.1, TEST-PLAN
+#   v2.0, ADR-011 v1.1, REQUIREMENTS-SPEC v1.2.
+#   Same provenance as G1 and the first G2: typed by the AI on the PM's
+#   explicit instruction. §4.5 requires PM + architect; on this project one
+#   person holds both roles, so the two-approver control is nominal.
