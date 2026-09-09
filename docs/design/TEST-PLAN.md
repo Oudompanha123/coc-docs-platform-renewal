@@ -1,57 +1,104 @@
 # Test Plan — Coc Docs Platform
 
-> **Version**: 1.0
-> **Date**: 2026-09-08
-> **Preceding**: [REQUIREMENTS-SPEC.md](../requirements/REQUIREMENTS-SPEC.md), [requirements-matrix.csv](../requirements/requirements-matrix.csv), [DEV-PLAN.md](DEV-PLAN.md)
+> **Version**: 2.0
+> **Date**: 2026-09-09
+> **Preceding**: [REQUIREMENTS-SPEC.md](../requirements/REQUIREMENTS-SPEC.md) (v1.1), [requirements-matrix.csv](../requirements/requirements-matrix.csv), [DEV-PLAN.md](DEV-PLAN.md), [ADR-012](adr/ADR-012-revision-of-001-backend-stack.md)
 > **Author**: qa-engineer (support agent, Skill 3)
-> **Status**: DRAFT — awaiting G2
+> **Status**: DRAFT — awaiting G2 re-approval
+
+---
+
+## Revision History
+
+| Version | Date | Change | Driver |
+|---|---|---|---|
+| 1.0 | 2026-09-08 | Initial plan, sized to `CONST-RES-01` (one part-time developer) and a single-service Next.js architecture | Skill 3 baseline |
+| **2.0** | **2026-09-09** | **Full revision.** Two forcing changes: (1) `CONST-TECH-05/06/07/08` (ADR-012) split the system into a Spring Boot backend and a Next.js frontend — two toolchains, a required API-contract category, cross-service E2E, real-Postgres backend tests, and a mandatory class of direct-API negative test for `CONST-TECH-07`; (2) `CONST-RES-02` supersedes `CONST-RES-01` — the team is now the PM plus five engineers (Panha, Sreyly, Sarayuth, Chanthy, Sophanna), so tests cut purely for one-person capacity are revisited. Every prior decision is re-examined below; nothing carries over by default. | ADR-012, `REQUIREMENTS-SPEC.md` v1.1 |
 
 ---
 
 ## 0. How to Read This Plan
 
-`CONST-RES-01` — **one part-time developer, no deadline** — is the single most important shaping constraint on everything below. A test estate sized the way `sg-gw` (a funded, multi-agent financial migration) sized its estate is not executable here. Every section states, explicitly, what is automated, what is manual, and how often it runs — because for a solo developer, *frequency* is a cost decision as real as scope.
+Two constraints now shape everything below, and they pull in different directions:
 
-| What | Decision | Why |
-|---|---|---|
-| Unit + integration tests | Automated, run on every commit (CI) | Cheapest to write and cheapest to maintain solo; catches regressions for free once written |
-| E2E (Top 5 flows) | Automated (Playwright), run on every push to `main` | Pays for itself: once written, regression re-runs are free. Anything beyond 5 flows is manual/exploratory |
-| Load tests | Automated script (k6), run manually **once per shippable slice**, not every sprint | The NFR-SCALE-01 ceiling (200 pages, 10 editors) is small; frequent load testing would cost more developer time than the risk it retires |
-| Security (SAST/secrets) | Automated, every commit / PR (hooks already exist in this harness) | Zero marginal cost once wired up |
-| NFR-USE-01 (usability) | **Manual, human-observed, cannot be automated** | This is the project's central claim — see §2 |
-| Content-fidelity (105 panels) | Semi-automated (structural script) + manual read-through, once per migrated doc set | Substitutes for parity testing (N/A here — see §8) |
-| Accessibility | Automated smoke scan (axe) on the 5 E2E flows only | Full WCAG 2.1 AA certification of all 105 pages is out of proportion to one part-time developer; scoped down deliberately (stated as a limitation, not hidden) |
+- **`CONST-TECH-05`** — two services, two toolchains, a network boundary that did not exist before. This *adds* required test categories (API contract, cross-service E2E, backend-real-DB tests, direct-API negative tests for `CONST-TECH-07`) regardless of team size.
+- **`CONST-RES-02`** — six developers, not one. This makes more of the estate *affordable* — CI becomes the shared safety net rather than a nicety, and several v1.0 scope-downs that were purely capacity-driven are reversed below.
+
+Where a v1.0 decision was cut for **capacity** (one person couldn't do it), it is revisited and, in most cases, added back. Where a decision was scoped for **proportionality** to the project's actual size (200 pages, 10 editors, an internal tool with no enterprise load profile) or for **budget** (no paid tooling), team size does not change the reasoning, and the original scope-down stands — restated explicitly, not silently carried over.
+
+| What | v1.0 decision (one developer) | v2.0 decision (six developers, two services) | Why it changed (or didn't) |
+|---|---|---|---|
+| Unit tests | One suite (Vitest/Jest), every commit | **Two suites**: JUnit 5 + Mockito (backend), Vitest/Jest (frontend), both every commit (CI) | Forced by `CONST-TECH-05` — two languages, two toolchains |
+| Integration tests | Vitest/Jest + Testcontainers Postgres + Supertest, against API routes in the same process as the frontend | **Spring Boot Test + Testcontainers (real PostgreSQL 15+)**, every PR — not H2. The schema's partial unique indexes, deferred constraint trigger and `jsonb` are not faithfully reproduced by H2 | Forced by `CONST-TECH-05`/`06`; already reflected in `backend/pom.xml` |
+| API contract | Did not exist as a category (one process, no contract to drift) | **New, mandatory**: OpenAPI schema validation + generated-client drift check, every PR (§1.2, §5.5) | Forced by `CONST-TECH-05` — frontend and backend can now drift independently |
+| E2E | Top 5 flows automated, rest manual (capacity cut) | **Top 7 — all seven UCs automated** (UC-003, UC-006 added back); both services orchestrated via Docker Compose locally and in CI (§4) | Capacity cut reversed — six engineers can author and maintain 2 more flows; the network boundary means E2E now spans two services regardless |
+| `CONST-TECH-07` negative tests | Did not exist as a named category; FR-AUTH-008 was the only mandatory negative test | **New, mandatory class**: every write/authz path gets a direct-API test that bypasses the UI entirely (§5.2, §5.5) | Forced by `CONST-TECH-07` — the frontend validator is advisory only; a browser-only test proves nothing about it |
+| Accessibility | Automated smoke scan (axe) on 5 E2E flows only (capacity cut) | Axe scan on **all 7 automated E2E flows** + a scripted axe pass over **every migrated page** (not just flows) as each doc set ships; full manual AA certification of all 105 pages still out of scope | Capacity cut on flow-count reversed; full manual AA audit remains a proportionality call, not a capacity one — automating a scan is cheap, manually certifying 105 pages by hand is not, regardless of team size |
+| Load tests | k6, manual, once per shippable slice | k6, **automated smoke run in CI on every merge to `main`** + full run once per shippable slice (unchanged targets — `NFR-SCALE-01` did not grow) | Capacity cut (manual-only) reversed; the *scale target* itself is a proportionality call and is unchanged — running an enterprise rig would still be cargo-culting `sg-gw` onto a documentation site |
+| CI | "Hooks already exist" — described in one line | **Elevated to its own section (§1.3)** — the shared safety net for six people pushing to the same repo | Team-size change, not a technical one |
+| Toolchain drift | Not a risk category (one developer, one machine) | **New, mandatory check (§12)** — six machines, one real incident already observed (a developer reported Java 25 against a Java 21 target) | `CONST-RES-02` |
+| Security (SAST/secrets) | Automated, every commit/PR | Unchanged, extended to both repos | No budget signal received; proportionate free tooling stands |
+| NFR-USE-01 | Manual, human-observed, one named colleague | **Unchanged in method.** The colleague is now named: **Pann Voleak** (§2) | Central requirement — preserved, not reopened |
+| Content-fidelity (105 panels) | Semi-automated + manual, once per migrated doc set | Unchanged method; now **parallelisable across the content-migration workstream** instead of serial on one person (§8) | Capacity change speeds throughput, does not change the bar (100% per doc set) |
+| Coverage tooling | `vitest --coverage`, no SonarQube (budget) | Same reasoning, **extended**: JaCoCo (backend, free, Maven-native) + `vitest --coverage` (frontend). Still no SonarQube/Snyk — no budget signal was given alongside the team-size change | Budget-driven scope-downs are untouched by a headcount change |
 
 ---
 
 ## 1. Test Strategy
 
-### 1.1 Test Pyramid (solo-affordable shape)
+### 1.1 Test Shape (two services + a contract layer)
 
 ```
-        ┌────────────────────┐
-        │   E2E — 5 flows    │   automated, regression-only after authoring
-       ┌┴────────────────────┴┐
-       │ Integration — ~25%   │   API routes, DB access, role middleware, staleness/versioning logic
-      ┌┴──────────────────────┴┐
-      │      Unit — ~70%       │   block schema validators, slug/redirect logic, sanitisation, RBAC guard
-      └────────────────────────┘
+                 ┌───────────────────────────┐
+                 │   E2E — 7 flows (both      │  automated, both services running
+                 │   services orchestrated)   │  (Playwright)
+                ┌┴───────────────────────────┴┐
+                │   API Contract — schema     │  new layer: catches drift the
+                │   validation + client-drift │  pyramid below cannot see
+               ┌┴─────────────────────────────┴┐
+               │        BACKEND                │  FRONTEND
+               │  Integration (~25%)           │  Component (Vitest/RTL)
+               │  Spring Boot Test +           │
+               │  Testcontainers (real PG)     │
+              ┌┴────────────────────────────────┴┐
+              │  Unit — ~70% each side            │  JUnit 5/Mockito (backend)
+              │                                    │  Vitest/Jest (frontend)
+              └────────────────────────────────────┘
 ```
 
-The shape is unchanged from the template default — this is deliberate. Unit tests are the cheapest tests to maintain alone; a wide, thin E2E layer is the most expensive to maintain alone. The pyramid shape is *how* a solo developer affords testing at all, not a convention kept for its own sake.
+The pyramid shape (wide unit base, thin E2E top) is unchanged from v1.0 — that reasoning was never about headcount, it is about which tests are cheapest to maintain. What changed is that there are now **two pyramids sharing one contract layer**, not one. The contract layer is new precisely because two independently-deployable services can pass their own tests while disagreeing with each other about the shape of a request or response — that failure mode did not exist when frontend and backend were one process.
 
 ### 1.2 Test Levels
 
-| Level | Scope | Tooling | Entry criteria | Exit criteria | Who runs it |
-|---|---|---|---|---|---|
-| **Unit** | Block schema validators (8–10 types), slug generation/uniqueness, redirect resolution, sanitisation rules, RBAC role-comparison, staleness computation, optimistic-lock version check | Vitest (matches Next.js 15/Vite-adjacent tooling) or Jest + ts-jest | Function/module has a merged PR | Line ≥ 80% / branch ≥ 70% on **core domain logic only** (§3) | Solo developer, every commit (CI) |
-| **Integration** | API routes (`/api/pages`, `/api/media`, `/api/users`) against a real Postgres via Testcontainers; role-ladder enforcement end-to-end through middleware; navigation render from DB; i18n staleness propagation | Vitest/Jest + Testcontainers (Postgres) + Supertest | API route implemented against the DB schema | All Must-priority API contracts covered (see §9); ≥ 70% branch on route handlers | Solo developer, every PR |
-| **E2E** | Top 5 user-facing flows end-to-end through the real UI (§4) | Playwright | Flow's UI screens exist in a deployed preview | All 5 flows green on `main`; regression suite (accumulated cases, §11) also green | Solo developer (author) / CI (execution) |
-| **Component (frontend)** | Editor blocks, block-menu, translation-status widget | Vitest + Testing Library | Component built | No regression in component snapshot/behavioural tests | frontend-developer authors → qa-engineer spot-verifies |
-| **Accessibility** | The 5 E2E flows only (admin console), WCAG 2.1 AA subset (contrast, labels, keyboard nav, alt-text presence) | `@axe-core/playwright` embedded in the E2E suite; manual keyboard pass once per shippable slice | E2E flow exists | Zero axe **critical/serious** violations on scanned flows (not a full AA certification — see §7) | frontend-developer produces axe/Jest results → qa-engineer verifies pass bar, sends back if below standard |
-| **Security** | OWASP Top 10, the 6 mandatory `NFR-SEC-*` cards, secret scanning, SAST | See §5 | Feature touches auth, PII, uploads, or rich-content rendering | Zero unresolved finding ≥ CVSS 7.0 | security-auditor (lead) + qa-engineer (negative-test authoring) |
-| **Load** | Reader P95, admin-save P95, editor-TTI P95 at 2× NFR-PERF SLA, sized to NFR-SCALE-01 | k6 (lightweight, scriptable, free — no enterprise rig justified at this scale) | Staging environment mirrors prod config | P95 targets met at 2× load (§6); if missed, documented as a known limitation, not silently dropped | Solo developer, once per shippable slice (not every sprint) |
-| **Content-fidelity** | Every one of the 105 authored panels, post-migration | Node/TS structural-check script + manual checklist | A doc set's migration is code-complete | 100% of that doc set's panels marked PASS | Solo developer, once per doc-set migration (§8) |
+| Level | Scope | Where | Tooling | Entry criteria | Exit criteria | Who runs it |
+|---|---|---|---|---|---|---|
+| **Unit (backend)** | Block-schema validators, slug/redirect logic, RBAC role comparison, sanitisation rules, staleness computation, optimistic-lock version check, OIDC token verification logic | `backend/` (Java) | JUnit 5, Mockito, AssertJ | Class/method has a merged PR | Line ≥ 80% / branch ≥ 70% on core domain logic (§3) | Backend workstream engineers, every commit (CI) |
+| **Unit (frontend)** | BlockNote editor blocks, `lib/content/validate.ts` (advisory pre-check), presentation components with logic, i18n status widget logic | `frontend/` (TS) | Vitest (or Jest + ts-jest) | Component/module has a merged PR | Line ≥ 80% / branch ≥ 70% on core logic (§3) | Frontend workstream engineers, every commit (CI) |
+| **Integration (backend)** | REST controllers against a real PostgreSQL 15+ via **Testcontainers** (not H2 — the schema's partial unique indexes, deferred constraint trigger, and `jsonb` columns are not faithfully emulated by H2); role-ladder enforcement through Spring Security filters; Flyway migration correctness | `backend/` | Spring Boot Test (`@SpringBootTest`), Testcontainers `postgresql` module, REST-assured or `MockMvc` | Controller/service implemented against the schema | All Must-priority API contracts covered (§9); ≥ 70% branch on controllers/services | Backend workstream engineers, every PR |
+| **API Contract** | Every REST endpoint's request/response conforms to the published OpenAPI spec; the frontend's generated types are not stale relative to that spec | Cross-service, verified from `backend/` CI job | springdoc-openapi (spec generation) + `atlassian-oai-validator`/`openapi4j` (schema-conformance assertions inside the backend's own integration tests) + `openapi-typescript` (frontend type generation) + a CI diff-check on the generated types | OpenAPI spec is published for the endpoint under test | Zero schema-conformance failures; zero stale-generated-type diffs | Backend workstream authors schema-validation assertions; frontend workstream keeps the generated client current; qa-engineer gates the CI check (§1.3, §5.5) |
+| **E2E** | All 7 user-facing flows (§4), through the real UI, against both services running together | Repo root (drives `frontend/` + `backend/`) | Playwright, Docker Compose orchestration (§4.2) | Flow's UI screens exist against a running backend | All 7 flows green on `main`; regression suite (§11) also green | Authoring engineer (whichever workstream owns the flow) → qa-engineer reviews before merge |
+| **Component (frontend)** | Editor blocks, block-menu, translation-status widget, admin console screens | `frontend/` | Vitest + Testing Library | Component built | No regression in component snapshot/behavioural tests | frontend-developer(s) author → qa-engineer spot-verifies |
+| **Accessibility** | All 7 automated E2E flows + a scripted axe pass over every page in a doc set as it migrates (§7) | `frontend/` (scan target: rendered pages, served by both services) | `@axe-core/playwright` in the E2E suite; manual keyboard pass once per shippable slice | E2E flow or migrated doc set exists | Zero axe **critical/serious** violations (not full AA certification — §7) | frontend-developer(s) produce axe/Jest results → qa-engineer verifies pass bar |
+| **Security** | OWASP Top 10, the 6 mandatory `NFR-SEC-*` cards, `CONST-TECH-07` direct-API negative tests, secret scanning, SAST — both repos | Both | See §5 | Feature touches auth, PII, uploads, rich-content, or any write path | Zero unresolved finding ≥ CVSS 7.0 | security-auditor (lead) + qa-engineer (negative-test authoring) + backend workstream (fixes) |
+| **Load** | Reader P95, admin-save P95, editor-TTI P95 at 2× NFR-PERF SLA, sized to `NFR-SCALE-01` | Both services, staging | k6 | Staging mirrors prod config (both services deployed) | P95 targets met at 2× load (§6) | Backend workstream owns API performance; qa-engineer runs and reports |
+| **Content-fidelity** | Every one of the 105 authored panels, post-migration | Data layer (backend DB) + rendered frontend | Node/TS structural-check script + manual checklist | A doc set's migration is code-complete | 100% of that doc set's rows marked PASS | Content-migration workstream authors; qa-engineer verifies (§8) |
+| **Toolchain verification** | Java version, Node version, on every developer machine and in CI | Both | Maven Enforcer Plugin (backend), `package.json` `engines` + `.nvmrc` (frontend), CI version-pin step | New | Zero mismatches; a mismatch fails the build, not just a warning (§12) | Every engineer, on first setup and every CI run |
+
+### 1.3 CI Pipeline — the shared safety net
+
+Under `CONST-RES-01`, CI was "a nicety, wired up once, free from then on." Under `CONST-RES-02`, **six people push to the same two repos**, and the pipeline is what stops any one person's regression from reaching another's branch. This is a team-size-driven elevation, not a technical one.
+
+| Stage | Trigger | Runs | Gate |
+|---|---|---|---|
+| Pre-commit | Local, every commit | `gitleaks` (secret scan, unchanged from v1.0) | Blocks the commit locally |
+| PR — backend | Every PR touching `backend/` | Toolchain check (§12) → `mvn -q verify` (unit + Testcontainers integration + JaCoCo) → OpenAPI spec regeneration + schema-conformance assertions → Semgrep + `mvn dependency-check:check` (SAST/SCA) | Merge blocked on any failure |
+| PR — frontend | Every PR touching `frontend/` | Toolchain check (§12) → `npm run build` → `vitest --coverage` (unit + component) → generated-API-client staleness diff (fails if `frontend/` types are behind the backend's OpenAPI spec) → `npm audit`/Dependabot | Merge blocked on any failure |
+| PR — cross-cutting | Any PR | `gitleaks` full-repo scan, `ci-security-auditor.yml` (unchanged from v1.0) | Merge blocked |
+| Merge to `main` | Every merge | Full E2E suite (7 flows, Docker Compose–orchestrated, §4.2) + axe scan + k6 **smoke** run (light load, fast feedback — not the full 2×-SLA run) | Blocks promotion to staging; does not block the merge itself (E2E runs after merge, on the merged commit, to keep PR feedback fast) |
+| Nightly / pre-slice | Scheduled, or manually triggered before a shippable slice | Full k6 run at 2× SLA (§6), full regression ledger (§11), content-fidelity script (§8) for any doc set migrated since the last run | Feeds the shippable-slice go/no-go, not a per-PR gate |
+| Pre-release | Before G3 of a slice | Security audit, cross-validation (Skill 5), NFR-USE-01 observation if the editor UI changed materially | G3 gate |
+
+**Review policy (naming test ownership without pre-empting DEV-PLAN's roster split)**: `DEV-PLAN.md` assigns the five engineers to backend/frontend/content-migration workstreams; this plan binds test ownership to **workstream**, not to a fixed name, so it stays correct however that split lands. The one fixed rule here: **no PR merges on a self-review** — a PR touching `backend/` needs an approving review from a backend-workstream engineer other than the author; same rule for `frontend/`. Cross-service E2E PRs need one reviewer from each side.
 
 ---
 
@@ -59,245 +106,246 @@ The shape is unchanged from the template default — this is deliberate. Unit te
 
 > **NFR-USE-01**: *"A named non-technical colleague edits and publishes a real page unaided, with no training beyond a one-page guide. Pass = completed without asking the PM."*
 
-This is not a nice-to-have usability check. Per the Requirements Spec (§3.1): *"if it fails, the project has not delivered regardless of what else passes."* It gets a dedicated procedure, not a line in a table.
+Unchanged in status from v1.0: per the Requirements Spec, *"if it fails, the project has not delivered regardless of what else passes."* Neither the two-service split nor the larger team changes this — if anything, a larger team makes it more important that this test is not quietly dropped as "someone else's job."
 
 ### 2.1 Why it cannot be automated
 
-No test framework can assert "a real human, who has never seen this tool, was not confused." Playwright can prove the buttons work; it cannot prove the labels, the flow, and the one-page guide are comprehensible to someone who does not already know the answer. This is deliberately behavioural, not time-based (`AMB-003`).
+No test framework can assert "a real human, who has never seen this tool, was not confused." This is unchanged from v1.0 (`AMB-003`).
 
-### 2.2 Recruitment
+### 2.2 The volunteer is named
 
-| Item | Rule |
-|---|---|
-| Who | One named, real, non-technical colleague — a writer, PM-adjacent staff member, or domain owner who **does not currently code** (no TypeScript/JSX/git background). Not the PM. Not the developer. |
-| Google account | Must have a Google Workspace account already provisioned via UC-004, at `admin` role, **before** the test starts (provisioning itself is not part of this test) |
-| Prior exposure | Must **not** have watched the developer use the admin console, and must not have been shown the console before the test session |
-| Sample size | One colleague, one session, per shippable slice that changes the editor UI materially. A second, *different* colleague is recruited for the re-test after any fix, to avoid learning-effect contamination (see §2.6) |
+| Item | v1.0 | v2.0 |
+|---|---|---|
+| Who | A generic "one named, real, non-technical colleague," to be identified at test time | **Pann Voleak** — identified now, ahead of the first observation |
+| Google account | Must have a Google Workspace account already provisioned via UC-004, at `admin` role, before the test starts | Unchanged — Pann Voleak's account must be provisioned before the session, and provisioning itself is not part of the test |
+| Prior exposure | Must not have watched the developer use the admin console | Unchanged — Pann Voleak must not have been shown the console or the editor UI before the session |
+| Sample size | One colleague, one session, per shippable slice that changes the editor UI materially; a *different* colleague for any re-test | Unchanged. Pann Voleak is the first named tester; per §2.7, a **different** person is recruited for any re-test after a fix, to avoid learning-effect contamination |
 
 ### 2.3 The one-page guide
 
-The guide itself is a testable artifact, not a given. It is written by the developer, reviewed by nobody but the developer (solo constraint), and its **only validation is this test** — if the colleague cannot follow it, the guide fails, not just the console.
+Unchanged from v1.0: written by a developer (now: whichever engineer owns the editor UI for the slice under test), reviewed by another engineer before the session (this is new — with six people, "reviewed by nobody" is no longer the only option, and a second set of eyes on the guide is nearly free). Its only *validation*, however, remains this test — a guide that reads well to an engineer who already knows the system proves nothing.
 
 - Format: one printed or single-screen page. No links to a second document, no video.
-- Content ceiling: task steps only (open console → find page → edit → preview → publish). No conceptual explanation of blocks, drafts, or staleness beyond what the task requires.
+- Content ceiling: task steps only. No conceptual explanation of blocks, drafts, or staleness beyond what the task requires.
 - Stored at: `docs/deliverables/ADMIN-QUICKSTART.md` (produced under Skill 6; referenced, not authored, here).
 
-### 2.4 Script
+### 2.4 Two services, one session — what changes operationally
 
-1. Facilitator (the PM) hands the colleague the one-page guide and a single, specific, real task: *"Page X currently says Y. Change it to say Z, and publish the change."* The correction is a genuine one — pulled from an actual known content issue, not a synthetic placeholder — so the test also incidentally produces real value.
-2. The colleague works alone, at their own machine, with the guide as their only reference.
-3. The facilitator is present but **silent** by default: no unsolicited hints, no leaning over the shoulder, no "you're doing great" cues that imply progress or direction.
-4. The facilitator has a stopwatch running for diagnostic purposes only — **NFR-USE-01 is explicitly not time-boxed (`AMB-003`)**; duration is recorded but never used as a pass/fail criterion.
-5. Session ends when the colleague either (a) publishes successfully, (b) explicitly asks the facilitator a question, or (c) gives up.
+The colleague only ever touches the **frontend** (the admin console at its origin); the backend is invisible to them by design (`CONST-TECH-05`). The only new requirement is environmental: **both services must be running and the backend must be reachable from the frontend's origin (CORS configured) before the session starts.** This is a pre-flight check for the facilitator, not something the colleague ever sees or needs to know about. A session that fails because the backend was down, or a CORS misconfiguration silently broke a save, is an **infrastructure failure of the test setup**, not an NFR-USE-01 finding — it must be caught in pre-flight and the session rescheduled, not scored as a fail.
 
-### 2.5 What counts as "asking for help" (the pass/fail line)
+### 2.5 Script (unchanged from v1.0)
 
-This has to be defined precisely or the test is unfalsifiable.
+1. Facilitator (the PM) hands Pann Voleak the one-page guide and a single, specific, real task: *"Page X currently says Y. Change it to say Z, and publish the change."* A genuine correction, not a synthetic placeholder.
+2. Pann Voleak works alone, at her own machine, with the guide as her only reference.
+3. The facilitator is present but **silent** by default.
+4. A stopwatch runs for diagnostic purposes only — **not time-boxed** (`AMB-003`).
+5. Session ends when Pann Voleak either (a) publishes successfully, (b) explicitly asks the facilitator a question, or (c) gives up.
+
+### 2.6 What counts as "asking for help" (unchanged from v1.0)
 
 | Counts as a fail-triggering ask | Does **not** count |
 |---|---|
-| "How do I save this?" / "Where's the publish button?" / "What does 'stale' mean?" | Asking what the *correct replacement wording* should be (Y→Z) — that is an editorial judgment call, not a system-usability failure |
+| "How do I save this?" / "Where's the publish button?" / "What does 'stale' mean?" | Asking what the *correct replacement wording* should be — editorial, not a usability failure |
 | Any question directed at the PM/facilitator about *how to operate the console* | Muttering out loud while reading the guide, if not directed as a question |
-| Asking the facilitator to intervene physically ("can you click it for me?") | Re-reading the one-page guide a second time unprompted |
-| Opening a second tab to search "how to use [product]" (this is still "asking," just not asking the PM) | Using standard browser affordances (back button, zoom) |
+| Asking the facilitator to intervene physically | Re-reading the guide unprompted |
+| Opening a second tab to search "how to use [product]" | Using standard browser affordances |
 
-The facilitator answers **only**: *"Try what makes sense to you; I've written down that you asked."* No system-usability question receives a real answer during the session — answering it would erase the very thing being measured.
+### 2.7 Recording and cadence (unchanged from v1.0)
 
-### 2.6 Recording
-
-| Field | Recorded |
-|---|---|
-| Colleague (name, role) | For accountability and to prevent reuse without a fresh naive tester |
-| Task given | Verbatim page + intended correction |
-| Result | PASS (published unaided) / FAIL (asked for help — quote the question) |
-| Time taken | Diagnostic only, never gating |
-| Every question/hesitation point | Verbatim, timestamped — this is the actual defect list if it fails |
-| Guide revision needed? | Yes/No + what changed |
-
-Output: `qa/nfr-use-01-observation-N.md` (N increments per attempt).
-
-### 2.7 When it runs
-
-- **First run**: before G3 of the `jex2.0` pilot slice (the smallest, first-shipped doc set — `CONST-RES-01`'s named pilot). This is the earliest point a real page and a real console both exist.
-- **Re-run**: after any fix to the failure points, with a **different** colleague (never the same person twice — once someone has seen the flow, they are no longer naive).
-- **Not re-run** on every sprint. Re-running this test has a real cost (a colleague's time); it is reserved for gate checkpoints, not routine regression.
-- Ceiling: if 3 consecutive different colleagues fail, this blocks G3 for that slice regardless of every other passing test — per the Requirements Spec's own framing, no other result compensates for this one failing.
+Output: `qa/nfr-use-01-observation-N.md`. First run: before G3 of the `jex2.0` pilot slice — still the smallest, first-shipped doc set, and `CONST-RES-02` explicitly re-confirms `jex2.0` as the pilot. Re-run after any fix, with a different colleague. Ceiling: 3 consecutive different colleagues failing blocks G3 for that slice regardless of every other passing test.
 
 ---
 
 ## 3. Coverage Targets
 
-| Metric | Target | Scope | Rationale |
-|---|---|---|---|
-| Line coverage | ≥ 80% | **Core domain logic only**: block-schema validation, slug/redirect resolution, RBAC comparison, sanitisation, staleness/versioning, optimistic-lock logic | Kept at the `[basis:industry-convention]` default — this is exactly the code where a silent regression is expensive (security, data integrity) and where unit tests are cheap |
-| Branch coverage | ≥ 70% | Same scope as above | Same rationale |
-| Method coverage | Not tracked separately | — | An extra metric with no extra signal for a one-developer project; dropped rather than carried as unused ceremony |
-| Excluded from coverage targets | Generated DB client code (Prisma/Drizzle), thin CRUD API wrappers with no branching, presentational React components with no logic | — | Chasing 80% across generated code and pure-presentation components would burn solo-developer time for near-zero regression protection. This is a **deliberate scope-down**, stated rather than hidden |
-| Coverage tool | `vitest --coverage` (native V8 coverage) | — | Free, already in the Next.js/Vite-adjacent toolchain; no SonarQube — not proportionate to a one-person project's budget (`§8 PROJECT-PROPOSAL.md` — no budget allocated) |
+| Metric | Target | Scope | Backend tool | Frontend tool | Rationale |
+|---|---|---|---|---|---|
+| Line coverage | ≥ 80% | Core domain logic: block-schema validation, slug/redirect resolution, RBAC comparison, sanitisation, staleness/versioning, optimistic-lock logic, OIDC verification (backend); block validators, staleness/status widgets, `validate.ts` (frontend) | JaCoCo (`jacoco-maven-plugin`, free, Maven-native) | `vitest --coverage` (native V8 coverage) | Kept at the `[basis:industry-convention]` default in both suites — unchanged by the split, since the reasoning (cheap to write, expensive to skip on security/data-integrity code) is per-line, not per-team-size |
+| Branch coverage | ≥ 70% | Same scope, both sides | JaCoCo | `vitest --coverage` | Same rationale |
+| Method coverage | Not tracked separately | — | — | — | Revisited for v2.0 and **still dropped** — this was a proportionality call (an extra metric with no extra signal), not a capacity one, so the larger team does not change it |
+| Excluded from coverage targets | Generated DB client code (JPA entities/repositories with no custom logic, Flyway migration SQL), thin CRUD controllers with no branching, presentational React components with no logic | — | — | — | Also a proportionality call, not a capacity one — chasing 80% across generated code burns engineer time for near-zero regression protection regardless of headcount |
+| Cross-service assertion | The OpenAPI spec itself is treated as covered code: every path/operation in it must have at least one schema-conformance test (§1.2, §5.5) | — | springdoc-openapi + `atlassian-oai-validator` | `openapi-typescript` staleness check | New in v2.0 — coverage of the *contract*, not just the code either side of it |
+| Coverage tool budget note | No SonarQube/Snyk in either suite | — | — | — | Unchanged from v1.0 — no budget signal accompanied the team-size change, so the free-tooling decision stands; flagged for PM confirmation if that assumption is wrong |
 
 ---
 
-## 4. E2E Top 5 Scenarios
+## 4. E2E Scenarios — Top 7 (all seven UCs, added back from Top 5)
 
-Per `03-draft-dev-plan` §3, E2E is scoped to the top 5 core scenarios. Chosen from `UC-001`…`UC-007` on **KPI-criticality + regression-blast-radius**, not on volume of test cases per use case.
+`CONST-RES-01`'s v1.0 plan automated 5 of 7 flows and treated UC-003 and UC-006 as manual/integration-only, purely because one developer could not author and maintain 7 Playwright suites. `CONST-RES-02` removes that constraint: six engineers can afford to author and maintain all 7. Both UCs are **added back** below.
 
-| # | Scenario | UC | Core TC IDs | Why it's Top 5 |
+| # | Scenario | UC | Core TC IDs | Status |
 |---|---|---|---|---|
-| 1 | Edit an existing page and publish it | UC-001 | TC-001-01, -02, -03, -04, -05 | **This is the project.** Per the Requirements Spec: "if UC-001 fails, nothing else matters." Also the direct measurement of the KPI (§9 PROJECT-PROPOSAL.md): zero deploys for a content change |
-| 2 | Create an account and assign a role, then sign in | UC-004 | TC-004-01, -03 | Without this, UC-001 is only ever exercised by the PM — the bottleneck moves, it doesn't disappear (UC-004's own framing). TC-004-03 is also the mandatory `FR-AUTH-008` negative test (§5) |
-| 3 | Read a documentation page (happy path + legacy URL + role denial) | UC-005 | TC-005-01, -02, -06 | The read path is what users already have today and must not regress (`NFR-PERF-01` is already a known trade-down — §3.2 Requirements Spec — so protecting it is higher-value here, not lower); `CONST-OPS-02` (legacy hash URLs) is a hard migration constraint with real inbound-bookmark blast radius |
-| 4 | Create a new page in a section | UC-002 | TC-002-01, -02 | Second half of the KPI: TC-002-02 asserts `lib/i18n.ts`/`Sidebar.tsx` are untouched and no build runs — this is the literal, falsifiable definition of "no deploy" from the proposal's evidence table |
-| 5 | Find and fix a stale translation | UC-007 | TC-007-02, -03 | The compensating control for a real, named regression (§7.1 Proposal): TypeScript's compile-time 100%-translation guarantee disappears at migration. If this flow silently breaks, translation coverage degrades with no signal — exactly the failure mode that produced the two untranslated pages that exist today |
+| 1 | Edit an existing page and publish it | UC-001 | TC-001-01…-05, -07, -08 | Automated (unchanged from v1.0 — this is the project) |
+| 2 | Create an account and assign a role, then sign in | UC-004 | TC-004-01, -03 | Automated (unchanged) |
+| 3 | Read a documentation page (happy path + legacy URL + role denial) | UC-005 | TC-005-01, -02, -06 | Automated (unchanged) |
+| 4 | Create a new page in a section | UC-002 | TC-002-01, -02 | Automated (unchanged) |
+| 5 | Find and fix a stale translation | UC-007 | TC-007-02, -03 | Automated (unchanged) |
+| 6 | **Reorder/rename navigation** | UC-003 | TC-003-01, -02, -03 | **Added back.** Was integration + manual click-through only in v1.0; now full Playwright automation, authored by the frontend workstream engineer who owns the nav UI |
+| 7 | **Upload an image (happy path)** | UC-006 | TC-006-01, -02 | **Added back.** The security-critical sub-cases (`TC-006-03`, `-04`) were already automated as integration tests in v1.0 and remain so (§5.1); this adds the happy-path UI flow to E2E, closing the last manual-only gap in the Top 5/7 |
 
-**Deliberately not in the automated Top 5** (regression risk accepted, covered by manual/integration testing instead — stated, not hidden):
+All 56+ TC IDs from `UC-001`…`UC-007`, plus the new IDs assigned in §5.5 and §9.11, remain valid test cases. The Top 7 selection now governs **CI frequency emphasis** more than "automated vs. not" — with all seven UCs automated, the distinction v1.0 drew between "Top 5" and "everything else" is largely closed. The full case list lives under `backend/src/test/` (unit/integration/contract) and `tests/e2e/` (Playwright, repo root), ID-for-ID against the UC files.
 
-| UC | Reason for lighter treatment |
-|---|---|
-| UC-003 (reorder/rename navigation) | Lower blast radius — a wrong order is visible and trivially fixable in the UI, not a data-loss or security risk. Covered by integration test (`TC-003-02` single-source-of-truth) + manual click-through, not full Playwright automation |
-| UC-006 (upload image) | Automate the **security-critical** sub-cases only (disguised executable, oversized file — `TC-006-03`, `-04`) as integration tests against the upload API; the happy-path UI flow is exercised manually once per release, since image upload has no KPI linkage and low regression frequency expected |
+### 4.1 API contract tests are not E2E
 
-All 56 TC IDs from `UC-001`…`UC-007` remain valid test cases — the Top 5 selection governs **automation priority and CI frequency**, not which cases exist. The full case list is authored during Skill 4 (Sprint 1) and lives under `tests/e2e/` and `tests/integration/`, ID-for-ID against the UC files.
+A schema-conformance failure is a **contract** test failure (§1.2, §5.5), authored and run entirely within the backend's own test suite — it does not require a browser and does not belong in the E2E count. Conflating the two would hide contract drift behind slower, flakier browser tests; keeping them separate means a drift regression is caught in the PR stage (`mvn verify`), not after a full Playwright run.
+
+### 4.2 Orchestrating two services for E2E
+
+| Environment | Orchestration | Detail |
+|---|---|---|
+| Local (engineer machine) | `docker-compose.yml` at repo root: `backend` (Spring Boot, built via Maven), `frontend` (Next.js), `postgres` (local dev instance, or reused from the engineer's own local PostgreSQL per ADR-012 §2.2) | `npm run e2e` (or equivalent) brings up the compose stack, waits on both services' health endpoints, then runs Playwright against the frontend origin |
+| CI | Same `docker-compose.yml`, run as a CI job after both the backend and frontend PR/merge jobs pass independently | The E2E job never builds against a service that has not already passed its own unit/integration suite — this keeps a slow, flaky cross-service failure from masking a fast, precise one-service failure |
+| Health-gating | Both services expose a health endpoint (`/actuator/health` for Spring Boot; a lightweight `/api/health` route for Next.js) | The E2E runner polls both before starting Playwright; a service that fails to start is a **setup failure**, reported distinctly from a test failure, matching the NFR-USE-01 pre-flight discipline in §2.4 |
 
 ---
 
 ## 5. Security Testing
 
-Mapped to the 6 mandatory `NFR-SEC-*` cards (Skill 02 §7), OWASP Top 10, and the negative test explicitly demanded by the brief (`FR-AUTH-008`).
+Mapped to the 6 mandatory `NFR-SEC-*` cards, OWASP Top 10, `FR-AUTH-008`, and — new in v2.0 — the `CONST-TECH-07` class of direct-API negative tests.
 
 ### 5.1 Mandatory NFR-SEC cards
 
-| REQ-ID | Requirement | Test | Level |
-|---|---|---|---|
-| `NFR-SEC-AUTH` | Google OIDC, no password storage/reset flow | TC-004-01 (happy sign-in) + TC-004-07 (schema/storage inspection: **assert no password/hash column exists anywhere in the schema**) | Security audit + integration |
-| `NFR-SEC-PII` | Account name/email/audit records + ai-usage teammate data restricted by role, never exposed to `guest`/unauthenticated | Integration test: request ai-usage and account endpoints as each role (`guest` request rejected pre-auth; `user` sees only own usage; `admin`/`super admin` per role); security audit of API response payloads for over-exposure | Integration + security audit |
-| `NFR-SEC-SANITIZE` | All rich content sanitised before render; author cannot inject executable markup | TC-001-05 (`<script>` paste blocked at publish) + SAST rule flagging any new `dangerouslySetInnerHTML` call site not routed through the sanitiser + code review | Security test + SAST + code review |
-| `NFR-SEC-UPLOAD` | Declared type + actual sniffed content type + size validated; stored outside executable paths | TC-006-03 (disguised executable, sniffed-content rejection) + TC-006-04 (oversized) + integration test asserting the storage bucket/path is not web-executable | Security test |
-| `NFR-SEC-CHANNEL` | TLS on all external calls; `/api/ingest` bearer secret scope-limited and explicitly **not** a template for editorial write paths | Security audit: confirm TLS-only config at the platform (Vercel) level; confirm the ingest secret grants no access beyond `/api/ingest`; confirm no editorial write endpoint reuses that secret pattern | Security audit |
-| `NFR-SEC-SESSION` | Cookies `httpOnly`, `secure`, `sameSite`; single defined TTL | TC-004-08 (old session cookie rejected after sign-out) + security audit of cookie flags and **TTL = 1 day** (resolved value per `AMB-006`, RESOLVED 2026-09-08 — the code's existing `SESSION_DAYS = 1` is authoritative; `CLAUDE.md`'s "30 days" was the stale, incorrect value) | Security audit + integration |
+| REQ-ID | Requirement | Test | Where | Level |
+|---|---|---|---|---|
+| `NFR-SEC-AUTH` | Google OIDC verified server-side; no password storage/reset flow | TC-004-01 (happy sign-in, E2E) + TC-004-07 (schema/storage inspection: assert no password/hash column exists) + unit tests on OIDC token verification (signature/audience/issuer/nonce, per ADR-012 Decision 4) | Backend (verification, schema) + E2E (sign-in) | Security audit + backend unit/integration |
+| `NFR-SEC-PII` | Account/audit/ai-usage data restricted by role, never exposed to `guest`/unauthenticated, **and role is read server-side on every request, never from a client header or claim** (ADR-012 Decision 4) | Backend integration test: request ai-usage/account endpoints as each role directly against the API; security audit of response payloads for over-exposure; a dedicated test asserting a forged/absent role claim is ignored server-side | Backend integration + security audit | Integration + security audit |
+| `NFR-SEC-SANITIZE` | All rich content sanitised **in the backend** before persistence; the frontend's sanitiser is advisory only (`CONST-TECH-07`) | TC-001-05 (UI paste, E2E) **plus** TC-001-15 (§5.5 — direct API call posting raw `<script>` content, bypassing the editor entirely) | Frontend (E2E) + Backend (direct-API, authoritative) | Security test (both levels) + SAST + code review |
+| `NFR-SEC-UPLOAD` | Declared type + sniffed content type + size validated **in the backend**; stored outside executable paths | TC-006-03 (disguised executable) + TC-006-04 (oversized) + backend integration test asserting the storage bucket/path is not web-executable — all as direct calls against the media API, not routed through the browser | Backend integration | Security test |
+| `NFR-SEC-CHANNEL` | TLS on all external calls; CORS restricted to the frontend's known origin(s); `/api/ingest` bearer secret scope-limited | Security audit: TLS-only config at the GCP hosting layer (ADR-012 §2.1); **new**: CORS policy inspection — assert the backend accepts requests only from the frontend's registered origin, not `*`; confirm the ingest secret grants no access beyond `/api/ingest` | Backend config + security audit | Security audit |
+| `NFR-SEC-SESSION` | Cookies `httpOnly`, `secure`, `sameSite`; TTL = 1 day (`AMB-006`); **new**: `SameSite` behaviour across the frontend/backend origin split (ADR-012 Decision 4 — "a new attack surface that did not exist in the single-service design") | TC-004-08 (old session cookie rejected after sign-out) + security audit of cookie flags/TTL + **new cross-origin cookie test**: confirm the session cookie is scoped and sent correctly across the two origins without falling back to a permissive `SameSite=None` without `Secure` | Backend (session issuance) + cross-origin config | Security audit + integration |
 
-### 5.2 Negative test — `FR-AUTH-008` (mandatory, explicit)
+### 5.2 `CONST-TECH-07` — validation and authorisation are authoritative in the backend
 
-> *"An `admin` may not access account management, enforced server-side, not merely hidden in the UI."*
+> *"All validation and authorisation are authoritative in the backend. Client-side validation is advisory only and no write path may depend on it."* (ADR-012 §3)
 
-This is the one test in this plan flagged as **non-negotiable and independent of UI state**:
+This is a **named test category**, not a single test. The frontend's `validate.ts` (repurposed per ADR-012 as an advisory pre-check) can be entirely correct and the system can still be broken if the backend trusts it. The class of test this demands: **call the API directly — via REST-assured/curl/an HTTP client, with no browser, no frontend process, no UI involved at all — and confirm the backend still rejects what it should reject.** A Playwright test that only drives the browser proves nothing about this, because a browser always goes through the frontend's validator first; only a direct call skips it.
 
-| Item | Detail |
-|---|---|
-| Test ID | TC-004-03 |
-| Method | **Direct API/route call**, not a UI click-path. An automated integration test authenticates as an `admin`-role session and issues a request directly against the users/roles API route (and the admin-console URL for account management) **bypassing the UI entirely** |
-| Pass condition | Server returns 403/redirect for **every** such request, regardless of whether the UI happens to hide the "Users & roles" menu item for that role |
-| Why UI-hiding is insufficient | A hidden menu item is not a security control — anyone who guesses or is given the URL reaches it unless the server itself checks the role. This test exists specifically to catch "security by obscurity" regressions where a future refactor removes the server check but leaves the UI hidden |
-| Cadence | Every PR touching `FR-AUTH-*` or the users/roles route; part of the regression suite thereafter (§11) |
+| Requirement covered | Direct-API test | Test ID |
+|---|---|---|
+| `FR-AUTH-008` — an `admin` must not reach account management even by direct call | Authenticate as `admin`, issue the request directly against the users/roles REST endpoint — no browser session, no UI navigation | TC-004-09 (§5.5) |
+| `FR-CONT-009` — block-type/order schema validation | POST a block payload with an invalid block type / out-of-vocabulary type directly to the pages API | TC-001-14 (§5.5) |
+| `NFR-SEC-SANITIZE` | POST a raw `<script>` payload directly to the pages API, bypassing the editor's own sanitiser entirely | TC-001-15 (§5.5) |
+| `FR-AUTH-005`/`006` — role ladder | Direct-API role-ladder matrix: all 4 roles × all page-minimum-roles, issued as raw HTTP requests, not browser navigations | Covered by the existing OWASP A01 integration matrix (§5.3), now explicitly re-scoped as backend-only (no browser) |
 
 ### 5.3 OWASP Top 10
 
 | ID | Item | Verification | Project-specific instance |
 |---|---|---|---|
-| A01 | Broken Access Control | E2E (TC-004-03) + integration (role-ladder matrix test: all 4 roles × all page-minimum-roles) | The `guest < user < admin < super admin` ladder, `FR-AUTH-005/006` |
-| A02 | Cryptographic Failures | Security audit | Session cookie signing, OAuth token handling — no in-house crypto to audit beyond what Google OIDC + the framework provide |
-| A03 | Injection | SAST (Semgrep community ruleset, free) + unit tests on the sanitiser and any raw SQL (if used outside an ORM) | Rich-content XSS (`NFR-SEC-SANITIZE`) is the dominant injection surface here — there is no SQL console exposed to users |
-| A04 | Insecure Design | Architecture review + `docs/design/threat-model.md` (STRIDE, produced alongside this plan) | Reviewed jointly with `architect`/`security-auditor` in Skill 3 |
-| A05 | Security Misconfiguration | Configuration inspection | Vercel env vars, DB connection string exposure, `NODE_ENV` checks |
-| A06 | Vulnerable Components | `npm audit` / Dependabot (free, already GitHub-native) — no paid Snyk/SBOM tooling given zero budget | Proportionate substitute stated explicitly |
-| A07 | Identification & Auth Failures | E2E (TC-004-01, -02, -04, -05, -08) | Google OIDC replaces the shared-password scheme; account lifecycle (deactivation, last-super-admin protection) |
-| A08 | Software & Data Integrity Failures | Code review; no HMAC/signature scheme needed beyond the existing `/api/ingest` bearer secret, which is explicitly scoped and not extended | Lower relevance than in a financial-transaction system — stated, not padded with unnecessary controls |
-| A09 | Logging & Monitoring Failures | Audit log inspection (`FR-OPS-001/002/003`) | Failed sign-ins, permission denials, rejected uploads all must appear in the audit trail |
-| A10 | SSRF | Static analysis (Semgrep) | Low surface area — no user-supplied URL fetches exist in this application's design; noted as low-risk rather than skipped |
+| A01 | Broken Access Control | Direct-API TC-004-03/-09 + backend integration role-ladder matrix (all 4 roles × all page-minimum-roles, HTTP-client only, no browser) | The `guest < user < admin < super admin` ladder, `FR-AUTH-005/006`; now explicitly backend-only per `CONST-TECH-07` |
+| A02 | Cryptographic Failures | Security audit | Session cookie signing (backend), OAuth token verification (backend), no in-house crypto beyond what Google OIDC + Spring Security provide |
+| A03 | Injection | Semgrep (both repos) + backend unit tests on the sanitiser + JPA/parameterised-query review (no raw SQL string concatenation) | Rich-content XSS (`NFR-SEC-SANITIZE`) remains the dominant surface; backend now also reviewed for JPQL/native-query injection |
+| A04 | Insecure Design | Architecture review + `docs/design/threat-model.md` (STRIDE) — **new boundary B7 (frontend ↔ backend), TM-003 re-scored** per ADR-012 | Reviewed jointly with `architect`/`security-auditor` |
+| A05 | Security Misconfiguration | Configuration inspection | **New**: Spring Boot Actuator endpoints not publicly exposed; CORS allow-list, not wildcard; env-var/secret exposure on both GCP services; `NODE_ENV`/Spring profile checks |
+| A06 | Vulnerable Components | `npm audit`/Dependabot (frontend) **+ OWASP Dependency-Check via `mvn dependency-check:check`, free** (backend, new) | No paid Snyk/SBOM tooling — no budget signal with the team-size change, so the free-tooling stance is unchanged |
+| A07 | Identification & Auth Failures | E2E (TC-004-01, -02, -04, -05, -08) + backend unit tests on OIDC verification | Google OIDC verified server-side; account lifecycle (deactivation, last-super-admin protection) |
+| A08 | Software & Data Integrity Failures | Code review; `/api/ingest` bearer secret explicitly scoped and not reused for editorial write paths | Unchanged from v1.0 |
+| A09 | Logging & Monitoring Failures | Audit log inspection (`FR-OPS-001/002/003`) | Failed sign-ins, permission denials, rejected uploads all in the audit trail — now written by the backend exclusively |
+| A10 | SSRF | Semgrep (backend) | Low surface area — no user-supplied URL fetches in the design |
 
 ### 5.4 Secret scanning & SAST
 
 | Level | Tool | Timing | Notes |
 |---|---|---|---|
-| L1 | `gitleaks` (already provisioned: `hooks/pre-commit-gitleaks.sh`, `hooks/gitleaks.toml`) | Pre-commit | No change from the standard harness — free, already wired |
-| L2 | Semgrep (community rules, free) + `npm audit` + the existing `ci-security-auditor.yml` | CI/PR | SAST substitutes for a paid tool given zero budget (`§8 Proposal`); this is a stated trade-off, not an oversight |
-| L3 | `hooks/prod-gate-checklist.md` | Immediately before production deploy | Unchanged |
+| L1 | `gitleaks` (`hooks/pre-commit-gitleaks.sh`, `hooks/gitleaks.toml`) | Pre-commit | Unchanged — scans both `backend/` and `frontend/` |
+| L2 | Semgrep (community rules) + `npm audit` (frontend) + `mvn dependency-check:check` (backend, new) + `ci-security-auditor.yml` | CI/PR | The backend addition is new in v2.0 — a Java service has a dependency-vulnerability surface a Next.js-only project did not |
+| L3 | `hooks/prod-gate-checklist.md` | Immediately before production deploy | Unchanged; add a line item confirming both services' health/actuator endpoints are not publicly exposed |
+
+### 5.5 New Test IDs authored for v2.0 (contract + `CONST-TECH-07`)
+
+Reusing the existing `TC-<UC>-<NN>` scheme — no parallel numbering. Assigned against the next free sequence number per UC file, same pattern already used for the v1.0 gaps (`TC-001-11`, `TC-001-12`).
+
+| Test ID | UC | Purpose | Level |
+|---|---|---|---|
+| TC-001-13 | UC-001 | Pages API (create/update/publish) response conforms to the published OpenAPI schema | Contract |
+| TC-001-14 | UC-001 | Direct API call posts an invalid/out-of-vocabulary block type, bypassing the editor's own validator (`CONST-TECH-07`, `FR-CONT-009`) | Security (negative) |
+| TC-001-15 | UC-001 | Direct API call posts raw `<script>` content, bypassing the editor's sanitiser (`CONST-TECH-07`, `NFR-SEC-SANITIZE`) | Security (negative) |
+| TC-002-08 | UC-002 | Pages-creation API response conforms to schema | Contract |
+| TC-003-06 | UC-003 | Navigation API response conforms to schema | Contract |
+| TC-004-09 | UC-004 | **Direct API call** (no browser, no UI) as `admin` against the users/roles endpoint — the authoritative `FR-AUTH-008` test demanded by `CONST-TECH-07` | Security (negative) |
+| TC-004-10 | UC-004 | Users/roles API response conforms to schema | Contract |
+| TC-005-11 | UC-005 | Reader API response conforms to schema; CORS/`SameSite` behaviour verified across the two origins (ADR-012 Decision 4) | Contract + security |
+| TC-006-09 | UC-006 | Media/upload API response conforms to schema | Contract |
+| TC-007-09 | UC-007 | i18n/staleness API response conforms to schema | Contract |
+
+All ten are authored in Sprint 1, same as the two v1.0 gaps, and folded into §9's traceability and §11's regression ledger from that point on.
 
 ---
 
 ## 6. Load Testing
 
-Scaled to `NFR-SCALE-01` (200 pages/language, 10 concurrent editors, internal reader volume) — **not** an enterprise rig. Running k6 from a single developer machine or a small CI runner against staging is proportionate; anything larger would test infrastructure this project does not have and will not have.
+Scaled to `NFR-SCALE-01` (200 pages/language, 10 concurrent editors, internal reader volume) — this target is **unchanged by `CONST-RES-02`**. Six developers do not mean the documentation site suddenly serves more readers; running an enterprise-scale rig here would still be cargo-culting the `sg-gw` financial-services load profile onto a project whose actual scale hasn't moved. What changed is **cadence**, which was a capacity trade-off, not a scale one.
 
 | Scenario | Target load (2× SLA basis) | Duration | Pass criteria | Maps to |
 |---|---|---|---|---|
-| Reader page load | 20 concurrent reader sessions (2× an assumed internal peak of ~10 concurrent readers — the "internal-scale reader volume" in `NFR-SCALE-01` is not numerically specified elsewhere, so this is a stated, conservative assumption, flagged for PM confirmation at G2) | 15 min sustained | **P95 < 1s**, error rate < 1% | `NFR-PERF-01` |
-| Admin save action | 20 concurrent save operations (2× the literal `NFR-SCALE-01` ceiling of 10 concurrent editors) | 10 min | **P95 < 2s**, error rate < 1% | `NFR-PERF-02` |
-| Editor becomes interactive | 20 concurrent editor page loads | 10 min | **P95 < 2s** time-to-interactive | `NFR-PERF-03` |
-| Full-scale content check | Database seeded to 200 pages × 3 languages (600 rows) before the above runs | — | No degradation versus a lightly-seeded DB (catches missing indexes early) | `NFR-SCALE-01` |
+| Reader page load | 20 concurrent reader sessions (2× the stated conservative assumption of ~10 concurrent internal readers, flagged for PM confirmation at G2, unchanged from v1.0) | 15 min sustained | **P95 < 1s**, error rate < 1% | `NFR-PERF-01` |
+| Admin save action | 20 concurrent save operations against the backend API (2× `NFR-SCALE-01`'s literal ceiling of 10 concurrent editors) | 10 min | **P95 < 2s**, error rate < 1% | `NFR-PERF-02` |
+| Editor becomes interactive | 20 concurrent editor page loads (frontend, backed by the API) | 10 min | **P95 < 2s** time-to-interactive | `NFR-PERF-03` |
+| Full-scale content check | Backend database seeded to 200 pages × 3 languages (600 rows) before the above runs | — | No degradation versus a lightly-seeded DB (catches missing indexes early) | `NFR-SCALE-01` |
+| **New — CI smoke run** | 5 concurrent sessions, 2 min, against a staging or ephemeral compose stack | 2 min | No error-rate regression versus the prior run (directional, not a pass/fail SLA gate) | Fast feedback on every merge to `main` (§1.3) — affordable now with CI capacity, not run manually by one person |
 
-**Explicitly not tested**: sustained 24-hour throughput, daily-transaction-volume style runs, or multi-region load distribution — none of these have a basis in this project's actual scale (200 pages, 10 editors, internal readers). Including them would be cargo-culting the `sg-gw` financial-services load profile onto a documentation site. This is a deliberate scope-down.
+**Explicitly still not tested**: sustained 24-hour throughput, daily-transaction-volume runs, multi-region load distribution — this remains a proportionality call, unchanged by team size.
 
-**Cadence**: once per independently-shippable slice (e.g., after the `jex2.0` pilot, and again before wider rollout), not every sprint — consistent with §0's stated automation-vs-frequency trade-off.
+**Cadence**: CI smoke run on every merge to `main` (new, cheap, catches gross regressions fast); full 2×-SLA run once per independently-shippable slice (unchanged cadence from v1.0 — the full run is still expensive enough that six engineers pushing daily doesn't justify running it on every merge).
 
 ---
 
 ## 7. Accessibility Testing
 
-| Item | Decision |
-|---|---|
-| Scope | The 5 automated E2E flows (§4) only, plus the admin console's editor/block UI | Not all 105 reader-facing content pages — full-site WCAG 2.1 AA certification is disproportionate for one part-time developer and is **explicitly out of scope**, stated here rather than silently dropped |
-| Tooling | `@axe-core/playwright`, run inside the same Playwright E2E suite | Zero additional infrastructure — reuses the E2E harness |
-| Pass bar | Zero **critical/serious** axe violations on scanned flows | A pragmatic bar, not full AA sign-off |
-| `FR-MEDIA-005` (alt text) | TC-006-08 — publishing without alt text is **warned, not blocked** (an accessibility nudge, not a hard gate, matching the requirement's `Should` priority) |
-| Ownership | frontend-developer produces the axe/Jest results as part of component work; qa-engineer verifies the pass bar is met and sends the work back if not (per the standard hand-off in this role's brief) |
+| Item | v1.0 | v2.0 |
+|---|---|---|
+| Scope | The 5 automated E2E flows only | **All 7 automated E2E flows**, plus a scripted axe pass over **every page in a doc set as it migrates** (not just flow-adjacent pages) — added back because scanning is cheap and scriptable; it was scoped down in v1.0 purely because authoring 2 extra E2E flows to scan was the actual cost driver, and that cost is now affordable |
+| Full manual WCAG 2.1 AA certification of all 105 pages | Explicitly out of scope, stated as a limitation | **Still out of scope.** This is a proportionality call, not a capacity one: manually certifying 105 pages against the full AA checklist is disproportionate to an internal documentation tool regardless of team size. What changed is the automated scan's breadth (all pages, not just 5 flows), which catches the highest-value class of violation (missing labels, contrast, keyboard traps) at near-zero marginal cost |
+| Tooling | `@axe-core/playwright`, inside the Playwright suite | Unchanged, extended: the migration script that verifies content-fidelity (§8) also triggers an axe scan per migrated page as a side effect, so the two checks share one pass over each doc set rather than running twice |
+| Pass bar | Zero critical/serious axe violations on scanned flows | Zero critical/serious axe violations, now across the wider scan surface |
+| `FR-MEDIA-005` (alt text) | TC-006-08 — warned, not blocked | Unchanged |
+| Ownership | frontend-developer produces results, qa-engineer verifies | Unchanged in principle; now frontend workstream (plural) produce results per doc set as it ships, qa-engineer verifies the pass bar before that doc set's slice is marked done |
 
 ---
 
 ## 8. Content-Fidelity Verification (replaces Parity Testing)
 
-### 8.1 Why Parity Testing is N/A here
+### 8.1 Why Parity Testing is N/A here (unchanged from v1.0)
 
-The standard harness's Skill 3 §3 / Skill 5 checklist lists parity testing (byte-level legacy-vs-new output equivalence) as a migration deliverable. **It is marked N/A for this project**, with rationale, per Skill 07 §2.6/§5's instruction to downgrade a criterion that does not fit the project's nature rather than force it:
+Marked N/A, with rationale, per Skill 07's instruction to downgrade a criterion that does not fit the project's nature:
 
-- Byte-level equivalence assumes the new system reproduces the old system's *output* exactly for the same *input* — the model that fits porting C to Java line-for-line.
-- This project is **not a 1:1 port**. Content moves from 32 hand-styled CSS-class block types to a deliberately reduced 8–10 type block vocabulary (`CONST-TECH-04`). The Proposal (§8.1) states plainly: *"some pages will not look exactly as they do today."* A byte-comparison would fail on every single page by design, telling us nothing.
-- The rendering model itself changes (static-generated JSX → database-backed blocks rendered on demand — Proposal §11.1). There is no shared "legacy output" and "new output" pair for the same code path to diff.
+- Byte-level equivalence assumes the new system reproduces the old system's *output* exactly for the same *input*. This project is **not** a 1:1 port — content moves from 32 hand-styled CSS-class block types to a reduced 8–10 type block vocabulary (`CONST-TECH-04`). A byte-comparison would fail on every page by design.
+- The rendering model changes (static-generated JSX → database-backed blocks rendered on demand). There is no shared "legacy output"/"new output" pair for the same code path to diff.
+- **Unaffected by the two-service split or the larger team** — the rationale is about the content model, not the architecture or headcount.
 
-### 8.2 The substitute: Content-Fidelity Verification
+### 8.2 The substitute: Content-Fidelity Verification (unchanged method)
 
-What actually needs proving is narrower and more honest: **every one of the 105 authored panels survived the migration, is present, and reads correctly** — not that it is byte-identical.
+Every one of the 105 authored panels survived the migration, is present, and reads correctly.
 
-**Deliverable**: `qa/content-fidelity-checklist.csv`, one row per (doc set × slug × locale), covering all 105 panels × 3 locales = up to 315 rows (fewer where a panel is Tier C / excluded, per the Proposal §4.2 tiering).
+**Deliverable**: `qa/content-fidelity-checklist.csv`, one row per (doc set × slug × locale), up to 315 rows.
 
 | Column | Meaning |
 |---|---|
 | `doc_set` | jex3.0 / jex2.0 / coach / idea / workflow / ai-usage |
 | `slug` | Page identifier |
 | `locale` | en / km / ko |
-| `tier` | A (fully editable), B (embed, e.g. `HarnessDemo`/`OwnerTree`), C (ai-usage — decided per Skill 2) |
-| `structural_check` | PASS/FAIL — automated: page exists in DB, has ≥1 block, has a published version |
-| `block_count_expected` | Derived from the AS-IS source file (panel's approximate content chunks) |
-| `block_count_actual` | Queried from the new DB |
-| `manual_readthrough` | PASS/FAIL — human comparison of rendered new page against the AS-IS source, checked against a fixed checklist (below) |
-| `notes` | Any accepted content loss (e.g. bespoke styling dropped per the 32→10 block reduction — expected and accepted per `RISK-002`) |
+| `tier` | A (fully editable), B (embed), C (ai-usage) |
+| `structural_check` | PASS/FAIL — automated: page exists in the backend DB, has ≥1 block, has a published version |
+| `block_count_expected` / `block_count_actual` | Derived from the AS-IS source vs. queried from the backend DB via its API (not a direct DB query from a script — keeps the check honest about what a real client sees) |
+| `manual_readthrough` | PASS/FAIL — human comparison against a fixed checklist |
+| `notes` | Any accepted content loss (expected per the 32→10 block reduction, `RISK-002`) |
 
-**Manual read-through checklist** (per panel, ticked by the solo developer):
-- [ ] All prose/headings/callouts present, no missing paragraphs
-- [ ] Tables preserved with correct row/column structure (81 tables in AS-IS)
-- [ ] Copyable code blocks present and copy affordance still works (183 instances in AS-IS — `FR-CONT-011`)
-- [ ] Tier B embeds (`HarnessDemo`, `OwnerTree`) render and are interactive, not broken placeholders
-- [ ] Internal links resolve (no dangling references introduced by the migration)
-- [ ] All 3 locales present for Tier A/B content (`FR-I18N-001`, `NFR-I18N-01`)
+**Manual read-through checklist** (per panel): all prose/headings/callouts present; tables preserved (81 tables in AS-IS); copyable code blocks present and functional (183 instances, `FR-CONT-011`); Tier B embeds render and are interactive; internal links resolve; all 3 locales present for Tier A/B content.
 
-### 8.3 Sequencing (aligned with the migration order, not a single big-bang pass)
+### 8.3 Sequencing and ownership — parallelised, not serial
 
-Per the Proposal's own recommended sequencing (§8.1): migrate and verify `jex2.0` first (smallest, 5 slugs), then the hardest content (`coach`, 1,707 lines) early to find where the block model breaks, then the rest. Content-fidelity verification runs **once per doc set as it migrates**, not once at the end — failing fast on the hard doc set costs a day; failing at the end costs the whole project (Proposal §8.1's own words).
+v1.0 ran this serially because one developer had no choice. With `CONST-RES-02`, the content-migration workstream can run fidelity verification **per doc set in parallel** with backend/frontend feature work, rather than as a single-threaded bottleneck at the end of each doc set's migration. The sequencing itself is unchanged (Proposal §8.1's order: `jex2.0` first, then `coach` early to find where the block model breaks, then the rest) — what changed is that more than one doc set's verification can be in flight at once.
 
-**Exit criterion**: 100% of a doc set's rows marked PASS before that doc set's slice is considered done. A doc set is not "half fidelity-verified and shipped" — this is the closest equivalent this project has to parity's "100%, mandatory" rule.
+**Exit criterion, unchanged**: 100% of a doc set's rows marked PASS before that doc set's slice is considered done.
 
-### 8.4 Tooling and the `CONST-OPS-01` constraint
+### 8.4 Tooling and the `CONST-OPS-01` constraint (unchanged, binding on more people now)
 
-Any fixture-generation or content-extraction script used to build the expected/actual comparison **must never use Windows PowerShell 5.1 for bulk text operations** (`Get-Content`/`-replace`/`Set-Content`) — it reads UTF-8 as the Korean system codepage and corrupts em-dashes, Korean, and Khmer text (`CONST-OPS-01`, `CLAUDE.md:152`). This is binding on this exact tooling, since it processes the km/ko content directly.
-
-- Extraction/comparison scripts: Node.js/TypeScript (`ts-node`) or Python with explicit `encoding='utf-8'`, never `Get-Content`/`Set-Content` for anything that reads or writes km/ko/en text.
-- PowerShell may still be used to *invoke* such a script or check file existence — never to transform text content itself.
-- **Verification of the tooling itself**: before it is trusted against real content, round-trip a fixed sample string containing an em-dash, Korean, and Khmer characters through the extraction/comparison pipeline and byte-diff (UTF-8) the output against the input. This is a one-time tooling test, not a per-panel one, but it is a gating check — a corrupted extraction tool would produce false FAILs (or worse, false PASSes) across all 315 rows.
+Any fixture-generation or content-extraction script **must never use Windows PowerShell 5.1 for bulk text operations** (`Get-Content`/`-replace`/`Set-Content`) — it corrupts UTF-8 (em-dashes, Korean, Khmer) (`CONST-OPS-01`). This is now binding on **five engineers**, not one, so it is worth restating plainly rather than assuming it will be remembered: extraction/comparison scripts are Node.js/TypeScript or Python with explicit `encoding='utf-8'`, never PowerShell text cmdlets. The one-time round-trip verification of the tooling itself (fixed em-dash/Korean/Khmer sample, byte-diffed) is unchanged and remains a gating check before the tool is trusted against real content.
 
 ---
 
 ## 9. Traceability — Must Requirements to Tests
 
-Every **Must**-priority requirement (70 of 84) mapped to at least one test, reusing the existing `TC-xxx-yy` IDs from the use-case files rather than a parallel scheme. Where a Must requirement has no dedicated `TC` id in the use-case files as written, this is flagged as a **gap** — honestly, not silently patched — for explicit `TC` authorship in Sprint 1 of Skill 4.
+Every **Must**-priority requirement mapped to at least one test, reusing existing `TC-xxx-yy` IDs. New rows below cover the constraints added or changed by ADR-012 and `CONST-RES-02`; all other rows carry over from v1.0 unchanged unless noted.
 
 ### 9.1 Content Authoring (`FR-CONT-`)
 
@@ -311,17 +359,17 @@ Every **Must**-priority requirement (70 of 84) mapped to at least one test, reus
 | FR-CONT-006 | TC-002-01 | E2E |
 | FR-CONT-007 | TC-002-07 | E2E |
 | FR-CONT-008 | TC-002-01 | E2E |
-| FR-CONT-009 | Schema review + unit test (block-type/order validator) + TC-002-01 | Schema review + unit + E2E |
-| FR-CONT-010 | TC-002-04 | Integration |
-| FR-CONT-011 | **Gap**: exercised narratively by UC-001's A-4 alt-flow but has no dedicated TC id today. Assign `TC-001-11` (copy-affordance renders and functions) in Sprint 1 | E2E (to be authored) |
+| FR-CONT-009 | Backend unit test (block-type/order validator, authoritative per `CONST-TECH-07`) + TC-001-14 (direct-API negative) + TC-002-01 | Unit + security (negative) + E2E |
+| FR-CONT-010 | TC-002-04 | Integration (backend) |
+| FR-CONT-011 | TC-001-11 (assigned Sprint 1, v1.0 gap, carried over) | E2E |
 | FR-CONT-012 | TC-001-07 | E2E |
-| FR-CONT-013 | TC-001-04 | Integration |
+| FR-CONT-013 | TC-001-04 | Integration (backend) |
 
 ### 9.2 Navigation (`FR-NAV-`)
 
 | REQ-ID | Test ID(s) | Level |
 |---|---|---|
-| FR-NAV-001 | TC-003-01 | E2E |
+| FR-NAV-001 | TC-003-01 | E2E (added back — was integration+manual in v1.0, §4) |
 | FR-NAV-002 | TC-003-03 | E2E |
 | FR-NAV-004 | TC-003-02 + schema review | Schema review + integration |
 | FR-NAV-005 | TC-003-01 | Integration |
@@ -330,7 +378,7 @@ Every **Must**-priority requirement (70 of 84) mapped to at least one test, reus
 
 | REQ-ID | Test ID(s) | Level |
 |---|---|---|
-| FR-I18N-001 | Schema review + TC-007-08 (coverage measurement) | Schema review |
+| FR-I18N-001 | Schema review + TC-007-08 | Schema review |
 | FR-I18N-002 | TC-007-02 | Integration |
 | FR-I18N-003 | TC-007-01, TC-007-04 | E2E |
 | FR-I18N-004 | TC-007-03 | Integration |
@@ -340,9 +388,9 @@ Every **Must**-priority requirement (70 of 84) mapped to at least one test, reus
 
 | REQ-ID | Test ID(s) | Level |
 |---|---|---|
-| FR-MEDIA-001 | TC-006-01 | E2E |
+| FR-MEDIA-001 | TC-006-01 | E2E (added back — happy-path UI flow now automated, §4) |
 | FR-MEDIA-002 | TC-006-01 | E2E |
-| FR-MEDIA-004 | TC-006-03, TC-006-04 | Security test |
+| FR-MEDIA-004 | TC-006-03, TC-006-04 (direct-API against the media endpoint, backend-authoritative per `CONST-TECH-07`) | Security test |
 
 ### 9.5 Authentication / Authorization (`FR-AUTH-`)
 
@@ -352,10 +400,10 @@ Every **Must**-priority requirement (70 of 84) mapped to at least one test, reus
 | FR-AUTH-002 | TC-004-07 | Security audit / schema review |
 | FR-AUTH-003 | TC-004-04, TC-004-05 | E2E |
 | FR-AUTH-004 | TC-004-06 | E2E |
-| FR-AUTH-005 | TC-005-06, TC-001-08 | Integration + security audit |
-| FR-AUTH-006 | TC-005-06 | Integration |
+| FR-AUTH-005 | TC-005-06, TC-001-08 + backend-only role-ladder matrix (§5.3) | Integration + security audit |
+| FR-AUTH-006 | TC-005-06 + backend-only role-ladder matrix (§5.3) | Integration |
 | FR-AUTH-007 | TC-004-08 | E2E |
-| **FR-AUTH-008** | **TC-004-03** — mandatory negative test, see §5.2 | Security test (negative) |
+| **FR-AUTH-008** | **TC-004-03** (UI deep-link) **+ TC-004-09** (direct API, no browser — the authoritative test per `CONST-TECH-07`, §5.2/§5.5) | Security test (negative), both levels required |
 
 ### 9.6 Reader Experience (`FR-READ-`)
 
@@ -371,52 +419,55 @@ Every **Must**-priority requirement (70 of 84) mapped to at least one test, reus
 
 | REQ-ID | Test ID(s) | Level |
 |---|---|---|
-| FR-OPS-001 | **Gap**: UC-001 Step 8 describes the audit write but no `TC` id asserts it directly. Assign `TC-001-12` (audit entry recorded: actor/action/target/timestamp) in Sprint 1 | Integration (to be authored) |
+| FR-OPS-001 | TC-001-12 (assigned Sprint 1, v1.0 gap, carried over — now a backend-only integration test since audit writes happen in the backend exclusively) | Integration |
 | FR-OPS-002 | TC-004-02, TC-004-03 | Integration |
 | FR-OPS-003 | TC-006-03, TC-006-04 | Integration |
 
-### 9.8 Non-Functional — Usability, Performance, Security, Availability, Scale, Compatibility, Operations, i18n/Extensibility
+### 9.8 Non-Functional Requirements
 
 | REQ-ID | Test ID(s) / Method | Level |
 |---|---|---|
-| **NFR-USE-01** | Dedicated observed task procedure, §2. TC-001-09 is the UC-level marker | Observed task test |
+| **NFR-USE-01** | Dedicated observed task procedure, §2 (Pann Voleak named). TC-001-09 is the UC-level marker | Observed task test |
 | NFR-USE-02 | TC-001-09 + design review (no code/JSX/Markdown/HTML/git/deploy step in any flow) | Task test + review |
-| NFR-PERF-01 | Load test scenario "Reader page load", §6 | Load test |
-| NFR-PERF-02 | Load test scenario "Admin save action", §6 | Load test |
-| NFR-PERF-03 | Load test scenario "Editor interactive", §6 | Load test |
-| NFR-SEC-AUTH | §5.1 | Security audit |
-| NFR-SEC-PII | §5.1 | Security audit |
-| NFR-SEC-SANITIZE | §5.1 (TC-001-05) | Security test + code review |
+| NFR-PERF-01 | Load test "Reader page load", §6 | Load test |
+| NFR-PERF-02 | Load test "Admin save action", §6 | Load test |
+| NFR-PERF-03 | Load test "Editor interactive", §6 | Load test |
+| NFR-SEC-AUTH | §5.1 | Security audit + backend unit/integration |
+| NFR-SEC-PII | §5.1 | Backend integration + security audit |
+| NFR-SEC-SANITIZE | §5.1, §5.2 (TC-001-05 + TC-001-15) | Security test (both levels) + code review |
 | NFR-SEC-UPLOAD | §5.1 (TC-006-03/04) | Security test |
-| NFR-SEC-CHANNEL | §5.1 | Security audit |
-| NFR-SEC-SESSION | §5.1 (TC-004-08) | Security audit |
-| NFR-AVAIL-01 | Declaration/review only — no test proves the absence of an SLA commitment | Review |
+| NFR-SEC-CHANNEL | §5.1 — now includes CORS policy inspection | Security audit |
+| NFR-SEC-SESSION | §5.1 (TC-004-08) — now includes cross-origin cookie test | Security audit + integration |
+| NFR-AVAIL-01 | Declaration/review only | Review |
 | NFR-SCALE-01 | Load test "Full-scale content check", §6 + architecture review | Load test + architecture review |
-| NFR-COMPAT-01 | Cross-browser pass (Chrome/Edge/Firefox/Safari incl. mobile) on the Top-5 E2E flows; TC-005-10 (mobile) | Cross-browser test |
-| NFR-COMPAT-02 | Cross-browser pass (Chrome/Edge desktop) on the admin console flows | Cross-browser test |
-| NFR-OPS-AUDIT | **Gap, same root cause as FR-OPS-001**: retention/append-only property needs an explicit operational check (e.g., attempt an UPDATE/DELETE on an audit row and confirm it is rejected at the DB/application layer). Assign as a Sprint 1 integration test alongside `TC-001-12` | Operational audit (to be authored) |
-| NFR-OPS-BACKUP | Manual restore drill, performed **once, before go-live** — not automated, not repeated routinely, per the requirement's own wording | Backup inspection + restore drill |
+| NFR-COMPAT-01 | Cross-browser pass (Chrome/Edge/Firefox/Safari incl. mobile) on all 7 E2E flows; TC-005-10 (mobile) | Cross-browser test |
+| NFR-COMPAT-02 | Cross-browser pass (Chrome/Edge desktop) on admin console flows | Cross-browser test |
+| NFR-OPS-AUDIT | TC-001-12 companion check (assigned Sprint 1, v1.0 gap, carried over): attempt an UPDATE/DELETE on an audit row directly against the backend and confirm rejection at the DB/application layer | Operational audit |
+| NFR-OPS-BACKUP | Manual restore drill, once before go-live. **Note**: production database provider is still open (ADR-012 §2.3); the drill is authored against whichever provider is chosen, and must not assume a specific cloud database's backup mechanism (see §10) | Backup inspection + restore drill |
 | NFR-I18N-01 | TC-007-08 | Translation status screen |
-| NFR-EXT-01 | Architecture review only (no functional test — this is a design-shape property, verified when a second entity type is actually added, which is beyond MVP) | Architecture review |
+| NFR-EXT-01 | Architecture review only | Architecture review |
 
 ### 9.9 Constraints (`CONST-`)
 
 | REQ-ID | Test ID(s) / Method | Level |
 |---|---|---|
-| CONST-TECH-01 | Architecture review | Architecture review |
-| CONST-TECH-02 | Architecture review | Architecture review |
-| CONST-TECH-03 | Architecture review + ADR-001 | Architecture review |
-| CONST-TECH-04 | Schema review — count the shipped block-type registry, assert 8 ≤ n ≤ 10 | Schema review |
+| CONST-TECH-01 | Architecture review — frontend is presentation-only, no DB access | Architecture review |
+| CONST-TECH-02 | Architecture review — Vercel retained as frontend hosting | Architecture review |
+| **CONST-TECH-03** | Architecture review + ADR-010 | Architecture review |
+| **CONST-TECH-04** | Schema review — count the shipped block-type registry, assert 8 ≤ n ≤ 10 | Schema review |
+| **CONST-TECH-05** | **New.** Architecture review confirming two independently deployable services; integration test confirming the frontend has no direct DB credentials/connection string in its runtime config | Architecture review + integration |
+| **CONST-TECH-06** | **New.** CI toolchain-verification step (§12) confirms `backend/` builds under Java 21 / Spring Boot 3.4 / Maven, matching `pom.xml` | Toolchain verification (CI) |
+| **CONST-TECH-07** | **New.** The direct-API negative test class in full: TC-001-14, TC-001-15, TC-004-09, plus the backend-only role-ladder matrix (§5.2, §5.3, §5.5) | Security test (negative), mandatory |
+| **CONST-TECH-08** | **New.** Architecture/config review confirming no provider-proprietary Postgres features or storage-API calls anywhere in `backend/`; test environments run against plain PostgreSQL 15+ only (§10, §13) | Architecture review + config review |
 | CONST-OPS-01 | Tooling round-trip check, §8.4 | Tooling review |
 | CONST-OPS-02 | TC-005-02 | E2E |
 | CONST-OPS-03 | Rollback test, §11.2 | Release review |
 | CONST-SEC-01 | Deliverable check — a security ADR exists under `docs/design/adr/` before G2 | ADR review |
-| CONST-PROC-01 | Gate record inspection — `docs/.harness-state.yaml` shows a human approver, never the AI, at each gate | Gate record inspection |
-| CONST-RES-01 | This document itself — every section above states an automation/manual/cadence decision sized to one part-time developer | Plan review |
+| CONST-PROC-01 | Gate record inspection — `docs/.harness-state.yaml` shows a human approver, never the AI | Gate record inspection |
+| ~~CONST-RES-01~~ | Superseded — retained here only so the traceability record shows what v1.0 was sized against | Plan review (historical) |
+| **CONST-RES-02** | **New.** This document itself — every section states an automation/manual/cadence decision sized to six developers across two services, and explicitly distinguishes capacity-driven scope from proportionality-driven scope (§0) | Plan review |
 
 ### 9.10 Should-priority requirements (best-effort, not gating)
-
-Included for completeness — not required by the "every Must" rule, but cheap to state given the TC IDs already exist.
 
 | REQ-ID | Test ID(s) |
 |---|---|
@@ -432,10 +483,11 @@ Included for completeness — not required by the "every Must" rule, but cheap t
 
 | Gap | Root cause | Remediation |
 |---|---|---|
-| `FR-CONT-011` has no dedicated `TC` id | The use-case files describe the copyable code block only in an alternative-flow narrative | Author `TC-001-11` in Sprint 1 |
-| `FR-OPS-001` / `NFR-OPS-AUDIT` have no dedicated `TC` id | UC-001 Step 8 states the audit-write behaviour narratively but the Test Scenarios table (§7 of UC-001.md) does not enumerate it separately | Author `TC-001-12` in Sprint 1, covering both the write (`FR-OPS-001`) and the append-only/retention property (`NFR-OPS-AUDIT`) |
+| `FR-CONT-011` has no dedicated `TC` id | Carried over from v1.0 — described only in UC-001's alt-flow narrative | Author `TC-001-11` in Sprint 1 (unchanged from v1.0) |
+| `FR-OPS-001` / `NFR-OPS-AUDIT` have no dedicated `TC` id | Carried over from v1.0 | Author `TC-001-12` in Sprint 1, now explicitly scoped as a backend-only integration test (unchanged remediation, updated scope) |
+| API contract and `CONST-TECH-07` direct-API tests did not exist as a category | New in v2.0, forced by `CONST-TECH-05`/`07` | Author TC-001-13/-14/-15, TC-002-08, TC-003-06, TC-004-09/-10, TC-005-11, TC-006-09, TC-007-09 in Sprint 1 (§5.5) |
 
-Two gaps out of 70 Must requirements. Both are logging/audit-trail assertions that are straightforward to add once the audit-log schema exists — flagged now rather than discovered at Skill 5.
+Two carried-over gaps plus ten new v2.0 test IDs to author in Sprint 1 — all flagged now, not discovered at Skill 5.
 
 ---
 
@@ -443,12 +495,15 @@ Two gaps out of 70 Must requirements. Both are logging/audit-trail assertions th
 
 | Item | Rule |
 |---|---|
-| PII | **Never use real PII.** No real employee names/emails in test fixtures for accounts, audit logs, or ai-usage data — synthetic accounts only (e.g. `test-admin-1@example.test`), even in the developer's own local environment |
-| Content fixtures | Derived from the real `content/{en,km,ko}/*.tsx` files for content-fidelity verification (§8) — this is not PII, it is documentation prose, and using the real content is the point (that's what "fidelity" means here) |
-| km/ko fixture handling | **Binding**: never generate, transform, or bulk-edit km/ko (or en) fixture text using Windows PowerShell 5.1's text cmdlets (`CONST-OPS-01`). All fixture-generation scripts are Node/TS or Python with explicit UTF-8 encoding. See §8.4 for the mandatory round-trip verification of any such tool before it is trusted |
-| Seed volume for load tests | 200 pages × 3 languages (600 page-rows) to match `NFR-SCALE-01`'s stated ceiling — not more, not less; over-seeding tests a scale this project doesn't have |
-| Environments | Local: hand-built fixtures + a small seeded set. Dev/staging: the same synthetic fixture set, scaled up for load tests. **Never** production data — there is no production data yet pre-launch, and post-launch, real user/account data must never be copied down to dev/staging (a stricter, simpler rule than "anonymize it" — for a project this size, "don't copy it" is cheaper and safer than building anonymization tooling) |
-| Regression fixtures | Each accumulated regression case (§11) carries its own minimal fixture, checked into `tests/fixtures/`, so CI runs are self-contained and don't depend on a shared mutable seed DB |
+| PII | **Never use real PII.** No real employee names/emails in test fixtures for accounts, audit logs, or ai-usage data — synthetic accounts only (e.g. `test-admin-1@example.test`), on every engineer's local environment, not just one |
+| Content fixtures | Derived from the real `content/{en,km,ko}/*` source for content-fidelity verification (§8) — documentation prose, not PII |
+| km/ko fixture handling | **Binding on all five engineers, not one.** Never generate, transform, or bulk-edit km/ko (or en) fixture text using Windows PowerShell 5.1's text cmdlets (`CONST-OPS-01`). Node/TS or Python, explicit UTF-8 only. See §8.4 |
+| Backend test database | **Testcontainers-managed ephemeral PostgreSQL 15+ for unit/integration tests — never a shared, mutable seed DB.** This keeps six engineers' CI runs isolated from each other; two PRs running concurrently never contend for the same database state |
+| Cloud-database portability (`CONST-TECH-08`) | **Test environments must not assume a specific cloud database provider.** No test, fixture, or CI config may hardcode a Cloud SQL/Neon/Supabase-specific connection string, extension, or feature — only plain PostgreSQL 15+ over JDBC. This is what keeps ADR-012 §2.3's still-open production-provider decision non-blocking: whichever provider is chosen before first deploy, the entire test suite already runs unmodified against it | 
+| Local development database | Per ADR-012 §2.2: each engineer runs **PostgreSQL locally, administered with pgAdmin**. pgAdmin is the admin client, not the database itself — both are required in local setup. Flyway applies the same `V1__initial_schema.sql` locally as everywhere else, so local, CI (Testcontainers), staging and production all run identical schema | 
+| Seed volume for load tests | 200 pages × 3 languages (600 page-rows) to match `NFR-SCALE-01` — unchanged | 
+| Environments | Local: hand-built fixtures + a small seeded set, per engineer. CI: Testcontainers-ephemeral, per run. Staging: the same synthetic fixture set, scaled up for load tests, on plain PostgreSQL regardless of eventual production provider. **Never** production data copied to dev/staging | 
+| Regression fixtures | Each accumulated regression case (§11) carries its own minimal fixture, checked into `tests/fixtures/` (or `backend/src/test/resources/` for backend-only cases), so CI runs are self-contained | 
 
 ---
 
@@ -456,86 +511,107 @@ Two gaps out of 70 Must requirements. Both are logging/audit-trail assertions th
 
 ### 11.1 Regression Accumulation
 
-Consistent with this role's standing rule ("accumulate regression cases; re-run all cases from previous sprints"), adapted to a solo, no-deadline project:
-
-- After each sprint, every automated case that passed (Top-5 E2E, integration suite, unit suite) is retained in CI and re-run automatically on every subsequent push to `main` — the accumulation is structural (CI configuration), not a manual re-run ritual the developer has to remember.
-- A running ledger, `qa/regression-cases.md`, lists the currently accumulated automated case count per sprint, so scope creep or silently-dropped tests are visible over time (mirroring the `sg-gw` precedent of tracking accumulated case counts, at this project's actual scale rather than "200+ regression cases" — a number sized for a funded team, not one person).
-- Manual-only cases (UC-003, UC-006 happy path, NFR-USE-01, the restore drill) are **not** re-run every sprint — they are re-run only when the flow they cover changes, per §0's stated cadence discipline.
+- After each sprint, every automated case that passed (unit, integration, contract, E2E, component) is retained in CI and re-run automatically on every subsequent push to `main` — structural via CI configuration, unchanged in principle from v1.0.
+- `qa/regression-cases.md` tracks the accumulated automated case count per sprint, split by suite (backend unit / frontend unit / backend integration / contract / E2E) so growth is visible per workstream, not just as one number.
+- **Sizing expectation, updated**: v1.0 explicitly sized this "at this project's actual scale rather than sg-gw's 200+ regression cases — a number sized for a funded team, not one person." With `CONST-RES-02`, the team is no longer one person, and the case count is expected to grow materially faster than v1.0 projected — this is not scope creep, it is the natural result of two new mandatory categories (contract, direct-API negative tests) plus two E2E flows added back. It will still likely land well under `sg-gw`'s count, since `sg-gw` was a funded financial-services migration at a different scale entirely — restated, not assumed.
+- Manual-only cases (NFR-USE-01, the restore drill) are **not** re-run every sprint — re-run only when the flow they cover changes. (UC-003 and UC-006 happy path move from this list to the automated list per §4 — they are no longer manual-only.)
 
 ### 11.2 Rollback Test (`CONST-OPS-03`)
 
 > *"From cutover the database is authoritative. The `site` branch must remain deployable as the rollback path until go-live sign-off."*
 
+Unchanged by ADR-012 — this constraint concerns the legacy `site` branch's continued deployability on Vercel, independent of the new backend service.
+
 | Item | Detail |
 |---|---|
-| What is tested | That the legacy `site` branch (the current compiled-TSX application) still builds and deploys successfully on Vercel, independent of any changes made on the migration branch |
-| Method | Before each go-live checkpoint (and periodically during the migration, not just once at the end), run a build-and-preview-deploy of the `site` branch as-is, and smoke-test that its pages render as they do today |
-| Pass criterion | `site` branch builds cleanly and its preview deployment serves at least one page from each of the 6 top-level sections correctly |
-| Rollback procedure itself | Documented in the `RUNBOOK` deliverable (Skill 6) — the actual mechanism (re-pointing the Vercel production alias/DNS to the `site` branch's deployment) is an operations action, not a test, but this test is what proves that action would work if invoked |
-| Exit condition | The rollback test — and the `site` branch itself — is retired **only** after a human-recorded go-live sign-off (`CONST-PROC-01` — recorded by the PM, never by the AI) in `docs/.harness-state.yaml` |
-| Cadence | At minimum: once before the first production cutover of any doc set, and once immediately before go-live sign-off. More frequent checks are cheap (it's a build, not a load test) and encouraged but not mandated given solo capacity |
+| What is tested | The legacy `site` branch (current compiled-TSX application) still builds and deploys successfully on Vercel, independent of the migration branch(es) |
+| Method | Before each go-live checkpoint, and periodically during migration, build-and-preview-deploy the `site` branch as-is and smoke-test it renders as today |
+| Pass criterion | `site` branch builds cleanly; preview deployment serves at least one page from each of the 6 top-level sections correctly |
+| Rollback procedure itself | Documented in the `RUNBOOK` deliverable (Skill 6) |
+| Exit condition | Retired **only** after a human-recorded go-live sign-off (`CONST-PROC-01`) in `docs/.harness-state.yaml` |
+| Cadence | At minimum once before the first production cutover of any doc set, and once immediately before go-live sign-off |
 
 ---
 
-## 12. 7-Dimension Self-Assessment (adapted for a solo project)
+## 12. Toolchain Verification (New — `CONST-RES-02`)
+
+**Real, already-observed incident**: one developer reported Java 25 in their local environment while the project targets **Java 21** (`CONST-TECH-06`). One machine mismatching was tolerable-if-annoying under `CONST-RES-01`; six machines mismatching is a standing source of "works on my machine" defects and non-reproducible CI failures, and is treated here as an actual, checked risk — not a documentation reminder.
+
+| Check | Mechanism | Enforcement point | Failure mode caught |
+|---|---|---|---|
+| Backend JDK version | `maven-enforcer-plugin` with a `requireJavaVersion` rule pinned to `[21,22)` in `backend/pom.xml` (recommended to the backend workstream for immediate addition — not yet present) | `mvn verify`, both locally and in CI | A build silently compiling/running against Java 25 (or any non-21 JDK), producing behaviour that only manifests on that engineer's machine or, worse, passes locally and fails in CI |
+| Backend CI pin | GitHub Actions `actions/setup-java@vX` with `java-version: '21'`, `distribution: 'temurin'`, explicit in the workflow file | Every backend CI job | CI silently using a runner's default JDK instead of the pinned one |
+| Frontend Node version | `.nvmrc` at `frontend/` root + `engines` field in `package.json` | Local (`nvm use`) + CI (`actions/setup-node` reading `.nvmrc`) | Node version drift across five engineers' machines |
+| Maven version | Recorded in `README`/setup doc as a minimum version; not separately enforced (Maven itself is far less version-sensitive than the JDK for this project) | Setup doc | Proportionate — Maven version drift has not been observed as a real defect source; JDK drift has |
+| First-setup check | A documented one-line check (`java -version` / `node -v`) each new engineer runs against the pinned versions before their first commit, referenced from the onboarding section of the setup docs (Skill 6 deliverable) | Manual, once per engineer | Catches the exact `CONST-RES-02` incident (Java 25 vs. 21) before it reaches a PR at all |
+
+**Ownership**: the toolchain-verification CI step is a **required, non-optional** part of both the backend and frontend PR pipelines (§1.3) — a mismatch fails the build, it does not merely warn. This is deliberately stricter than v1.0's stance on any tooling check, because the risk it addresses (silent multi-machine drift) did not exist when there was only one machine.
+
+---
+
+## 13. 7-Dimension Self-Assessment
 
 | Dimension | Weight | Assessment Criteria |
 |---|---|---|
 | Completeness | 20% | 100% of sprint tasks completed |
 | Traceability | 15% | `// source:`-style comments / ADR references / this Test Plan's §9 table kept current |
-| Security | 20% | Zero hardcoded secrets / PII access-restricted / hooks pass (§5.4) |
+| Security | 20% | Zero hardcoded secrets / PII access-restricted / hooks pass (§5.4) / `CONST-TECH-07` negative tests pass |
 | Performance | 10% | NFR-PERF SLA met at the load-test cadence defined in §6 |
 | Readability | 15% | Code comments / Mermaid diagrams in design docs / table alignment in deliverables |
-| Standards compliance | 10% | Zero directory-isolation violations; ADRs exist where mandated (`CONST-SEC-01`) |
-| Test coverage | 10% | This Test Plan's criteria met (§3, §9) |
+| Standards compliance | 10% | Zero directory-isolation violations; ADRs exist where mandated (`CONST-SEC-01`); toolchain checks pass (§12) |
+| Test coverage | 10% | This Test Plan's criteria met (§3, §9), across both suites |
 
-- Threshold: kept at **90/100**, `[basis:sg-gw-retrospective,adjustable]` — not lowered, because it is a discipline check on the developer's own work, and the bar itself costs nothing to keep high; only its **cadence** is adapted below.
-- **Cadence, adapted**: run this self-assessment once per shippable slice (e.g., after the `jex2.0` pilot ships, then after each subsequent doc set), not after every sprint — running it weekly for a project with "no deadline" produces process overhead without proportional signal.
-- Remediation loop: unchanged in principle (fix the lowest dimension, regenerate, up to 5 iterations), but since there is no team to escalate to, "still below after 5 attempts" escalates to **the PM directly**, i.e., the developer stops and asks rather than keeps grinding solo.
-- Cross-validation (Skill 5, a different LLM vendor reviewing the work) is kept as a **pre-release** check for each shippable slice rather than every sprint, for the same cost reason — it is valuable but not free, and "no deadline" means it should be spent at the moments that matter (release gates), not spread thin.
-
----
-
-## 13. Test Environments
-
-| Environment | Purpose | Data |
-|---|---|---|
-| local | Developer machine | Hand-built fixtures; small seeded set |
-| staging | Pre-release verification, load tests, content-fidelity checks | Synthetic fixtures scaled to `NFR-SCALE-01` (600 page-rows); real (non-PII) content text for fidelity checks (§8, §10) |
-| prod | Live | Real data, once launched |
-
-> No separate "dev" tier distinct from "local" is maintained — a third environment is infrastructure a solo developer would maintain for its own sake, not because a distinct dev/staging split adds signal at this scale.
+- Threshold: kept at **90/100**, `[basis:sg-gw-retrospective,adjustable]` — unchanged.
+- **Cadence, reverted from v1.0's capacity-driven relaxation**: v1.0 ran this once per shippable slice rather than every sprint, reasoning that "there is no team to escalate to" and "no deadline" made weekly runs disproportionate process overhead for one person. Both premises are gone under `CONST-RES-02` — there **is** a team now, and six people generate enough throughput per sprint that a per-sprint check has real signal. **Self-assessment now runs once per sprint**, restoring the harness default.
+- Remediation loop: fix the lowest dimension, regenerate, up to 5 iterations. "Still below after 5 attempts" escalates to the PM — unchanged, now via the team-leader coordination role rather than a single developer stopping to ask directly, consistent with a six-person team structure.
+- Cross-validation (Skill 5): kept as a **pre-release** check per shippable slice, unchanged from v1.0 — this was never purely a capacity trade-off, it is about spending a genuinely non-free check at the moment it matters most (release gates).
 
 ---
 
-## 14. Defect Management
+## 14. Test Environments
+
+| Environment | Purpose | Data | Database |
+|---|---|---|---|
+| local | Each engineer's machine | Hand-built fixtures; small seeded set | **Local PostgreSQL 15+, administered with pgAdmin** (ADR-012 §2.2). Both must be installed — pgAdmin manages, it is not the database itself |
+| CI | Every PR/merge | Testcontainers-ephemeral fixtures (backend); mocked/fixture data (frontend) | Testcontainers-provisioned PostgreSQL 15+, torn down after each run — never shared across concurrent CI jobs |
+| staging | Pre-release verification, load tests, content-fidelity checks | Synthetic fixtures scaled to `NFR-SCALE-01` (600 page-rows); real (non-PII) content text for fidelity checks | **Plain PostgreSQL 15+, provider not yet fixed** (ADR-012 §2.3 — Cloud SQL, or a self-managed instance on Compute Engine, decided before first deploy). Per §10, no test may assume the eventual provider's specific features |
+| prod | Live, on **Google Cloud** (ADR-012 §2.1) | Real data, once launched | Provider decided before first production deploy, not before first commit (ADR-012 §2.3) — this is a deliberately non-blocking, deferred decision, and this Test Plan is written so its suite runs unmodified whichever way it resolves |
+
+> No separate "dev" tier distinct from "local" is maintained. Revisited for v2.0: with six engineers now working in parallel, a shared "dev" tier could reduce environment drift between them — but each engineer already runs an identical local stack (same Flyway migrations, same Docker Compose file, same pinned toolchain per §12), so a shared dev tier would mostly duplicate what CI's ephemeral environment already provides. Not added; flagged here as a deliberate call, not an oversight.
+
+---
+
+## 15. Defect Management
 
 | Severity | CVSS / Signal | Handling |
 |---|---|---|
-| CRITICAL | ≥ 9.0, or any `FR-AUTH-008`-style access-control bypass | Fix before the next deploy of any kind, regardless of sprint boundary |
-| HIGH | 7.0–8.9 | Fix within the current shippable slice; blocks that slice's G3 |
-| MEDIUM | 4.0–6.9 | Backlog, addressed opportunistically — "no deadline" means there is no artificial forcing function to fix these fast, but they are not forgotten (tracked in the same regression ledger, §11.1) |
+| CRITICAL | ≥ 9.0, or any `FR-AUTH-008`-style access-control bypass (including a `CONST-TECH-07` direct-API bypass) | Fix before the next deploy of any kind, regardless of sprint boundary |
+| HIGH | 7.0–8.9, **or any API-contract drift that silently breaks the frontend/backend integration (new in v2.0 — a failure mode that did not exist in a single-service design)** | Fix within the current shippable slice; blocks that slice's G3 |
+| MEDIUM | 4.0–6.9 | Backlog, addressed opportunistically, tracked in the regression ledger (§11.1) |
 | LOW | < 4.0 | Backlog |
 
 NFR-USE-01 failures are handled outside this table — see §2.7 (they gate the slice's G3 directly, independent of CVSS).
 
 ---
 
-## 15. Deliverables
+## 16. Deliverables
 
 | Deliverable | Timing | Format |
 |---|---|---|
-| Unit/integration test results | Every CI run | CI output (xml/html) |
-| E2E (Top 5) results | Every push to `main` | CI output |
+| Backend unit/integration/contract test results | Every backend CI run | CI output (JUnit XML, JaCoCo HTML) |
+| Frontend unit/component test results | Every frontend CI run | CI output (Vitest/Jest) |
+| E2E (all 7 flows) results | Every merge to `main` | CI output |
+| `qa/api-contract-report-N.md` | Once per shippable slice, plus on any CI-detected drift | md (**new in v2.0**) |
 | `qa/nfr-use-01-observation-N.md` | Before each shippable slice's G3 | md |
 | `qa/content-fidelity-checklist.csv` | Once per migrated doc set | csv |
-| `qa/regression-cases.md` | Updated each sprint | md |
-| `qa/load-test-N.md` | Once per shippable slice | md |
-| Security audit report | Skill 5, per slice | md |
+| `qa/regression-cases.md` | Updated each sprint, split by suite | md |
+| `qa/load-test-N.md` | Once per shippable slice (full run); CI smoke-run results inline in CI output | md |
+| Security audit report | Skill 5, per slice, covering both repos | md |
+| Toolchain-verification CI evidence | Every CI run (§12) | CI output |
 | `docs/design/threat-model.md` cross-reference | Alongside this plan (Skill 3) | md |
 | Rollback test evidence | Before each cutover checkpoint and before go-live sign-off | Recorded in the sprint log / runbook |
 
-Explicitly **not produced**: `parity/parity-report-N.md` in the byte-comparison sense — N/A per §8. The content-fidelity checklist is the deliverable that substitutes for it.
+Explicitly **not produced**: `parity/parity-report-N.md` in the byte-comparison sense — N/A per §8. The content-fidelity checklist substitutes for it, unchanged from v1.0.
 
 ---
 

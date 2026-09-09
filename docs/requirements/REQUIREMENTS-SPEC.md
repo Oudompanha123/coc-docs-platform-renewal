@@ -235,7 +235,8 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | **CONST-OPS-03** | From cutover the database is authoritative. The `site` branch must remain deployable as the rollback path until go-live sign-off | G-12 |
 | **CONST-SEC-01** | A separate security ADR is mandatory in Skill 3, covering authentication, session management, role enforcement, sanitisation, upload validation and PII handling | Skill 01 §6 (PII triggered) |
 | CONST-PROC-01 | G1/G2/G3 approvals are recorded by a human. The AI must never record a gate approval | HARNESS-PROCESS-STANDARD §4.8 CQ3 |
-| CONST-RES-01 | One part-time developer. Scope must be shippable in independently valuable slices; `jex2.0` (5 pages) is the pilot | Q8 |
+| ~~CONST-RES-01~~ | ~~One part-time developer.~~ **SUPERSEDED 2026-09-09 by CONST-RES-02.** Retained so the record shows what the original plan was sized against | Q8 |
+| **CONST-RES-02** | **Six developers** — the PM plus five engineers (Panha, Sreyly, Sarayuth, Chanthy, Sophanna). Work is parallelisable across backend, frontend and content-migration workstreams. Scope remains shippable in independently valuable slices, and `jex2.0` (5 pages) remains the pilot | PM, 2026-09-09 |
 
 ---
 
@@ -280,6 +281,21 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 |------|------|----------|--------|
 | 2026-09-08 | 1.0 | Initial specification. 70 requirements, 7 use cases, 0 orphans. 3 contradictions and 12 gaps resolved | Socheat-Hun (PM) |
 | 2026-09-08 | **1.1** | **Amends the G1-approved baseline.** `CONST-TECH-01/02` scoped to the frontend; `CONST-TECH-05/06/07/08` added for the two-service Spring Boot architecture. See §7.1 | `architect` per PM decision |
+| 2026-09-09 | **1.2** | `CONST-RES-01` (one part-time developer) **superseded** by `CONST-RES-02` (six developers). Hosting resolved to Google Cloud (ADR-012 §2.1). See §7.2 | `architect` per PM decision |
+
+### 7.2 Resourcing Change — 2026-09-09
+
+`CONST-RES-01` recorded the answer given at Q8: *"just me, part-time, no deadline."* On 2026-09-09 the PM confirmed that the five engineers on the project are **contributors, not only reviewers**. The project therefore has **six developers**, not one.
+
+**This is not a minor correction.** `CONST-RES-01` was the single most shaping constraint in the plan. It is why the sprint plan used thin vertical slices, why scope levers were named in advance, and why `RISK-001` — *the project stalls* — was ranked above every technical risk. All three of those were responses to one person working part-time with no deadline and no external accountability.
+
+**Consequences, applied in the same revision:**
+- `DEV-PLAN.md` restructured around parallel workstreams with named ownership, replacing a strictly sequential sprint plan
+- `RISK-001` re-scored downward; new coordination risks added in its place (API contract drift, integration lag, toolchain divergence — the last already observed)
+- `TEST-PLAN.md` revisited: several tests previously cut purely for capacity are affordable again
+- No functional or non-functional requirement changes. All 53 FR, 21 NFR and 7 use cases stand exactly as approved at G1 — they describe what the system does, not who builds it.
+
+The superseded constraint is struck through rather than deleted, so the record shows what the original plan was sized against.
 
 ### 7.1 Amendment to an Approved Baseline — 2026-09-08
 
