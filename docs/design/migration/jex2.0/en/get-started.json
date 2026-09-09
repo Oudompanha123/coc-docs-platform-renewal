@@ -1,0 +1,91 @@
+[
+  { "type": "paragraph", "text": [{ "text": "Get started" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "Three steps. One password prompt." }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "Steps 1–2 once per machine, step 3 once per workspace. If you already use jexmcp3.0, the marketplace is already added — skip step 1." }
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "important",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "Requirements:", "marks": ["bold"] },
+          { "text": " Node.js LTS, SVN CLI, access to the internal network (Studio v2 is not reachable from outside), and a GitHub account invited to the private repo." }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "steps",
+    "items": [
+      {
+        "title": [{ "text": "Add the cocweb marketplace" }],
+        "body": [
+          { "type": "paragraph", "text": [{ "text": "Once per machine — same marketplace that serves jexmcp3.0." }] },
+          {
+            "type": "code",
+            "language": "bash",
+            "source": "claude plugin marketplace add https://github.com/Socheat-Hun/jexmcp3.0.git",
+            "copyable": true
+          }
+        ]
+      },
+      {
+        "title": [{ "text": "Install the plugin" }],
+        "body": [
+          { "type": "code", "language": "bash", "source": "claude plugin install jex2.0@cocweb", "copyable": true }
+        ]
+      },
+      {
+        "title": [{ "text": "Initialize the workspace" }],
+        "body": [
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "Open Claude Code at the workspace root (the folder holding " },
+              { "text": "MYPROJ_BT", "marks": ["code"] },
+              { "text": ", " },
+              { "text": "MYPROJ_ETC", "marks": ["code"] },
+              { "text": "…) and run:" }
+            ]
+          },
+          { "type": "code", "language": "text", "source": "/jex2.0:init", "copyable": true },
+          {
+            "type": "paragraph",
+            "text": [
+              { "text": "It installs npm dependencies, writes " },
+              { "text": ".claude/jex_project.json", "marks": ["code"] },
+              { "text": ", asks your JexStudio ID/password once, and verifies the login. Then " },
+              { "text": "restart Claude Code", "marks": ["bold"] },
+              { "text": " so the jex2 MCP server starts." }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "note",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "Verify:", "marks": ["bold"] },
+          { "text": " after the restart, " },
+          { "text": "/mcp", "marks": ["code"] },
+          { "text": " should list " },
+          { "text": "jex2", "marks": ["bold"] },
+          { "text": " as connected. If not, run " },
+          { "text": "/jex2.0:init", "marks": ["code"] },
+          { "text": " again — it reports exactly what's missing." }
+        ]
+      }
+    ]
+  }
+]

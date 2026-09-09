@@ -1,0 +1,122 @@
+[
+  { "type": "paragraph", "text": [{ "text": "របៀបប្រើ" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "សរសេរឯកសារ SQL។ និយាយអ្វីដែលចង់បាន។" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "គ្រប់ប្រតិបត្តិការ IDO ចាប់ផ្តើមពីឯកសារមួយ — " },
+      { "text": "ido_input.sql", "marks": ["code"] },
+      { "text": " នៅ root workspace — និងប្រយោគមួយទៅ Claude។ Validation, ការហៅ API Studio, SVN sync — plugin ធ្វើឲ្យ។" }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "1 · ទម្រង់ ido_input.sql" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "៣ ផ្នែក។ " },
+      { "text": "OUT:", "marks": ["code"] },
+      { "text": " សម្រាប់ SELECT ប៉ុណ្ណោះ; " },
+      { "text": "IN:", "marks": ["code"] },
+      { "text": " អាចរំលងបើគ្មាន bind parameters។" }
+    ]
+  },
+  {
+    "type": "code",
+    "language": "text",
+    "source": "SQL:\nSELECT ACCT_NO, ACCT_NM, BAL_AMT\nFROM TB_ACCT\nWHERE MEMB_CD = :MEMB_CD\n\nIN:\nMEMB_CD 회원코드\n\nOUT:\nACCT_NO 계좌번호\nACCT_NM 계좌명\nBAL_AMT 잔액 LONG",
+    "copyable": true
+  },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "បន្ទាត់ field គឺ " },
+      { "text": "ENG_ID ឈ្មោះកូរ៉េ [TYPE]", "marks": ["code"] },
+      { "text": " — រំលង type បើ VARCHAR ឬប្រើ " },
+      { "text": "LONG", "marks": ["code"] },
+      { "text": " / " },
+      { "text": "NUMBER", "marks": ["code"] },
+      { "text": " / " },
+      { "text": "INT", "marks": ["code"] },
+      { "text": " / " },
+      { "text": "FLOAT", "marks": ["code"] },
+      { "text": "។ សម្រាប់ WHERE clause បញ្ចូលពេល runtime ដាក់ " },
+      { "text": "??", "marks": ["code"] },
+      { "text": " ក្នុង SQL និងបន្ទាត់ " },
+      { "text": "DYNAMIC DYNAMIC DYNAMIC", "marks": ["code"] },
+      { "text": " ក្រោម " },
+      { "text": "IN:", "marks": ["code"] },
+      { "text": "។" }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "2 · បង្កើត / កែប្រែ / រាយ" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "អ្នកនិយាយ" }], [{ "text": "អ្វីដំណើរការ" }], [{ "text": "លទ្ធផល" }]],
+    "rows": [
+      [
+        [{ "text": "\"បង្កើត IDO ACCT_R0023 សំណួរបញ្ជីគណនី\"" }],
+        [{ "text": "jex_new_ido", "marks": ["code"] }, { "text": " — អាន ido_input.sql" }],
+        [{ "text": "IDO បង្កើតក្នុង Studio, commit ទៅ SVN ដោយ Studio" }]
+      ],
+      [
+        [{ "text": "\"កែ ACCT_R0023 ជាមួយ SQL ថ្មី\"" }],
+        [{ "text": "jex_update_ido", "marks": ["code"] }, { "text": " — hash បង្កើតឡើងវិញ" }],
+        [{ "text": "IDO ចាស់ជំនួស, SVN sync" }]
+      ],
+      [
+        [{ "text": "\"រាយ IDO ACCT ទាំងអស់\"" }],
+        [{ "text": "jex_read_ido", "marks": ["code"] }],
+        [{ "text": "Snapshot នៅ " }, { "text": ".claude/tmp/ACCT_ido.json", "marks": ["code"] }]
+      ]
+    ]
+  },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "ប្រភេទ SQL សន្និដ្ឋានពីបច្ច័យ ID — " },
+      { "text": "_R###", "marks": ["code"] },
+      { "text": " SELECT, " },
+      { "text": "_C###", "marks": ["code"] },
+      { "text": " INSERT, " },
+      { "text": "_U###", "marks": ["code"] },
+      { "text": " UPDATE, " },
+      { "text": "_D###", "marks": ["code"] },
+      { "text": " DELETE — ឬបញ្ជាក់ផ្ទាល់ក៏បាន។" }
+    ]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "3 · អ្វីដែល guardrails ចាប់" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "Guardrail" }], [{ "text": "ពេលណា" }], [{ "text": "ទប់ស្កាត់ពេល" }]],
+    "rows": [
+      [
+        [{ "text": "Validation ido_input.sql" }],
+        [{ "text": "មុន new/update" }],
+        [{ "text": "ឯកសារបាត់ ឬផ្នែក SQL:/IN:/OUT: ខូចទម្រង់" }]
+      ],
+      [
+        [{ "text": "SVN pre-update" }],
+        [{ "text": "មុនគ្រប់ការសរសេរ" }],
+        [{ "text": "Repo ណាមួយក្នុង SVN_DIRS update បរាជ័យ (conflict…)" }]
+      ],
+      [
+        [{ "text": "SVN post-sync" }],
+        [{ "text": "ក្រោយការសរសេរជោគជ័យ" }],
+        [{ "text": "— (ទាញ commit របស់ Studio មកកាន់ checkout អ្នក)" }]
+      ]
+    ]
+  },
+  {
+    "type": "callout",
+    "variant": "note",
+    "body": [
+      {
+        "type": "paragraph",
+        "text": [
+          { "text": "កុំ commit IDO XML ដោយដៃ។", "marks": ["bold"] },
+          { "text": " JexStudio បង្កើតនិង commit ឯកសារដោយខ្លួនឯង — ការងាររបស់អ្នកបញ្ចប់ត្រឹមការហៅឧបករណ៍; post-sync នាំ commit របស់ Studio ចូល checkout អ្នក។" }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,50 @@
+[
+  { "type": "paragraph", "text": [{ "text": "구조" }] },
+  { "type": "heading", "level": 2, "text": [{ "text": "모든 것이 어디에 있는가." }] },
+  {
+    "type": "paragraph",
+    "text": [{ "text": "지도 두 장: 프로젝트별 파일이 있는 CHECKPAY 계열 워크스페이스, 그리고 플러그인 자체." }]
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "워크스페이스" }] },
+  {
+    "type": "paragraph",
+    "text": [
+      { "text": "MYPROJ", "marks": ["code"] },
+      { "text": " = 프로젝트 접두사 — DUREADMIN, CHECKPAY 등 무엇이든. " },
+      { "text": "/jex2.0:init", "marks": ["code"] },
+      { "text": "이 실제 존재하는 폴더에서 감지합니다." }
+    ]
+  },
+  {
+    "type": "code",
+    "language": "text",
+    "copyable": false,
+    "source": "MYPROJ\\                     <- 워크스페이스 루트 (여기서 Claude Code 실행)\n├── MYPROJ_BT\\                 배치\n├── MYPROJ_DOMAIN\\             도메인 로직\n├── MYPROJ_DOMAIN_SVC\\         도메인 서비스 (있는 경우)\n├── MYPROJ_ETC\\                서비스 XML — Studio가 IDO를 여기에 커밋\n├── MYPROJ_PT\\                 프레젠테이션\n├── MYPROJ_PT_STATIC\\          정적 JS / CSS\n├── ido_input.sql                 SQL / IN / OUT — IDO마다 편집\n└── .claude\\\n    ├── jex_project.json          HOST · PORT · PRJ_ID · SVR_ID · SVN_DIRS — init이 작성\n    ├── jex_v2.json               { USR_ID } — Studio 로그인 ID\n    ├── jex_v2.local.json         { PWD } — 절대 커밋·공유 금지\n    ├── jex_cookies2.txt          Studio v2 세션 쿠키 (자동 관리)\n    └── tmp\\                      jex_read_ido 스냅샷"
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "플러그인 (한 번 설치, Claude Code가 관리)" }] },
+  {
+    "type": "code",
+    "language": "text",
+    "copyable": false,
+    "source": "jex2.0                        <- cocweb 마켓플레이스 (jex2.0 브랜치)\n├── commands\\                     init · new-ido · update-ido\n├── scripts\\                      jex2 MCP 서버 + Studio v2 러너 (Node)\n├── hooks\\                        ido_input.sql 검증 · SVN 사전/사후 동기화\n└── templates\\                    설정 파일 예시"
+  },
+  { "type": "heading", "level": 3, "text": [{ "text": "환경변수 오버라이드" }] },
+  {
+    "type": "table",
+    "headers": [[{ "text": "변수" }], [{ "text": "효과" }]],
+    "rows": [
+      [
+        [{ "text": "JEX_SVN_ROOT", "marks": ["code"] }],
+        [{ "text": "프로젝트 루트 오버라이드 (기본: Claude Code를 연 폴더)" }]
+      ],
+      [
+        [{ "text": "JEX_SKIP_SVN_UPDATE=1", "marks": ["code"] }],
+        [{ "text": "SVN 동기화 전체 생략 (사전 + 사후)" }]
+      ],
+      [
+        [{ "text": "JEX_SKIP_SVN_PREFLIGHT=1", "marks": ["code"] }],
+        [{ "text": "사전 동기화만 생략" }]
+      ]
+    ]
+  }
+]
