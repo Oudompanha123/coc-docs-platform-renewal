@@ -1,8 +1,22 @@
 # Security Hook L2 — CI Security Audit (GitHub Actions)
 # This standard (HARNESS-PROCESS-STANDARD.md §5.4), stage L2
 #
-# Usage:
-#   Copy this file to .github/workflows/security-audit.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# THIS IS THE UPSTREAM TEMPLATE. It is NOT the workflow that runs.
+#
+# The live copy is .github/workflows/security-audit.yml and it DIVERGES from
+# this file deliberately — it is adapted to this repository's layout (Maven
+# wrapper not checked in, pom under backend/, JDK 21 pinned) and to the AI
+# audit not being wired up yet.
+#
+# Do not copy this file over the live one. Port changes across by hand and
+# keep the adaptations. Copying it verbatim is what broke the L2 gate before:
+# every PR failed on `./mvnw`, a path that has never existed here.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Usage (new projects only):
+#   Copy this file to .github/workflows/security-audit.yml, then adapt the
+#   build step and the language matrix to that project's layout.
 #   For GitLab CI, convert to .gitlab-ci.yml format (same structure)
 
 name: Security Audit (L2 Hook)
