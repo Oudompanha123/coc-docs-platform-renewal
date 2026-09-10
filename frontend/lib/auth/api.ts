@@ -74,6 +74,33 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
   return (await response.json()) as AuthenticatedAccount;
 }
 
+/**
+ * POST /api/auth/login-password (ADR-014). Only succeeds for an approved
+ * (status ACTIVE), non-deactivated, self-registered account.
+ *
+ * Same anti-enumeration shape as {@link loginWithIdToken} (UC-004 E-3): a
+ * wrong password, an email with no account at all, and an email that only
+ * ever signed in via Google/Keycloak (no password_hash set) all produce this
+ * one generic failure — this client doesn't try to distinguish them either.
+ */
+export async function loginWithPassword(email: string, password: string): Promise<AuthenticatedAccount> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/auth/login-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Login failed. Check your email and password, or your account may not be approved yet.");
+  }
+  return (await response.json()) as AuthenticatedAccount;
+}
+
 export interface RegisterResult {
   /** Always "PENDING" on success — registration never signs the caller in. */
   status: string;
