@@ -1,12 +1,15 @@
 /**
  * Thin client for the backend's login API (see docs/api/openapi.yaml).
- * // req: FR-AUTH-001, FR-AUTH-002, NFR-SEC-SESSION
+ * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 /** A user-facing failure from the auth API. `message` is always safe to show as-is. */
 export class AuthApiError extends Error {}
+
+/** A registration that already exists for that email (409). Distinguished from other failures so the form can point at the email field specifically. */
+export class EmailAlreadyRegisteredError extends AuthApiError {}
 
 export type Role = "GUEST" | "USER" | "ADMIN" | "SUPER_ADMIN";
 
@@ -69,4 +72,40 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
     throw new AuthApiError("Login failed. Your Google account may not have access yet.");
   }
   return (await response.json()) as AuthenticatedAccount;
+}
+
+export interface RegisterResult {
+  /** Always "PENDING" on success — registration never signs the caller in. */
+  status: string;
+  message: string;
+}
+
+/**
+ * POST /api/auth/register (ADR-014). Creates an account with a bcrypt-hashed
+ * password, status PENDING, role user. No session cookie is set — the
+ * account cannot sign in, by any path, until a super_admin approves it.
+ */
+export async function register(input: {
+  email: string;
+  displayName: string;
+  password: string;
+}): Promise<RegisterResult> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 409) {
+    throw new EmailAlreadyRegisteredError("This email is already registered.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Registration failed. Please check your details and try again.");
+  }
+  return (await response.json()) as RegisterResult;
 }

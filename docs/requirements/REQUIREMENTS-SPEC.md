@@ -104,8 +104,8 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | REQ-ID | Requirement | Priority | Verification Method |
 |--------|---------|---------|----------|
 | FR-AUTH-001 | Users sign in with Google | Must | E2E test |
-| FR-AUTH-002 | The system stores **no passwords** | Must | Security audit / schema review |
-| FR-AUTH-003 | A `super admin` can create and **deactivate** accounts. Accounts are never hard-deleted; authored content and audit attribution survive deactivation | Must | E2E test |
+| FR-AUTH-002 | ~~The system stores no passwords~~ **Amended by ADR-014 (§7.3): password self-registration is also supported; a self-registered account's password is stored as a bcrypt hash, never plaintext.** The Google/Keycloak-only path this requirement originally described is unchanged. | Must | Security audit / schema review |
+| FR-AUTH-003 | A `super admin` can create and **deactivate** accounts, **or approve/reject a self-registered account (ADR-014 §7.3) — a registration is unusable until approved.** Accounts are never hard-deleted; authored content and audit attribution survive deactivation | Must | E2E test |
 | FR-AUTH-004 | A `super admin` can assign a role to an account | Must | E2E test |
 | FR-AUTH-005 | The role ladder `guest` < `user` < `admin` < `super admin` is enforced on every request | Must | Integration test + security audit |
 | FR-AUTH-006 | Every page carries a **minimum role required to view**, enforced server-side | Must | Integration test |
@@ -282,6 +282,30 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | 2026-09-08 | 1.0 | Initial specification. 70 requirements, 7 use cases, 0 orphans. 3 contradictions and 12 gaps resolved | Socheat-Hun (PM) |
 | 2026-09-08 | **1.1** | **Amends the G1-approved baseline.** `CONST-TECH-01/02` scoped to the frontend; `CONST-TECH-05/06/07/08` added for the two-service Spring Boot architecture. See §7.1 | `architect` per PM decision |
 | 2026-09-09 | **1.2** | `CONST-RES-01` (one part-time developer) **superseded** by `CONST-RES-02` (six developers). Hosting resolved to Google Cloud (ADR-012 §2.1). See §7.2 | `architect` per PM decision |
+| 2026-09-10 | **1.3** | `FR-AUTH-002`/`FR-AUTH-003` amended: password self-registration added alongside Google/Keycloak OIDC, gated by super_admin approval (ADR-014). See §7.3 | `architect`, confirmed in-session by the developer implementing it — **formal PM sign-off recommended**, not yet recorded, unlike every prior row in this table |
+
+### 7.3 Password Self-Registration — 2026-09-10
+
+`FR-AUTH-002` ("the system stores no passwords") and `FR-AUTH-003`
+("a super admin can create... accounts") were both written when Google OIDC
+was the sole, exclusive sign-in mechanism (`ADR-008`/`ADR-011`). The Register
+page's password fields were built earlier to match an approved mockup with an
+explicit stub behind them, flagging that making them real would need exactly
+this amendment.
+
+**What changed**: a visitor can now register with a password
+(`POST /api/auth/register`), stored as a bcrypt hash. The account cannot sign
+in — by any path — until a `super_admin` approves it
+(`POST /api/admin/accounts/{id}/approve`); see `ADR-014` for the full design,
+alternatives considered, and the follow-up this still owes (rate limiting,
+`ADR-007`'s N/A status, password reset).
+
+**Unlike §7.1/§7.2 above, this row is not yet backed by a recorded PM
+decision** — it reflects direction given during the implementation session
+itself. Recorded here per this repo's own rule that a revision to an existing
+requirement is written down when it happens, not silently made; PM
+confirmation should still be sought and this row updated once it is, the same
+way a G1/G2/G3 gate is never marked approved by anyone but a human.
 
 ### 7.2 Resourcing Change — 2026-09-09
 
