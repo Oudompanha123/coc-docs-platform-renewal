@@ -26,3 +26,9 @@ frontend/out/
 
 # L2 audit reports are build output, not source.
 /security/
+
+# Same intent as the .env rules above, without the leading dot.
+# backend/env.local arrived staged and matched neither pattern.
+env.local
+env.*.local
+**/env.local
