@@ -4,12 +4,16 @@ import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { DocumentRow } from "@/components/dashboard/DocumentRow";
 import { ActivityItem } from "@/components/dashboard/ActivityItem";
 import { WorkspaceCard } from "@/components/dashboard/WorkspaceCard";
-import { PlusIcon } from "@/components/layout/icons";
+import { HomeIcon, PlusIcon } from "@/components/layout/icons";
 import { QUICK_ACTIONS, RECENT_ACTIVITY, RECENT_DOCUMENTS, STAT_CARDS, WORKSPACES } from "@/lib/mock/overview";
 
 export default function OverviewPage() {
   return (
-    <AppShell pageTitle="Overview" pageSubtitle="Your documentation workspace at a glance">
+    <AppShell
+      pageTitle="Overview"
+      pageSubtitle="Your documentation workspace at a glance"
+      titleIcon={<HomeIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+    >
       <div className="flex justify-end">
         <button
           type="button"
