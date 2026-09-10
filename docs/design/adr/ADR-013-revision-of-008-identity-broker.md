@@ -50,11 +50,39 @@ Keycloak realm roles are **not** used for application authorisation. The backend
 
 The middle and right columns are the same failure `TM-003` describes, reintroduced through a different door. Rejected on that basis.
 
-### 3. The session design is unchanged
+### 3. The session design is unchanged — and the reason is XSS, not revocation
 
-The backend still exchanges a verified identity token for its **own opaque, server-side session** (`app_session`, `V2__session.sql`): SHA-256 of the token stored, never the token; 1-day TTL; revocable by deleting a row.
+The backend exchanges a verified Keycloak token for its **own opaque, server-side session** (`app_session`, `V2__session.sql`), delivered as an `httpOnly` cookie: SHA-256 of the token stored, never the token; 1-day TTL; revocable by deleting a row.
 
-Keycloak issues JWTs, and it would be tempting to accept them directly and drop our session table. That reopens the revocation problem the session table exists to solve (`FR-AUTH-007` requires sign-out to be real invalidation), and buys nothing — we read the account row per request anyway for the role, so there is no database call to save.
+Keycloak issues JWTs, and accepting them directly as bearer tokens is the *native* Spring pattern — `spring-boot-starter-oauth2-resource-server` is already in the pom, and it would delete five classes, a migration and a cleanup job. It deserves a straight answer rather than a dismissal.
+
+**An earlier draft rejected it because "a JWT cannot be revoked". That reasoning was wrong and is corrected here**, because a wrong rationale in an ADR is worse than none — it invites someone to find the hole and reopen a settled decision on bad terms.
+
+Once Decision 2 puts roles in our database, a JWT would carry **identity only**. And because the backend reads the account row on every request regardless, it can check `deactivated_at` on that same read. So:
+
+| Requirement | Bearer JWT | Verdict |
+|---|---|---|
+| `FR-AUTH-003` immediate deactivation | ✅ checked on the per-request account read | **not a differentiator** |
+| `FR-AUTH-005` role changes take effect | ✅ role comes from the database | **not a differentiator** |
+| `TM-003` no client-supplied role claim | ✅ the token carries no role | **not a differentiator** |
+| `FR-AUTH-007` sign-out is real invalidation | ⚠️ solvable — short TTL plus refresh, or a `tokens_valid_after` check | **a cost, not a blocker** |
+
+**A JWT could meet every requirement.** The decision rests on something else.
+
+#### The actual reason: this system's XSS posture
+
+| | Bearer JWT | `httpOnly` session cookie |
+|---|---|---|
+| CSRF | **eliminated** — no cookie is sent automatically | real; mitigated by `SameSite` + origin check (ADR-011 §2.5) |
+| **XSS → credential theft** | **exposed** — JavaScript must read the token to send it | **resistant** — JavaScript cannot read the cookie |
+
+This product is a CMS in which **non-technical people author content that is rendered to other users**. The entire content model exists to eliminate XSS structurally — no raw-HTML block type (ADR-010 §3), a closed embed registry, sanitisation at write time. `TM-010` is scored 8.0.
+
+**Storing the session credential where JavaScript can read it works directly against that design.** If an XSS ever lands despite the block model, a bearer token in browser storage hands over the session; an `httpOnly` cookie does not.
+
+Between the two, **CSRF is the more tractable problem** — `SameSite=Lax` across sibling subdomains plus an origin check, already decided. XSS-driven token theft has no comparable clean mitigation.
+
+Accepted costs: we keep five classes and a cleanup job that Keycloak could otherwise handle, and CSRF remains a live concern requiring the ADR-011 §2.5 controls to be implemented correctly rather than assumed.
 
 ### 4. Production hosting: Google Cloud, alongside the backend
 
@@ -92,7 +120,8 @@ Keycloak runs as a container on GCP with its own PostgreSQL instance, separate f
 | **Direct Google verification** (ADR-008, superseded) | Fewer moving parts and one less thing to operate — genuinely simpler. Superseded because it offers no central place for MFA policy, audit, or later LDAP/AD federation, which a bank generally requires eventually. |
 | **Keycloak as the role authority** | Single administrative surface for users *and* permissions, which is Keycloak's usual selling point. **Rejected**: reintroduces `TM-003` (9.8) and breaks `FR-AUTH-003`'s immediate deactivation. |
 | **Keycloak replacing Google with local accounts** | Works offline and removes the Google dependency. **Rejected**: puts passwords into Keycloak's database, which reverses `FR-AUTH-002` and brings password policy, reset flows and lockout back into scope. |
-| **Accept Keycloak JWTs directly, drop our session** | Removes a table and a lookup. **Rejected**: reopens revocation (`FR-AUTH-007`) and saves no database call, since the role lookup happens regardless. |
+| **Accept Keycloak JWTs directly as bearer tokens** | The native Keycloak/Spring pattern; deletes five classes, a migration and a cleanup job; eliminates CSRF outright. **Genuinely close** — see §3. Rejected on XSS exposure: a bearer token must be readable by JavaScript, and this is a CMS rendering user-authored content whose whole content model exists to prevent XSS. Not rejected on revocation — that objection was wrong and is corrected in §3. |
+| **Keycloak JWT stored in an `httpOnly` cookie** | Standard OAuth2 validation *and* XSS resistance — the apparent best of both. Rejected as the least-travelled path: CSRF returns because it is still a cookie, refresh flows become awkward, and it is uncommon enough that a six-person team would be debugging it without much documentation to lean on. Worth revisiting if the session layer ever becomes a maintenance burden. |
 
 ---
 
