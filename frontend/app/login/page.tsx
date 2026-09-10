@@ -2,17 +2,19 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import Script from "next/script";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
-import { AuthApiError, loginWithGoogleIdToken, requestNonce } from "@/lib/auth/api";
-import { GoogleSignInCancelledError, promptGoogleSignIn } from "@/lib/auth/googleIdentity";
+import { loginWithIdToken, requestNonce } from "@/lib/auth/api";
+import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
 
 /**
  * Login — UI/validation-only implementation of the approved mockup, except
  * for "Continue with Google", which is wired to the real backend
  * (FR-AUTH-001, FR-AUTH-002, FR-AUTH-007, TM-001; contract: docs/api/openapi.yaml).
+ * Keycloak brokers Google upstream (ADR-013) — the button opens a popup that
+ * goes through Keycloak rather than calling Google Identity Services
+ * directly, but the click-to-sign-in experience is otherwise unchanged.
  *
  * ADR-008 and ADR-011 make Google OIDC the sole human-facing auth mechanism
  * ("no password stored anywhere") and FR-AUTH-003/UC-004 make accounts
@@ -21,7 +23,7 @@ import { GoogleSignInCancelledError, promptGoogleSignIn } from "@/lib/auth/googl
  * match the approved mockup pixel-for-pixel. If password login becomes the
  * real flow, ADR-008 needs a follow-up revision to match.
  *
- * // req: FR-AUTH-001, FR-AUTH-002, ADR-008, ADR-011 §2.5
+ * // req: FR-AUTH-001, FR-AUTH-002, ADR-008, ADR-011 §2.5, ADR-013
  */
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
@@ -69,20 +71,17 @@ export default function LoginPage() {
     setGoogleFeedback(null);
 
     try {
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        throw new AuthApiError("Google Sign-In isn't configured for this environment.");
-      }
-
       // 1. Ask the backend for a one-time nonce (also sets the coc_oidc_nonce
       //    cookie it will read back below) — TM-001's anti-replay control.
       const nonce = await requestNonce();
-      // 2. Get a Google ID token for this specific nonce.
-      const idToken = await promptGoogleSignIn({ clientId, nonce });
+      // 2. Open the Keycloak/Google popup for this specific nonce and get
+      //    back a Keycloak-issued ID token (ADR-013 — Keycloak brokers
+      //    Google upstream).
+      const idToken = await signInWithGoogleViaKeycloak({ nonce });
       // 3. Hand it to the backend: signature/issuer/audience/nonce verified
       //    there, never trusted client-side. On success it sets the session
       //    cookie (FR-AUTH-001, FR-AUTH-007, NFR-SEC-SESSION).
-      const account = await loginWithGoogleIdToken(idToken);
+      const account = await loginWithIdToken(idToken);
 
       setGoogleFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
     } catch (err) {
@@ -116,9 +115,6 @@ export default function LoginPage() {
         </p>
       }
     >
-      {/* Google Identity Services — loaded here since only this page's Google button needs it. */}
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
-
       <h1 className="text-3xl font-extrabold text-ink">Login</h1>
       <p className="mt-2 text-sm text-muted">Please sign in to your account</p>
 

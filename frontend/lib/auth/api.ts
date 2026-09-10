@@ -44,15 +44,16 @@ export async function requestNonce(): Promise<string> {
 }
 
 /**
- * POST /api/auth/login. Verifies the Google ID token server-side and, on
- * success, sets the session cookie.
+ * POST /api/auth/login. Verifies the ID token server-side — issued by
+ * Keycloak, which brokers Google upstream (ADR-013) — and, on success, sets
+ * the session cookie.
  *
  * The backend deliberately returns the same generic failure whether the
  * token was invalid, the nonce didn't match, no account is provisioned for
  * that email, or the account is deactivated (UC-004 E-3) — this client never
  * tries to distinguish those cases either.
  */
-export async function loginWithGoogleIdToken(idToken: string): Promise<AuthenticatedAccount> {
+export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAccount> {
   let response: Response;
   try {
     response = await fetch(`${BACKEND_URL}/api/auth/login`, {
