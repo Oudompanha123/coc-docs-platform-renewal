@@ -14,7 +14,8 @@
 | [ADR-003](ADR-003-persistence-strategy.md) | Persistence strategy | **ACCEPTED** | Schema, draft/published rows, versioning, optimistic locking, ordering, slug history, derived staleness |
 | [ADR-005](ADR-005-pii-encryption.md) | PII handling | **ACCEPTED** | §8 mandatory · account and audit PII, ai-usage teammate data |
 | [ADR-006](ADR-006-audit-logging.md) | Audit logging | **ACCEPTED** | §8 mandatory · append-only trail, retention |
-| [ADR-008](ADR-008-channel-auth.md) | External channel authentication | **ACCEPTED** | §8 mandatory · Google OIDC, ingest bearer secret fenced off |
+| [ADR-008](ADR-008-channel-auth.md) | External channel authentication | **SUPERSEDED IN PART** by ADR-013 | §8 mandatory · ingest bearer secret fenced off (still current). Its **identity-provider** decision — direct Google verification — is superseded |
+| [ADR-013](ADR-013-revision-of-008-identity-broker.md) | Keycloak as identity broker | **ACCEPTED** | Keycloak brokers Google; **roles stay in our `account` table**, not in realm roles; session design unchanged. Revises ADR-008, ADR-011 §auth, ADR-012 Decision 4 |
 | [ADR-010](ADR-010-content-model.md) | Content model and block vocabulary | **ACCEPTED** | The core design decision — 32 → 10 blocks, no raw HTML, embed registry |
 | [ADR-011](ADR-011-security-model.md) | Security model | **ACCEPTED** | **CONST-SEC-01 umbrella** · authentication, session (AMB-006 → 1 day), role enforcement, sanitisation, upload validation |
 
@@ -41,7 +42,9 @@ The one machine-to-machine channel (`/api/ingest`) is covered by ADR-008 and is 
 ### ADR-007 — Key management · **N/A**
 **Why**: The system holds no encryption keys of its own to manage. FR-AUTH-002 means **no passwords are stored**; ADR-005 uses provider-native encryption at rest, so key custody belongs to Supabase; and there is no application-layer column encryption to key.
 
-What remains is *credential* management — Supabase service keys, Google OAuth client secret, `INGEST_SECRET` — which is environment-variable handling covered by ADR-008 and ADR-011, not a key-management architecture.
+What remains is *credential* management — database credentials, `INGEST_SECRET`, and the Keycloak client secret — which is environment-variable handling covered by ADR-008, ADR-011 and ADR-013, not a key-management architecture.
+
+**Note (ADR-013, 2026-09-10)**: the **Google OAuth client secret is no longer held by the application** — it moves into Keycloak, which brokers Google on our behalf. That shrinks our secret surface by one, and is one of the few unambiguous security *gains* from introducing the broker.
 
 **Revisit if**: ADR-005's deferred application-layer column encryption is ever adopted — that decision would require this ADR.
 
