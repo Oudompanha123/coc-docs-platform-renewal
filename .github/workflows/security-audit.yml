@@ -148,8 +148,88 @@ jobs:
         working-directory: backend
         run: mvn -B --no-transfer-progress -DskipTests package
 
+      # Code scanning — the Security tab — requires GitHub Advanced Security,
+      # which is not available on a private repository owned by a personal
+      # Free account. This is the same wall that stopped branch rulesets.
+      #
+      # The analysis itself succeeds; only the upload fails:
+      #   "Code scanning is not enabled for this repository"
+      #
+      # So the results stay in the job. CodeQL still runs, with the same two
+      # query suites, and the gate below reads its SARIF instead of GitHub
+      # reading it for us. What is lost is the Security tab, alert triage and
+      # dismissal history — not the analysis.
+      #
+      # If this repo moves to an organisation with GHAS: delete the two `with:`
+      # lines and the gate step, and the alerts appear in the Security tab
+      # again with no other change.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        with:
+          upload: never          # documented value; `false` is the legacy spelling
+          output: sarif-results
+
+      # Fail on what CodeQL found, at the same CVSS threshold dependency-check
+      # uses (7.0), so "high" means one thing across this workflow.
+      - name: Gate on CodeQL findings
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(sarif-results/*.sarif)
+
+          # No SARIF means the analysis did not produce results — which is a
+          # broken gate, not a clean one. A SAST step that passes when it did
+          # not run is worse than no step at all.
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No SARIF produced in sarif-results/ — CodeQL did not complete."
+            exit 1
+          fi
+
+          THRESHOLD=7.0
+          total=0
+          blocking=0
+
+          for f in "${files[@]}"; do
+            echo "== $f"
+            while IFS=$'\t' read -r sev rule loc msg; do
+              total=$((total+1))
+              if awk -v a="$sev" -v b="$THRESHOLD" 'BEGIN{exit !(a>=b)}'; then
+                blocking=$((blocking+1))
+                printf '  BLOCK  %-5s %s\n         %s\n         %s\n' "$sev" "$rule" "$loc" "$msg"
+              else
+                printf '  note   %-5s %s  %s\n' "$sev" "$rule" "$loc"
+              fi
+            done < <(jq -r '
+              .runs[] as $run
+              | $run.results[]?
+              | . as $r
+              | (($run.tool.driver.rules[]? | select(.id == $r.ruleId)) // {}) as $rule
+              | [ (($rule.properties["security-severity"]) // "0")
+                , ($r.ruleId // "unknown")
+                , ((($r.locations[0].physicalLocation.artifactLocation.uri) // "?")
+                   + ":" + ((($r.locations[0].physicalLocation.region.startLine) // 0) | tostring))
+                , (($r.message.text) // "") ]
+              | @tsv' "$f")
+          done
+
+          echo
+          echo "CodeQL: ${total} result(s), ${blocking} at or above CVSS ${THRESHOLD}"
+          if [ "$blocking" -gt 0 ]; then
+            echo "SAST FAILED — download the sarif artifact for full detail."
+            exit 1
+          fi
+          echo "SAST PASSED"
+
+      # Keep the SARIF regardless of the gate's verdict: without the Security
+      # tab this artifact is the only record of what the scan saw.
+      - name: Upload SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results/
+          if-no-files-found: warn
+          retention-days: 30
 
   # ─────────────────────────────────────────────────────────────
   # 4. Automated run of the security-auditor agent (Claude / Codex)
