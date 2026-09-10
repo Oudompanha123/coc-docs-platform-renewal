@@ -70,6 +70,7 @@ export default function RegisterPage() {
       badge={<PlusIcon className="h-3.5 w-3.5" />}
       heading="Create Account"
       subheading="Join Coc Docs Platform today and start writing, organizing, and sharing documentation with your team."
+      formPanelPaddingY="md:py-10"
     >
       <h1 className="text-3xl font-extrabold text-ink">Register</h1>
       <p className="mt-2 text-sm text-muted">Create your account</p>
