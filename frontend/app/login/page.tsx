@@ -5,25 +5,28 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
-import { loginWithIdToken, requestNonce } from "@/lib/auth/api";
+import { loginWithIdToken, loginWithPassword, requestNonce } from "@/lib/auth/api";
 import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
 
 /**
- * Login — UI/validation-only implementation of the approved mockup, except
- * for "Continue with Google", which is wired to the real backend
- * (FR-AUTH-001, FR-AUTH-002, FR-AUTH-007, TM-001; contract: docs/api/openapi.yaml).
- * Keycloak brokers Google upstream (ADR-013) — the button opens a popup that
- * goes through Keycloak rather than calling Google Identity Services
- * directly, but the click-to-sign-in experience is otherwise unchanged.
+ * Login — both sign-in methods are wired to the real backend.
  *
- * ADR-008 and ADR-011 make Google OIDC the sole human-facing auth mechanism
- * ("no password stored anywhere") and FR-AUTH-003/UC-004 make accounts
- * admin-provisioned, not self-registered — so the password form still has no
- * backend to call and remains a stub, per explicit product direction to
- * match the approved mockup pixel-for-pixel. If password login becomes the
- * real flow, ADR-008 needs a follow-up revision to match.
+ * "Continue with Google" (FR-AUTH-001, FR-AUTH-007, TM-001; contract:
+ * docs/api/openapi.yaml): Keycloak brokers Google upstream (ADR-013) — the
+ * button opens a popup that goes through Keycloak rather than calling Google
+ * Identity Services directly, but the click-to-sign-in experience is
+ * otherwise unchanged.
  *
- * // req: FR-AUTH-001, FR-AUTH-002, ADR-008, ADR-011 §2.5, ADR-013
+ * The password form (ADR-014, revision of ADR-008/FR-AUTH-002/FR-AUTH-003):
+ * POST /api/v1/auth/login-password. Only succeeds for a self-registered account
+ * a super_admin has approved — see app/register/page.tsx. The field is
+ * labelled "Email, Phone or Name" to match the approved mockup, but only an
+ * email actually authenticates; the backend has no phone/name lookup.
+ *
+ * Both paths end at the same session cookie and share one feedback banner
+ * below, since only one of them is ever the most recent attempt.
+ *
+ * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, ADR-008, ADR-011 §2.5, ADR-013, ADR-014
  */
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
@@ -33,7 +36,7 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [googleFeedback, setGoogleFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   // A ref, not state: guards against a second click landing between the
   // first click and the state update that disables the button (React state
   // updates are async; this check is synchronous).
@@ -47,16 +50,24 @@ export default function LoginPage() {
     return Object.keys(next).length === 0;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    // TODO: no backend endpoint exists for password login (ADR-008 forbids
-    // one). Once/if this flow is adopted for real, POST { identifier,
-    // password, rememberMe } to the backend's session endpoint instead.
-    console.info("[stub] Login submit", { identifier, rememberMe });
-    setIsSubmitting(false);
+    setFeedback(null);
+    try {
+      // rememberMe has nothing to bind to server-side: session TTL is one
+      // fixed, system-wide value by design (AMB-006/ADR-011 — deliberately
+      // no per-role or "remember me" variant), so it isn't sent.
+      const account = await loginWithPassword(identifier, password);
+      setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setFeedback({ type: "error", message });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleForgotPassword() {
@@ -68,7 +79,7 @@ export default function LoginPage() {
     if (googleSignInInFlight.current) return;
     googleSignInInFlight.current = true;
     setIsGoogleSubmitting(true);
-    setGoogleFeedback(null);
+    setFeedback(null);
 
     try {
       // 1. Ask the backend for a one-time nonce (also sets the coc_oidc_nonce
@@ -83,14 +94,14 @@ export default function LoginPage() {
       //    cookie (FR-AUTH-001, FR-AUTH-007, NFR-SEC-SESSION).
       const account = await loginWithIdToken(idToken);
 
-      setGoogleFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+      setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
     } catch (err) {
       if (err instanceof GoogleSignInCancelledError) {
         // The user closed Google's prompt themselves — not a failure.
         return;
       }
       const message = err instanceof Error ? err.message : "Google sign-in failed. Please try again.";
-      setGoogleFeedback({ type: "error", message });
+      setFeedback({ type: "error", message });
     } finally {
       googleSignInInFlight.current = false;
       setIsGoogleSubmitting(false);
@@ -118,16 +129,16 @@ export default function LoginPage() {
       <h1 className="text-3xl font-extrabold text-ink">Login</h1>
       <p className="mt-2 text-sm text-muted">Please sign in to your account</p>
 
-      {googleFeedback && (
+      {feedback && (
         <div
           role="alert"
           className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
-            googleFeedback.type === "success"
+            feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-red-200 bg-red-50 text-red-700"
           }`}
         >
-          {googleFeedback.message}
+          {feedback.message}
         </div>
       )}
 
@@ -174,9 +185,10 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
+          aria-busy={isSubmitting}
           className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Login
+          {isSubmitting ? "Signing in…" : "Login"}
         </button>
 
         <div className="flex items-center gap-3">

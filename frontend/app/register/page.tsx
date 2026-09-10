@@ -5,19 +5,22 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { MailIcon, PersonIcon, PhoneIcon, PlusIcon, LockIcon } from "@/components/auth/icons";
+import { AuthApiError, EmailAlreadyRegisteredError, register } from "@/lib/auth/api";
 
 type Errors = Partial<Record<"fullName" | "email" | "phone" | "password" | "confirmPassword" | "agree", string>>;
 
 /**
- * Register — UI/validation-only implementation of the approved mockup.
+ * Register — wired to the real backend (ADR-014, revision of ADR-008):
+ * POST /api/v1/auth/register creates an account with a bcrypt-hashed password,
+ * status PENDING. It cannot sign in — by any path — until a super_admin
+ * approves it, so submitting here never signs the caller in; it shows a
+ * "your account is awaiting approval" message instead.
  *
- * Self-registration contradicts FR-AUTH-003/UC-004 (a super admin creates
- * accounts) and ADR-008/ADR-011 (Google OIDC only, no passwords). Built
- * anyway per explicit product direction to match the approved mockup
- * pixel-for-pixel; the submit handler is a stub, not a real account-creation
- * call. See app/login/page.tsx for the same caveat.
+ * The phone number is collected (matching the approved mockup) but not sent
+ * to the backend — no `phone` column exists on `account` (out of scope for
+ * ADR-014, which added only `password`/`status`).
  *
- * // req: FR-AUTH-002, FR-AUTH-003, ADR-008, ADR-011 §2.5
+ * // req: FR-AUTH-002, FR-AUTH-003, ADR-014
  */
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
@@ -28,6 +31,7 @@ export default function RegisterPage() {
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   function validate() {
     const next: Errors = {};
@@ -44,18 +48,25 @@ export default function RegisterPage() {
     return Object.keys(next).length === 0;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    // TODO: no backend endpoint exists for self-registration (accounts are
-    // admin-provisioned per FR-AUTH-003/UC-004, and ADR-008 forbids
-    // passwords entirely). Once/if this flow is adopted for real, POST
-    // { fullName, email, phone, password } to the backend's account
-    // endpoint instead.
-    console.info("[stub] Register submit", { fullName, email, phone });
-    setIsSubmitting(false);
+    setFeedback(null);
+    try {
+      const result = await register({ email, displayName: fullName, password });
+      setFeedback({ type: "success", message: result.message });
+    } catch (err) {
+      if (err instanceof EmailAlreadyRegisteredError) {
+        setErrors((prev) => ({ ...prev, email: err.message }));
+      } else {
+        const message = err instanceof AuthApiError ? err.message : "Registration failed. Please try again.";
+        setFeedback({ type: "error", message });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleLegalLinkClick(e: MouseEvent) {
@@ -74,6 +85,19 @@ export default function RegisterPage() {
     >
       <h1 className="text-3xl font-extrabold text-ink">Register</h1>
       <p className="mt-2 text-sm text-muted">Create your account</p>
+
+      {feedback && (
+        <div
+          role="alert"
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            feedback.type === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
 
       <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
         <FormField
@@ -158,10 +182,11 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || feedback?.type === "success"}
+          aria-busy={isSubmitting}
           className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Register
+          {isSubmitting ? "Submitting…" : "Register"}
         </button>
       </form>
 
