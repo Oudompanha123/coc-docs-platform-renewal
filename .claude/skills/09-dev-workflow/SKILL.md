@@ -88,7 +88,28 @@ outputs:
 
 **Commit message**: Conventional Commits, subject under 72 characters. Body says *why*, not *what* — the diff already says what. Reference requirement IDs where the project uses them.
 
-**PR target is the integration branch**, never the release branch. A PR into the release branch is refused with an explanation.
+### PR target — always pass it explicitly
+
+**On this project the integration branch is `dev`. Every PR targets `dev`.**
+
+```bash
+gh pr create --base dev --head "$(git branch --show-current)" --fill
+#             ^^^^^^^^^ never omit this
+```
+
+`--base` is not optional and not a default worth trusting. **`gh pr create` with no `--base` targets the repository's default branch, which is `main`** — and the "Compare & pull request" button GitHub shows after a push does the same. So the wrong target is what you get by doing nothing, which is the wrong way round for a rule that matters.
+
+`main` is the release branch. It receives PRs **from `dev` only**. A PR from a feature branch into `main` skips integration, and — as happened on 2026-09-10 with PRs #10 and #18 — leaves `dev` behind `main`, so every branch cut afterwards silently reintroduces whatever `dev` is missing.
+
+**Refuse** to open a PR into `main` unless the head branch *is* `dev`. Say why, and open it against `dev` instead.
+
+`scripts/open-pr.sh` does this and prints the fallback URL when `gh` is not authenticated. Prefer it over a raw `gh pr create`.
+
+> **Root cause worth fixing once**: set the repository's default branch to `dev`
+> (Settings → General → Default branch). Then `gh`, the web UI and the post-push
+> banner all propose the right target, and this rule stops depending on anyone
+> remembering a flag. Keep `--base dev` explicit regardless — the flag costs
+> nothing and survives someone changing the setting back.
 
 ---
 
@@ -145,7 +166,7 @@ Answers "what should I pick up next" without opening two browser tabs.
 - [ ] Pre-flight checks passed — not skipped
 - [ ] Commit follows the project convention
 - [ ] Branch pushed; PR opened **or** its URL given, and which one is stated plainly
-- [ ] PR targets the integration branch
+- [ ] PR targets `dev` — `--base dev` passed explicitly, never left to the default
 - [ ] Task carries the PR link and its new status, or the skill said why not
 
 ---
