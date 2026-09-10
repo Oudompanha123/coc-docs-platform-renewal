@@ -3,6 +3,9 @@ harness-standards/
 
 # Backend
 backend/target/
+backend/.idea/
+# Personal local overrides (real DB/OAuth values) — see application.yml's header.
+backend/src/main/resources/application-local.yml
 
 # Frontend
 frontend/node_modules/
@@ -13,6 +16,10 @@ frontend/out/
 .env
 .env.local
 *.local.yml
+# Actual naming in use is `application-local.yml` (hyphen, not a `.local.yml`
+# suffix) — *.local.yml above does not match it. This has already let real
+# credentials sit untracked-but-unignored twice; see application.yml's header.
+*-local.yml
 
 # Personal Claude Code overrides — shared config lives in .claude/settings.json
 .claude/settings.local.json
