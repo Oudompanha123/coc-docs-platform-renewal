@@ -23,10 +23,15 @@ git checkout -b feature/login-api
 
 # ... work, commit ...
 
-git push -u origin feature/login-api      # then open a PR into dev
+git push -u origin feature/login-api
+scripts/open-pr.sh                        # opens the PR into dev
 ```
 
 **Target `dev`, not `main`.** A PR into `main` will be rejected unless it comes from `dev`.
+
+Use `scripts/open-pr.sh` rather than `gh pr create` or the "Compare & pull request" button GitHub shows after a push. **Both of those target the repository's default branch, which is `main`** — so the wrong target is what you get by doing nothing. The script passes `--base dev`, refuses `main` from anything but `dev`, pushes the branch if you haven't, and prints the compare URL when `gh` isn't authenticated.
+
+This is not a hypothetical tidiness rule. On 2026-09-10 two PRs went straight into `main`, leaving `dev` six commits behind it — and every branch cut from `dev` afterwards silently reintroduced a CI job that had already been fixed.
 
 ## A pull request merges when
 
