@@ -10,11 +10,12 @@ import { AuthApiError, EmailAlreadyRegisteredError, register } from "@/lib/auth/
 type Errors = Partial<Record<"fullName" | "email" | "phone" | "password" | "confirmPassword" | "agree", string>>;
 
 /**
- * Register — wired to the real backend (ADR-014, revision of ADR-008):
- * POST /api/v1/auth/register creates an account with a bcrypt-hashed password,
- * status PENDING. It cannot sign in — by any path — until a super_admin
- * approves it, so submitting here never signs the caller in; it shows a
- * "your account is awaiting approval" message instead.
+ * Register — wired to the real backend (ADR-014, revision of ADR-008, as
+ * further revised 2026-09-11): POST /api/v1/auth/register creates an account
+ * with a bcrypt-hashed password, status ACTIVE. Submitting here never signs
+ * the caller in itself — no session cookie is set by this call — but there is
+ * no super_admin approval gate to wait on; the backend's message says the
+ * account can sign in now, and the caller still goes to /login to do that.
  *
  * The phone number is collected (matching the approved mockup) but not sent
  * to the backend — no `phone` column exists on `account` (out of scope for

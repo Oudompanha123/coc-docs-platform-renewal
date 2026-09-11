@@ -1,4 +1,13 @@
-/** Mock data for the admin shell + Overview dashboard. UI-only — no API yet. */
+/**
+ * Mock data for the Overview dashboard's content — documents, workspaces,
+ * activity. UI-only — no API yet.
+ *
+ * CURRENT_USER below still backs the Settings → Profile card and other
+ * mock-only consumers, but the Topbar's own signed-in identity (name/role/
+ * initials shown next to the avatar) comes from the real session
+ * (`GET /api/v1/auth/me`, see `@/lib/auth/useCurrentUser`), not this
+ * placeholder.
+ */
 
 export type Tone = "purple" | "green" | "orange" | "pink";
 
