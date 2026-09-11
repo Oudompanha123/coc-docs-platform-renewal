@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { UserAvatar } from "./UserAvatar";
 import { NAV_BOTTOM, NAV_SECTIONS, NAV_TOP, isNavItemActive, type NavItem } from "./nav-config";
 import { XIcon } from "./icons";
 
@@ -77,9 +78,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <NavLink item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
 
         <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-            {user?.initials ?? "?"}
-          </div>
+          <UserAvatar
+            avatarUrl={user?.avatarUrl ?? null}
+            initials={user?.initials ?? "?"}
+            name={user?.name ?? "Guest"}
+            className={`h-8 w-8 ${userAvatar}`}
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{user?.name ?? "Guest"}</p>
             <p className="truncate text-xs text-sidebar-muted">{user?.role ?? ""}</p>

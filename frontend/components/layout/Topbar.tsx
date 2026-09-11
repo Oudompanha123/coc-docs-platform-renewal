@@ -6,6 +6,7 @@ import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { UserAvatar } from "./UserAvatar";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -246,9 +247,12 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
             aria-expanded={openMenu === "user"}
             className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
           >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-              {user?.initials ?? "?"}
-            </div>
+            <UserAvatar
+              avatarUrl={user?.avatarUrl ?? null}
+              initials={user?.initials ?? "?"}
+              name={user?.name ?? "Guest"}
+              className={`h-8 w-8 ${userAvatar}`}
+            />
             <div className="hidden min-w-0 text-left sm:block">
               <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
               <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
@@ -259,9 +263,12 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
           {openMenu === "user" && (
             <div role="menu" className={`${PANEL_CLASSES} w-64`}>
               <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-                  {user?.initials ?? "?"}
-                </div>
+                <UserAvatar
+                  avatarUrl={user?.avatarUrl ?? null}
+                  initials={user?.initials ?? "?"}
+                  name={user?.name ?? "Guest"}
+                  className={`h-9 w-9 ${userAvatar}`}
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
                   <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
