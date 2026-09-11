@@ -71,6 +71,8 @@ class SecurityRulesTest {
     // about what a nonce contains. AuthController needs it to construct, so
     // without it the whole context fails before a single rule is exercised.
     @MockitoBean com.coc.docs.auth.NonceService nonceService;
+    @MockitoBean com.coc.docs.auth.SessionRepository sessionRepository;
+    @MockitoBean com.coc.docs.account.RoleRepository roleRepository;
 
     @TestConfiguration
     static class Beans {

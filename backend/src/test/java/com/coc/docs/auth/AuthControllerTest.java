@@ -63,7 +63,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  * <p>// req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-005, FR-AUTH-007, NFR-SEC-SESSION,
  * ADR-011, TM-002
  */
-@WebMvcTest
+@WebMvcTest(controllers = com.coc.docs.web.AuthController.class)
 @Import({SecurityConfig.class, ProblemResponses.class, AuthControllerTest.Beans.class})
 class AuthControllerTest {
 
@@ -75,6 +75,10 @@ class AuthControllerTest {
     @MockitoBean PageService pageService;
     @MockitoBean AccountService accountService;
     @MockitoBean BlockBodyValidator validator;
+
+    // AdminAccountController reads last sign-in times from it, so the context
+    // needs one to build. Untouched by these tests.
+    @MockitoBean com.coc.docs.auth.SessionRepository sessionRepository;
 
     @TestConfiguration
     static class Beans {
