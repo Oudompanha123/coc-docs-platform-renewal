@@ -23,15 +23,23 @@
 
 set -uo pipefail
 
+# The application composes its JDBC URL from DB_HOST/DB_PORT/DB_NAME, with the
+# schema fixed in application.yml. Compose the same one. An explicitly exported
+# DB_URL still wins, so an unusual target can be named directly.
 URL="${DB_URL:-}"
+if [ -z "$URL" ] && [ -n "${DB_HOST:-}" ]; then
+  URL="jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME:-cocdocs}?currentSchema=${DB_SCHEMA:-cocdocs_dev}"
+fi
 if [ -z "$URL" ]; then
   cat >&2 <<'EOF'
-DB_URL is not set. This script will not guess at a database to drop.
+No database configured. This script will not guess at one to drop.
 
-Set it to the same value the application uses — it is in backend/env.local,
-or in application.yml's datasource url:
+Load the same environment the application uses:
 
-  export DB_URL='jdbc:postgresql://localhost:5432/cocdocs?currentSchema=cocdocs_dev'
+  set -a; . ./backend/env.local; set +a
+
+That should define DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD. If your
+schema is not cocdocs_dev, set DB_SCHEMA too.
 EOF
   exit 1
 fi
@@ -86,7 +94,11 @@ fi
 
 export PGPASSWORD="${DB_PASSWORD:-${PGPASSWORD:-}}"
 PSQL_ARGS=(-h "$HOST" -p "$PORT" -d "$DBNAME" -v ON_ERROR_STOP=1)
-[ -n "${DB_USERNAME:-}" ] && PSQL_ARGS+=(-U "$DB_USERNAME")
+# DB_USER is what env.local defines; DB_USERNAME was never set by anything, so
+# psql silently fell back to the OS user and failed on permissions, or worse,
+# succeeded as a superuser.
+PSQL_USER="${DB_USER:-${DB_USERNAME:-}}"
+[ -n "$PSQL_USER" ] && PSQL_ARGS+=(-U "$PSQL_USER")
 
 psql "${PSQL_ARGS[@]}" <<SQL
 drop schema if exists "${SCHEMA}" cascade;
