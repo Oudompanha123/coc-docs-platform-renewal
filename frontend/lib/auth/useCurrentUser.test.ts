@@ -38,8 +38,34 @@ describe("useCurrentUser", () => {
     const { result } = renderHook(() => useCurrentUser(), { wrapper });
 
     await waitFor(() =>
-      expect(result.current).toEqual({ name: "Jane Admin", role: "Admin", initials: "JA" }),
+      expect(result.current).toEqual({
+        name: "Jane Admin",
+        role: "Admin",
+        initials: "JA",
+        // Absent from the /me payload above, as it is for a password account:
+        // null, not undefined, so the avatar component's fallback triggers.
+        avatarUrl: null,
+      }),
     );
+  });
+
+  it("carries the profile picture through when the provider sent one", async () => {
+    me.mockResolvedValue({
+      id: "1",
+      email: "jane@example.com",
+      displayName: "Jane Admin",
+      role: "ADMIN",
+      avatarUrl: "https://lh3.googleusercontent.com/a/example",
+      authenticated: true,
+    });
+
+    const { result } = renderHook(() => useCurrentUser(), { wrapper });
+
+    await waitFor(() =>
+      expect(result.current?.avatarUrl).toBe("https://lh3.googleusercontent.com/a/example"),
+    );
+    // Still computed: the avatar falls back to initials if the image fails.
+    expect(result.current?.initials).toBe("JA");
   });
 
   it("stays null for a visitor with no session", async () => {

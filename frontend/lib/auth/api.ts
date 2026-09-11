@@ -26,6 +26,8 @@ export interface MeResponse {
   email: string | null;
   displayName: string | null;
   role: Role | null;
+  /** Profile picture URL from the identity provider, or null — see UserAvatar. */
+  avatarUrl: string | null;
   authenticated: boolean;
 }
 
