@@ -120,3 +120,26 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 | Testing rules | `docs/design/TEST-PLAN.md` |
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
+
+## When the backend will not start
+
+```
+Migration checksum mismatch for migration version 2
+-> Applied to database : 1574820704
+-> Resolved locally    : 677785464
+```
+
+Your database ran a different file at that version — usually because you had a branch checked out that added its own. Flyway stores one checksum per version and refuses to start when it does not match.
+
+**Do not reach for `flyway repair`.** It rewrites the recorded checksum and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious.
+
+Rebuild the schema instead — it is a development database:
+
+```bash
+export DB_URL='jdbc:postgresql://localhost:5432/cocdocs?currentSchema=cocdocs_dev'
+scripts/db-reset-dev.sh
+```
+
+It refuses any host that is not localhost, refuses a schema that does not name itself dev/test/local, and makes you type the schema name. Then start the app and Flyway replays every migration from scratch.
+
+**Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day.
