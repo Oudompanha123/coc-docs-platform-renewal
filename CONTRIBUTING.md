@@ -64,9 +64,17 @@ mvn -version     # must report 3.9 or newer
 
 This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as supported, and six developers on differing JDKs produce defects that reproduce on exactly one machine.
 
-**3. Node 24** for the frontend.
+**3. Copy the environment template.** `backend/env.example` documents every variable the backend reads, with a safe local default for each:
 
-**4. Authenticate the GitHub CLI** — this is the step everyone forgets:
+```bash
+cp backend/env.example backend/env.local
+```
+
+`env.local` is gitignored; `env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
+
+**4. Node 24** for the frontend.
+
+**5. Authenticate the GitHub CLI** — this is the step everyone forgets:
 
 ```bash
 gh auth login          # then: gh auth status
