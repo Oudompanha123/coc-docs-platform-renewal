@@ -9,6 +9,12 @@ type AuthShellProps = {
   children: ReactNode;
   /** Vertical padding class for the form (right) panel at md+. Defaults to the Login page's value. */
   formPanelPaddingY?: string;
+  /** Horizontal padding for the form (right) panel. Defaults to the original
+   *  px-8/md:px-14 both pages used. Register overrides this to px-0 and
+   *  re-applies the same px-8/md:px-14 on each of its own children instead,
+   *  so its scrollable form's scrollbar renders flush against the card's
+   *  edge rather than inset by the wrapper's padding. */
+  formPanelPaddingX?: string;
 };
 
 /** Shared split-panel shell for the Login and Register screens. */
@@ -20,10 +26,11 @@ export function AuthShell({
   footer,
   children,
   formPanelPaddingY = "md:py-16",
+  formPanelPaddingX = "px-8 md:px-14",
 }: AuthShellProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
-      <div className="flex w-full max-w-[960px] flex-col overflow-hidden rounded-[28px] bg-white shadow-xl md:flex-row">
+      <div className="flex max-h-[760px] w-full max-w-[960px] flex-col overflow-hidden rounded-[28px] bg-white shadow-xl md:flex-row">
         <div className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-gradient-to-br from-[#ded9f8] to-[#d3e2fb] px-6 py-8 text-center md:w-[50%] md:gap-6 md:px-10 md:py-16">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:block">
             <div className="absolute -left-10 -top-10 h-44 w-44 rounded-full bg-[#c8b8f2] opacity-60 blur-2xl" />
@@ -60,7 +67,7 @@ export function AuthShell({
           {footer && <div className="relative z-10">{footer}</div>}
         </div>
 
-        <div className={`flex flex-1 flex-col justify-center px-8 py-10 md:px-14 ${formPanelPaddingY}`}>{children}</div>
+        <div className={`flex flex-1 flex-col justify-center py-10 ${formPanelPaddingX} ${formPanelPaddingY}`}>{children}</div>
       </div>
     </div>
   );

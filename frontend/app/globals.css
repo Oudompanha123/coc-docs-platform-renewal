@@ -199,6 +199,14 @@ button:not(:disabled) {
   cursor: pointer;
 }
 
+/* Firefox has no per-button/pixel-exact equivalent of the WebKit rules at
+   the end of this file — this is the closest built-in fallback there.
+   Used on the Register page's scrollable form (app/register/page.tsx). */
+.no-scrollbar-arrows {
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
 /* Overview page entrance sequence — see app/overview/page.tsx.
    Each group fades/slides in once on mount; `both` fill-mode holds the
    opacity-0 state during animation-delay so nothing flashes before its turn,
@@ -307,4 +315,27 @@ button:not(:disabled) {
   .animate-teardrop-fall {
     animation: none;
   }
+}
+
+/* Put this at the very end of globals.css so it wins on source order too */
+.no-scrollbar-arrows::-webkit-scrollbar {
+  width: 3px !important;
+}
+
+.no-scrollbar-arrows::-webkit-scrollbar-button,
+.no-scrollbar-arrows::-webkit-scrollbar-button:single-button,
+.no-scrollbar-arrows::-webkit-scrollbar-button:start,
+.no-scrollbar-arrows::-webkit-scrollbar-button:end {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar-arrows::-webkit-scrollbar-thumb {
+  background: #666 !important;
+  border-radius: 3px;
+}
+
+.no-scrollbar-arrows::-webkit-scrollbar-track {
+  background: transparent !important;
 }
