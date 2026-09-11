@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { UsersIcon } from "@/components/layout/icons";
 import { AccountsTable } from "@/components/users-roles/AccountsTable";
@@ -9,32 +9,91 @@ import { DeactivateModal } from "@/components/users-roles/DeactivateModal";
 import { FilterBar, type RoleFilter, type StatusFilter } from "@/components/users-roles/FilterBar";
 import { Pagination } from "@/components/users-roles/Pagination";
 import {
-  CURRENT_ACCOUNT_ID,
-  MANAGED_ACCOUNTS,
-  type AccountRole,
-  type ManagedAccount,
-} from "@/lib/mock/users-roles";
+  createAccount,
+  listAccounts,
+  updateAccount,
+  type AdminAccount,
+} from "@/lib/admin/accounts";
+import { CURRENT_ACCOUNT_ID, type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
+
+/**
+ * The API speaks in accounts; this table speaks in rows. One place to translate
+ * between them, so a change to either shape has a single point of contact.
+ *
+ * `ipAddress` is a dash because the backend does not report it here. It is
+ * recorded per session for incident response, not per account, and inventing a
+ * value to fill a column would be worse than admitting the column is empty.
+ */
+function toRow(account: AdminAccount): ManagedAccount {
+  return {
+    id: account.id,
+    name: account.displayName,
+    email: account.email,
+    role: account.role === "guest" ? "user" : account.role,
+    status: account.active ? "active" : "deactivated",
+    lastLogin: formatLastLogin(account.lastSignInAt),
+    ipAddress: "—",
+  };
+}
+
+/**
+ * "Never" is the honest answer for two different situations: someone who has
+ * genuinely never signed in, and someone whose last session has been purged
+ * (kept one TTL past expiry). Both mean "not recently", which is what the
+ * column is for.
+ */
+function formatLastLogin(iso: string | null): string {
+  if (!iso) return "Never";
+  const when = new Date(iso);
+  if (Number.isNaN(when.getTime())) return "Never";
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const elapsed = Date.now() - when.getTime();
+  const time = when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+  if (elapsed < dayMs && when.getDate() === new Date().getDate()) return `Today, ${time}`;
+  if (elapsed < 2 * dayMs) return `Yesterday, ${time}`;
+  return when.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
 
 type PageTab = "users" | "roles";
 
 /**
- * Users & Roles — ADR-013-adjacent scope note: unlike Settings, this page has
- * a real backend behind it (AdminAccountController: GET list, PATCH role/
- * active). This page stays mock-only anyway, matching every other page in
- * this frontend today (zero real fetch calls exist anywhere yet). The one
- * place mock and reality diverge: "Add account" has no real endpoint to call
- * (accounts self-provision on first Google sign-in); everything else here
- * (list, role badges, deactivate, last-super-admin guard) mirrors real,
- * already-implemented backend rules.
+ * Users & Roles — backed by AdminAccountController: GET list (with last
+ * sign-in), POST create, PATCH role/active. Every call needs `super_admin`,
+ * enforced by the filter chain rather than by this page; the page only decides
+ * what to show.
  *
- * Search/role/status filtering is real (client-side over the mock array),
- * not decorative. Export is a UI stub — no export capability exists yet.
+ * Search, role and status filtering stay client-side over the loaded list,
+ * which is right while the team is small enough to fit one page. Export is
+ * still a UI stub — no export capability exists yet.
  */
 export default function UsersRolesPage() {
   const [tab, setTab] = useState<PageTab>("users");
-  const [accounts, setAccounts] = useState<ManagedAccount[]>(MANAGED_ACCOUNTS);
+  const [accounts, setAccounts] = useState<ManagedAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<ManagedAccount | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      const fetched = await listAccounts();
+      setAccounts(fetched.map(toRow));
+      setError(null);
+    } catch (err) {
+      // Including the 403 an `admin` gets. The route is reachable — the shell
+      // guard only checks for a session — but everything on it needs
+      // `super_admin`, and saying so beats an empty table.
+      setError(err instanceof Error ? err.message : "Couldn't load accounts.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
@@ -62,29 +121,33 @@ export default function UsersRolesPage() {
     return otherActiveSuperAdmins.length === 0;
   }
 
-  function handleAdd(email: string, role: AccountRole) {
-    const name = email.split("@")[0] ?? email;
-    setAccounts((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name,
-        email,
-        role,
-        status: "active",
-        lastLogin: "Never",
-        ipAddress: "—",
-      },
-    ]);
-    setAddOpen(false);
+  async function handleAdd(email: string, role: AccountRole) {
+    try {
+      const created = await createAccount(email, role);
+      setAccounts((prev) => [...prev, toRow(created)]);
+      setError(null);
+      setAddOpen(false);
+    } catch (err) {
+      // The modal stays open: a duplicate address is something the person can
+      // correct in place, and closing the form would make them retype it.
+      setError(err instanceof Error ? err.message : "Couldn't create that account.");
+    }
   }
 
-  function handleConfirmDeactivate() {
+  async function handleConfirmDeactivate() {
     if (!deactivateTarget) return;
-    setAccounts((prev) =>
-      prev.map((a) => (a.id === deactivateTarget.id ? { ...a, status: "deactivated" } : a)),
-    );
+    const target = deactivateTarget;
     setDeactivateTarget(null);
+    try {
+      const updated = await updateAccount(target.id, { active: false });
+      setAccounts((prev) => prev.map((a) => (a.id === target.id ? toRow(updated) : a)));
+      setError(null);
+    } catch (err) {
+      // Refusals reach here with the backend's own wording — "this is the only
+      // active super admin; promote someone else before demoting them". The
+      // row is left as it was, because the server did not change it.
+      setError(err instanceof Error ? err.message : "Couldn't deactivate that account.");
+    }
   }
 
   return (
@@ -170,8 +233,20 @@ export default function UsersRolesPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="mx-6 mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+                {error}
+              </div>
+            )}
+
             <div className="px-6 pb-6">
-              <AccountsTable accounts={filtered} onDeactivate={setDeactivateTarget} />
+              {loading ? (
+                <p className="rounded-xl border border-border px-4 py-8 text-center text-sm text-muted">
+                  Loading accounts…
+                </p>
+              ) : (
+                <AccountsTable accounts={filtered} onDeactivate={setDeactivateTarget} />
+              )}
             </div>
             <Pagination shown={filtered.length} />
           </>
