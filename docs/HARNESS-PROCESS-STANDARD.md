@@ -1,8 +1,8 @@
 # Standard Harness Process for IT Development Projects (Harness Process Standard)
 
-> **Version**: 1.6
+> **Version**: 1.7
 > **Date written**: 2026-05-29
-> **Last updated**: 2026-09-09
+> **Last updated**: 2026-09-11
 > **Basis**: One-month field validation on the Société Générale Gateway (sg-gw) C → Java/Spring Boot 3 migration + the attached standard harness composition proposal
 > **Scope**: New or renewal IT development projects (backend, full-stack, migration, data)
 > **Collaboration model**: Team-with-Leader (defined in §4 of this document)
@@ -11,7 +11,7 @@
 
 ## 0. Position of This Document
 
-This document is the master definition of the **standard development harness process**. It organizes the assets field-validated over one month on the sg-gw project into 9 standard skills (6 execution skills + 1 validation skill + 1 validation remediation guide + 1 developer workflow skill) and a 5-step usage flow.
+This document is the master definition of the **standard development harness process**. It organizes the assets field-validated over one month on the sg-gw project into 10 standard skills (6 execution skills + 1 validation skill + 1 validation remediation guide + 1 developer workflow skill + 1 environment diagnosis skill) and a 5-step usage flow.
 
 | sg-gw validated asset | Where it is reflected in this standard |
 |----------------|--------------------|
@@ -80,7 +80,7 @@ harness-standards/                          # Root of this package
 ├── PACKAGE-INDEX.md                        # Full asset catalog
 ├── README.md                               # Entry point + application guide
 ├── .claude/                                # AI tool assets (copied on download)
-│   ├── skills/                             # 9 standard skills (6 execution + 1 validation + 1 assistant + 1 dev workflow)
+│   ├── skills/                             # 10 standard skills (6 execution + 1 validation + 1 assistant + 1 dev workflow + 1 diagnosis)
 │   │   ├── 01-plan-project/
 │   │   │   └── SKILL.md
 │   │   ├── 02-define-requirements/
@@ -97,7 +97,9 @@ harness-standards/                          # Root of this package
 │   │   │   └── SKILL.md
 │   │   ├── 08-harness/
 │   │   │   └── SKILL.md
-│   │   └── 09-dev-workflow/
+│   │   ├── 09-dev-workflow/
+│   │   │   └── SKILL.md
+│   │   └── 10-fix-backend-startup/
 │   │       └── SKILL.md
 │   └── agents/                             # Team agent definitions (13 types)
 │       ├── _team-leader.md
@@ -180,7 +182,7 @@ chmod +x .git/hooks/pre-commit
 
 ---
 
-## 3. Specifications of the 9 Standard Skills (6 execution + 1 validation + 1 assistant + 1 dev workflow)
+## 3. Specifications of the 10 Standard Skills (6 execution + 1 validation + 1 assistant + 1 dev workflow + 1 diagnosis)
 
 Each skill follows the `.claude/skills/<id>/SKILL.md` format (Claude Code Skill spec). The same SKILL.md can also be injected as a system prompt into other AI tools such as Codex and Cursor.
 
@@ -199,6 +201,7 @@ When each Skill runs, a `lead_agent` acts as the single owner while `support_age
 | `07-validate-standard` | `code-reviewer` | `security-auditor`, `trace-mapper`, `docs-writer` |
 | `08-harness` | `team-leader` | `code-reviewer`, `docs-writer` |
 | `09-dev-workflow` | `team-leader` | `code-reviewer`, `docs-writer` |
+| `10-fix-backend-startup` | `backend-developer` | `qa-engineer` |
 
 If the project has a role not covered by the standard agents, a dedicated agent may be added to the project-local `.claude/agents/` after PM approval. However, `write_dirs`, `phase`, `recommended_llm`, and the assigned Skill must be declared in the frontmatter, and if its write scope overlaps with an existing agent, `07-validate-standard` records it as WARN or higher.
 
@@ -562,6 +565,33 @@ Sprint start
 
 ---
 
+### 3.10 Skill 10 — Fix Backend Startup
+
+**Skill ID**: `10-fix-backend-startup`
+**Activation condition (when_to_use)**: A developer's backend will not start, or they paste a startup stack trace.
+**Nature**: A repeating **operational** skill, like Skill 9. Run on demand by whoever is blocked; no gate, no PM involvement.
+
+**Why it exists**: Every startup failure this project has produced names something other than its cause. `Connection to localhost:5432 refused` means the environment file was never loaded — `localhost` is the fallback in `application.yml`, so the address in the error is the one nobody configured, and the developer spends their time checking a database that was never the target. `Migration checksum mismatch` names one of three fields Flyway validates, so correcting that field by hand advances you to the next message rather than to a running application. Both were diagnosed from first principles more than once, by different people, before this skill existed.
+
+**Method**: check in the order the application itself does — environment file, variables actually loaded into the process, database reachable, migration history, IDE run configuration — and report the cause rather than the symptom. `scripts/diagnose-backend-startup.sh` performs the mechanical checks and is read-only; it works without an agent, which matters because the person who is blocked may not be the person with a session open.
+
+**The distinction the skill exists to hold**
+
+| Database | On a migration mismatch |
+|---|---|
+| The developer's own | **Rebuild** (`scripts/db-reset-dev.sh`). Repair leaves the schema a different migration created, and the application then fails later, somewhere less obvious. A local database is free to rebuild. |
+| The shared development one | **Never rebuild** — `db-reset-dev.sh` refuses a non-localhost host by design, because dropping that schema destroys everyone's accounts, sessions and audit trail. Repair (`scripts/flyway-repair-dev.sh`), but only after comparing the live schema against the migration, column by column and index by index, and showing that comparison to a human. |
+
+**Authority boundary**: the skill applies local, reversible fixes without asking — creating `env.local` from the template, correcting line endings, naming the right run configuration. It never writes to a shared database. That command is handed to a person, with the evidence that makes it safe to run. A skill that repairs migration history silently is how someone eventually repairs over a schema that genuinely diverged.
+
+**Output deliverables**: a running backend, or exactly one named blocker with the command that clears it.
+
+**Definition of Done**: the diagnosis exits 0, the application was actually started and printed `Started DocsPlatformApplication`, and `scripts/check-env-documented.sh` exits 0 — a config change that leaves the template stale fails the next person's PR in the L2 audit for a reason they did not cause.
+
+**Details**: `.claude/skills/10-fix-backend-startup/SKILL.md`
+
+---
+
 ## 4. Standard Agent Team Composition (Team-with-Leader model)
 
 This standard adopts the **Team-with-Leader** collaboration model. Its core principles are defined self-containedly in this section.
@@ -914,7 +944,7 @@ The final checklist the PM verifies when applying this standard to a new project
 ## 10. Reference Documents
 
 - Package catalog: `PACKAGE-INDEX.md` — **package root only**; §2.1 does not copy it into an adopting project, so this reference does not resolve from `docs/` in a project checkout
-- 9 standard skills: `.claude/skills/` (01~06 execution, 07 validation, 08-harness remediation guide, 09-dev-workflow developer loop)
+- 10 standard skills: `.claude/skills/` (01~06 execution, 07 validation, 08-harness remediation guide, 09-dev-workflow developer loop, 10-fix-backend-startup environment diagnosis)
 - 13 agent definitions: `.claude/agents/*.md`
 - 21 deliverable templates: `templates/`
 - 3-level security hooks: `hooks/`
@@ -928,6 +958,7 @@ The final checklist the PM verifies when applying this standard to a new project
 
 | Version | Date | Content |
 |------|------|------|
+| **1.7** | **2026-09-11** | Added the `10-fix-backend-startup` environment-diagnosis skill (10 skills), with `scripts/diagnose-backend-startup.sh` and `scripts/flyway-repair-dev.sh`. Added because every startup failure this project produces names something other than its cause — `localhost:5432 refused` means the environment file was never loaded, and a Flyway mismatch names one of three fields that disagree — and the same two causes were re-diagnosed from scratch by different people. The skill also fixes the boundary that made those incidents expensive: on a developer's own database a migration mismatch is rebuilt, on the shared one it is repaired only after a schema comparison a human has seen, and the agent never issues the write itself. **Not yet ratified by the standards committee (§9)** — raised from field use on the Coc Docs Platform project |
 | **1.6** | **2026-09-09** | Added the `09-dev-workflow` developer-loop skill — start · ship · status (9 skills). Covers the branch → commit → check → PR → review loop and keeps a task board in step with the code. Added because Skills 1–6 describe what a project produces but nothing described the loop a developer repeats many times a sprint, which is where process compliance quietly fails on a team using protected branches. **Not yet ratified by the standards committee (§9)** — raised from field use on the Coc Docs Platform project |
 | 1.5 | 2026-06-15 | Renamed `00-harness` → `08-harness`. Redefined its role from "unified entry point" to "post-07-validation remediation guide (final stage of the development flow)" — establishing the order 01~06 development → 07 validation → 08 remediation |
 | 1.4 | 2026-06-12 | Added the frontend-developer agent (web publishing · UI · WCAG — 13 agents). Language-equivalent rule mapping §5.7 (Java·Python·JS/TS·C/C++). AI tool neutrality §5.8. Documented the 3-layer objectivity of compliance verdicts (07 §3.0) |
