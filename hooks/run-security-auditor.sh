@@ -149,7 +149,7 @@ checkpoint
 for f in $(changed_matching '\.(sh|yml|yaml|json)$'); do
   [ -f "$f" ] || continue
   case "$f" in
-    hooks/run-security-auditor.sh|.claude/settings.json|.githooks/*) continue ;;
+    hooks/run-security-auditor.sh|hooks/run-security-auditor.test.sh|.claude/settings.json|.githooks/*) continue ;;
   esac
   if grep_code "git\s+(commit|push)\b.*--no-verify" "$f" | grep -q .; then
     fail "$f contains --no-verify, which bypasses the L1 secret scan."
@@ -168,6 +168,41 @@ for f in $(changed_matching 'db/migration/.*\.sql$'); do
   fi
 done
 pass_if_clean "destructive migrations flagged for review"
+
+# ── 7. Migrations are immutable, and versions are unique ────────────────────
+# Flyway stores a checksum per version. Two files claiming the same version, or
+# an edit to one already applied somewhere, makes a database refuse to start:
+#
+#   Migration checksum mismatch for migration version 2
+#
+# That is what happened on 2026-09-10: dev carried V2__session.sql while
+# feature/login-api carried V2__auth_session.sql, and anyone who ran both
+# branches locally could not boot until they rebuilt their schema. The collision
+# was visible in the diff and nothing was watching for it.
+checkpoint
+# Found, not assumed: the layout differs between this repo and the fixture the
+# negative test builds, and a check that only works in one of them is a check
+# whose own test cannot exercise it.
+MIGRATIONS="$(git ls-files | grep -E 'db/migration/.*\.sql$' || true)"
+
+# a. one version, one file
+DUPES="$(printf '%s\n' "$MIGRATIONS" | sed 's|.*/||' | grep -oE '^V[0-9]+' | sort | uniq -d)"
+for v in $DUPES; do
+  files="$(printf '%s\n' "$MIGRATIONS" | grep -E "/${v}__" | sed 's|.*/||' | tr '\n' ' ')"
+  fail "two migrations claim version ${v#V}: ${files}— Flyway stores one checksum per version, so a database that ran either one refuses to start on the other."
+done
+
+# b. a migration already on the base branch must not change
+if git rev-parse --verify "origin/${BASE_REF}" >/dev/null 2>&1; then
+  for f in $(changed_matching 'db/migration/.*\.sql$'); do
+    if git cat-file -e "origin/${BASE_REF}:$f" 2>/dev/null; then
+      if ! git diff --quiet "origin/${BASE_REF}" -- "$f" 2>/dev/null; then
+        fail "$f already exists on ${BASE_REF} and has been edited. Applied migrations are immutable — add a new version instead, or every database that ran the old one stops booting."
+      fi
+    fi
+  done
+fi
+pass_if_clean "migration versions unique and unedited"
 
 # ── 7. Optional: AI review, when a key is available ─────────────────────────
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then

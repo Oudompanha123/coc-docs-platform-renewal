@@ -41,6 +41,12 @@ printf 'String role = jwt.getClaim("realm_access");\n' > backend/src/AuthFilter.
 # 5. a bypass of the L1 secret scan
 printf 'git commit -m "wip" --no-verify\n' > scripts/deploy.sh
 
+# 7. two files claiming the same Flyway version — the 2026-09-10 outage
+printf 'create table a ();
+' > db/migration/V2__session.sql
+printf 'create table b ();
+' > db/migration/V2__auth_session.sql
+
 git add -A >/dev/null 2>&1
 git commit -qm "planted violations"
 
@@ -70,6 +76,7 @@ expect "AuthFilter.java reads a role from a token claim"     "role from token cl
 expect "blocks.ts uses dangerouslySetInnerHTML"              "unescaped markup (NFR-SEC-SANITIZE)"
 expect "deploy.sh contains --no-verify"                      "L1 bypass"
 expect "V9__violation.sql contains a destructive DDL"        "destructive DDL (warning)"
+expect "two migrations claim version 2"                      "duplicate Flyway version"
 
 echo
 if [ "$MISSED" -gt 0 ]; then
@@ -82,4 +89,4 @@ if [ "$CODE" -eq 0 ]; then
   echo "FAILED — the auditor exited 0 with violations present."
   exit 1
 fi
-echo "PASSED — all 6 checks fired, auditor exited non-zero."
+echo "PASSED — all 7 checks fired, auditor exited non-zero."
