@@ -17,7 +17,8 @@
 | [ADR-008](ADR-008-channel-auth.md) | External channel authentication | **SUPERSEDED IN PART** by ADR-013 | §8 mandatory · ingest bearer secret fenced off (still current). Its **identity-provider** decision — direct Google verification — is superseded |
 | [ADR-013](ADR-013-revision-of-008-identity-broker.md) | Keycloak as identity broker | **ACCEPTED** | Keycloak brokers Google; **roles stay in our `account` table**, not in realm roles; session design unchanged. Revises ADR-008, ADR-011 §auth, ADR-012 Decision 4 |
 | [ADR-010](ADR-010-content-model.md) | Content model and block vocabulary | **ACCEPTED** | The core design decision — 32 → 10 blocks, no raw HTML, embed registry |
-| [ADR-011](ADR-011-security-model.md) | Security model | **ACCEPTED** | **CONST-SEC-01 umbrella** · authentication, session (AMB-006 → 1 day), role enforcement, sanitisation, upload validation |
+| [ADR-011](ADR-011-security-model.md) | Security model | **ACCEPTED** — authorization pillar revised by ADR-016 | **CONST-SEC-01 umbrella** · authentication, session (AMB-006 → 1 day), role enforcement, sanitisation, upload validation |
+| [ADR-016](ADR-016-roles-and-permissions.md) | Many roles per account, many permissions per role | **PROPOSED** | `account_role` + `role_permission`; the ladder survives as `role.rank`, effective rank = highest held; `account.role` dropped. Revises ADR-011 §authz. Permissions stay out of tokens and out of Keycloak — ADR-013's boundary holds |
 
 ---
 
