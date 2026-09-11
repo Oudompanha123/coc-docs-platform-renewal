@@ -129,6 +129,22 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
 
+## The settings that are not obvious
+
+`backend/env.example` is a list of names and defaults. These are the ones where the default is a local convenience, or where getting it wrong fails in a way that does not name itself.
+
+| Setting | What to know |
+|---|---|
+| `COOKIE_SECURE` | `false` **only** because localhost is plain HTTP. Anywhere with TLS must set it `true`, or the session cookie travels in the clear. Left `false` in a deployment nothing appears broken — which is the problem. |
+| `FRONTEND_ORIGIN` | The exact origin, never a pattern. CORS with credentials cannot use a wildcard, and an exact value is what stops a lookalike domain reaching a staging host. A trailing slash or a stray `\r` makes it stop matching, with no hint that whitespace is the reason. |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | Separate variables rather than one JDBC URL: `application.yml` composes it, so the schema and connection parameters stay in one shared place instead of being retyped in each developer's `env.local`. The default is `localhost`; the team database is elsewhere. |
+| `DB_PASSWORD` | The only real secret in the file. `env.local` is gitignored; `env.example` must never hold a live one. |
+| `KEYCLOAK_ISSUER_URI` + `KEYCLOAK_AUDIENCE` | **Both or neither.** Blank means Keycloak sign-in does not exist on this deployment and the app boots as if it were never mentioned. An issuer with no audience refuses to start, deliberately: without an audience, a token Keycloak minted for any other client in the same realm would verify here. |
+| `SESSION_TTL` | ISO-8601. One day, per AMB-006 / NFR-SEC-SESSION. Shortening it cannot retire sessions already issued — expiry is stored as an absolute instant on the row. |
+| `S3_*` | S3-compatible API only, never a provider SDK (`CONST-TECH-08`). MinIO locally. |
+
+Nothing exports `env.local` at the OS level for you. `DotenvEnvironmentPostProcessor` reads it into Spring whatever the launcher, and the `Backend (dev)` run configuration also injects it through the EnvFile plugin. A real environment variable of the same name wins over both.
+
 ## When the backend will not start
 
 ### `Connection to localhost:5432 refused`

@@ -165,3 +165,28 @@ export async function register(input: {
   }
   return (await response.json()) as RegisterResult;
 }
+
+/**
+ * POST /api/v1/auth/logout. Ends the session on the server and clears the
+ * cookie.
+ *
+ * Calling this matters: the session is a row in `app_session`, not a token the
+ * browser can invalidate by forgetting. Dropping the cookie client-side would
+ * leave that row live until its TTL expires, so anyone holding a copy of the
+ * cookie would still be signed in — which is the thing server-side sessions
+ * exist to prevent (FR-AUTH-007).
+ *
+ * Never throws. Sign-out has to end the same way whatever the network did: the
+ * caller sends the user to /login either way, and a failed request here is not
+ * something to make them look at.
+ */
+export async function signOut(): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/v1/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Deliberately swallowed — see above.
+  }
+}
