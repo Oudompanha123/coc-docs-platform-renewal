@@ -25,14 +25,24 @@
 
 set -uo pipefail
 
+# The application composes its JDBC URL from DB_HOST/DB_PORT/DB_NAME, and the
+# schema lives in application.yml rather than in anyone's env.local. Compose the
+# same URL here. DB_URL is still honoured if someone exports one explicitly.
+SCHEMA="${DB_SCHEMA:-cocdocs_dev}"
 URL="${DB_URL:-}"
+if [ -z "$URL" ] && [ -n "${DB_HOST:-}" ]; then
+  URL="jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME:-cocdocs}?currentSchema=${SCHEMA}"
+fi
 if [ -z "$URL" ]; then
   cat >&2 <<'EOF'
-DB_URL is not set. This script will not guess at a database to modify.
+No database configured. This script will not guess at one to modify.
 
 Load your environment first -- the same file the application uses:
 
   set -a; . ./backend/env.local; set +a
+
+That should define DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD. If your
+schema is not cocdocs_dev, set DB_SCHEMA too.
 EOF
   exit 1
 fi
@@ -67,4 +77,5 @@ exec mvn -f backend/pom.xml -q \
   -Dflyway.url="$URL" \
   -Dflyway.user="${DB_USER:-}" \
   -Dflyway.password="${DB_PASSWORD:-}" \
+  -Dflyway.schemas="$SCHEMA" \
   -Dflyway.locations=filesystem:backend/src/main/resources/db/migration

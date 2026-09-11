@@ -140,7 +140,7 @@ Message    : Connection to localhost:5432 refused.
 
 Nothing is wrong with your `env.local`. Nothing is **loading** it.
 
-Spring Boot does not read `backend/env.local` — it is an ordinary file, and something has to put those variables into the process. When nothing does, every `${DB_URL}` in `application.yml` falls back to its localhost default. The file sits there, correct, being ignored. That is why the address in the error is one you never configured: it is the fallback, not your setting.
+Spring Boot does not read `backend/env.local` — it is an ordinary file, and something has to put those variables into the process. When nothing does, every `${DB_HOST}` in `application.yml` falls back to its localhost default. The file sits there, correct, being ignored. That is why the address in the error is one you never configured: it is the fallback, not your setting.
 
 From IntelliJ, use the **`Backend (dev)`** run configuration. It loads the file through the EnvFile plugin — install that from Settings > Plugins if you have not got it. The older `DocsPlatformApplication` configuration does not load it, and also names a `local` profile that no `application-local.yml` defines, so it silently gets neither your variables nor the dev logging.
 
@@ -174,7 +174,7 @@ Your database ran a different file at that version — usually because you had a
 **On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
 
 ```bash
-export DB_URL='jdbc:postgresql://localhost:5432/cocdocs?currentSchema=cocdocs_dev'
+set -a; . ./backend/env.local; set +a
 scripts/db-reset-dev.sh
 ```
 
