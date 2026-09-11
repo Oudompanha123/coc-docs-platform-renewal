@@ -82,14 +82,15 @@ export default function RegisterPage() {
       heading="Create Account"
       subheading="Join Coc Docs Platform today and start writing, organizing, and sharing documentation with your team."
       formPanelPaddingY="md:py-10"
+      formPanelPaddingX="px-0"
     >
-      <h1 className="text-3xl font-extrabold text-ink">Register</h1>
-      <p className="mt-2 text-sm text-muted">Create your account</p>
+      <h1 className="px-8 text-3xl font-extrabold text-ink md:px-14">Register</h1>
+      <p className="mt-2 px-8 text-sm text-muted md:px-14">Create your account</p>
 
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+          className={`mx-8 mt-4 rounded-xl border px-4 py-3 text-sm md:mx-14 ${
             feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-red-200 bg-red-50 text-red-700"
@@ -99,7 +100,11 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+      <form
+        className="no-scrollbar-arrows mt-6 max-h-[760px] space-y-5 overflow-y-auto px-8 md:px-14"
+        onSubmit={handleSubmit}
+        noValidate
+      >
         <FormField
           label="Full Name"
           value={fullName}
@@ -190,7 +195,7 @@ export default function RegisterPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="mt-6 px-8 text-center text-sm text-muted md:px-14">
         Already have an account?{" "}
         <Link href="/login" className="font-semibold text-brand-purple hover:underline">
           Login
