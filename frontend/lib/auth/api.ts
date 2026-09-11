@@ -53,14 +53,14 @@ interface NonceResponse {
 }
 
 /**
- * POST /api/auth/nonce. Also sets the short-lived `coc_oidc_nonce` cookie the
- * backend reads back on `/login` — `credentials: "include"` is required both
+ * POST /api/v1/auth/nonce. Also sets the short-lived `coc_oidc_nonce` cookie the
+ * backend reads back on `/google` — `credentials: "include"` is required both
  * to receive it here and to send it on the next call.
  */
 export async function requestNonce(): Promise<string> {
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_URL}/api/auth/nonce`, {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/nonce`, {
       method: "POST",
       credentials: "include",
     });
@@ -75,7 +75,7 @@ export async function requestNonce(): Promise<string> {
 }
 
 /**
- * POST /api/auth/login. Verifies the ID token server-side — issued by
+ * POST /api/v1/auth/google. Verifies the ID token server-side — issued by
  * Keycloak, which brokers Google upstream (ADR-013) — and, on success, sets
  * the session cookie.
  *
@@ -87,7 +87,7 @@ export async function requestNonce(): Promise<string> {
 export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAccount> {
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/google`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -164,4 +164,29 @@ export async function register(input: {
     throw new AuthApiError("Registration failed. Please check your details and try again.");
   }
   return (await response.json()) as RegisterResult;
+}
+
+/**
+ * POST /api/v1/auth/logout. Ends the session on the server and clears the
+ * cookie.
+ *
+ * Calling this matters: the session is a row in `app_session`, not a token the
+ * browser can invalidate by forgetting. Dropping the cookie client-side would
+ * leave that row live until its TTL expires, so anyone holding a copy of the
+ * cookie would still be signed in — which is the thing server-side sessions
+ * exist to prevent (FR-AUTH-007).
+ *
+ * Never throws. Sign-out has to end the same way whatever the network did: the
+ * caller sends the user to /login either way, and a failed request here is not
+ * something to make them look at.
+ */
+export async function signOut(): Promise<void> {
+  try {
+    await fetch(`${BACKEND_URL}/api/v1/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Deliberately swallowed — see above.
+  }
 }

@@ -5,6 +5,7 @@ import { MESSAGES, NOTIFICATIONS, TOPBAR_COUNTS } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { useSession } from "@/lib/auth/SessionProvider";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -74,6 +75,7 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   // until that resolves or for a visitor with no session, since this shell
   // has no route guard of its own yet.
   const user = useCurrentUser();
+  const { signOut } = useSession();
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Topbar renders on every admin page (via AppShell), so this is what
@@ -289,7 +291,10 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => setOpenMenu(null)}
+                  onClick={() => {
+                    setOpenMenu(null);
+                    void signOut();
+                  }}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10"
                 >
                   <LogOutIcon className="h-4 w-4" />

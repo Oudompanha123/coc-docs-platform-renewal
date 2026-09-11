@@ -1,7 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { me, type Role } from "./api";
+import { useSession } from "./SessionProvider";
+import type { Role } from "./api";
+
+/**
+ * The signed-in user, shaped for display.
+ *
+ * <p>Reads the one session {@link useSession} already resolved rather than
+ * calling `/api/v1/auth/me` itself. It used to do its own fetch, which meant
+ * the sidebar and the topbar each asked the server the same question on every
+ * page load and each independently decided what a failure meant.
+ *
+ * <p>Returns null while the answer is still loading and for a visitor with no
+ * session. Inside the admin shell the second case does not arise — the guard
+ * has already redirected — but this hook is usable outside it.
+ */
 
 const ROLE_LABELS: Record<Role, string> = {
   GUEST: "Guest",
@@ -10,7 +23,6 @@ const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "Super Admin",
 };
 
-/** First letter of up to the first two words of a display name, e.g. "Jane Admin" → "JA". */
 function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return "?";
@@ -25,38 +37,16 @@ export type CurrentUserDisplay = {
   initials: string;
 };
 
-/**
- * The signed-in caller's current name and role, straight from the session
- * (`GET /api/v1/auth/me`) — never a hardcoded placeholder.
- *
- * `null` while the request is in flight and for a visitor with no session;
- * callers fall back to their own placeholder for that case, same as they did
- * before this existed.
- */
 export function useCurrentUser(): CurrentUserDisplay | null {
-  const [user, setUser] = useState<CurrentUserDisplay | null>(null);
+  const { status, user } = useSession();
 
-  useEffect(() => {
-    let cancelled = false;
+  if (status !== "authenticated" || !user?.displayName) {
+    return null;
+  }
 
-    me()
-      .then((response) => {
-        if (cancelled || !response.authenticated || !response.displayName) return;
-        setUser({
-          name: response.displayName,
-          role: response.role ? (ROLE_LABELS[response.role] ?? response.role) : "",
-          initials: initialsOf(response.displayName),
-        });
-      })
-      .catch(() => {
-        // Left null. Who is signed in is decoration here (the shell has no
-        // route guard yet), not something worth surfacing a fetch failure for.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return user;
+  return {
+    name: user.displayName,
+    role: user.role ? (ROLE_LABELS[user.role] ?? user.role) : "",
+    initials: initialsOf(user.displayName),
+  };
 }
