@@ -64,9 +64,17 @@ mvn -version     # must report 3.9 or newer
 
 This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as supported, and six developers on differing JDKs produce defects that reproduce on exactly one machine.
 
-**3. Node 24** for the frontend.
+**3. Copy the environment template.** `backend/env.example` documents every variable the backend reads, with a safe local default for each:
 
-**4. Authenticate the GitHub CLI** — this is the step everyone forgets:
+```bash
+cp backend/env.example backend/env.local
+```
+
+`env.local` is gitignored; `env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
+
+**4. Node 24** for the frontend.
+
+**5. Authenticate the GitHub CLI** — this is the step everyone forgets:
 
 ```bash
 gh auth login          # then: gh auth status
@@ -143,3 +151,19 @@ scripts/db-reset-dev.sh
 It refuses any host that is not localhost, refuses a schema that does not name itself dev/test/local, and makes you type the schema name. Then start the app and Flyway replays every migration from scratch.
 
 **Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day.
+
+## Seeing what the backend is doing
+
+Logging is configured in `backend/src/main/resources/logback-spring.xml`. It **extends** Spring Boot's defaults rather than replacing them, so `logging.level.*` and `logging.pattern.*` in `application.yml` still work and still win.
+
+Everything goes to the console **and** to `backend/logs/backend.log`, rolled daily or at 10MB, 10 days kept. The directory is gitignored. The console scrolls away, and the interesting part of a startup failure is usually forty lines above where you started reading.
+
+Run with the `dev` profile to see detail:
+
+```bash
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+That raises `com.coc.docs` to DEBUG and turns on the SQL statements, the Spring Security filter chain, and Flyway's migration log. Without the profile everything stays at INFO, so a deployment can never pick the detail up by accident.
+
+**Do not turn on parameter binding** — `StatementCreatorUtils` at TRACE, or the Hibernate SQL-type loggers. They log every bound value, and this schema holds bcrypt hashes and session token digests, while the password sign-in path binds the plaintext password on its way to the encoder. That writes credentials to a file on disk and to anyone's terminal scrollback. If you need to see one value, log it at the call site and remove it before committing.
