@@ -143,3 +143,19 @@ scripts/db-reset-dev.sh
 It refuses any host that is not localhost, refuses a schema that does not name itself dev/test/local, and makes you type the schema name. Then start the app and Flyway replays every migration from scratch.
 
 **Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day.
+
+## Seeing what the backend is doing
+
+Logging is configured in `backend/src/main/resources/logback-spring.xml`. It **extends** Spring Boot's defaults rather than replacing them, so `logging.level.*` and `logging.pattern.*` in `application.yml` still work and still win.
+
+Everything goes to the console **and** to `backend/logs/backend.log`, rolled daily or at 10MB, 10 days kept. The directory is gitignored. The console scrolls away, and the interesting part of a startup failure is usually forty lines above where you started reading.
+
+Run with the `dev` profile to see detail:
+
+```bash
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+That raises `com.coc.docs` to DEBUG and turns on the SQL statements, the Spring Security filter chain, and Flyway's migration log. Without the profile everything stays at INFO, so a deployment can never pick the detail up by accident.
+
+**Do not turn on parameter binding** — `StatementCreatorUtils` at TRACE, or the Hibernate SQL-type loggers. They log every bound value, and this schema holds bcrypt hashes and session token digests, while the password sign-in path binds the plaintext password on its way to the encoder. That writes credentials to a file on disk and to anyone's terminal scrollback. If you need to see one value, log it at the call site and remove it before committing.
