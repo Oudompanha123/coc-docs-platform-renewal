@@ -131,17 +131,47 @@ If a decision looks wrong, say so. Every ADR records the alternatives it rejecte
 
 ## When the backend will not start
 
+### `Connection to localhost:5432 refused`
+
+```
+SQL State  : 08001
+Message    : Connection to localhost:5432 refused.
+```
+
+Nothing is wrong with your `env.local`. Nothing is **loading** it.
+
+Spring Boot does not read `backend/env.local` — it is an ordinary file, and something has to put those variables into the process. When nothing does, every `${DB_URL}` in `application.yml` falls back to its localhost default. The file sits there, correct, being ignored. That is why the address in the error is one you never configured: it is the fallback, not your setting.
+
+From IntelliJ, use the **`Backend (dev)`** run configuration. It loads the file through the EnvFile plugin — install that from Settings > Plugins if you have not got it. The older `DocsPlatformApplication` configuration does not load it, and also names a `local` profile that no `application-local.yml` defines, so it silently gets neither your variables nor the dev logging.
+
+From a shell:
+
+```bash
+set -a; . ./backend/env.local; set +a
+./backend/mvnw -f backend/pom.xml spring-boot:run
+```
+
+### `Migrations have failed validation`
+
 ```
 Migration checksum mismatch for migration version 2
 -> Applied to database : 1574820704
 -> Resolved locally    : 677785464
 ```
 
-Your database ran a different file at that version — usually because you had a branch checked out that added its own. Flyway stores one checksum per version and refuses to start when it does not match.
+Flyway compares three fields per version — `checksum`, `script` **and** `description` — so the same cause also surfaces as a description mismatch, in words rather than numbers:
 
-**Do not reach for `flyway repair`.** It rewrites the recorded checksum and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious.
+```
+Migration description mismatch for migration version 2
+-> Applied to database : auth session
+-> Resolved locally    : session
+```
 
-Rebuild the schema instead — it is a development database:
+Correcting one field by hand and not the others only moves you to the next message. Align all three, or let `flyway repair` align them for you.
+
+Your database ran a different file at that version — usually because you had a branch checked out that added its own. Flyway stores one row per version and refuses to start when it does not match what is on disk.
+
+**On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
 
 ```bash
 export DB_URL='jdbc:postgresql://localhost:5432/cocdocs?currentSchema=cocdocs_dev'
@@ -150,7 +180,14 @@ scripts/db-reset-dev.sh
 
 It refuses any host that is not localhost, refuses a schema that does not name itself dev/test/local, and makes you type the schema name. Then start the app and Flyway replays every migration from scratch.
 
-**Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day.
+**On the shared dev database you cannot do that**, and `db-reset-dev.sh` will refuse — deliberately. Dropping it destroys everyone's accounts, sessions and the audit trail. There, repair is the right tool, but only once you have checked the thing repair cannot check for you: that the schema the *other* file left behind is the schema this file describes. Compare the real table against the migration — columns, types, defaults, indexes (including partial ones), check constraints, foreign keys — and if anything differs, stop and raise it rather than repairing over it.
+
+```bash
+set -a; . ./backend/env.local; set +a
+scripts/flyway-repair-dev.sh
+```
+
+**Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day, and then cost another one when the half-corrected bookkeeping it left behind surfaced weeks later.
 
 ## Seeing what the backend is doing
 
