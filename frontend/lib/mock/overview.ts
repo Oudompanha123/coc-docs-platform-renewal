@@ -1,4 +1,13 @@
-/** Mock data for the admin shell + Overview dashboard. UI-only — no API yet. */
+/**
+ * Mock data for the Overview dashboard's content — documents, workspaces,
+ * activity. UI-only — no API yet.
+ *
+ * CURRENT_USER below still backs the Settings → Profile card and other
+ * mock-only consumers, but the Topbar's own signed-in identity (name/role/
+ * initials shown next to the avatar) comes from the real session
+ * (`GET /api/v1/auth/me`, see `@/lib/auth/useCurrentUser`), not this
+ * placeholder.
+ */
 
 export type Tone = "purple" | "green" | "orange" | "pink";
 
@@ -7,6 +16,11 @@ export type CurrentUser = {
   name: string;
   role: string;
   tone: Tone;
+  /** Added for the Settings → Profile card; every existing consumer of
+   *  CURRENT_USER destructures only the fields it already used, so these
+   *  are additive. */
+  email: string;
+  joinedDate: string;
 };
 
 export const CURRENT_USER: CurrentUser = {
@@ -14,11 +28,43 @@ export const CURRENT_USER: CurrentUser = {
   name: "System Admin",
   role: "Super Admin",
   tone: "orange",
+  email: "system.admin@cocdocs.example",
+  joinedDate: "Jun 12, 2025",
 };
 
+export type NotificationItem = {
+  id: string;
+  title: string;
+  detail: string;
+  timeAgo: string;
+};
+
+export const NOTIFICATIONS: NotificationItem[] = [
+  { id: "n1", title: "New comment on Product Requirements v3", detail: "Jane Admin left a comment", timeAgo: "10m ago" },
+  { id: "n2", title: "Workspace invite accepted", detail: "Maly Kim joined Engineering", timeAgo: "1h ago" },
+  { id: "n3", title: "Document published", detail: "Onboarding Guide is now live", timeAgo: "3h ago" },
+];
+
+export type MessageItem = {
+  id: string;
+  name: string;
+  initials: string;
+  tone: Tone;
+  preview: string;
+  timeAgo: string;
+};
+
+export const MESSAGES: MessageItem[] = [
+  { id: "m1", name: "Jane Admin", initials: "JA", tone: "green", preview: "Can you review the API draft today?", timeAgo: "5m ago" },
+  { id: "m2", name: "Maly Kim", initials: "MK", tone: "purple", preview: "Thanks for the onboarding walkthrough!", timeAgo: "42m ago" },
+  { id: "m3", name: "Sok Dara", initials: "SD", tone: "orange", preview: "Uploaded the Q3 retro notes.", timeAgo: "1h ago" },
+  { id: "m4", name: "System", initials: "SY", tone: "pink", preview: "Weekly usage report is ready.", timeAgo: "4h ago" },
+  { id: "m5", name: "Jane Admin", initials: "JA", tone: "green", preview: "Meeting moved to 3 PM tomorrow.", timeAgo: "1d ago" },
+];
+
 export const TOPBAR_COUNTS = {
-  notifications: 3,
-  mail: 5,
+  notifications: NOTIFICATIONS.length,
+  mail: MESSAGES.length,
 };
 
 export type StatCardData = {

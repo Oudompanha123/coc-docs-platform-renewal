@@ -88,6 +88,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // --- public: no session yet, by necessity -------------
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/google").permitAll()
+                        // ADR-014: applying for an account, and signing in with one. Public
+                        // by necessity — nobody has a session before either succeeds.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
                         // Liveness only. Carries no version, no configuration and
@@ -102,6 +106,13 @@ public class SecurityConfig {
                         // A fixed floor above admin, per FR-AUTH-008: an admin
                         // publishes content, and granting roles is a different
                         // kind of authority.
+                        //
+                        // This is also the whole of NFR-SEC-PII's enforcement.
+                        // Every account's email and display name is reachable
+                        // through this prefix and nowhere else in the API, so
+                        // the personal-data boundary is this one line rather
+                        // than a property spread across response types.
+                        // // req: FR-AUTH-008, NFR-SEC-PII
                         .requestMatchers("/api/v1/admin/accounts/**")
                         .hasRole(AppRole.SUPER_ADMIN.name())
 

@@ -23,10 +23,15 @@ git checkout -b feature/login-api
 
 # ... work, commit ...
 
-git push -u origin feature/login-api      # then open a PR into dev
+git push -u origin feature/login-api
+scripts/open-pr.sh                        # opens the PR into dev
 ```
 
 **Target `dev`, not `main`.** A PR into `main` will be rejected unless it comes from `dev`.
+
+Use `scripts/open-pr.sh` rather than `gh pr create` or the "Compare & pull request" button GitHub shows after a push. **Both of those target the repository's default branch, which is `main`** — so the wrong target is what you get by doing nothing. The script passes `--base dev`, refuses `main` from anything but `dev`, pushes the branch if you haven't, and prints the compare URL when `gh` isn't authenticated.
+
+This is not a hypothetical tidiness rule. On 2026-09-10 two PRs went straight into `main`, leaving `dev` six commits behind it — and every branch cut from `dev` afterwards silently reintroduced a CI job that had already been fixed.
 
 ## A pull request merges when
 
@@ -59,9 +64,17 @@ mvn -version     # must report 3.9 or newer
 
 This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as supported, and six developers on differing JDKs produce defects that reproduce on exactly one machine.
 
-**3. Node 24** for the frontend.
+**3. Copy the environment template.** `backend/env.example` documents every variable the backend reads, with a safe local default for each:
 
-**4. Authenticate the GitHub CLI** — this is the step everyone forgets:
+```bash
+cp backend/env.example backend/env.local
+```
+
+`env.local` is gitignored; `env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
+
+**4. Node 24** for the frontend.
+
+**5. Authenticate the GitHub CLI** — this is the step everyone forgets:
 
 ```bash
 gh auth login          # then: gh auth status
@@ -115,3 +128,79 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 | Testing rules | `docs/design/TEST-PLAN.md` |
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
+
+## When the backend will not start
+
+### `Connection to localhost:5432 refused`
+
+```
+SQL State  : 08001
+Message    : Connection to localhost:5432 refused.
+```
+
+Nothing is wrong with your `env.local`. Nothing is **loading** it.
+
+Spring Boot does not read `backend/env.local` — it is an ordinary file, and something has to put those variables into the process. When nothing does, every `${DB_HOST}` in `application.yml` falls back to its localhost default. The file sits there, correct, being ignored. That is why the address in the error is one you never configured: it is the fallback, not your setting.
+
+From IntelliJ, use the **`Backend (dev)`** run configuration. It loads the file through the EnvFile plugin — install that from Settings > Plugins if you have not got it. The older `DocsPlatformApplication` configuration does not load it, and also names a `local` profile that no `application-local.yml` defines, so it silently gets neither your variables nor the dev logging.
+
+From a shell:
+
+```bash
+set -a; . ./backend/env.local; set +a
+./backend/mvnw -f backend/pom.xml spring-boot:run
+```
+
+### `Migrations have failed validation`
+
+```
+Migration checksum mismatch for migration version 2
+-> Applied to database : 1574820704
+-> Resolved locally    : 677785464
+```
+
+Flyway compares three fields per version — `checksum`, `script` **and** `description` — so the same cause also surfaces as a description mismatch, in words rather than numbers:
+
+```
+Migration description mismatch for migration version 2
+-> Applied to database : auth session
+-> Resolved locally    : session
+```
+
+Correcting one field by hand and not the others only moves you to the next message. Align all three, or let `flyway repair` align them for you.
+
+Your database ran a different file at that version — usually because you had a branch checked out that added its own. Flyway stores one row per version and refuses to start when it does not match what is on disk.
+
+**On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
+
+```bash
+set -a; . ./backend/env.local; set +a
+scripts/db-reset-dev.sh
+```
+
+It refuses any host that is not localhost, refuses a schema that does not name itself dev/test/local, and makes you type the schema name. Then start the app and Flyway replays every migration from scratch.
+
+**On the shared dev database you cannot do that**, and `db-reset-dev.sh` will refuse — deliberately. Dropping it destroys everyone's accounts, sessions and the audit trail. There, repair is the right tool, but only once you have checked the thing repair cannot check for you: that the schema the *other* file left behind is the schema this file describes. Compare the real table against the migration — columns, types, defaults, indexes (including partial ones), check constraints, foreign keys — and if anything differs, stop and raise it rather than repairing over it.
+
+```bash
+set -a; . ./backend/env.local; set +a
+scripts/flyway-repair-dev.sh
+```
+
+**Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day, and then cost another one when the half-corrected bookkeeping it left behind surfaced weeks later.
+
+## Seeing what the backend is doing
+
+Logging is configured in `backend/src/main/resources/logback-spring.xml`. It **extends** Spring Boot's defaults rather than replacing them, so `logging.level.*` and `logging.pattern.*` in `application.yml` still work and still win.
+
+Everything goes to the console **and** to `backend/logs/backend.log`, rolled daily or at 10MB, 10 days kept. The directory is gitignored. The console scrolls away, and the interesting part of a startup failure is usually forty lines above where you started reading.
+
+Run with the `dev` profile to see detail:
+
+```bash
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+That raises `com.coc.docs` to DEBUG and turns on the SQL statements, the Spring Security filter chain, and Flyway's migration log. Without the profile everything stays at INFO, so a deployment can never pick the detail up by accident.
+
+**Do not turn on parameter binding** — `StatementCreatorUtils` at TRACE, or the Hibernate SQL-type loggers. They log every bound value, and this schema holds bcrypt hashes and session token digests, while the password sign-in path binds the plaintext password on its way to the encoder. That writes credentials to a file on disk and to anyone's terminal scrollback. If you need to see one value, log it at the call site and remove it before committing.

@@ -1,10 +1,16 @@
 package com.coc.docs.web;
 
+import com.coc.docs.account.Account;
 import com.coc.docs.auth.CurrentUser;
+import com.coc.docs.account.AccountService;
 import com.coc.docs.auth.SessionService;
+import com.coc.docs.auth.dto.PasswordLoginRequest;
+import com.coc.docs.auth.dto.RegisterRequest;
+import com.coc.docs.auth.dto.RegisterResponse;
 import com.coc.docs.config.AppProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.Locale;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +19,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -32,10 +41,18 @@ public class AuthController {
 
     private final SessionService sessions;
     private final AppProperties properties;
+    private final AccountService accounts;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(SessionService sessions, AppProperties properties) {
+    public AuthController(
+            SessionService sessions,
+            AppProperties properties,
+            AccountService accounts,
+            PasswordEncoder passwordEncoder) {
         this.sessions = sessions;
         this.properties = properties;
+        this.accounts = accounts;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -149,5 +166,68 @@ public class AuthController {
             }
         }
         return request.getRemoteAddr();
+    }
+
+    // -----------------------------------------------------------------------
+    // Password self-registration (ADR-014)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Applies for an account.
+     *
+     * <p>Creates an account that can sign in immediately: the row is
+     * {@code active} with role {@code user}. Role and status are literals in
+     * the insert, never taken from this request — that is what keeps
+     * registration off the privilege-escalation path (TM-025).
+     *
+     * <p>As of 2026-09-11, product direction removed the {@code super_admin}
+     * approval gate ADR-014 originally put here — see
+     * {@code AccountService.register}'s javadoc and ADR-014's "Alternatives
+     * Considered" table, which explicitly rejected this for the security
+     * reason it reopens. Recorded here pending that ADR's own revision.
+     *
+     * <p>200, not 202: the account is usable as soon as this call returns, so
+     * there is nothing left "accepted but pending".
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-003, ADR-014
+     */
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.OK)
+    RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
+        Account created = accounts.register(
+                request.email(), request.displayName(), passwordEncoder.encode(request.password()));
+
+        return new RegisterResponse(
+                created.status().wire().toUpperCase(Locale.ROOT),
+                "Your account has been created. You can now log in.");
+    }
+
+    /**
+     * Exchanges an email and password for a session cookie.
+     *
+     * <p>Refusals are deliberately indistinguishable — see
+     * {@code SessionService.signInWithPassword}. This method adds nothing to
+     * the response that would tell them apart.
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-007, ADR-014
+     */
+    @PostMapping("/login-password")
+    ResponseEntity<ApiDtos.MeResponse> signInWithPassword(
+            @Valid @RequestBody PasswordLoginRequest request, HttpServletRequest http) {
+
+        SessionService.IssuedSession issued = sessions.signInWithPassword(
+                request.email(),
+                request.password(),
+                http.getHeader(HttpHeaders.USER_AGENT),
+                clientIp(http));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, sessionCookie(issued).toString())
+                .body(new ApiDtos.MeResponse(
+                        issued.account().id(),
+                        issued.account().email(),
+                        issued.account().displayName(),
+                        issued.account().role().wire(),
+                        true));
     }
 }
