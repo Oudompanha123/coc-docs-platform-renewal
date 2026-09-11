@@ -30,6 +30,8 @@ export interface AdminAccount {
   displayName: string;
   role: AccountRole;
   active: boolean;
+  /** Every role held, rank order. `role` is the highest of these. */
+  roles: AccountRole[];
   createdAt: string;
   /** Absent when they have never signed in, or not since their last session was purged. */
   lastSignInAt: string | null;
@@ -96,10 +98,41 @@ export function createAccount(email: string, role: AccountRole): Promise<AdminAc
  */
 export function updateAccount(
   id: string,
-  changes: { role?: AccountRole; active?: boolean },
+  changes: { role?: AccountRole; active?: boolean; displayName?: string },
 ): Promise<AdminAccount> {
   return request<AdminAccount>(`/${id}`, {
     method: "PATCH",
     body: JSON.stringify(changes),
   });
+}
+
+/** One role and what it grants — `/api/v1/admin/roles`. */
+export interface RoleDetail {
+  key: AccountRole;
+  rank: number;
+  description: string;
+  permissions: string[];
+  accountCount: number;
+}
+
+/**
+ * The role catalogue, lowest rank first.
+ *
+ * Read-only by design: roles are seeded by migration and adding one is a
+ * schema change (ADR-016), so there is no create or edit counterpart here.
+ */
+export async function listRoles(): Promise<RoleDetail[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/admin/roles`, { credentials: "include" });
+  } catch {
+    throw new AdminApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new NotPermittedError("Only a super admin can view roles.");
+  }
+  if (!response.ok) {
+    throw new AdminApiError("Couldn't load roles.");
+  }
+  return (await response.json()) as RoleDetail[];
 }

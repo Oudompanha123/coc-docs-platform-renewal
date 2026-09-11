@@ -15,9 +15,13 @@ function ClockIcon({ className }: { className?: string }) {
 export function AccountsTable({
   accounts,
   onDeactivate,
+  onOpen,
 }: {
   accounts: ManagedAccount[];
   onDeactivate: (account: ManagedAccount) => void;
+  /** Opens the detail panel. A button rather than a whole clickable row: a row
+   *  that navigates is invisible to a keyboard and to a screen reader. */
+  onOpen: (account: ManagedAccount) => void;
 }) {
   return (
     <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-border">
@@ -71,6 +75,13 @@ export function AccountsTable({
                 </div>
               </td>
               <td className="px-4 py-4 text-right">
+                <button
+                  type="button"
+                  onClick={() => onOpen(account)}
+                  className="mr-2 rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:border-brand-purple hover:text-brand-purple"
+                >
+                  Details
+                </button>
                 {account.status === "active" ? (
                   <button
                     type="button"

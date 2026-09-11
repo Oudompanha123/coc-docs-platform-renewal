@@ -8,11 +8,16 @@ import { AddAccountModal } from "@/components/users-roles/AddAccountModal";
 import { DeactivateModal } from "@/components/users-roles/DeactivateModal";
 import { FilterBar, type RoleFilter, type StatusFilter } from "@/components/users-roles/FilterBar";
 import { Pagination } from "@/components/users-roles/Pagination";
+import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal";
+import { RolesTab } from "@/components/users-roles/RolesTab";
 import {
   createAccount,
   listAccounts,
+  listRoles,
   updateAccount,
+  type AccountRole as AdminRole,
   type AdminAccount,
+  type RoleDetail,
 } from "@/lib/admin/accounts";
 import { CURRENT_ACCOUNT_ID, type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
 
@@ -70,16 +75,23 @@ type PageTab = "users" | "roles";
  */
 export default function UsersRolesPage() {
   const [tab, setTab] = useState<PageTab>("users");
-  const [accounts, setAccounts] = useState<ManagedAccount[]>([]);
+  // The API records, kept as they arrived. `rows` below is the table's view of
+  // them; the detail modal needs the full record, so throwing it away at load
+  // would mean fetching the same account again to open it.
+  const [records, setRecords] = useState<AdminAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<ManagedAccount | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  const [roles, setRoles] = useState<RoleDetail[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesError, setRolesError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
-      const fetched = await listAccounts();
-      setAccounts(fetched.map(toRow));
+      setRecords(await listAccounts());
       setError(null);
     } catch (err) {
       // Including the 403 an `admin` gets. The route is reachable — the shell
@@ -95,9 +107,23 @@ export default function UsersRolesPage() {
     void reload();
   }, [reload]);
 
+  // Roles load once with the page rather than when the tab is first opened:
+  // it is one small request, and paying for it up front means the tab renders
+  // immediately instead of flashing a spinner the first time it is clicked.
+  useEffect(() => {
+    listRoles()
+      .then((fetched) => setRoles(fetched))
+      .catch((err) => setRolesError(err instanceof Error ? err.message : "Couldn't load roles."))
+      .finally(() => setRolesLoading(false));
+  }, []);
+
+  const accounts = useMemo(() => records.map(toRow), [records]);
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -113,6 +139,31 @@ export default function UsersRolesPage() {
     });
   }, [accounts, search, roleFilter, statusFilter]);
 
+  // Back to the first page whenever the result set changes underneath. Without
+  // this, filtering a list down to three rows while on page 4 shows an empty
+  // table and no obvious reason why.
+  useEffect(() => {
+    setPage(1);
+  }, [search, roleFilter, statusFilter]);
+
+  const visible = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize],
+  );
+
+  const detail = detailId ? (records.find((r) => r.id === detailId) ?? null) : null;
+
+  async function handleSaveDetail(changes: {
+    role?: AdminRole;
+    active?: boolean;
+    displayName?: string;
+  }) {
+    if (!detail) return;
+    const updated = await updateAccount(detail.id, changes);
+    setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    setError(null);
+  }
+
   function isLastActiveSuperAdmin(account: ManagedAccount): boolean {
     if (account.role !== "super_admin" || account.status !== "active") return false;
     const otherActiveSuperAdmins = accounts.filter(
@@ -124,7 +175,7 @@ export default function UsersRolesPage() {
   async function handleAdd(email: string, role: AccountRole) {
     try {
       const created = await createAccount(email, role);
-      setAccounts((prev) => [...prev, toRow(created)]);
+      setRecords((prev) => [...prev, created]);
       setError(null);
       setAddOpen(false);
     } catch (err) {
@@ -140,7 +191,7 @@ export default function UsersRolesPage() {
     setDeactivateTarget(null);
     try {
       const updated = await updateAccount(target.id, { active: false });
-      setAccounts((prev) => prev.map((a) => (a.id === target.id ? toRow(updated) : a)));
+      setRecords((prev) => prev.map((r) => (r.id === target.id ? updated : r)));
       setError(null);
     } catch (err) {
       // Refusals reach here with the backend's own wording — "this is the only
@@ -245,22 +296,41 @@ export default function UsersRolesPage() {
                   Loading accounts…
                 </p>
               ) : (
-                <AccountsTable accounts={filtered} onDeactivate={setDeactivateTarget} />
+                <AccountsTable
+                  accounts={visible}
+                  onDeactivate={setDeactivateTarget}
+                  onOpen={(account) => setDetailId(account.id)}
+                />
               )}
             </div>
-            <Pagination shown={filtered.length} />
+            <Pagination
+              total={filtered.length}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </>
         ) : (
-          <div className="p-8 text-center">
-            <p className="text-sm font-semibold text-dash-ink">Role management</p>
-            <p className="mt-1 text-sm text-muted">
-              Coc Docs Platform&apos;s roles are fixed (User, Admin, Super Admin) — there&apos;s no custom-role builder here.
-            </p>
-          </div>
+          <RolesTab roles={roles} loading={rolesLoading} error={rolesError} />
         )}
       </div>
 
       {addOpen && <AddAccountModal onClose={() => setAddOpen(false)} onAdd={handleAdd} />}
+
+      {detail && (
+        <AccountDetailModal
+          account={detail}
+          isSelf={detail.id === CURRENT_ACCOUNT_ID}
+          isLastActiveSuperAdmin={
+            detail.role === "super_admin" &&
+            detail.active &&
+            records.filter((r) => r.role === "super_admin" && r.active).length === 1
+          }
+          onClose={() => setDetailId(null)}
+          onSave={handleSaveDetail}
+        />
+      )}
 
       {deactivateTarget && (
         <DeactivateModal
