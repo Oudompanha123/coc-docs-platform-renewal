@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CURRENT_USER } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { NAV_BOTTOM, NAV_SECTIONS, NAV_TOP, isNavItemActive, type NavItem } from "./nav-config";
 import { XIcon } from "./icons";
 
@@ -34,7 +34,10 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const userAvatar = AVATAR_GRADIENTS[CURRENT_USER.tone];
+  // Same session-backed name/role as the Topbar (GET /api/v1/auth/me) — the
+  // two must never show a different name for the one signed-in caller.
+  const user = useCurrentUser();
+  const userAvatar = AVATAR_GRADIENTS.purple;
 
   const content = (
     <div className="flex h-full flex-col bg-sidebar px-4 py-5">
@@ -75,11 +78,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
           <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-            {CURRENT_USER.initials}
+            {user?.initials ?? "?"}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{CURRENT_USER.name}</p>
-            <p className="truncate text-xs text-sidebar-muted">{CURRENT_USER.role}</p>
+            <p className="truncate text-sm font-semibold text-white">{user?.name ?? "Guest"}</p>
+            <p className="truncate text-xs text-sidebar-muted">{user?.role ?? ""}</p>
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CURRENT_USER, MESSAGES, NOTIFICATIONS, TOPBAR_COUNTS } from "@/lib/mock/overview";
+import { MESSAGES, NOTIFICATIONS, TOPBAR_COUNTS } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -69,7 +70,11 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
-  const userAvatar = AVATAR_GRADIENTS[CURRENT_USER.tone];
+  // The signed-in caller's real name/role (GET /api/v1/auth/me) — "Guest"
+  // until that resolves or for a visitor with no session, since this shell
+  // has no route guard of its own yet.
+  const user = useCurrentUser();
+  const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Topbar renders on every admin page (via AppShell), so this is what
   // actually re-applies a previously-chosen theme on a fresh page load —
@@ -240,11 +245,11 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
             className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
           >
             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-              {CURRENT_USER.initials}
+              {user?.initials ?? "?"}
             </div>
             <div className="hidden min-w-0 text-left sm:block">
-              <p className="truncate text-sm font-semibold text-dash-ink">{CURRENT_USER.name}</p>
-              <p className="truncate text-xs text-muted">{CURRENT_USER.role}</p>
+              <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
+              <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
             </div>
             <ChevronDownIcon className="hidden h-4 w-4 text-muted sm:block" />
           </button>
@@ -253,12 +258,11 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
             <div role="menu" className={`${PANEL_CLASSES} w-64`}>
               <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                 <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-                  {CURRENT_USER.initials}
+                  {user?.initials ?? "?"}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-dash-ink">{CURRENT_USER.name}</p>
-                  <p className="truncate text-xs text-muted">{CURRENT_USER.role}</p>
-                  <p className="truncate text-xs text-muted">{CURRENT_USER.email}</p>
+                  <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
+                  <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
                 </div>
               </div>
               <div className="py-1">

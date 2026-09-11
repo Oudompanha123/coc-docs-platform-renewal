@@ -20,6 +20,34 @@ export interface AuthenticatedAccount {
   role: Role;
 }
 
+/** `GET /api/v1/auth/me`'s shape — every field is null when nobody is signed in. */
+export interface MeResponse {
+  id: string | null;
+  email: string | null;
+  displayName: string | null;
+  role: Role | null;
+  authenticated: boolean;
+}
+
+/**
+ * GET /api/v1/auth/me. 200 with `authenticated: false` for a visitor with no
+ * session — not an error; this is the call the shell makes to find out who,
+ * if anyone, is signed in, so it can show their current name instead of a
+ * placeholder.
+ */
+export async function me(): Promise<MeResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/me`, { credentials: "include" });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't load your account.");
+  }
+  return (await response.json()) as MeResponse;
+}
+
 interface NonceResponse {
   nonce: string;
 }
@@ -102,15 +130,16 @@ export async function loginWithPassword(email: string, password: string): Promis
 }
 
 export interface RegisterResult {
-  /** Always "PENDING" on success — registration never signs the caller in. */
+  /** Always "ACTIVE" on success — the account can sign in immediately, though registration itself never signs the caller in. */
   status: string;
   message: string;
 }
 
 /**
- * POST /api/v1/auth/register (ADR-014). Creates an account with a bcrypt-hashed
- * password, status PENDING, role user. No session cookie is set — the
- * account cannot sign in, by any path, until a super_admin approves it.
+ * POST /api/v1/auth/register (ADR-014, as revised 2026-09-11). Creates an
+ * account with a bcrypt-hashed password, status ACTIVE, role user. No session
+ * cookie is set here — the caller still has to sign in via
+ * {@link loginWithPassword} — but there is no admin approval gate to wait on.
  */
 export async function register(input: {
   email: string;

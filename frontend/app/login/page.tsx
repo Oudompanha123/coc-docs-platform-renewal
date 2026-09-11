@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
@@ -24,11 +25,15 @@ import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/a
  * email actually authenticates; the backend has no phone/name lookup.
  *
  * Both paths end at the same session cookie and share one feedback banner
- * below, since only one of them is ever the most recent attempt.
+ * below, since only one of them is ever the most recent attempt. Both also
+ * redirect to /overview on success — the session cookie is already set by
+ * the time either await resolves, so the workspace it lands on can rely on
+ * it being there.
  *
  * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, ADR-008, ADR-011 §2.5, ADR-013, ADR-014
  */
 export default function LoginPage() {
+  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -62,6 +67,7 @@ export default function LoginPage() {
       // no per-role or "remember me" variant), so it isn't sent.
       const account = await loginWithPassword(identifier, password);
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+      router.push("/overview");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setFeedback({ type: "error", message });
@@ -95,6 +101,7 @@ export default function LoginPage() {
       const account = await loginWithIdToken(idToken);
 
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+      router.push("/overview");
     } catch (err) {
       if (err instanceof GoogleSignInCancelledError) {
         // The user closed Google's prompt themselves — not a failure.

@@ -3,6 +3,7 @@ import {
   AuthApiError,
   EmailAlreadyRegisteredError,
   loginWithPassword,
+  me,
   register,
 } from "./api";
 
@@ -14,6 +15,33 @@ function jsonResponse(body: unknown, init?: Partial<Response>): Response {
     ...init,
   } as Response;
 }
+
+describe("me", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns the caller's current name and role when a session cookie is present", async () => {
+    const body = { id: "1", email: "a@example.com", displayName: "Person Example", role: "USER", authenticated: true };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await me();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/auth/me"),
+      expect.objectContaining({ credentials: "include" }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("returns authenticated:false with no session, rather than throwing", async () => {
+    const body = { id: null, email: null, displayName: null, role: null, authenticated: false };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body)));
+
+    await expect(me()).resolves.toEqual(body);
+  });
+});
 
 describe("loginWithPassword", () => {
   beforeEach(() => {
@@ -57,7 +85,7 @@ describe("register", () => {
   });
 
   it("posts email, displayName and password, and returns the result on success", async () => {
-    const body = { status: "PENDING", message: "Registration submitted." };
+    const body = { status: "ACTIVE", message: "Your account has been created. You can now log in." };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
     vi.stubGlobal("fetch", fetchMock);
 
