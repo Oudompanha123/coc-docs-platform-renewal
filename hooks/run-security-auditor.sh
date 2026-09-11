@@ -204,6 +204,20 @@ if git rev-parse --verify "origin/${BASE_REF}" >/dev/null 2>&1; then
 fi
 pass_if_clean "migration versions unique and unedited"
 
+# ── 8. Every environment variable is documented ─────────────────────────────
+# An undocumented variable is one a new developer discovers from a stack trace,
+# and a variable nobody knows about is a variable nobody sets — which is how a
+# security-relevant default like COOKIE_SECURE quietly stays false.
+#
+# Reads names only, never values, so it is safe under SEC-001/SEC-003.
+checkpoint
+if [ -x scripts/check-env-documented.sh ]; then
+  if ! ENV_OUT="$(bash scripts/check-env-documented.sh 2>&1)"; then
+    fail "backend/env.example does not document every variable the config reads. $(printf '%s' "$ENV_OUT" | grep -A20 'absent from' | tr '\n' ' ')"
+  fi
+fi
+pass_if_clean "every environment variable is documented"
+
 # ── 7. Optional: AI review, when a key is available ─────────────────────────
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   say ""
