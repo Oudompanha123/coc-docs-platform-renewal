@@ -65,11 +65,28 @@ echo
 echo "Repair is only correct if the schema already matches those migrations."
 echo "If you have not compared them, answer no and compare first."
 echo
-printf "Have you verified the schema matches, and want to repair? [yes/no]: "
-read -r CONFIRM
-if [ "$CONFIRM" != "yes" ]; then
-  echo "Nothing was changed."
+if [ "${1:-}" = "--yes" ]; then
+  echo "Confirmed by --yes."
+elif [ ! -t 0 ]; then
+  # No terminal to prompt on -- a piped shell, a CI step, an editor's run
+  # window. Say so, rather than reading EOF and reporting a refusal the
+  # person never made.
+  cat >&2 <<'EOF'
+No terminal to confirm on.
+
+Re-run in an interactive shell, or pass --yes if you have already compared the
+schema against the migrations:
+
+  scripts/flyway-repair-dev.sh --yes
+EOF
   exit 1
+else
+  printf "Have you verified the schema matches, and want to repair? [yes/no]: "
+  read -r CONFIRM
+  if [ "$CONFIRM" != "yes" ]; then
+    echo "Nothing was changed."
+    exit 1
+  fi
 fi
 
 exec mvn -f backend/pom.xml -q \
