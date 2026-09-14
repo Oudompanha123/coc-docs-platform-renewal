@@ -36,7 +36,7 @@ No database configured. This script will not guess at one to drop.
 
 Load the same environment the application uses:
 
-  set -a; . ./backend/env.local; set +a
+  set -a; . ./backend/.env.local; set +a
 
 That should define DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD. If your
 schema is not cocdocs_dev, set DB_SCHEMA too.
@@ -80,7 +80,7 @@ Rebuilding it destroys everyone's accounts, content and audit trail, not just
 yours. If you are hitting a Flyway error, that is not the fix -- work in your
 own schema instead:
 
-  DB_SCHEMA=cocdocs_<your name>      in backend/env.local
+  DB_SCHEMA=cocdocs_<your name>      in backend/.env.local
 
 Then re-run this script and it will rebuild yours alone.
 
@@ -115,7 +115,7 @@ fi
 
 export PGPASSWORD="${DB_PASSWORD:-${PGPASSWORD:-}}"
 PSQL_ARGS=(-h "$HOST" -p "$PORT" -d "$DBNAME" -v ON_ERROR_STOP=1)
-# DB_USER is what env.local defines; DB_USERNAME was never set by anything, so
+# DB_USER is what .env.local defines; DB_USERNAME was never set by anything, so
 # psql silently fell back to the OS user and failed on permissions, or worse,
 # succeeded as a superuser.
 PSQL_USER="${DB_USER:-${DB_USERNAME:-}}"

@@ -29,7 +29,7 @@ point of this skill is to stop people fixing the symptom.
 
 | What it says | What it means |
 |---|---|
-| `Connection to localhost:5432 refused` | `env.local` was not loaded. `localhost` is `application.yml`'s fallback — nobody configured it. The file is fine; nothing read it. |
+| `Connection to localhost:5432 refused` | `.env.local` was not loaded. `localhost` is `application.yml`'s fallback — nobody configured it. The file is fine; nothing read it. |
 | `Migration checksum mismatch` | One of three fields disagrees. Fix only that one and you advance to the next message, not to a running application. |
 | `Migration description mismatch` | The same cause, a different field. |
 | `Unsatisfied dependency ... sessionAuthenticationFilter` | Noise. Read to the bottom of the `Caused by` chain; the real failure is the last one. |
@@ -40,7 +40,7 @@ bean that could not be built, which is never the problem.
 ## 2. Run the diagnosis
 
 ```bash
-set -a; . ./backend/env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/diagnose-backend-startup.sh
 ```
 
@@ -58,14 +58,14 @@ the diagnosis.
 
 | Finding | Fix |
 |---|---|
-| `env.local` missing | `cp backend/env.example backend/env.local`, then tell the person which values to fill — never invent a password |
-| `env.local` has CRLF | `tr -d '\r' < f > tmp && mv tmp f` — a trailing `\r` rides along inside every value and breaks exact-match settings like `FRONTEND_ORIGIN` |
-| Variables missing from `env.local` | The config changed underneath them. Re-copy the template and carry their values across |
-| Variables not loaded | `Backend (dev)` run configuration in IntelliJ, or `set -a; . ./backend/env.local; set +a` in a shell |
+| `.env.local` missing | `cp backend/.env.example backend/.env.local`, then tell the person which values to fill — never invent a password |
+| `.env.local` has CRLF | `tr -d '\r' < f > tmp && mv tmp f` — a trailing `\r` rides along inside every value and breaks exact-match settings like `FRONTEND_ORIGIN` |
+| Variables missing from `.env.local` | The config changed underneath them. Re-copy the template and carry their values across |
+| Variables not loaded | `Backend (dev)` run configuration in IntelliJ, or `set -a; . ./backend/.env.local; set +a` in a shell |
 | No run configuration loads the file | Point them at `Backend (dev)`; it needs the EnvFile plugin |
 
 Use `Edit`/`Write` or `Bash` for these. **Never PowerShell string replacement**
-on `env.local` — it reads UTF-8 as the Korean system codepage on these machines
+on `.env.local` — it reads UTF-8 as the Korean system codepage on these machines
 and corrupts the file (`CONST-OPS-01`).
 
 ## 4. Migration mismatch — stop and think
@@ -79,7 +79,7 @@ is, and getting that wrong is expensive in one direction only.
 Rebuild. Do not repair.
 
 ```bash
-set -a; . ./backend/env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/db-reset-dev.sh
 ```
 
@@ -123,7 +123,7 @@ eventually repairs over a schema that genuinely diverged.
 Never report success from a fixed config alone. Start it:
 
 ```bash
-set -a; . ./backend/env.local; set +a
+set -a; . ./backend/.env.local; set +a
 ./backend/mvnw -f backend/pom.xml spring-boot:run
 ```
 
@@ -145,10 +145,10 @@ lines. That is the timeout, not a failure — check what came before it.
 2. Do not read or print `application*.yml`, `*.env`, or key material
    (`SEC-001`/`SEC-003`). Variable **names** extracted from the yml are fine —
    that is all `diagnose-backend-startup.sh` reads — values are not.
-3. Never write a credential into a file that is not gitignored. `env.example`
-   holds placeholders; `env.local` holds secrets and is ignored.
+3. Never write a credential into a file that is not gitignored. `.env.example`
+   holds placeholders; `.env.local` holds secrets and is ignored.
 4. Never run a write against the shared database. Hand over the command.
-5. If the config changed under the developer, check whether `env.example` and
+5. If the config changed under the developer, check whether `.env.example` and
    the scripts kept up — `scripts/check-env-documented.sh` must exit 0, or the
    next person's PR fails the L2 audit for a reason they did not cause.
 6. Do not edit a migration that is already on `dev`. Add a new version.
