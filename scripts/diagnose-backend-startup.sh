@@ -80,7 +80,7 @@ else
   ok "DB_HOST/DB_URL present in the environment."
 fi
 
-SCHEMA="${DB_SCHEMA:-cocdocs_dev}"
+SCHEMA="${DB_SCHEMA:?DB_SCHEMA is not set. Set it in backend/.env.local to your own schema (cocdocs_<your name>) — there is no default, because the default used to be a colleague’s schema.}"
 URL="${DB_URL:-}"
 if [ -z "$URL" ] && [ -n "${DB_HOST:-}" ]; then
   URL="jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME:-cocdocs}?currentSchema=${SCHEMA}"
