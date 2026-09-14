@@ -139,7 +139,9 @@ Set your own in `backend/.env.local`:
 DB_SCHEMA=cocdocs_sam
 ```
 
-That gives you your own tables, your own Flyway history and your own data on the same host. Leave it unset and you land in `cocdocs_dev`, the shared schema.
+That gives you your own tables, your own Flyway history and your own data on the same host. **There is no default.** Leave it unset and the application refuses to start rather than guess.
+
+It used to fall back to `cocdocs_dev` — which is not a "shared" schema, it is one developer's. That is how, on 2026-09-14, an unpushed `V8__temp_password.sql` was applied to somebody else's database by a colleague who never intended to go near it, and was found only when the owner's application refused to start against a migration that exists on no branch. The connection URL had also been changed back to a hard-coded `currentSchema=cocdocs_dev` while resolving a merge, so for a while setting `DB_SCHEMA` moved where Flyway migrated without moving where the application connected. `SchemaIsPerDeveloperTest` now fails the build if either is reintroduced.
 
 **Why this exists.** One shared schema means one Flyway lineage for everybody. Two branches that each add a `V6` collide the moment the second person runs. Worse, the obvious escape — rebuild the schema — destroys everyone's data at once, because it is everyone's schema. On 2026-09-14 that happened twice in one morning and cost nine accounts, the audit trail, and a colleague's `password_reset_token` table. Neither person did anything unreasonable; the arrangement was.
 
