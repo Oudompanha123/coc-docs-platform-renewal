@@ -4,7 +4,7 @@ import { ProfileCard } from "@/components/settings/ProfileCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { NotificationsCard } from "@/components/settings/NotificationsCard";
 import { SecurityTab } from "@/components/settings/SecurityTab";
-import { GearIcon } from "@/components/layout/icons";
+import { SettingsIcon } from "@/components/layout/icons";
 import { NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
 
 /**
@@ -20,7 +20,7 @@ export default function SettingsPage() {
     <AppShell
       pageTitle="Settings"
       pageSubtitle="Manage your profile, appearance, and notification preferences"
-      titleIcon={<GearIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<SettingsIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
       <div className="animate-entrance">
         <SettingsCard title="Profile" description="Your name, email, and role information">
