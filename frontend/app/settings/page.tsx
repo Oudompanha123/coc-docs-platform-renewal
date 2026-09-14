@@ -4,8 +4,7 @@ import { ProfileCard } from "@/components/settings/ProfileCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { NotificationsCard } from "@/components/settings/NotificationsCard";
 import { SecurityTab } from "@/components/settings/SecurityTab";
-import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
-import { BellIcon, GearIcon, MoonIcon } from "@/components/layout/icons";
+import { GearIcon } from "@/components/layout/icons";
 import { NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
 
 /**
@@ -24,27 +23,27 @@ export default function SettingsPage() {
       titleIcon={<GearIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
       <div className="animate-entrance">
-        <SettingsCard icon={PersonIcon} title="Profile" description="Your name, email, and role information">
+        <SettingsCard title="Profile" description="Your name, email, and role information">
           <ProfileCard />
         </SettingsCard>
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="animate-entrance [animation-delay:70ms]">
-          <SettingsCard icon={MoonIcon} title="Appearance" description="Theme and color settings">
+          <SettingsCard title="Appearance" description="Theme and color settings">
             <AppearanceCard />
           </SettingsCard>
         </div>
 
         <div className="animate-entrance [animation-delay:70ms]">
-          <SettingsCard icon={BellIcon} title="Notifications" description="Choose what you get notified about">
+          <SettingsCard title="Notifications" description="Choose what you get notified about">
             <NotificationsCard data={NOTIFICATION_PREFERENCES} />
           </SettingsCard>
         </div>
       </div>
 
       <div className="animate-entrance mt-5 [animation-delay:140ms]">
-        <SettingsCard icon={ShieldIcon} title="Security" description="Authentication, sessions, and account controls">
+        <SettingsCard title="Security" description="Authentication, sessions, and account controls">
           <SecurityTab />
         </SettingsCard>
       </div>
