@@ -10,14 +10,16 @@ import { UserAvatar } from "./UserAvatar";
 import {
   BellIcon,
   ChevronDownIcon,
-  GearIcon,
   LogOutIcon,
   MailIcon,
   MenuIcon,
   MoonIcon,
   PersonIcon,
+  SettingsIcon,
   SunIcon,
 } from "./icons";
+import Link from "next/link";
+import { ProfileModal } from "./ProfileModal";
 
 type TopbarProps = {
   title: string;
@@ -71,6 +73,7 @@ function CountBadge({
 export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   // The signed-in caller's real name/role (GET /api/v1/auth/me) — "Guest"
   // until that resolves or for a visitor with no session, since this shell
@@ -110,6 +113,7 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   }
 
   return (
+    <div className="contents">
     <header className="flex items-center justify-between border-b border-border bg-white px-4 py-4 sm:px-6 lg:px-8">
       <div className="flex items-start gap-3 min-w-0">
         <button
@@ -278,21 +282,21 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => setOpenMenu(null)}
+                  onClick={() => { setOpenMenu(null); setShowProfile(true); }}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-page"
                 >
                   <PersonIcon className="h-4 w-4 text-muted" />
-                  Profile settings
+                  My Profile
                 </button>
-                <button
-                  type="button"
+                <Link
+                  href="/settings"
                   role="menuitem"
                   onClick={() => setOpenMenu(null)}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-page"
                 >
-                  <GearIcon className="h-4 w-4 text-muted" />
-                  Preferences
-                </button>
+                  <SettingsIcon className="h-4 w-4 text-muted" />
+                  Settings
+                </Link>
               </div>
               <div className="border-t border-border py-1">
                 <button
@@ -313,5 +317,8 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
         </div>
       </div>
     </header>
+
+    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+    </div>
   );
 }
