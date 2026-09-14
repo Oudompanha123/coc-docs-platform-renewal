@@ -51,6 +51,47 @@ export function FormField({ label, type = "text", value, onChange, placeholder, 
   );
 }
 
+type CodeFieldProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  id?: string;
+};
+
+/** A 6-digit email/SMS verification code (ADR-021) — large, spaced-out digits rather than {@link FormField}'s plain text style. */
+export function CodeField({ label, value, onChange, error, id }: CodeFieldProps) {
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  const errorId = `${fieldId}-error`;
+
+  return (
+    <div>
+      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
+        {label}
+      </label>
+      <input
+        id={fieldId}
+        type="text"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        value={value}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        placeholder="000000"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className="w-full rounded-xl border border-border py-3 px-4 text-center text-2xl font-semibold tracking-[0.5em] text-ink placeholder:text-muted/40 focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 transition-colors"
+      />
+      {error && (
+        <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 type PasswordFieldProps = Omit<FormFieldProps, "type" | "icon"> & { icon: ReactNode };
 
 export function PasswordField({ label, value, onChange, placeholder, icon, error, autoComplete, id }: PasswordFieldProps) {
