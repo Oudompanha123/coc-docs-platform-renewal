@@ -136,3 +136,37 @@ export async function listRoles(): Promise<RoleDetail[]> {
   }
   return (await response.json()) as RoleDetail[];
 }
+
+/** One application waiting for a decision — `GET /api/v1/admin/accounts/pending`. */
+export interface PendingAccount {
+  id: string;
+  email: string;
+  displayName: string;
+  /** Always "GUEST" while pending: the role an applicant holds grants nothing. */
+  role: string;
+  status: string;
+}
+
+/** The approval queue, oldest first — somebody who applied on Monday should not sit behind Friday. */
+export function listPending(): Promise<PendingAccount[]> {
+  return request<PendingAccount[]>("/pending");
+}
+
+/**
+ * Lets an applicant in, at a role chosen in the same call (ADR-017).
+ *
+ * One decision, not two: approving and then promoting would be two screens,
+ * two audit entries, and a window in which someone is inside at a role nobody
+ * chose.
+ */
+export function approveAccount(id: string, role: AccountRole): Promise<PendingAccount> {
+  return request<PendingAccount>(`/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ role }),
+  });
+}
+
+/** Refuses an application. The row stays, so the trail still answers who was turned down. */
+export function rejectAccount(id: string): Promise<PendingAccount> {
+  return request<PendingAccount>(`/${id}/reject`, { method: "POST" });
+}

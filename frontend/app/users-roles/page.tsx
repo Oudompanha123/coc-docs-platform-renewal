@@ -9,14 +9,19 @@ import { DeactivateModal } from "@/components/users-roles/DeactivateModal";
 import { FilterBar, type RoleFilter, type StatusFilter } from "@/components/users-roles/FilterBar";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal";
+import { PendingTab } from "@/components/users-roles/PendingTab";
 import { RolesTab } from "@/components/users-roles/RolesTab";
 import {
   createAccount,
   listAccounts,
+  approveAccount,
+  listPending,
   listRoles,
+  rejectAccount,
   updateAccount,
   type AccountRole as AdminRole,
   type AdminAccount,
+  type PendingAccount,
   type RoleDetail,
 } from "@/lib/admin/accounts";
 import { CURRENT_ACCOUNT_ID, type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
@@ -61,7 +66,7 @@ function formatLastLogin(iso: string | null): string {
   return when.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-type PageTab = "users" | "roles";
+type PageTab = "users" | "pending" | "roles";
 
 /**
  * Users & Roles — backed by AdminAccountController: GET list (with last
@@ -85,6 +90,10 @@ export default function UsersRolesPage() {
   const [deactivateTarget, setDeactivateTarget] = useState<ManagedAccount | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
+  const [pending, setPending] = useState<PendingAccount[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [pendingError, setPendingError] = useState<string | null>(null);
+
   const [roles, setRoles] = useState<RoleDetail[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
   const [rolesError, setRolesError] = useState<string | null>(null);
@@ -103,9 +112,21 @@ export default function UsersRolesPage() {
     }
   }, []);
 
+  const reloadPending = useCallback(async () => {
+    try {
+      setPending(await listPending());
+      setPendingError(null);
+    } catch (err) {
+      setPendingError(err instanceof Error ? err.message : "Couldn't load applications.");
+    } finally {
+      setPendingLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void reload();
-  }, [reload]);
+    void reloadPending();
+  }, [reload, reloadPending]);
 
   // Roles load once with the page rather than when the tab is first opened:
   // it is one small request, and paying for it up front means the tab renders
@@ -172,6 +193,21 @@ export default function UsersRolesPage() {
     return otherActiveSuperAdmins.length === 0;
   }
 
+  async function handleApprove(id: string, role: AdminRole) {
+    await approveAccount(id, role);
+    // Both lists move: they leave the queue and appear in Users. Refetching
+    // rather than splicing, because approval sets a role and a status the
+    // server decides, and guessing them here is how the two views drift.
+    await Promise.all([reloadPending(), reload()]);
+  }
+
+  async function handleReject(id: string) {
+    await rejectAccount(id);
+    // Only the queue: a refused application stays an account row, so the
+    // Users list is unchanged.
+    await reloadPending();
+  }
+
   async function handleAdd(email: string, role: AccountRole) {
     try {
       const created = await createAccount(email, role);
@@ -224,6 +260,33 @@ export default function UsersRolesPage() {
             </svg>
             Users
             {tab === "users" && (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "pending"}
+            onClick={() => setTab("pending")}
+            className={`relative flex items-center gap-2 pb-3 text-sm transition-colors focus-visible:outline-none ${
+              tab === "pending" ? "font-bold text-dash-ink" : "font-medium text-muted hover:text-dash-ink"
+            }`}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Pending
+            {/* The badge is how a super admin finds out at all: there is no
+                email or notification anywhere in the backend. It only reaches
+                someone already signed in, which is the trade-off that was
+                chosen deliberately over adding a mail dependency. */}
+            {pending.length > 0 && (
+              <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-purple px-1.5 py-0.5 text-[11px] font-bold text-white">
+                {pending.length}
+              </span>
+            )}
+            {tab === "pending" && (
               <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
             )}
           </button>
@@ -311,6 +374,14 @@ export default function UsersRolesPage() {
               onPageSizeChange={setPageSize}
             />
           </>
+        ) : tab === "pending" ? (
+          <PendingTab
+            pending={pending}
+            loading={pendingLoading}
+            error={pendingError}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
         ) : (
           <RolesTab roles={roles} loading={rolesLoading} error={rolesError} />
         )}

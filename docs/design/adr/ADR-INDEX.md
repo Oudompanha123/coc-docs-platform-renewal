@@ -20,6 +20,7 @@
 | [ADR-011](ADR-011-security-model.md) | Security model | **ACCEPTED** — authorization pillar revised by ADR-016 | **CONST-SEC-01 umbrella** · authentication, session (AMB-006 → 1 day), role enforcement, sanitisation, upload validation |
 | [ADR-016](ADR-016-roles-and-permissions.md) | Many roles per account, many permissions per role | **PROPOSED** | `account_role` + `role_permission`; the ladder survives as `role.rank`, effective rank = highest held; `account.role` dropped. Revises ADR-011 §authz. Permissions stay out of tokens and out of Keycloak — ADR-013's boundary holds |
 | [ADR-017](ADR-017-revision-of-014-password-reset.md) | Self-service password reset | **ACCEPTED** | Closes the recovery-path gap ADR-014 left open. Hashed, single-use, 30-minute token (`password_reset_token`), same shape as `app_session`; eligible only for accounts that already hold a `password_hash`; `/forgot-password` held to the same anti-enumeration standard as `/login-password`. Revises ADR-014 |
+| [ADR-017](ADR-017-approval-gate.md) | Signing in is not being let in | **PROPOSED** | A first arrival is an application: both sign-up doors create `pending`/`guest`, and a super admin approves while choosing the role. Restores the gate ADR-014 specified and product direction removed on 2026-09-11. Bootstrap: the first person through an empty installation is an active super_admin |
 
 ---
 
