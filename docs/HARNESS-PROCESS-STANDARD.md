@@ -582,7 +582,7 @@ Sprint start
 | The developer's own | **Rebuild** (`scripts/db-reset-dev.sh`). Repair leaves the schema a different migration created, and the application then fails later, somewhere less obvious. A local database is free to rebuild. |
 | The shared development one | **Never rebuild** — `db-reset-dev.sh` refuses a non-localhost host by design, because dropping that schema destroys everyone's accounts, sessions and audit trail. Repair (`scripts/flyway-repair-dev.sh`), but only after comparing the live schema against the migration, column by column and index by index, and showing that comparison to a human. |
 
-**Authority boundary**: the skill applies local, reversible fixes without asking — creating `env.local` from the template, correcting line endings, naming the right run configuration. It never writes to a shared database. That command is handed to a person, with the evidence that makes it safe to run. A skill that repairs migration history silently is how someone eventually repairs over a schema that genuinely diverged.
+**Authority boundary**: the skill applies local, reversible fixes without asking — creating `.env.local` from the template, correcting line endings, naming the right run configuration. It never writes to a shared database. That command is handed to a person, with the evidence that makes it safe to run. A skill that repairs migration history silently is how someone eventually repairs over a schema that genuinely diverged.
 
 **Output deliverables**: a running backend, or exactly one named blocker with the command that clears it.
 

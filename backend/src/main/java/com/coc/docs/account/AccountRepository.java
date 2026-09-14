@@ -197,6 +197,21 @@ public class AccountRepository {
     }
 
     /**
+     * Whether the account table holds no rows at all.
+     *
+     * <p>Backs the installation-bootstrap check in {@code SessionService}: the
+     * very first sign-in an installation ever sees is seated as an active
+     * {@code super_admin} rather than queued pending, because a table with
+     * zero accounts has nobody who could ever approve one. Narrow on purpose —
+     * this is "no accounts exist", not "no super admin exists"; see the caller
+     * for why the weaker test is the wrong one.
+     */
+    public boolean isEmpty() {
+        Integer count = jdbc.sql("select count(*) from account").query(Integer.class).single();
+        return count == null || count == 0;
+    }
+
+    /**
      * Whether removing {@code excluding} would leave no active super admin.
      *
      * <p>The database holds the same rule as a deferred constraint trigger, which
@@ -286,16 +301,15 @@ public class AccountRepository {
     }
 
     /**
-     * Whether this installation holds no accounts at all.
-     *
-     * <p>Asked on a first sign-in to answer the question the gate cannot: who
-     * approves the first person? With every applicant starting pending, an
-     * empty database is a locked door — nobody can be approved because nobody
-     * can approve. See {@code SessionService.createAccount}.
+     * Sets a new password hash — the reset path (ADR-017) and nowhere else.
+     * Also usable to give a Google-only account its first password hash, but
+     * nothing in this codebase does that yet (ADR-017 decision 2 deliberately
+     * does not go there).
      */
-    public boolean isEmpty() {
-        Integer count = jdbc.sql("select count(*) from account").query(Integer.class).single();
-        return count == null || count == 0;
+    public int updatePasswordHash(UUID id, String passwordHash) {
+        return jdbc.sql("update account set password_hash = ?, updated_at = now() where id = ?")
+                .params(passwordHash, id)
+                .update();
     }
 
     /** A {@code super_admin}'s approve or reject on a pending registration (ADR-014). */

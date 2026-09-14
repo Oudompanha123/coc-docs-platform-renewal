@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Every environment variable the backend config reads must appear in
-# backend/env.example.
+# backend/.env.example.
 #
 # WHY THIS EXISTS
 # On 2026-09-11 backend/env.example documented five variables, all of them
@@ -19,7 +19,7 @@
 set -uo pipefail
 
 CONFIG_GLOB="backend/src/main/resources/application*.yml"
-TEMPLATE="backend/env.example"
+TEMPLATE="backend/.env.example"
 
 [ -f "$TEMPLATE" ] || { echo "missing ${TEMPLATE}"; exit 1; }
 

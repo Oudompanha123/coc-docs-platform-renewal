@@ -1,6 +1,6 @@
 /**
  * Thin client for the backend's login API (see docs/api/openapi.yaml).
- * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014
+ * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
@@ -180,6 +180,60 @@ export async function register(input: {
     throw new AuthApiError("Registration failed. Please check your details and try again.");
   }
   return (await response.json()) as RegisterResult;
+}
+
+/**
+ * POST /api/v1/auth/forgot-password (ADR-017). Always resolves with the same
+ * generic message, whatever actually happened server-side — an unknown
+ * address, a Google-only account, and a genuinely emailed reset all look
+ * identical from here (ADR-017 decision 3, the same {@code UC-004} E-3
+ * anti-enumeration principle {@link loginWithPassword} follows). This
+ * function does not try to tell those cases apart either.
+ */
+export async function forgotPassword(email: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/forgot-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    // Reached only for a malformed request (e.g. not an email at all) — the
+    // eligibility question itself never produces a non-2xx response.
+    throw new AuthApiError("Couldn't process that request. Check the address and try again.");
+  }
+  const body = (await response.json()) as { message: string };
+  return body.message;
+}
+
+/**
+ * POST /api/v1/auth/reset-password (ADR-017). Unlike {@link forgotPassword},
+ * a rejected token here is reported plainly — the caller already holds a
+ * value that came from their own email, so refusing it discloses nothing
+ * about anyone else's account.
+ */
+export async function resetPassword(token: string, newPassword: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/reset-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("This reset link is invalid or has expired. Request a new one.");
+  }
+  const body = (await response.json()) as { message: string };
+  return body.message;
 }
 
 /**
