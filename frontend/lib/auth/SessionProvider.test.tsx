@@ -172,7 +172,7 @@ describe("signing out", () => {
     delete process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
   });
 
-  it("skips the Keycloak round trip when it has no hint, rather than showing its confirmation page", async () => {
+  it("still ends the Keycloak session when it has no hint, accepting the confirmation page", async () => {
     me.mockResolvedValue(SIGNED_IN);
     signOut.mockResolvedValue(undefined);
     // No rememberIdToken: the tab was reloaded since signing in.
@@ -194,11 +194,14 @@ describe("signing out", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
 
-    // Sending it without a hint would land on "Do you want to log out?",
-    // which after clicking Sign out reads as the product not having heard.
-    // prompt=login on the next sign-in re-authenticates anyway.
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
-    expect(assign).not.toHaveBeenCalled();
+    // Without a hint Keycloak asks "Do you want to log out?" first. That is a
+    // click; skipping the logout would leave the session live, and the next
+    // person choosing a different Google account would be told they are
+    // "already authenticated as different user" with no way to act on it.
+    await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    const target = new URL(assign.mock.calls[0]![0] as string);
+    expect(target.searchParams.get("id_token_hint")).toBeNull();
+    expect(target.searchParams.get("client_id")).toBe("cocdocs-frontend");
 
     delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
     delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;

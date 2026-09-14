@@ -7,38 +7,53 @@
  * refused — and when they do, Keycloak is left holding a session for somebody
  * this app never admitted.
  *
- * <p>That stale session is what produced:
+ * <p>A session left behind is not a cosmetic problem. The next person to
+ * choose a different Google account meets Keycloak's own refusal:
  *
  * <pre>
  *   You are already authenticated as different user 'someone@example.com'
  *   in this session. Please sign out first.
  * </pre>
  *
- * <p>Keycloak was right: it had a live session for the rejected applicant, and
- * the next sign-in was a different person. So both paths — signing out, and a
- * sign-in this app refuses — end the Keycloak session rather than leaving one
- * behind.
+ * <p>And they have no way to act on it: Sign out lives inside the application
+ * they were never let into. So both paths — signing out, and a sign-in this
+ * app refuses — end the Keycloak session.
+ *
+ * <p><b>The logout is always sent</b>, hint or no hint. An earlier version
+ * skipped it when the hint was missing, on the reasoning that `prompt=login`
+ * would re-authenticate on the next attempt anyway. That was wrong:
+ * re-authenticating as a different person against a live session is precisely
+ * what produces the error above. A confirmation page is a click; a stranded
+ * session is a dead end.
  */
 
 /**
- * The end-session URL, or null when there is nothing to end.
+ * The end-session URL, or null when Keycloak is not configured.
  *
- * <p>Null when Keycloak is not configured, or when no {@code idTokenHint} is
- * available. The hint is what keeps this silent: without it Keycloak answers
- * with a "Do you want to log out?" confirmation, which is worse than skipping
- * the round trip — `prompt=login` on the next sign-in re-authenticates
- * whatever session survives anyway.
+ * <p>With {@code idTokenHint} the logout is silent. Without it Keycloak asks
+ * for confirmation first — worth one click, because the alternative is leaving
+ * the session in place.
  */
 export function keycloakLogoutUrl(idTokenHint: string | null, returnTo: string): string | null {
   const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
   const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+  const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
 
-  if (!keycloakUrl || !realm || !idTokenHint) {
+  if (!keycloakUrl || !realm) {
     return null;
   }
 
   const logout = new URL(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/logout`);
-  logout.searchParams.set("id_token_hint", idTokenHint);
   logout.searchParams.set("post_logout_redirect_uri", returnTo);
+
+  if (idTokenHint) {
+    logout.searchParams.set("id_token_hint", idTokenHint);
+  } else if (clientId) {
+    // Keycloak requires one or the other to validate the redirect target.
+    // With client_id alone it confirms first, which is the cost of not having
+    // the hint.
+    logout.searchParams.set("client_id", clientId);
+  }
+
   return logout.toString();
 }

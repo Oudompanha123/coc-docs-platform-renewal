@@ -88,14 +88,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // No hint — the tab was reloaded since signing in, or Keycloak is not
-    // configured. Skipped rather than sent without one: that request would
-    // land on the confirmation page, and being asked "do you want to log
-    // out?" after clicking Sign out reads as the product not having heard.
-    //
-    // Nothing is lost by skipping it. `prompt=login` on the next sign-in
-    // re-authenticates whatever Keycloak session survives, so the next person
-    // still chooses their account.
+    // Only reached when Keycloak is not configured at all — there is then no
+    // second session to end.
     router.replace("/login");
   }, [router]);
 

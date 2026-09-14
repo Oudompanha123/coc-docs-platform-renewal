@@ -167,9 +167,8 @@ export default function LoginPage() {
         return;
       }
 
-      // No hint to log out with: show the message in place. The stale Keycloak
-      // session may survive, but prompt=login on the next attempt
-      // re-authenticates anyway.
+      // Only reached without Keycloak configured: no second session exists, so
+      // the message can be shown in place.
       if (err instanceof RegistrationPendingError) {
         setFeedback({ type: "pending", message: err.message });
         return;
