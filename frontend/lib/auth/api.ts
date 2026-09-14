@@ -11,6 +11,16 @@ export class AuthApiError extends Error {}
 /** A registration that already exists for that email (409). Distinguished from other failures so the form can point at the email field specifically. */
 export class EmailAlreadyRegisteredError extends AuthApiError {}
 
+/**
+ * The role as the backend actually sends it: lower case.
+ *
+ * <p>`AppRole.wire()` lower-cases the Java enum for both the wire and the
+ * `app_role` Postgres enum, so `super_admin` is what arrives here — not
+ * `SUPER_ADMIN`. This type said the latter for a while, which typechecked
+ * perfectly and matched nothing at runtime: every `Record<Role, …>` lookup
+ * silently missed, which is why the sidebar rendered a raw `super_admin`
+ * instead of "Super Admin".
+ */
 export type Role = "guest" | "user" | "admin" | "super_admin";
 
 export interface AuthenticatedAccount {

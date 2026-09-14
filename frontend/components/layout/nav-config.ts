@@ -58,7 +58,12 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "ADMINISTRATION",
     items: [
-      { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["admin", "super_admin"] },
+      // super_admin alone, not admin. Every call this page makes goes to
+      // /api/v1/admin/accounts/** or /api/v1/admin/roles/**, and SecurityConfig
+      // puts both at a super_admin floor per FR-AUTH-008 — an admin publishes
+      // content; granting roles is a different kind of authority. Listing
+      // "admin" here showed them a link to a page that 403s on every request.
+      { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
     ],
   },
 ];
