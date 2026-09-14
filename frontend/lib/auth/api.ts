@@ -28,6 +28,12 @@ export interface AuthenticatedAccount {
   email: string;
   displayName: string;
   role: Role;
+  /**
+   * True while a super_admin-issued temporary password is still in force
+   * (revision of ADR-017). The shell redirects to /create-password instead of
+   * the normal workspace until this turns false.
+   */
+  mustChangePassword: boolean;
 }
 
 /** `GET /api/v1/auth/me`'s shape — every field is null when nobody is signed in. */
@@ -43,6 +49,8 @@ export interface MeResponse {
   /** Profile picture URL from the identity provider, or null — see UserAvatar. */
   avatarUrl: string | null;
   authenticated: boolean;
+  /** See {@link AuthenticatedAccount.mustChangePassword}. False for an anonymous caller. */
+  mustChangePassword: boolean;
 }
 
 /**
@@ -244,6 +252,38 @@ export async function resetPassword(token: string, newPassword: string): Promise
   }
   if (!response.ok) {
     throw new AuthApiError("This reset link is invalid or has expired. Request a new one.");
+  }
+  const body = (await response.json()) as { message: string };
+  return body.message;
+}
+
+/**
+ * POST /api/v1/auth/change-password (revision of ADR-017). The first-login
+ * completion step: the caller already holds a session — issued on the
+ * temporary password — and this is how `mustChangePassword` turns false.
+ * Unlike {@link resetPassword}, this never ends the caller's own session.
+ */
+export async function changePassword(newPassword: string, confirmPassword: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/change-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newPassword, confirmPassword }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    let detail: string | null = null;
+    try {
+      const problem = (await response.json()) as { detail?: string };
+      detail = problem.detail ?? null;
+    } catch {
+      // Not a problem document. Fall through to the generic message.
+    }
+    throw new AuthApiError(detail ?? "Couldn't set your new password. Please try again.");
   }
   const body = (await response.json()) as { message: string };
   return body.message;

@@ -35,6 +35,8 @@ export interface AdminAccount {
   createdAt: string;
   /** Absent when they have never signed in, or not since their last session was purged. */
   lastSignInAt: string | null;
+  /** True while this account is still using the temporary password its invite issued (revision of ADR-017). */
+  mustChangePassword: boolean;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -80,8 +82,11 @@ export function listAccounts(): Promise<AdminAccount[]> {
 
 /**
  * Creates an account before its owner first signs in, so a role above `user`
- * can be waiting for them. No password: they authenticate with Google, and the
- * row is matched on email.
+ * can be waiting for them (revision of ADR-017). The backend generates a
+ * temporary password, emails it to `email` along with the login URL, and
+ * marks the account as requiring a password change on first login — the
+ * plaintext password itself never appears in this response. The account can
+ * also still be matched by Google sign-in later; the two are not exclusive.
  */
 export function createAccount(email: string, role: AccountRole): Promise<AdminAccount> {
   return request<AdminAccount>("", {
