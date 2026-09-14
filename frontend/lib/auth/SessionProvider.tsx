@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { me, signOut as signOutRequest, type MeResponse } from "./api";
 import { takeIdToken } from "./idTokenMemory";
+import { keycloakLogoutUrl } from "./keycloakLogout";
 
 /**
  * Who is signed in, asked once per page rather than once per component.
@@ -81,20 +82,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // access to them depends on SameSite rules that differ between browsers
     // and break silently — leaving someone signed in while being told they
     // are not.
-    const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
-    const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
-    const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
-
-    // The hint is what makes this silent. Without it Keycloak shows a
-    // "Do you want to log out?" confirmation — a guard against a malicious
-    // link ending someone's session — which turns signing out into two steps.
-    const idTokenHint = takeIdToken();
-
-    if (keycloakUrl && realm && clientId && idTokenHint) {
-      const logout = new URL(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/logout`);
-      logout.searchParams.set("id_token_hint", idTokenHint);
-      logout.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/login`);
-      window.location.assign(logout.toString());
+    const logoutUrl = keycloakLogoutUrl(takeIdToken(), `${window.location.origin}/login`);
+    if (logoutUrl) {
+      window.location.assign(logoutUrl);
       return;
     }
 

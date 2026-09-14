@@ -122,4 +122,39 @@ describe("LoginPage Google sign-in", () => {
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("clears the Keycloak session when this app refuses a sign-in it authenticated", async () => {
+    // The case that produced "You are already authenticated as different user
+    // ... Please sign out first": Keycloak authenticated the applicant, this
+    // app refused them, and Keycloak was left holding their session. There is
+    // no Sign out button to press — they never got in.
+    signInWithGoogleViaKeycloak.mockResolvedValue("google-id-token");
+    loginWithIdToken.mockRejectedValue(new Error("nope"));
+
+    process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
+    process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
+
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { origin: "http://localhost:3000", assign },
+      writable: true,
+    });
+
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    const target = new URL(assign.mock.calls[0]![0] as string);
+    expect(target.pathname).toBe("/realms/docs_platform/protocol/openid-connect/logout");
+    expect(target.searchParams.get("id_token_hint")).toBe("google-id-token");
+    // A plain path, so Keycloak matches it against its allow-list without
+    // argument; the reason travels in sessionStorage instead.
+    expect(target.searchParams.get("post_logout_redirect_uri")).toBe("http://localhost:3000/login");
+    expect(sessionStorage.getItem("coc_signin_outcome")).toBe("refused");
+
+    sessionStorage.clear();
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+  });
 });

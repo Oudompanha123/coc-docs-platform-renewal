@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -13,7 +13,9 @@ import {
   RegistrationPendingError,
 } from "@/lib/auth/api";
 import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
-import { rememberIdToken } from "@/lib/auth/idTokenMemory";
+import { rememberIdToken, takeIdToken } from "@/lib/auth/idTokenMemory";
+import { keycloakLogoutUrl } from "@/lib/auth/keycloakLogout";
+import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutcome";
 
 /**
  * Login — both sign-in methods are wired to the real backend.
@@ -51,6 +53,31 @@ export default function LoginPage() {
     type: "success" | "error" | "pending";
     message: string;
   } | null>(null);
+  // The outcome of a refused sign-in, carried across the Keycloak logout
+  // redirect. Without it the notice is lost on the round trip and the person
+  // lands on a blank login form with no idea what happened.
+  //
+  // sessionStorage rather than a query parameter: it survives one same-tab
+  // navigation, needs no Suspense boundary on a statically rendered page, and
+  // keeps the post-logout redirect URI a plain path that Keycloak matches
+  // without argument. Read once and cleared, so a later reload is clean.
+  useEffect(() => {
+    const outcome = takeSignInOutcome();
+    if (outcome === "pending") {
+      setFeedback({
+        type: "pending",
+        message:
+          "Your registration is waiting for an administrator to approve it. " +
+          "You will be able to sign in once they do.",
+      });
+    } else if (outcome === "refused") {
+      setFeedback({
+        type: "error",
+        message: "Login failed. Your Google account may not have access yet.",
+      });
+    }
+  }, []);
+
   // A ref, not state: guards against a second click landing between the
   // first click and the state update that disables the button (React state
   // updates are async; this check is synchronous).
@@ -119,10 +146,31 @@ export default function LoginPage() {
         // The user closed Google's prompt themselves — not a failure.
         return;
       }
+      // Keycloak authenticated them; this application refused them. Keycloak
+      // is now holding a session for somebody who never got in, and the next
+      // person to try a different Google account here meets:
+      //
+      //   You are already authenticated as different user '...' in this
+      //   session. Please sign out first.
+      //
+      // So the refusal ends that session. There is no Sign out button to press
+      // — they are not signed in — which is exactly why it has to happen here.
+      //
+      // A full-page redirect through Keycloak, returning to /login with the
+      // outcome in the URL, because the notice has to survive the trip.
+      const outcome = err instanceof RegistrationPendingError ? "pending" : "refused";
+      const logoutUrl = keycloakLogoutUrl(takeIdToken(), `${window.location.origin}/login`);
+      if (logoutUrl) rememberSignInOutcome(outcome);
+
+      if (logoutUrl) {
+        window.location.assign(logoutUrl);
+        return;
+      }
+
+      // No hint to log out with: show the message in place. The stale Keycloak
+      // session may survive, but prompt=login on the next attempt
+      // re-authenticates anyway.
       if (err instanceof RegistrationPendingError) {
-        // Not an error: they applied, and this is what waiting looks like
-        // (ADR-017). Shown as a notice, so it does not read as something they
-        // did wrong or should retry.
         setFeedback({ type: "pending", message: err.message });
         return;
       }
