@@ -89,6 +89,7 @@ export default function UsersRolesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<ManagedAccount | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [addedMessage, setAddedMessage] = useState<string | null>(null);
 
   const [pending, setPending] = useState<PendingAccount[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
@@ -208,17 +209,23 @@ export default function UsersRolesPage() {
     await reloadPending();
   }
 
+  // Left to throw on failure rather than caught here: AddAccountModal is a
+  // full-screen overlay, so an error set on this page's own `error` state
+  // would render directly behind it, completely hidden from view — a failed
+  // create would look identical to the button doing nothing. The modal
+  // awaits this call itself and shows the reason in place; the modal only
+  // stays open on that path, which is also what we want — a duplicate
+  // address is something the person can correct without retyping everything.
   async function handleAdd(email: string, role: AccountRole) {
-    try {
-      const created = await createAccount(email, role);
-      setRecords((prev) => [...prev, created]);
-      setError(null);
-      setAddOpen(false);
-    } catch (err) {
-      // The modal stays open: a duplicate address is something the person can
-      // correct in place, and closing the form would make them retype it.
-      setError(err instanceof Error ? err.message : "Couldn't create that account.");
-    }
+    const created = await createAccount(email, role);
+    setRecords((prev) => [...prev, created]);
+    setAddOpen(false);
+    // A temporary password was just emailed to this address (revision of
+    // ADR-017) — the plaintext itself never reaches this response, so this
+    // banner is the only confirmation the admin gets that it went out.
+    setAddedMessage(
+      `Account created successfully. A temporary password has been sent to ${created.email}.`,
+    );
   }
 
   async function handleConfirmDeactivate() {
@@ -336,7 +343,10 @@ export default function UsersRolesPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAddOpen(true)}
+                  onClick={() => {
+                    setAddedMessage(null);
+                    setAddOpen(true);
+                  }}
                   className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -346,6 +356,12 @@ export default function UsersRolesPage() {
                 </button>
               </div>
             </div>
+
+            {addedMessage && (
+              <div className="mx-6 mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                {addedMessage}
+              </div>
+            )}
 
             {error && (
               <div className="mx-6 mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
