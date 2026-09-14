@@ -19,6 +19,7 @@
 | [ADR-010](ADR-010-content-model.md) | Content model and block vocabulary | **ACCEPTED** | The core design decision — 32 → 10 blocks, no raw HTML, embed registry |
 | [ADR-011](ADR-011-security-model.md) | Security model | **ACCEPTED** — authorization pillar revised by ADR-016 | **CONST-SEC-01 umbrella** · authentication, session (AMB-006 → 1 day), role enforcement, sanitisation, upload validation |
 | [ADR-016](ADR-016-roles-and-permissions.md) | Many roles per account, many permissions per role | **PROPOSED** | `account_role` + `role_permission`; the ladder survives as `role.rank`, effective rank = highest held; `account.role` dropped. Revises ADR-011 §authz. Permissions stay out of tokens and out of Keycloak — ADR-013's boundary holds |
+| [ADR-017](ADR-017-revision-of-014-password-reset.md) | Self-service password reset | **ACCEPTED** | Closes the recovery-path gap ADR-014 left open. Hashed, single-use, 30-minute token (`password_reset_token`), same shape as `app_session`; eligible only for accounts that already hold a `password_hash`; `/forgot-password` held to the same anti-enumeration standard as `/login-password`. Revises ADR-014 |
 
 ---
 

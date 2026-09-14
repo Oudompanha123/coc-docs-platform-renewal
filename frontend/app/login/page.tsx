@@ -76,11 +76,6 @@ export default function LoginPage() {
     }
   }
 
-  function handleForgotPassword() {
-    // TODO: no /forgot-password page exists yet — out of scope for this task.
-    console.info("[stub] Forgot password clicked");
-  }
-
   async function handleGoogleSignIn() {
     if (googleSignInInFlight.current) return;
     googleSignInInFlight.current = true;
@@ -180,13 +175,12 @@ export default function LoginPage() {
             />
             Remember me
           </label>
-          <button
-            type="button"
-            onClick={handleForgotPassword}
+          <Link
+            href="/forgot-password"
             className="text-sm font-semibold text-brand-purple hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded"
           >
             Forgot password?
-          </button>
+          </Link>
         </div>
 
         <button
