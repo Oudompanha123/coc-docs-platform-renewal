@@ -11,20 +11,20 @@ import { AuthApiError, resetPassword } from "@/lib/auth/api";
 type Errors = Partial<Record<"password" | "confirmPassword", string>>;
 
 /**
- * Reset Password — POST /api/v1/auth/reset-password (ADR-017).
+ * Reset Password — POST /api/v1/auth/reset-password (ADR-018).
  *
  * Reads `token` from the URL the emailed link pointed at
  * (/reset-password?token=<...>) and never asks the visitor to type it in.
  * Unlike Forgot Password, a rejected token here is shown plainly — the
  * visitor already holds a value that came from their own email, so telling
  * them it's invalid or expired discloses nothing about anyone else's account
- * (ADR-017 decision 3).
+ * (ADR-018 decision 3).
  *
  * A successful reset does not sign the caller in — the backend never sets a
  * session cookie here, matching Register's "this never signs you in either"
  * convention — so this page sends them to /login to do that.
  *
- * // req: FR-AUTH-002, FR-AUTH-007, ADR-017
+ * // req: FR-AUTH-002, FR-AUTH-007, ADR-018
  */
 function ResetPasswordForm() {
   const router = useRouter();
