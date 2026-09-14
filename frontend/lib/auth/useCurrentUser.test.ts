@@ -31,7 +31,7 @@ describe("useCurrentUser", () => {
       id: "1",
       email: "jane@example.com",
       displayName: "Jane Admin",
-      role: "ADMIN",
+      role: "admin",
       authenticated: true,
     });
 
@@ -54,7 +54,7 @@ describe("useCurrentUser", () => {
       id: "1",
       email: "jane@example.com",
       displayName: "Jane Admin",
-      role: "ADMIN",
+      role: "admin",
       avatarUrl: "https://lh3.googleusercontent.com/a/example",
       authenticated: true,
     });
@@ -97,7 +97,7 @@ describe("useCurrentUser", () => {
       id: "1",
       email: "jane@example.com",
       displayName: "Jane Admin",
-      role: "ADMIN",
+      role: "admin",
       authenticated: true,
     });
 

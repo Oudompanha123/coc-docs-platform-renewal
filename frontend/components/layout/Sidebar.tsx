@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { UserAvatar } from "./UserAvatar";
-import { NAV_BOTTOM, NAV_SECTIONS, NAV_TOP, isNavItemActive, type NavItem } from "./nav-config";
+import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
 import { XIcon } from "./icons";
 
 type SidebarProps = {
@@ -38,6 +39,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   // Same session-backed name/role as the Topbar (GET /api/v1/auth/me) — the
   // two must never show a different name for the one signed-in caller.
   const user = useCurrentUser();
+  // The raw role, not the display label useCurrentUser() formats: what a
+  // caller may see is decided against the enum the server sent, never against
+  // a translated string.
+  const { user: session } = useSession();
+  const navSections = visibleNavSections(session?.role);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   const content = (
@@ -64,7 +70,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <NavLink item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
         </div>
 
-        {NAV_SECTIONS.map((section) => (
+        {navSections.map((section) => (
           <div key={section.label} className="space-y-1">
             <p className="px-3 text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
             {section.items.map((item) => (
