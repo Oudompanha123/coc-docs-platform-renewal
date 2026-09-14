@@ -63,6 +63,36 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await signOutRequest();
     setUser(null);
     setStatus("anonymous");
+
+    // Three sessions exist, and clearing ours ends only the first:
+    //
+    //   1. this app's   — the coc_session cookie, revoked by the call above
+    //   2. Keycloak's   — its own SSO cookie, which is why clicking "Continue
+    //                     with Google" again used to sign the same person
+    //                     straight back in without asking. Keycloak answered
+    //                     from its cookie and never went near Google.
+    //   3. Google's     — handled by prompt=select_account on the Keycloak
+    //                     identity provider, so Google offers the chooser
+    //                     rather than silently reusing one account.
+    //
+    // This ends the second. A full-page redirect rather than a hidden iframe:
+    // Keycloak's cookies are third-party from this origin, and an iframe's
+    // access to them depends on SameSite rules that differ between browsers
+    // and break silently — leaving someone signed in while being told they
+    // are not.
+    const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+    const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+    const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
+
+    if (keycloakUrl && realm && clientId) {
+      const logout = new URL(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/logout`);
+      logout.searchParams.set("client_id", clientId);
+      logout.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/login`);
+      window.location.assign(logout.toString());
+      return;
+    }
+
+    // No Keycloak configured: nothing else holds a session to end.
     router.replace("/login");
   }, [router]);
 
