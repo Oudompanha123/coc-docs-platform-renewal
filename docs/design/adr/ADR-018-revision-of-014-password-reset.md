@@ -1,4 +1,4 @@
-# ADR-017: Self-service password reset — revision of ADR-014
+# ADR-018: Self-service password reset — revision of ADR-014
 
 ## Status
 **ACCEPTED** — 2026-09-11
@@ -176,3 +176,18 @@ solved.
   `PasswordResetTokenRepository.java`, `PasswordResetMailer.java`,
   `PasswordResetTokenMaintenance.java`, `V6__password_reset_token.sql`,
   `frontend/app/forgot-password/page.tsx`, `frontend/app/reset-password/page.tsx`
+
+## Numbering note
+
+This ADR was first written and merged as **ADR-017**, in parallel with
+[ADR-017](ADR-017-approval-gate.md), which was authored and merged a few hours
+earlier the same day. Two branches picked the same next number without seeing
+each other. This one moved to 018 because the other landed on `dev` first; no
+decision here changed.
+
+`V6__password_reset_token.sql` still names ADR-017 in its header comment and
+in the table's `comment on table`. That is deliberate. Flyway checksums a
+migration by its bytes, and V6 is already applied in more than one schema, so
+correcting the reference would turn every existing database into a checksum
+mismatch on next startup — a real outage to fix a stale citation. The file
+stays as applied; this note is the correction.

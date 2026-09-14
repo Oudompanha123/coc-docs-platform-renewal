@@ -1,6 +1,6 @@
 /**
  * Thin client for the backend's login API (see docs/api/openapi.yaml).
- * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017
+ * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017, ADR-018
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
@@ -183,10 +183,10 @@ export async function register(input: {
 }
 
 /**
- * POST /api/v1/auth/forgot-password (ADR-017). Always resolves with the same
+ * POST /api/v1/auth/forgot-password (ADR-018). Always resolves with the same
  * generic message, whatever actually happened server-side — an unknown
  * address, a Google-only account, and a genuinely emailed reset all look
- * identical from here (ADR-017 decision 3, the same {@code UC-004} E-3
+ * identical from here (ADR-018 decision 3, the same {@code UC-004} E-3
  * anti-enumeration principle {@link loginWithPassword} follows). This
  * function does not try to tell those cases apart either.
  */
@@ -212,7 +212,7 @@ export async function forgotPassword(email: string): Promise<string> {
 }
 
 /**
- * POST /api/v1/auth/reset-password (ADR-017). Unlike {@link forgotPassword},
+ * POST /api/v1/auth/reset-password (ADR-018). Unlike {@link forgotPassword},
  * a rejected token here is reported plainly — the caller already holds a
  * value that came from their own email, so refusing it discloses nothing
  * about anyone else's account.
