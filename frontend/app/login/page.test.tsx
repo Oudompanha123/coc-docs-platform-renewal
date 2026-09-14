@@ -11,7 +11,15 @@ const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKe
   push: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/api", () => ({ loginWithPassword, loginWithIdToken, requestNonce }));
+// RegistrationPendingError is part of this module's contract now: the page
+// tests `err instanceof RegistrationPendingError`, so a mock without it makes
+// the catch block throw rather than the assertion fail.
+vi.mock("@/lib/auth/api", () => ({
+  loginWithPassword,
+  loginWithIdToken,
+  requestNonce,
+  RegistrationPendingError: class RegistrationPendingError extends Error {},
+}));
 
 vi.mock("@/lib/auth/keycloakIdentity", () => ({
   signInWithGoogleViaKeycloak,
