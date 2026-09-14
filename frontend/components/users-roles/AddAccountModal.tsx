@@ -5,36 +5,63 @@ import { Modal } from "./Modal";
 import { ROLE_LABELS, ROLE_ORDER, type AccountRole } from "@/lib/mock/users-roles";
 
 /**
- * Mock-only: the real backend has no endpoint to pre-provision an account —
- * every Google sign-in auto-creates its own account row at role `user`
- * (SessionService.createAccount). This modal's "add" is local mock state
- * only, not a stand-in for a real API call that exists today. See the
- * report for this task for the full finding.
+ * Backed by the real `POST /api/v1/admin/accounts` (super_admin only). The
+ * account is created immediately, active, at the chosen role — the backend
+ * generates a temporary password and emails it, and the new owner is
+ * required to replace it on first login (revision of ADR-017). Nothing
+ * about that password ever reaches this component or its response.
  */
 export function AddAccountModal({
   onClose,
   onAdd,
 }: {
   onClose: () => void;
-  onAdd: (email: string, role: AccountRole) => void;
+  /**
+   * Rejects on failure — a duplicate email, an insufficient role, a network
+   * error — so this modal can show the reason itself. It used to be
+   * fire-and-forget: a rejection was reported on the page *behind* this
+   * modal's full-screen overlay, which nobody could see, so a failed create
+   * looked identical to the button doing nothing at all.
+   */
+  onAdd: (email: string, role: AccountRole) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AccountRole>("user");
   const [error, setError] = useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function submit() {
+  // Advisory only, matching every other client-side check in this codebase
+  // (CONST-TECH-07): the backend's own @Email validation on CreateAccountRequest
+  // is what actually decides.
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  async function submit() {
     const trimmed = email.trim();
-    if (!trimmed || !trimmed.includes("@")) {
-      setError("Enter a valid Google email address.");
+    if (!trimmed || !EMAIL_PATTERN.test(trimmed)) {
+      setError("Enter a valid email address.");
       return;
     }
-    onAdd(trimmed, role);
+    setError(undefined);
+    setIsSubmitting(true);
+    try {
+      await onAdd(trimmed, role);
+      // No further state change here on success: the parent closes this
+      // modal once the account is actually in its list, which is also what
+      // unmounts this component.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't create that account.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <Modal title="Add account" onClose={onClose}>
-      <label className="mb-1.5 block text-sm font-semibold text-ink">Google email</label>
+    <Modal title="Add User" onClose={onClose}>
+      <label htmlFor="add-account-email" className="mb-1.5 block text-sm font-semibold text-ink">
+        Email
+      </label>
       <input
+        id="add-account-email"
         type="email"
         value={email}
         onChange={(e) => {
@@ -46,9 +73,12 @@ export function AddAccountModal({
       />
       {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
 
-      <label className="mb-1.5 mt-4 block text-sm font-semibold text-ink">Role</label>
+      <label htmlFor="add-account-role" className="mb-1.5 mt-4 block text-sm font-semibold text-ink">
+        Role
+      </label>
       <div className="relative">
         <select
+          id="add-account-role"
           value={role}
           onChange={(e) => setRole(e.target.value as AccountRole)}
           className="w-full appearance-none rounded-xl border border-border bg-white px-3 py-2.5 pr-9 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
@@ -75,16 +105,19 @@ export function AddAccountModal({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+          disabled={isSubmitting}
+          className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={submit}
-          className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+          disabled={isSubmitting}
+          aria-busy={isSubmitting}
+          className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Add account
+          {isSubmitting ? "Adding…" : "Add Account"}
         </button>
       </div>
     </Modal>
