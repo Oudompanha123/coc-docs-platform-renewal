@@ -6,17 +6,20 @@ import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { UserAvatar } from "./UserAvatar";
 import {
   BellIcon,
   ChevronDownIcon,
-  GearIcon,
   LogOutIcon,
   MailIcon,
   MenuIcon,
   MoonIcon,
   PersonIcon,
+  SettingsIcon,
   SunIcon,
 } from "./icons";
+import Link from "next/link";
+import { ProfileModal } from "./ProfileModal";
 
 type TopbarProps = {
   title: string;
@@ -70,6 +73,7 @@ function CountBadge({
 export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   // The signed-in caller's real name/role (GET /api/v1/auth/me) — "Guest"
   // until that resolves or for a visitor with no session, since this shell
@@ -109,6 +113,7 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   }
 
   return (
+    <div className="contents">
     <header className="flex items-center justify-between border-b border-border bg-white px-4 py-4 sm:px-6 lg:px-8">
       <div className="flex items-start gap-3 min-w-0">
         <button
@@ -246,9 +251,12 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
             aria-expanded={openMenu === "user"}
             className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
           >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-              {user?.initials ?? "?"}
-            </div>
+            <UserAvatar
+              avatarUrl={user?.avatarUrl ?? null}
+              initials={user?.initials ?? "?"}
+              name={user?.name ?? "Guest"}
+              className={`h-8 w-8 ${userAvatar}`}
+            />
             <div className="hidden min-w-0 text-left sm:block">
               <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
               <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
@@ -259,9 +267,12 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
           {openMenu === "user" && (
             <div role="menu" className={`${PANEL_CLASSES} w-64`}>
               <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-                  {user?.initials ?? "?"}
-                </div>
+                <UserAvatar
+                  avatarUrl={user?.avatarUrl ?? null}
+                  initials={user?.initials ?? "?"}
+                  name={user?.name ?? "Guest"}
+                  className={`h-9 w-9 ${userAvatar}`}
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
                   <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
@@ -271,21 +282,21 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => setOpenMenu(null)}
+                  onClick={() => { setOpenMenu(null); setShowProfile(true); }}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-page"
                 >
                   <PersonIcon className="h-4 w-4 text-muted" />
-                  Profile settings
+                  My Profile
                 </button>
-                <button
-                  type="button"
+                <Link
+                  href="/settings"
                   role="menuitem"
                   onClick={() => setOpenMenu(null)}
                   className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-page"
                 >
-                  <GearIcon className="h-4 w-4 text-muted" />
-                  Preferences
-                </button>
+                  <SettingsIcon className="h-4 w-4 text-muted" />
+                  Settings
+                </Link>
               </div>
               <div className="border-t border-border py-1">
                 <button
@@ -306,5 +317,8 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
         </div>
       </div>
     </header>
+
+    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+    </div>
   );
 }

@@ -36,7 +36,7 @@ public class AccountRepository {
      * drift into the other by accident.
      */
     private static final String ACCOUNT_COLUMNS =
-            "a.id, a.email, a.display_name, a.status, a.deactivated_at, a.created_at, a.updated_at";
+            "a.id, a.email, a.display_name, a.avatar_url, a.status, a.deactivated_at, a.created_at, a.updated_at";
 
     /**
      * {@code filter (where ...)} rather than a plain {@code array_agg}: the
@@ -76,6 +76,7 @@ public class AccountRepository {
                 rs.getString("email"),
                 rs.getString("display_name"),
                 readRoles(rs),
+                rs.getString("avatar_url"),
                 AccountStatus.fromDb(rs.getString("status")),
                 deactivated == null ? null : deactivated.toInstant(),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(),
@@ -196,6 +197,21 @@ public class AccountRepository {
     }
 
     /**
+     * Whether the account table holds no rows at all.
+     *
+     * <p>Backs the installation-bootstrap check in {@code SessionService}: the
+     * very first sign-in an installation ever sees is seated as an active
+     * {@code super_admin} rather than queued pending, because a table with
+     * zero accounts has nobody who could ever approve one. Narrow on purpose —
+     * this is "no accounts exist", not "no super admin exists"; see the caller
+     * for why the weaker test is the wrong one.
+     */
+    public boolean isEmpty() {
+        Integer count = jdbc.sql("select count(*) from account").query(Integer.class).single();
+        return count == null || count == 0;
+    }
+
+    /**
      * Whether removing {@code excluding} would leave no active super admin.
      *
      * <p>The database holds the same rule as a deferred constraint trigger, which
@@ -232,16 +248,20 @@ public class AccountRepository {
      * {@code super_admin} has to grant anything above that. This is what stops
      * account creation from being a privilege-escalation path (FR-AUTH-005).
      *
-     * <p>Provisioned {@code active}: nobody needs to approve what an
-     * administrator's identity provider already vouched for.
+     * <p>The status is a parameter because this is the door a
+     * {@code super_admin} uses: that caller <em>is</em> the approval, and
+     * sending their own decision to a queue would ask them to approve it
+     * twice. Somebody arriving under their own steam goes through
+     * {@link #insertApplication} instead.
      */
-    public Account insert(String email, String displayName, AppRole role) {
+    public Account insert(
+            String email, String displayName, AppRole role, String avatarUrl, AccountStatus status) {
         UUID id = jdbc.sql("""
-                        insert into account (email, display_name, status)
-                        values (?, ?, 'active'::account_status)
+                        insert into account (email, display_name, avatar_url, status)
+                        values (?, ?, ?, ?::account_status)
                         returning id
                         """)
-                .params(email, displayName)
+                .params(email, displayName, avatarUrl, status.wire())
                 .query(UUID.class)
                 .single();
         grantRole(id, role, null);
@@ -249,29 +269,47 @@ public class AccountRepository {
     }
 
     /**
-     * Creates a self-registered account, active immediately — no
-     * {@code super_admin} approval gate. This reverses the gate ADR-014
-     * originally put here (see that ADR's "Alternatives Considered" table,
-     * which explicitly rejected auto-activation); recorded here per explicit
-     * product direction (2026-09-11), pending its own ADR revision.
+     * Creates an account for somebody asking to be let in (ADR-017).
      *
-     * <p>Role and status are literals here, never parameters. A registration
-     * request that could choose either would be a self-service route to
-     * {@code super_admin}, which is TM-025 — the second-highest threat on the
-     * project. The caller supplies an email, a name and a hash; nothing else it
-     * sends can reach these statements.
+     * <p>{@code pending} at role {@code guest}: the row exists, holds a role
+     * that grants nothing and opens nothing, because {@link Account#canSignIn()}
+     * is false while the status is pending. Google has vouched that the address
+     * is real; it has not vouched that its owner belongs here, and those are
+     * different claims.
+     *
+     * <p>Status and role are literals, never parameters. Both sign-up doors
+     * reach this method, and a request that could choose either would be a
+     * self-service route to {@code super_admin} — TM-025, the second-highest
+     * threat on this project.
+     *
+     * <p>{@code passwordHash} is null for a Google applicant and
+     * {@code avatarUrl} is null for a password applicant; neither path has the
+     * other's value to offer.
      */
-    public Account insertSelfRegisteredAccount(String email, String displayName, String passwordHash) {
+    public Account insertApplication(
+            String email, String displayName, String avatarUrl, String passwordHash) {
         UUID id = jdbc.sql("""
-                        insert into account (email, display_name, password_hash, status)
-                        values (?, ?, ?, 'active'::account_status)
+                        insert into account (email, display_name, avatar_url, password_hash, status)
+                        values (?, ?, ?, ?, 'pending'::account_status)
                         returning id
                         """)
-                .params(email, displayName, passwordHash)
+                .params(email, displayName, avatarUrl, passwordHash)
                 .query(UUID.class)
                 .single();
-        grantRole(id, AppRole.USER, null);
+        grantRole(id, AppRole.GUEST, null);
         return findById(id).orElseThrow();
+    }
+
+    /**
+     * Sets a new password hash — the reset path (ADR-018) and nowhere else.
+     * Also usable to give a Google-only account its first password hash, but
+     * nothing in this codebase does that yet (ADR-018 decision 2 deliberately
+     * does not go there).
+     */
+    public int updatePasswordHash(UUID id, String passwordHash) {
+        return jdbc.sql("update account set password_hash = ?, updated_at = now() where id = ?")
+                .params(passwordHash, id)
+                .update();
     }
 
     /** A {@code super_admin}'s approve or reject on a pending registration (ADR-014). */
@@ -288,6 +326,31 @@ public class AccountRepository {
                         where id = ? and display_name <> ?
                         """)
                 .params(displayName, id, displayName)
+                .update();
+    }
+
+    /**
+     * Refreshes the profile picture from the identity provider on each sign-in.
+     *
+     * <p>Guarded on the value actually differing, like
+     * {@link #updateDisplayName}: signing in should not write the row and move
+     * {@code updated_at} just to store the URL that was already there.
+     *
+     * <p>A null is written through rather than skipped. When someone removes
+     * their Google picture the claim stops arriving, and keeping the old URL
+     * would keep displaying an image that person deliberately took down —
+     * from a Google URL that will stop resolving anyway.
+     *
+     * <p>{@code is distinct from}, not {@code <>}: {@code <>} is never true
+     * when either side is null, which would make exactly that removal case a
+     * silent no-op.
+     */
+    public int updateAvatarUrl(UUID id, String avatarUrl) {
+        return jdbc.sql("""
+                        update account set avatar_url = ?, updated_at = now()
+                        where id = ? and avatar_url is distinct from ?
+                        """)
+                .params(avatarUrl, id, avatarUrl)
                 .update();
     }
 

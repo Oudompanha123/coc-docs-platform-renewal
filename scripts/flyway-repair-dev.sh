@@ -26,7 +26,7 @@
 set -uo pipefail
 
 # The application composes its JDBC URL from DB_HOST/DB_PORT/DB_NAME, and the
-# schema lives in application.yml rather than in anyone's env.local. Compose the
+# schema lives in application.yml rather than in anyone's .env.local. Compose the
 # same URL here. DB_URL is still honoured if someone exports one explicitly.
 SCHEMA="${DB_SCHEMA:-cocdocs_dev}"
 URL="${DB_URL:-}"
@@ -39,7 +39,7 @@ No database configured. This script will not guess at one to modify.
 
 Load your environment first -- the same file the application uses:
 
-  set -a; . ./backend/env.local; set +a
+  set -a; . ./backend/.env.local; set +a
 
 That should define DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD. If your
 schema is not cocdocs_dev, set DB_SCHEMA too.

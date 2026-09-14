@@ -3,10 +3,15 @@ package com.coc.docs.web;
 import com.coc.docs.account.Account;
 import com.coc.docs.auth.CurrentUser;
 import com.coc.docs.account.AccountService;
+import com.coc.docs.auth.PasswordResetService;
 import com.coc.docs.auth.SessionService;
+import com.coc.docs.auth.dto.ForgotPasswordRequest;
+import com.coc.docs.auth.dto.ForgotPasswordResponse;
 import com.coc.docs.auth.dto.PasswordLoginRequest;
 import com.coc.docs.auth.dto.RegisterRequest;
 import com.coc.docs.auth.dto.RegisterResponse;
+import com.coc.docs.auth.dto.ResetPasswordRequest;
+import com.coc.docs.auth.dto.ResetPasswordResponse;
 import com.coc.docs.config.AppProperties;
 import com.coc.docs.auth.NonceService;
 import jakarta.servlet.http.Cookie;
@@ -17,7 +22,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,18 +54,21 @@ public class AuthController {
     private final AccountService accounts;
     private final PasswordEncoder passwordEncoder;
     private final NonceService nonces;
+    private final PasswordResetService passwordResets;
 
     public AuthController(
             SessionService sessions,
             AppProperties properties,
             AccountService accounts,
             PasswordEncoder passwordEncoder,
-            NonceService nonces) {
+            NonceService nonces,
+            PasswordResetService passwordResets) {
         this.sessions = sessions;
         this.properties = properties;
         this.accounts = accounts;
         this.passwordEncoder = passwordEncoder;
         this.nonces = nonces;
+        this.passwordResets = passwordResets;
     }
 
     /**
@@ -115,7 +126,10 @@ public class AuthController {
                         issued.account().email(),
                         issued.account().displayName(),
                         issued.account().role().wire(),
-                        true));
+                        issued.account().avatarUrl(),
+                        true,
+                        issued.account().createdAt(),
+                        sessions.lastSignInForAccount(issued.account().id()).orElse(null)));
     }
 
     /**
@@ -128,7 +142,79 @@ public class AuthController {
      */
     @GetMapping("/me")
     ApiDtos.MeResponse me(@AuthenticationPrincipal CurrentUser caller) {
-        return caller == null ? ApiDtos.MeResponse.anonymous() : ApiDtos.MeResponse.of(caller);
+        if (caller == null) return ApiDtos.MeResponse.anonymous();
+        return ApiDtos.MeResponse.of(caller,
+                sessions.lastSignInForAccount(caller.id()).orElse(null));
+    }
+
+    /**
+     * Changes the caller's own display name.
+     *
+     * <p>Self-service: the account is the one that made the request, never one
+     * named in it. A profile screen that could name an account would be an
+     * administration screen with no floor under it.
+     *
+     * <p>Name only. Email identifies the account and comes from the identity
+     * provider; role and status are the system's to decide (TM-025).
+     *
+     * <p>// req: FR-AUTH-005, NFR-SEC-PII
+     */
+    @PatchMapping("/me")
+    ApiDtos.MeResponse updateProfile(
+            @Valid @RequestBody ApiDtos.UpdateProfileRequest request,
+            @AuthenticationPrincipal CurrentUser caller) {
+
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        Account updated = sessions.renameSelf(caller, request.displayName());
+        return new ApiDtos.MeResponse(
+                updated.id(),
+                updated.email(),
+                updated.displayName(),
+                updated.role().wire(),
+                updated.avatarUrl(),
+                true,
+                updated.createdAt(),
+                sessions.lastSignInForAccount(updated.id()).orElse(null));
+    }
+
+    /**
+     * Where this account is signed in.
+     *
+     * <p>The caller's own sessions and no others: the account comes from the
+     * resolved session, so there is no parameter here that could point at
+     * anyone else (NFR-SEC-PII).
+     *
+     * <p>// req: FR-AUTH-004, FR-AUTH-007
+     */
+    @GetMapping("/sessions")
+    java.util.List<ApiDtos.SessionResponse> sessions(@AuthenticationPrincipal CurrentUser caller) {
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        return sessions.listOwnSessions(caller).stream().map(ApiDtos.SessionResponse::of).toList();
+    }
+
+    /**
+     * Ends one of the caller's own sessions — "sign out this other device".
+     *
+     * <p>204 whether or not a row was revoked. An id that belongs to someone
+     * else and an id that does not exist answer identically, because telling
+     * them apart is only useful to someone enumerating other people's
+     * sessions.
+     *
+     * <p>// req: FR-AUTH-007, TM-003
+     */
+    @DeleteMapping("/sessions/{sessionId}")
+    ResponseEntity<Void> revokeSession(
+            @PathVariable java.util.UUID sessionId, @AuthenticationPrincipal CurrentUser caller) {
+
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        sessions.revokeOwnSession(caller, sessionId);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -263,31 +349,32 @@ public class AuthController {
     /**
      * Applies for an account.
      *
-     * <p>Creates an account that can sign in immediately: the row is
-     * {@code active} with role {@code user}. Role and status are literals in
+     * <p>Creates a {@code pending} row at role {@code guest} — an application,
+     * not an account that works (ADR-017). Role and status are literals in
      * the insert, never taken from this request — that is what keeps
      * registration off the privilege-escalation path (TM-025).
      *
-     * <p>As of 2026-09-11, product direction removed the {@code super_admin}
-     * approval gate ADR-014 originally put here — see
-     * {@code AccountService.register}'s javadoc and ADR-014's "Alternatives
-     * Considered" table, which explicitly rejected this for the security
-     * reason it reopens. Recorded here pending that ADR's own revision.
+     * <p>Between 2026-09-11 and ADR-017 this produced an active account
+     * immediately. Reversed, because gating Google sign-in while leaving this
+     * open would put a door beside the gate: anyone could self-issue a working
+     * account by choosing a password instead.
      *
-     * <p>200, not 202: the account is usable as soon as this call returns, so
-     * there is nothing left "accepted but pending".
+     * <p>202, not 200. The request was accepted and nothing is usable yet —
+     * saying 200 is how the old message came to promise a sign-in that would
+     * be refused.
      *
-     * <p>// req: FR-AUTH-002, FR-AUTH-003, ADR-014
+     * <p>// req: FR-AUTH-002, FR-AUTH-003, ADR-014, ADR-017
      */
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.OK)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
         Account created = accounts.register(
                 request.email(), request.displayName(), passwordEncoder.encode(request.password()));
 
         return new RegisterResponse(
                 created.status().wire().toUpperCase(Locale.ROOT),
-                "Your account has been created. You can now log in.");
+                "Your registration has been received. An administrator has to approve it "
+                        + "before you can sign in.");
     }
 
     /**
@@ -316,6 +403,55 @@ public class AuthController {
                         issued.account().email(),
                         issued.account().displayName(),
                         issued.account().role().wire(),
-                        true));
+                        issued.account().avatarUrl(),
+                        true,
+                        issued.account().createdAt(),
+                        sessions.lastSignInForAccount(issued.account().id()).orElse(null)));
+    }
+
+    // -----------------------------------------------------------------------
+    // Password reset (ADR-018, revision of ADR-014)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Starts a password reset.
+     *
+     * <p>Always 200 with the same message, whatever actually happened — see
+     * {@code PasswordResetService.requestReset}'s javadoc. This method adds
+     * nothing that would tell the cases apart; it exists only so the caller
+     * cannot distinguish "we emailed you" from "there was nothing to email".
+     *
+     * <p>Public, and it has to be — a signed-out visitor who forgot their
+     * password is, by definition, not signed in yet.
+     *
+     * <p>// req: FR-AUTH-002, ADR-018
+     */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.OK)
+    ForgotPasswordResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResets.requestReset(request.email());
+        return ForgotPasswordResponse.generic();
+    }
+
+    /**
+     * Completes a password reset: sets the new password and spends the token.
+     *
+     * <p>Unlike {@link #forgotPassword}, a rejected token here is reported
+     * plainly — the caller already holds a value that came from their own
+     * mailbox, so refusing it discloses nothing about anyone else's account
+     * (ADR-018 decision 3; see {@code PasswordResetService.resetPassword}).
+     *
+     * <p>Never sets a session cookie, matching {@code /register}'s "this
+     * never signs the caller in" convention — and every session that
+     * predated the reset is revoked server-side, so the caller signs in fresh
+     * at {@code /login} either way.
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-007, ADR-018
+     */
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.OK)
+    ResetPasswordResponse resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResets.resetPassword(request.token(), request.newPassword());
+        return new ResetPasswordResponse("Your password has been reset. You can now log in.");
     }
 }

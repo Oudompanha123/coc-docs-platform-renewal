@@ -1,13 +1,14 @@
 package com.coc.docs.auth;
 
 import com.coc.docs.account.Account;
-import com.coc.docs.account.AccountStatus;
 import com.coc.docs.account.AccountCredential;
 import com.coc.docs.account.AccountRepository;
+import com.coc.docs.account.AccountStatus;
 import com.coc.docs.account.AppRole;
 import com.coc.docs.audit.AuditAction;
 import com.coc.docs.audit.AuditRepository;
 import com.coc.docs.config.AppProperties;
+import com.coc.docs.web.ApiException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
@@ -103,16 +104,41 @@ public class SessionService {
     /**
      * Verifies a Google ID token and issues a session.
      *
-     * <p>A first-time signer-in gets an account at role {@code user} — read
-     * access and nothing else. The role is never taken from the sign-in, so
-     * signing in cannot be a route to privilege.
+     * <p>A first-time signer-in does not get in. They get an account row at
+     * status pending and role guest, and are turned away until a super admin
+     * approves them (ADR-017). Google vouches that the address is real, not
+     * that its owner belongs here.
+     *
+     * <p>The role is never taken from the sign-in, so signing in cannot be a
+     * route to privilege.
      *
      * <p>A deactivated account is refused. Deactivation has to end access
      * immediately, or it is a note in a table rather than a control.
      *
-     * <p>// req: FR-AUTH-001, FR-AUTH-003, FR-AUTH-005
+     * <p><b>Why noRollbackFor.</b> This method reports two of its outcomes by
+     * throwing, and both have to leave something behind.
+     *
+     * <p>An applicant is told they are awaiting approval — and the application
+     * row that makes the queue work is created moments earlier, in this same
+     * transaction. Rolling back deleted it, so the person was told to wait for
+     * approval of a record that no longer existed and the queue stayed empty.
+     *
+     * <p>A rejected sign-in is written to the audit log before the exception is
+     * rethrown. Rolling back deleted that too: auth.rejected had never once
+     * been persisted, across every refusal this system has ever issued.
+     *
+     * <p>The default is right for most services and wrong here, because these
+     * exceptions report a decision rather than a failure. A genuine failure —
+     * a broken query, a constraint violation — is not listed and still rolls
+     * back.
+     *
+     * <p>// req: FR-AUTH-001, FR-AUTH-003, FR-AUTH-005, FR-OPS-002, ADR-017
      */
-    @Transactional
+    @Transactional(
+            noRollbackFor = {
+                com.coc.docs.web.ApiException.class,
+                GoogleIdTokenVerifier.AuthenticationFailure.class
+            })
     public IssuedSession signIn(
             String idToken, String expectedNonce, String userAgent, String ipAddress) {
         VerifiedIdentity identity;
@@ -129,23 +155,33 @@ public class SessionService {
 
         Account account = accounts
                 .findByEmail(identity.email())
-                .map(existing -> refreshName(existing, identity.displayName()))
+                .map(existing -> refreshProfile(existing, identity))
                 .orElseGet(() -> createAccount(identity));
 
-        // Note for the reader: the line above is where "register with Google"
-        // happens. There is no separate Google registration endpoint, and
-        // deliberately so — a first sign-in provisions the account at role
-        // `user` and nothing more (see createAccount). Two endpoints would mean
-        // two places that decide what a new account may do.
+        // The line above is where "apply with Google" happens. There is no
+        // separate registration endpoint for it: a first sign-in creates the
+        // application, and the check below then turns that person away until
+        // somebody approves them. Two endpoints would mean two places deciding
+        // what a new account may do.
 
         // canSignIn, not isActive: someone who self-registered and is still
         // awaiting approval must not get in through the Google door instead
         // (ADR-014). Same email, same account row, one gate.
         if (!account.canSignIn()) {
-            throw new GoogleIdTokenVerifier.AuthenticationFailure(
-                    account.status() == AccountStatus.PENDING
-                            ? "this registration is awaiting approval"
-                            : "this account cannot sign in");
+            // A pending applicant is told so, and this is the one sign-in
+            // failure in the system that is not deliberately opaque. They have
+            // just proved they own this Google address, so naming their own
+            // status discloses nothing to anyone else — and the alternative is
+            // a generic error after an action they took on purpose, which
+            // reads as the product being broken.
+            //
+            // The password path stays uniform: there, the caller has proved
+            // nothing, and a distinguishable answer would turn sign-in into a
+            // way to discover who has applied.
+            if (account.status() == AccountStatus.PENDING) {
+                throw ApiException.forbidden("this registration is awaiting approval");
+            }
+            throw new GoogleIdTokenVerifier.AuthenticationFailure("this account cannot sign in");
         }
 
         Instant now = clock.instant();
@@ -167,20 +203,41 @@ public class SessionService {
         return new IssuedSession(token, account, expiresAt);
     }
 
-    private Account refreshName(Account existing, String displayName) {
-        if (!existing.displayName().equals(displayName)) {
-            accounts.updateDisplayName(existing.id(), displayName);
-            return new Account(
-                    existing.id(),
-                    existing.email(),
-                    displayName,
-                    existing.roles(),
-                    existing.status(),
-                    existing.deactivatedAt(),
-                    existing.createdAt(),
-                    existing.updatedAt());
+    /**
+     * Brings the display name and profile picture back in step with the
+     * identity provider on every sign-in.
+     *
+     * <p>Only what the provider owns. Role, status and deactivation belong to
+     * this system and are never touched here — signing in must not be able to
+     * change what someone may do.
+     */
+    private Account refreshProfile(Account existing, VerifiedIdentity identity) {
+        String displayName = identity.displayName();
+        String avatarUrl = identity.avatarUrl();
+
+        boolean nameChanged = !existing.displayName().equals(displayName);
+        boolean avatarChanged = !java.util.Objects.equals(existing.avatarUrl(), avatarUrl);
+
+        if (!nameChanged && !avatarChanged) {
+            return existing;
         }
-        return existing;
+        if (nameChanged) {
+            accounts.updateDisplayName(existing.id(), displayName);
+        }
+        if (avatarChanged) {
+            accounts.updateAvatarUrl(existing.id(), avatarUrl);
+        }
+
+        return new Account(
+                existing.id(),
+                existing.email(),
+                displayName,
+                existing.roles(),
+                avatarUrl,
+                existing.status(),
+                existing.deactivatedAt(),
+                existing.createdAt(),
+                existing.updatedAt());
     }
 
     /**
@@ -194,7 +251,29 @@ public class SessionService {
      * account creation off the privilege-escalation path (TM-025).
      */
     private Account createAccount(VerifiedIdentity identity) {
-        Account created = accounts.insert(identity.email(), identity.displayName(), AppRole.USER);
+        // THE BOOTSTRAP. With every applicant starting pending, an installation
+        // holding no accounts is a locked door: nobody can be approved because
+        // nobody exists to approve them. The first person through is therefore
+        // admitted as an active super_admin.
+        //
+        // Narrow on purpose — `account` completely empty, not "no super admin
+        // exists". The weaker test would hand the role to whoever signed in
+        // next any time the last administrator was deactivated, which is
+        // precisely when it must not. This can be true only once in an
+        // installation's life, and it matters now because every developer gets
+        // their own empty schema (DB_SCHEMA).
+        boolean bootstrap = accounts.isEmpty();
+
+        Account created = bootstrap
+                ? accounts.insert(
+                        identity.email(),
+                        identity.displayName(),
+                        AppRole.SUPER_ADMIN,
+                        identity.avatarUrl(),
+                        AccountStatus.ACTIVE)
+                : accounts.insertApplication(
+                        identity.email(), identity.displayName(), identity.avatarUrl(), null);
+
         audit.append(
                 created.id(),
                 created.email(),
@@ -203,7 +282,8 @@ public class SessionService {
                 created.id(),
                 json.createObjectNode()
                         .put("role", created.role().wire())
-                        .put("via", "google-sign-in"));
+                        .put("status", created.status().wire())
+                        .put("via", bootstrap ? "google-sign-in-bootstrap" : "google-sign-in"));
         return created;
     }
 
@@ -230,7 +310,9 @@ public class SessionService {
             return broker.verify(idToken, expectedNonce);
         }
         GoogleIdTokenVerifier.GoogleIdentity google = this.google.verify(idToken);
-        return new VerifiedIdentity(google.email(), google.displayName());
+        // The direct-Google fallback carries no picture: this path never
+        // requested the profile scope, so there is no claim to read.
+        return new VerifiedIdentity(google.email(), google.displayName(), null);
     }
 
     // -----------------------------------------------------------------------
@@ -353,7 +435,9 @@ public class SessionService {
      *
      * <p>// req: FR-AUTH-002, FR-AUTH-007, ADR-014
      */
-    @Transactional
+    // Same reason as signIn: the refusal is audited and then thrown, and a
+    // rollback would erase the record of it. Nothing else here writes.
+    @Transactional(noRollbackFor = GoogleIdTokenVerifier.AuthenticationFailure.class)
     public IssuedSession signInWithPassword(
             String email, String rawPassword, String userAgent, String ipAddress) {
 
@@ -407,5 +491,102 @@ public class SessionService {
                         .put("expiresAt", expiresAt.toString()));
 
         return new IssuedSession(token, account, expiresAt);
+    }
+
+    // -----------------------------------------------------------------------
+    // The caller's own sessions (Settings > Security)
+    // -----------------------------------------------------------------------
+
+    /** One of the caller's sessions, with the one making this request marked. */
+    public record OwnSession(
+            java.util.UUID id,
+            String userAgent,
+            String ipAddress,
+            Instant issuedAt,
+            Instant expiresAt,
+            boolean current) {}
+
+    /**
+     * Where this account is currently signed in.
+     *
+     * <p>Own sessions only — the account id comes from the resolved caller,
+     * never from the request, so there is no parameter here to point at
+     * somebody else (NFR-SEC-PII).
+     *
+     * <p>The current session is identified by comparing token hashes in
+     * memory. The hash itself is dropped here and never reaches the response:
+     * the API names a session by its opaque id instead.
+     *
+     * <p>// req: FR-AUTH-004, FR-AUTH-007, NFR-SEC-PII
+     */
+    @Transactional(readOnly = true)
+    public Optional<Instant> lastSignInForAccount(java.util.UUID accountId) {
+        return sessions.lastSignInForAccount(accountId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<OwnSession> listOwnSessions(CurrentUser caller) {
+        return sessions.findLiveForAccount(caller.account().id(), clock.instant()).stream()
+                .map(s -> new OwnSession(
+                        s.id(),
+                        s.userAgent(),
+                        s.ipAddress(),
+                        s.issuedAt(),
+                        s.expiresAt(),
+                        MessageDigest.isEqual(s.tokenHash(), caller.sessionTokenHash())))
+                .toList();
+    }
+
+    /**
+     * Ends one of the caller's own sessions — "sign out this other device".
+     *
+     * <p>Ending the current one is allowed. It is the same thing sign-out
+     * does, and refusing would mean explaining a distinction the person has no
+     * reason to care about.
+     *
+     * <p>Returns false when the id is unknown or belongs to someone else. The
+     * caller is not told which, because the difference is only useful to
+     * someone enumerating other people's sessions.
+     *
+     * <p>// req: FR-AUTH-007, TM-003
+     */
+    @Transactional
+    public boolean revokeOwnSession(CurrentUser caller, java.util.UUID sessionId) {
+        boolean revoked = sessions.revokeOwnedById(sessionId, caller.account().id()) > 0;
+        if (revoked) {
+            audit.append(
+                    caller.account().id(),
+                    caller.account().email(),
+                    AuditAction.AUTH_SIGN_OUT,
+                    AuditAction.TARGET_SESSION,
+                    caller.account().id(),
+                    json.createObjectNode().put("via", "settings").put("session", sessionId.toString()));
+        }
+        return revoked;
+    }
+
+    /**
+     * Changes the caller's own display name.
+     *
+     * <p>Self-service, unlike {@code AccountService.renameFor}, which is a
+     * {@code super_admin} acting on someone else. Same caveat: a Google
+     * sign-in refreshes the name from the provider, so this lasts until the
+     * next one.
+     *
+     * <p>Only the name. Email identifies the account and comes from the
+     * identity provider; role and status are this system's to decide. A
+     * profile screen that could change any of those would be a privilege path
+     * (TM-025).
+     *
+     * <p>// req: FR-AUTH-005, NFR-SEC-PII
+     */
+    @Transactional
+    public Account renameSelf(CurrentUser caller, String displayName) {
+        String trimmed = displayName == null ? "" : displayName.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("a display name cannot be blank");
+        }
+        accounts.updateDisplayName(caller.account().id(), trimmed);
+        return accounts.findById(caller.account().id()).orElseThrow();
     }
 }

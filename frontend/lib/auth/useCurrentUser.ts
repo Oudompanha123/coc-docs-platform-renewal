@@ -32,6 +32,8 @@ function initialsOf(name: string): string {
 }
 
 export type CurrentUserDisplay = {
+  /** Null for a password account, or when the provider sent no picture. */
+  avatarUrl: string | null;
   name: string;
   role: string;
   initials: string;
@@ -46,6 +48,7 @@ export function useCurrentUser(): CurrentUserDisplay | null {
 
   return {
     name: user.displayName,
+    avatarUrl: user.avatarUrl ?? null,
     role: user.role ? (ROLE_LABELS[user.role] ?? user.role) : "",
     initials: initialsOf(user.displayName),
   };

@@ -93,7 +93,31 @@ public class SecurityConfig {
                         // by necessity — nobody has a session before either succeeds.
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login-password").permitAll()
+                        // ADR-018: starting or completing a password reset. Both public
+                        // by the same necessity — a visitor who forgot their password,
+                        // by definition, has no session to present.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").permitAll()
+
+
+                        // Self-service profile and session management. Any signed-in caller,
+
+                        // including a plain user: these act on the account that made the
+
+                        // request and cannot name another, so there is nothing here for a
+
+                        // higher floor to protect. Without these three lines they would fall
+
+                        // through to anyRequest(), which is super_admin.
+
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/me").hasRole(AppRole.USER.name())
+
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/sessions").hasRole(AppRole.USER.name())
+
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/auth/sessions/**")
+
+                        .hasRole(AppRole.USER.name())
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
                         // Liveness only. Carries no version, no configuration and
                         // no dependency status, so it discloses nothing.
@@ -114,6 +138,13 @@ public class SecurityConfig {
                         // the personal-data boundary is this one line rather
                         // than a property spread across response types.
                         // // req: FR-AUTH-008, NFR-SEC-PII
+                        // The role catalogue answers "what may an admin do",
+                        // which is the same class of question as who holds a
+                        // role — so it sits under the same super_admin floor,
+                        // not the admin floor the rest of /admin carries.
+                        .requestMatchers("/api/v1/admin/roles/**")
+                        .hasRole(AppRole.SUPER_ADMIN.name())
+
                         .requestMatchers("/api/v1/admin/accounts/**")
                         .hasRole(AppRole.SUPER_ADMIN.name())
 

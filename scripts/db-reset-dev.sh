@@ -36,7 +36,7 @@ No database configured. This script will not guess at one to drop.
 
 Load the same environment the application uses:
 
-  set -a; . ./backend/env.local; set +a
+  set -a; . ./backend/.env.local; set +a
 
 That should define DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD. If your
 schema is not cocdocs_dev, set DB_SCHEMA too.
@@ -59,21 +59,42 @@ case "$QUERY" in
   *currentSchema=*) SCHEMA="${QUERY##*currentSchema=}"; SCHEMA="${SCHEMA%%&*}" ;;
 esac
 
-# ── Refuse anything that is not obviously a development database ────────────
-# Dropping a schema is not recoverable, and a mistyped host is the one input
-# most likely to be wrong. Both tests must pass; either alone is too weak.
-case "$HOST" in
-  localhost|127.0.0.1|::1|host.docker.internal) ;;
-  *)
-    echo "Refusing to reset a database on '${HOST}'. This script only touches localhost." >&2
-    echo "If you genuinely mean to rebuild a shared database, do it deliberately in psql." >&2
-    exit 1 ;;
-esac
+# ── Refuse anything shared ──────────────────────────────────────────────────
+# The rule is about the schema, not the host. Several developers share one
+# PostgreSQL server and each works in their own schema (DB_SCHEMA), so
+# rebuilding cocdocs_yourname on a remote host is routine and safe, while
+# rebuilding cocdocs_dev destroys everyone's work at once — which is exactly
+# what happened on 2026-09-14, twice, taking nine accounts, the audit trail and
+# a colleague's table with it.
+#
+# An earlier version of this script refused every non-localhost host instead.
+# That was the wrong axis: it blocked the safe case, and people worked around
+# it by dropping the schema by hand in a SQL console, where no guard applies.
+SHARED_SCHEMA="cocdocs_dev"
+
+if [ "$SCHEMA" = "$SHARED_SCHEMA" ]; then
+  cat >&2 <<EOF
+Refusing: '${SCHEMA}' is the schema the whole team shares.
+
+Rebuilding it destroys everyone's accounts, content and audit trail, not just
+yours. If you are hitting a Flyway error, that is not the fix -- work in your
+own schema instead:
+
+  DB_SCHEMA=cocdocs_<your name>      in backend/.env.local
+
+Then re-run this script and it will rebuild yours alone.
+
+If the shared schema genuinely has to be rebuilt, that is a decision for the
+team, made deliberately in psql, after telling everyone.
+EOF
+  exit 1
+fi
+
 case "$SCHEMA$DBNAME" in
-  *dev*|*test*|*local*) ;;
+  *dev*|*test*|*local*|cocdocs_*) ;;
   *)
     echo "Refusing: neither the schema ('${SCHEMA}') nor the database ('${DBNAME}') names" >&2
-    echo "itself as dev, test or local. Rename it, or do this deliberately in psql." >&2
+    echo "itself as dev, test, local or cocdocs_*. Rename it, or do this deliberately in psql." >&2
     exit 1 ;;
 esac
 
@@ -94,7 +115,7 @@ fi
 
 export PGPASSWORD="${DB_PASSWORD:-${PGPASSWORD:-}}"
 PSQL_ARGS=(-h "$HOST" -p "$PORT" -d "$DBNAME" -v ON_ERROR_STOP=1)
-# DB_USER is what env.local defines; DB_USERNAME was never set by anything, so
+# DB_USER is what .env.local defines; DB_USERNAME was never set by anything, so
 # psql silently fell back to the OS user and failed on permissions, or worse,
 # succeeded as a superuser.
 PSQL_USER="${DB_USER:-${DB_USERNAME:-}}"

@@ -3,7 +3,7 @@
 #
 # WHY THIS EXISTS
 # Every startup failure we have had so far names something other than its
-# cause. "Connection to localhost:5432 refused" means env.local was not loaded,
+# cause. "Connection to localhost:5432 refused" means .env.local was not loaded,
 # not that localhost is wrong -- localhost is the fallback nobody configured.
 # "Migration checksum mismatch" names one field of three that disagree, so
 # fixing that one field advances you to the next message rather than to a
@@ -13,7 +13,7 @@
 # cause rather than the symptom. It changes nothing -- no file, no database.
 #
 # Usage:
-#   set -a; . ./backend/env.local; set +a
+#   set -a; . ./backend/.env.local; set +a
 #   scripts/diagnose-backend-startup.sh
 #
 #   // req: CONST-TECH-08
@@ -22,8 +22,8 @@ set -uo pipefail
 
 CONFIG_GLOB="backend/src/main/resources/application*.yml"
 MIGRATIONS="backend/src/main/resources/db/migration"
-ENV_LOCAL="backend/env.local"
-ENV_EXAMPLE="backend/env.example"
+ENV_LOCAL="backend/.env.local"
+ENV_EXAMPLE="backend/.env.example"
 
 pass=0; fail=0; warn=0
 ok()   { echo "  PASS  $*"; pass=$((pass+1)); }
@@ -95,6 +95,11 @@ else
   HOSTPORT="${URL#jdbc:postgresql://}"; HOSTPORT="${HOSTPORT%%/*}"
   H="${HOSTPORT%%:*}"; P="${HOSTPORT##*:}"; [ "$P" = "$H" ] && P=5432
   echo "        target ${H}:${P}  schema ${SCHEMA}"
+  if [ "$SCHEMA" = "cocdocs_dev" ]; then
+    note "You are on cocdocs_dev, the schema the whole team shares."
+    fix "Set DB_SCHEMA=cocdocs_<your name> in backend/.env.local to get your own."
+    fix "One shared schema means one Flyway lineage: your migration collides with theirs."
+  fi
   if timeout 5 bash -c "cat < /dev/null > /dev/tcp/${H}/${P}" 2>/dev/null; then
     ok "TCP connect to ${H}:${P} succeeded."
   else
@@ -180,10 +185,10 @@ echo
 echo "5. IntelliJ run configuration"
 
 if grep -rqs 'net.ashald.envfile' .idea/runConfigurations 2>/dev/null \
-   && grep -rqs 'env.local' .idea/runConfigurations 2>/dev/null; then
-  ok "A run configuration loads backend/env.local."
+   && grep -rqs '.env.local' .idea/runConfigurations 2>/dev/null; then
+  ok "A run configuration loads backend/.env.local."
 else
-  note "No committed run configuration loads backend/env.local."
+  note "No committed run configuration loads backend/.env.local."
   fix "Use 'Backend (dev)' if present, or enable EnvFile on your own configuration."
 fi
 

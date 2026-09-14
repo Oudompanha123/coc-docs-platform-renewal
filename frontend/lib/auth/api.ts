@@ -1,6 +1,6 @@
 /**
  * Thin client for the backend's login API (see docs/api/openapi.yaml).
- * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014
+ * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017, ADR-018
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
@@ -26,6 +26,12 @@ export interface MeResponse {
   email: string | null;
   displayName: string | null;
   role: Role | null;
+  /** When the account was created — the profile screen's "Joined". */
+  createdAt: string | null;
+  /** Most recent sign-in; null when no session row exists. */
+  lastSignInAt: string | null;
+  /** Profile picture URL from the identity provider, or null — see UserAvatar. */
+  avatarUrl: string | null;
   authenticated: boolean;
 }
 
@@ -96,6 +102,16 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
   } catch {
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
   }
+  // 403 is the one sign-in refusal the backend names: the registration exists
+  // and is waiting for approval. Everything else stays a single 401 with a
+  // fixed message, so the endpoint cannot be used to tell a real address from
+  // a made-up one.
+  if (response.status === 403) {
+    throw new RegistrationPendingError(
+      "Your registration is waiting for an administrator to approve it. " +
+        "You will be able to sign in once they do.",
+    );
+  }
   if (!response.ok) {
     throw new AuthApiError("Login failed. Your Google account may not have access yet.");
   }
@@ -130,7 +146,7 @@ export async function loginWithPassword(email: string, password: string): Promis
 }
 
 export interface RegisterResult {
-  /** Always "ACTIVE" on success — the account can sign in immediately, though registration itself never signs the caller in. */
+  /** "PENDING" — an administrator has to approve the application before sign-in works (ADR-017). */
   status: string;
   message: string;
 }
@@ -167,6 +183,60 @@ export async function register(input: {
 }
 
 /**
+ * POST /api/v1/auth/forgot-password (ADR-018). Always resolves with the same
+ * generic message, whatever actually happened server-side — an unknown
+ * address, a Google-only account, and a genuinely emailed reset all look
+ * identical from here (ADR-018 decision 3, the same {@code UC-004} E-3
+ * anti-enumeration principle {@link loginWithPassword} follows). This
+ * function does not try to tell those cases apart either.
+ */
+export async function forgotPassword(email: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/forgot-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    // Reached only for a malformed request (e.g. not an email at all) — the
+    // eligibility question itself never produces a non-2xx response.
+    throw new AuthApiError("Couldn't process that request. Check the address and try again.");
+  }
+  const body = (await response.json()) as { message: string };
+  return body.message;
+}
+
+/**
+ * POST /api/v1/auth/reset-password (ADR-018). Unlike {@link forgotPassword},
+ * a rejected token here is reported plainly — the caller already holds a
+ * value that came from their own email, so refusing it discloses nothing
+ * about anyone else's account.
+ */
+export async function resetPassword(token: string, newPassword: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/reset-password`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("This reset link is invalid or has expired. Request a new one.");
+  }
+  const body = (await response.json()) as { message: string };
+  return body.message;
+}
+
+/**
  * POST /api/v1/auth/logout. Ends the session on the server and clears the
  * cookie.
  *
@@ -190,3 +260,92 @@ export async function signOut(): Promise<void> {
     // Deliberately swallowed — see above.
   }
 }
+
+/**
+ * PATCH /api/v1/auth/me. Changes the caller's own display name.
+ *
+ * Name only. Email identifies the account and comes from the identity
+ * provider; role and status are the server's to decide — a profile screen that
+ * could change those would be an administration screen with no floor under it.
+ *
+ * Note for anyone who signs in with Google: the provider's name overwrites this
+ * on the next sign-in.
+ */
+export async function updateProfile(displayName: string): Promise<MeResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't save your profile. Please try again.");
+  }
+  return (await response.json()) as MeResponse;
+}
+
+/** One device the caller is signed in on — `GET /api/v1/auth/sessions`. */
+export interface SessionSummary {
+  /** Opaque; never the token hash. */
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  issuedAt: string;
+  expiresAt: string;
+  /** True for the session making this request. */
+  current: boolean;
+}
+
+/** Where this account is signed in. Own sessions only — the server uses the caller's own id. */
+export async function listSessions(): Promise<SessionSummary[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/sessions`, { credentials: "include" });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't load your sessions.");
+  }
+  return (await response.json()) as SessionSummary[];
+}
+
+/**
+ * Ends one of the caller's own sessions.
+ *
+ * The server answers 204 whether or not a row was revoked — an id belonging to
+ * someone else is indistinguishable from one that does not exist — so there is
+ * nothing to report back beyond "it went through".
+ */
+export async function revokeSession(sessionId: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/sessions/${sessionId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't end that session.");
+  }
+}
+
+/**
+ * Thrown when the caller's Google identity is genuine but their registration
+ * has not been approved yet (ADR-017).
+ *
+ * Distinct from AuthApiError on purpose. Every other sign-in failure here is
+ * deliberately indistinguishable, so the endpoint cannot be used to discover
+ * who has an account — but this one follows an action the person took on
+ * purpose, with an address they have just proved they own, so telling them
+ * discloses nothing and a generic error would read as the product being
+ * broken.
+ */
+export class RegistrationPendingError extends AuthApiError {}

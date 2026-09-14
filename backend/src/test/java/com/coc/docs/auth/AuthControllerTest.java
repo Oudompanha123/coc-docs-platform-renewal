@@ -3,6 +3,7 @@ package com.coc.docs.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,6 +21,7 @@ import com.coc.docs.config.ProblemResponses;
 import com.coc.docs.config.SecurityConfig;
 import com.coc.docs.content.BlockBodyValidator;
 import com.coc.docs.page.PageService;
+import com.coc.docs.web.ApiException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
@@ -63,18 +65,23 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  * <p>// req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-005, FR-AUTH-007, NFR-SEC-SESSION,
  * ADR-011, TM-002
  */
-@WebMvcTest
+@WebMvcTest(controllers = com.coc.docs.web.AuthController.class)
 @Import({SecurityConfig.class, ProblemResponses.class, AuthControllerTest.Beans.class})
 class AuthControllerTest {
 
     @Autowired MockMvc mvc;
 
     @MockitoBean SessionService sessions;
+    @MockitoBean PasswordResetService passwordResets;
 
     // Present so the context and the filter chain wire up; untouched here.
     @MockitoBean PageService pageService;
     @MockitoBean AccountService accountService;
     @MockitoBean BlockBodyValidator validator;
+
+    // AdminAccountController reads last sign-in times from it, so the context
+    // needs one to build. Untouched by these tests.
+    @MockitoBean com.coc.docs.auth.SessionRepository sessionRepository;
 
     @TestConfiguration
     static class Beans {
@@ -119,7 +126,7 @@ class AuthControllerTest {
      */
     @BeforeEach
     void resetSessionService() {
-        Mockito.reset(sessions);
+        Mockito.reset(sessions, passwordResets);
     }
 
     private static RequestPostProcessor as(AppRole role) {
@@ -298,14 +305,15 @@ class AuthControllerTest {
     class Register {
 
         @Test
-        @DisplayName("creates the account active and reports that it can sign in immediately")
-        void createsActiveAccount() throws Exception {
+        @DisplayName("takes the application and says it is waiting, not that they can sign in")
+        void createsPendingApplication() throws Exception {
             Account created = new Account(
                     UUID.randomUUID(),
                     "new.person@example.com",
                     "New Person",
-                    java.util.EnumSet.of(AppRole.USER),
-                    AccountStatus.ACTIVE,
+                    java.util.EnumSet.of(AppRole.GUEST),
+                    null,
+                    AccountStatus.PENDING,
                     null,
                     Instant.now(),
                     Instant.now());
@@ -317,9 +325,14 @@ class AuthControllerTest {
                             .content("""
                                     {"email":"new.person@example.com","displayName":"New Person","password":"hunter2222"}
                                     """))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.message").value("Your account has been created. You can now log in."));
+                    // 202: accepted, nothing usable yet. Until ADR-017 this
+                    // answered 200 with "You can now log in", which became a
+                    // promise the next request refused to keep.
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.status").value("PENDING"))
+                    .andExpect(jsonPath("$.message")
+                            .value("Your registration has been received. An administrator has to "
+                                    + "approve it before you can sign in."));
         }
     }
 
@@ -426,6 +439,99 @@ class AuthControllerTest {
                     .anySatisfy(header -> assertThat(header)
                             .contains(NonceService.COOKIE_NAME + "=")
                             .contains("Max-Age=0"));
+        }
+    }
+
+    /**
+     * ADR-018. The controller's whole job here is to add nothing that would
+     * let the caller tell "we emailed you" apart from "there was nothing to
+     * email" — see {@code PasswordResetService.requestReset}'s javadoc for
+     * where that distinction is actually made.
+     */
+    @Nested
+    @DisplayName("POST /api/v1/auth/forgot-password")
+    class ForgotPassword {
+
+        @Test
+        @DisplayName("always answers 200 with the same generic message")
+        void alwaysGeneric() throws Exception {
+            mvc.perform(post("/api/v1/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"anyone@example.com"}
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value(
+                            "If that email is registered, we've sent password reset instructions."));
+
+            verify(passwordResets).requestReset("anyone@example.com");
+        }
+
+        @Test
+        @DisplayName("rejects a blank email without reaching the service")
+        void rejectsBlankEmail() throws Exception {
+            mvc.perform(post("/api/v1/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":""}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(passwordResets, never()).requestReset(any());
+        }
+    }
+
+    /**
+     * ADR-018. Unlike {@code /forgot-password}, a rejected token here is
+     * reported plainly — the caller already holds a value from their own
+     * mailbox, so refusing it discloses nothing about anyone else's account.
+     */
+    @Nested
+    @DisplayName("POST /api/v1/auth/reset-password")
+    class ResetPassword {
+
+        @Test
+        @DisplayName("sets the new password and confirms")
+        void resetsPassword() throws Exception {
+            mvc.perform(post("/api/v1/auth/reset-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"token":"good-token","newPassword":"newHunter2222"}
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value(
+                            "Your password has been reset. You can now log in."));
+
+            verify(passwordResets).resetPassword("good-token", "newHunter2222");
+        }
+
+        @Test
+        @DisplayName("reports an invalid or expired token plainly, as 400")
+        void invalidTokenIsReportedPlainly() throws Exception {
+            doThrow(ApiException.badRequest("this reset link is invalid or has expired"))
+                    .when(passwordResets)
+                    .resetPassword(eq("bad-token"), any());
+
+            mvc.perform(post("/api/v1/auth/reset-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"token":"bad-token","newPassword":"newHunter2222"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("this reset link is invalid or has expired"));
+        }
+
+        @Test
+        @DisplayName("rejects a short password without reaching the service")
+        void rejectsShortPassword() throws Exception {
+            mvc.perform(post("/api/v1/auth/reset-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"token":"good-token","newPassword":"short"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(passwordResets, never()).resetPassword(any(), any());
         }
     }
 }

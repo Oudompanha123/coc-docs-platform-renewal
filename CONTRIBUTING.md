@@ -64,13 +64,13 @@ mvn -version     # must report 3.9 or newer
 
 This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as supported, and six developers on differing JDKs produce defects that reproduce on exactly one machine.
 
-**3. Copy the environment template.** `backend/env.example` documents every variable the backend reads, with a safe local default for each:
+**3. Copy the environment template.** `backend/.env.example` documents every variable the backend reads, with a safe local default for each:
 
 ```bash
-cp backend/env.example backend/env.local
+cp backend/.env.example backend/.env.local
 ```
 
-`env.local` is gitignored; `env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
+`.env.local` is gitignored; `.env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
 
 **4. Node 24** for the frontend.
 
@@ -129,21 +129,50 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
 
+## One server, one schema each
+
+We share a PostgreSQL server. We do **not** share a schema.
+
+Set your own in `backend/.env.local`:
+
+```
+DB_SCHEMA=cocdocs_sam
+```
+
+That gives you your own tables, your own Flyway history and your own data on the same host. Leave it unset and you land in `cocdocs_dev`, the shared schema.
+
+**Why this exists.** One shared schema means one Flyway lineage for everybody. Two branches that each add a `V6` collide the moment the second person runs. Worse, the obvious escape — rebuild the schema — destroys everyone's data at once, because it is everyone's schema. On 2026-09-14 that happened twice in one morning and cost nine accounts, the audit trail, and a colleague's `password_reset_token` table. Neither person did anything unreasonable; the arrangement was.
+
+With your own schema:
+
+- Your migration runs against your history. A `V6` on your branch cannot collide with a `V6` on someone else's.
+- `scripts/db-reset-dev.sh` rebuilds **yours** and nobody notices. It refuses `cocdocs_dev` outright.
+- You can run an unmerged migration without putting a table in a database other people's code knows nothing about.
+
+**What you give up:** shared test data. If you want the content someone else set up, you need it in your own schema — usually faster to recreate than to coordinate.
+
+### Working in the shared schema anyway
+
+Sometimes right — a demo, or reproducing something only its data shows. Two rules, and both exist because breaking them has already cost a day:
+
+1. **Push a migration before you run it there.** A migration applied from an unpushed branch leaves everyone else unable to start: Flyway finds an applied version it cannot resolve, and the only real fix is the file you still have not pushed.
+2. **Never rebuild it to escape a Flyway error.** Rebuilding is a local remedy applied to shared infrastructure. Move to your own schema instead; that is the fix.
+
 ## The settings that are not obvious
 
-`backend/env.example` is a list of names and defaults. These are the ones where the default is a local convenience, or where getting it wrong fails in a way that does not name itself.
+`backend/.env.example` is a list of names and defaults. These are the ones where the default is a local convenience, or where getting it wrong fails in a way that does not name itself.
 
 | Setting | What to know |
 |---|---|
 | `COOKIE_SECURE` | `false` **only** because localhost is plain HTTP. Anywhere with TLS must set it `true`, or the session cookie travels in the clear. Left `false` in a deployment nothing appears broken — which is the problem. |
 | `FRONTEND_ORIGIN` | The exact origin, never a pattern. CORS with credentials cannot use a wildcard, and an exact value is what stops a lookalike domain reaching a staging host. A trailing slash or a stray `\r` makes it stop matching, with no hint that whitespace is the reason. |
-| `DB_HOST` / `DB_PORT` / `DB_NAME` | Separate variables rather than one JDBC URL: `application.yml` composes it, so the schema and connection parameters stay in one shared place instead of being retyped in each developer's `env.local`. The default is `localhost`; the team database is elsewhere. |
-| `DB_PASSWORD` | The only real secret in the file. `env.local` is gitignored; `env.example` must never hold a live one. |
+| `DB_HOST` / `DB_PORT` / `DB_NAME` | Separate variables rather than one JDBC URL: `application.yml` composes it, so the schema and connection parameters stay in one shared place instead of being retyped in each developer's `.env.local`. The default is `localhost`; the team database is elsewhere. |
+| `DB_PASSWORD` | The only real secret in the file. `.env.local` is gitignored; `.env.example` must never hold a live one. |
 | `KEYCLOAK_ISSUER_URI` + `KEYCLOAK_AUDIENCE` | **Both or neither.** Blank means Keycloak sign-in does not exist on this deployment and the app boots as if it were never mentioned. An issuer with no audience refuses to start, deliberately: without an audience, a token Keycloak minted for any other client in the same realm would verify here. |
 | `SESSION_TTL` | ISO-8601. One day, per AMB-006 / NFR-SEC-SESSION. Shortening it cannot retire sessions already issued — expiry is stored as an absolute instant on the row. |
 | `S3_*` | S3-compatible API only, never a provider SDK (`CONST-TECH-08`). MinIO locally. |
 
-Nothing exports `env.local` at the OS level for you. `DotenvEnvironmentPostProcessor` reads it into Spring whatever the launcher, and the `Backend (dev)` run configuration also injects it through the EnvFile plugin. A real environment variable of the same name wins over both.
+Nothing exports `.env.local` at the OS level for you. `DotenvEnvironmentPostProcessor` reads it into Spring whatever the launcher, and the `Backend (dev)` run configuration also injects it through the EnvFile plugin. A real environment variable of the same name wins over both.
 
 ## When the backend will not start
 
@@ -154,16 +183,16 @@ SQL State  : 08001
 Message    : Connection to localhost:5432 refused.
 ```
 
-Nothing is wrong with your `env.local`. Nothing is **loading** it.
+Nothing is wrong with your `.env.local`. Nothing is **loading** it.
 
-Spring Boot does not read `backend/env.local` — it is an ordinary file, and something has to put those variables into the process. When nothing does, every `${DB_HOST}` in `application.yml` falls back to its localhost default. The file sits there, correct, being ignored. That is why the address in the error is one you never configured: it is the fallback, not your setting.
+Spring Boot does not read `.env.local` — it is an ordinary file, and something has to put those variables into the process. When nothing does, every `${DB_HOST}` in `application.yml` falls back to its localhost default. The file sits there, correct, being ignored. That is why the address in the error is one you never configured: it is the fallback, not your setting.
 
 From IntelliJ, use the **`Backend (dev)`** run configuration. It loads the file through the EnvFile plugin — install that from Settings > Plugins if you have not got it. The older `DocsPlatformApplication` configuration does not load it, and also names a `local` profile that no `application-local.yml` defines, so it silently gets neither your variables nor the dev logging.
 
 From a shell:
 
 ```bash
-set -a; . ./backend/env.local; set +a
+set -a; . ./backend/.env.local; set +a
 ./backend/mvnw -f backend/pom.xml spring-boot:run
 ```
 
@@ -190,7 +219,7 @@ Your database ran a different file at that version — usually because you had a
 **On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
 
 ```bash
-set -a; . ./backend/env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/db-reset-dev.sh
 ```
 
@@ -199,7 +228,7 @@ It refuses any host that is not localhost, refuses a schema that does not name i
 **On the shared dev database you cannot do that**, and `db-reset-dev.sh` will refuse — deliberately. Dropping it destroys everyone's accounts, sessions and the audit trail. There, repair is the right tool, but only once you have checked the thing repair cannot check for you: that the schema the *other* file left behind is the schema this file describes. Compare the real table against the migration — columns, types, defaults, indexes (including partial ones), check constraints, foreign keys — and if anything differs, stop and raise it rather than repairing over it.
 
 ```bash
-set -a; . ./backend/env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/flyway-repair-dev.sh
 ```
 

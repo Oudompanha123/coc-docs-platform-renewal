@@ -65,7 +65,9 @@ public class AccountService {
      * <p>// req: FR-AUTH-003, FR-AUTH-004, FR-AUTH-005, UC-004
      */
     @Transactional
-    public Account update(UUID accountId, AppRole newRole, Boolean active, CurrentUser actor) {
+    public Account update(
+            UUID accountId, AppRole newRole, Boolean active, String displayName, CurrentUser actor) {
+
         Account result = accounts
                 .findById(accountId)
                 .orElseThrow(() -> ApiException.notFound("account " + accountId));
@@ -76,7 +78,33 @@ public class AccountService {
         if (active != null) {
             result = setActive(accountId, active, actor);
         }
+        if (displayName != null) {
+            result = renameFor(accountId, displayName, actor);
+        }
         return result;
+    }
+
+    /**
+     * Corrects an account's display name.
+     *
+     * <p>Worth knowing before using it: for anyone who signs in with Google,
+     * this is temporary. Sign-in refreshes the name from the identity provider,
+     * so an administrator's correction survives only until that person next
+     * signs in. It is genuinely useful for an account created by invite, which
+     * carries an address-derived placeholder until its owner first arrives.
+     *
+     * <p>Not audited as a security event, unlike role and activation changes:
+     * a display name grants nothing. The row's {@code updated_at} moves, which
+     * is the trail that matches the weight of the change.
+     */
+    @Transactional
+    public Account renameFor(UUID accountId, String displayName, CurrentUser actor) {
+        String trimmed = displayName.trim();
+        if (trimmed.isEmpty()) {
+            throw ApiException.badRequest("a display name cannot be blank");
+        }
+        accounts.updateDisplayName(accountId, trimmed);
+        return accounts.findById(accountId).orElseThrow();
     }
 
     /**
@@ -265,7 +293,12 @@ public class AccountService {
             throw ApiException.conflict("that email address is already registered");
         }
 
-        Account created = accounts.insertSelfRegisteredAccount(email, displayName, passwordHash);
+        // Pending, at role guest (ADR-017). Between 2026-09-11 and this change
+        // registration produced an active account immediately, which meant the
+        // Google gate would have had an open door beside it: anyone could
+        // self-issue a working account by choosing a password instead. Both
+        // doors now lead to the same queue.
+        Account created = accounts.insertApplication(email, displayName, null, passwordHash);
 
         audit.append(
                 null,
@@ -278,10 +311,82 @@ public class AccountService {
         return created;
     }
 
-    /** Approves a pending registration. The account can sign in from the next request. */
+    /**
+     * Creates an account on behalf of a {@code super_admin} — the "add account"
+     * path in the administration screen.
+     *
+     * <p>No password is set, and that is the point: the person signs in with
+     * Google, and the account they land on is this row, matched on email. It
+     * exists beforehand so that a role above {@code user} can be waiting for
+     * them, rather than an administrator having to catch them after their
+     * first sign-in.
+     *
+     * <p>Active immediately. There is nothing to approve — a
+     * {@code super_admin} creating it <em>is</em> the approval, unlike
+     * self-registration where the applicant is unknown.
+     *
+     * <p>The role comes from an authenticated {@code super_admin}, which is
+     * what separates this from {@link #register}: there, role is a literal
+     * because the caller is anonymous and could otherwise ask for
+     * {@code super_admin} (TM-025); here, the caller already holds it.
+     *
+     * <p>Display name is derived from the address rather than asked for. The
+     * real one arrives from the identity provider on first sign-in and
+     * overwrites this, so prompting for it would be asking for a value with a
+     * short life.
+     *
+     * <p>// req: FR-AUTH-003, FR-AUTH-005, FR-AUTH-008, UC-004
+     */
     @Transactional
-    public Account approve(UUID accountId, CurrentUser actor) {
-        return decide(accountId, AccountStatus.ACTIVE, AuditAction.ACCOUNT_APPROVE, actor);
+    public Account create(String email, AppRole role, CurrentUser actor) {
+        // Checked here as well as by the unique index, so the API can answer
+        // 409 with an explanation instead of a raised constraint becoming a 500.
+        if (accounts.findByEmail(email).isPresent()) {
+            throw ApiException.conflict("that email address already has an account");
+        }
+
+        String displayName = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        // Active, not pending: a super_admin creating this account is the
+        // approval. Sending it to the queue would ask them to approve their own
+        // decision (ADR-017).
+        Account created = accounts.insert(email, displayName, role, null, AccountStatus.ACTIVE);
+
+        audit.append(
+                actor.id(),
+                actor.email(),
+                AuditAction.ACCOUNT_CREATE,
+                AuditAction.TARGET_ACCOUNT,
+                created.id(),
+                json.createObjectNode()
+                        .put("subject", email)
+                        .put("role", role.wire())
+                        .put("via", "admin-invite"));
+
+        return created;
+    }
+
+    /** Approves a pending registration. The account can sign in from the next request. */
+    /**
+     * Lets a pending applicant in, at a role chosen now (ADR-017).
+     *
+     * <p>One decision, not two. "Should this person be let in, and as what" is
+     * a single thought; approve-then-promote splits it across two screens and
+     * two audit entries, and leaves a window in which someone is inside at a
+     * role nobody chose.
+     *
+     * <p>The granted role replaces {@code guest}, which an applicant holds
+     * while pending and which grants nothing. {@code guest} itself is refused:
+     * approving somebody into a role that opens nothing is not an approval,
+     * and the caller almost certainly meant to reject.
+     */
+    @Transactional
+    public Account approve(UUID accountId, AppRole role, CurrentUser actor) {
+        if (role == AppRole.GUEST) {
+            throw ApiException.badRequest(
+                    "guest grants nothing; approve at user or above, or reject the application");
+        }
+        Account approved = decide(accountId, AccountStatus.ACTIVE, AuditAction.ACCOUNT_APPROVE, actor);
+        return setRoles(approved.id(), EnumSet.of(role), actor);
     }
 
     /**

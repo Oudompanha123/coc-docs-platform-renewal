@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { PulseIcon } from "@/components/layout/icons";
-import type { ActiveSession } from "@/lib/mock/settings";
+import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
 
 /**
  * Password change is a UI stub, not a real flow — Coc Docs Platform is
@@ -20,12 +20,75 @@ import type { ActiveSession } from "@/lib/mock/settings";
  * cards-within-a-card would read as visual clutter, not hierarchy. Danger
  * zone stays visually distinct (red-tinted inset block) as required.
  */
-export function SecurityTab({ sessions: initialSessions }: { sessions: ActiveSession[] }) {
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [sessions, setSessions] = useState(initialSessions);
+/**
+ * A user agent is a long string nobody wants to read in a list. This pulls out
+ * the two things that identify a device to its owner — browser and platform —
+ * and falls back to the raw value rather than hiding it, because "Unknown
+ * device" helps nobody decide whether to end a session.
+ */
+function describeDevice(userAgent: string | null): string {
+  if (!userAgent) return "Unknown device";
 
-  function signOutSession(id: string) {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
+  // Order matters. Chrome's user agent contains "Safari", Edge's contains
+  // both, and Opera's contains all three — so the most specific claim has to
+  // be tested first or everything reports as Safari.
+  const browser = /Edg\//.test(userAgent)
+    ? "Edge"
+    : /OPR\/|Opera/.test(userAgent)
+      ? "Opera"
+      : /Chrome\//.test(userAgent)
+        ? "Chrome"
+        : /Firefox\//.test(userAgent)
+          ? "Firefox"
+          : /Safari\//.test(userAgent)
+            ? "Safari"
+            : null;
+
+  const platform = /Windows/.test(userAgent)
+    ? "Windows"
+    : /Android/.test(userAgent)
+      ? "Android"
+      : /iPhone|iPad/.test(userAgent)
+        ? "iOS"
+        : /Mac OS X|Macintosh/.test(userAgent)
+          ? "macOS"
+          : /Linux/.test(userAgent)
+            ? "Linux"
+            : null;
+
+  if (browser && platform) return `${browser} on ${platform}`;
+  return browser ?? platform ?? userAgent.slice(0, 40);
+}
+
+function formatWhen(iso: string): string {
+  const when = new Date(iso);
+  return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
+}
+
+export function SecurityTab() {
+  const [twoFactor, setTwoFactor] = useState(false);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listSessions()
+      .then(setSessions)
+      .catch((err) => setError(err instanceof Error ? err.message : "Could not load your sessions."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function signOutSession(id: string) {
+    // Removed from the list only once the server has revoked it. Dropping it
+    // optimistically would show a device as signed out while its session row
+    // was still live.
+    try {
+      await revokeSession(id);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not end that session.");
+    }
   }
 
   return (
@@ -107,25 +170,30 @@ export function SecurityTab({ sessions: initialSessions }: { sessions: ActiveSes
             <p className="text-sm font-semibold text-dash-ink">Active sessions</p>
           </div>
           <div className="mt-3 divide-y divide-border">
+            {loading && <p className="py-3 text-xs text-muted">Loading your sessions…</p>}
+            {error && <p className="py-3 text-xs text-danger">{error}</p>}
+            {!loading && !error && sessions.length === 0 && (
+              <p className="py-3 text-xs text-muted">No other sessions.</p>
+            )}
             {sessions.map((session) => (
               <div key={session.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-dash-ink">
-                    {session.device}
-                    {session.isCurrent && (
+                    {describeDevice(session.userAgent)}
+                    {session.current && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-semibold text-brand-blue">
                         This device
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-muted">
-                    {session.location} · {session.lastActive}
+                  <p className="truncate text-xs text-muted">
+                    {session.ipAddress ?? "Unknown address"} · signed in {formatWhen(session.issuedAt)}
                   </p>
                 </div>
-                {!session.isCurrent && (
+                {!session.current && (
                   <button
                     type="button"
-                    onClick={() => signOutSession(session.id)}
+                    onClick={() => void signOutSession(session.id)}
                     className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
                   >
                     Sign out
