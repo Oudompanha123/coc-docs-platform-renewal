@@ -15,7 +15,20 @@ spring:
     # startup clearly instead of silently reaching whichever host used to be
     # hardcoded here. Set them in backend/env.local (copy backend/env.example) —
     # never committed, .gitignore already covers it.
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?currentSchema=cocdocs_dev
+    # DB_SCHEMA is how several developers share one PostgreSQL server without
+    # sharing a schema. Each person sets their own — cocdocs_sam, cocdocs_rayuth
+    # — and gets their own tables, their own migration history and their own
+    # data on the same host.
+    #
+    # This is not a preference. One shared schema means one Flyway lineage, so
+    # two branches that each add a V6 collide, and a rebuild to escape the
+    # collision destroys everyone's data at once. That happened twice on
+    # 2026-09-14 and cost nine accounts, the audit trail and a colleague's
+    # table.
+    #
+    # Defaults to cocdocs_dev, which is the shared schema. Leaving it unset is
+    # a deliberate choice to work in the common one, not an accident.
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?currentSchema=${DB_SCHEMA:cocdocs_dev}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
@@ -27,6 +40,37 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
+
+    # Migrate the same schema the application reads, and create it if this is
+    # the first run against it. Without this Flyway would follow the connection
+    # default and could put flyway_schema_history somewhere other than the
+    # tables it describes — which is the one pair that must never drift apart.
+    schemas: ${DB_SCHEMA:cocdocs_dev}
+    create-schemas: true
+
+    # TEMPORARY — REMOVE WHEN V6__password_reset_token.sql REACHES dev.
+    #
+    # On 2026-09-11 17:05 that migration was applied to the shared development
+    # database from a branch that was never pushed. The password_reset_token
+    # table is there; the file is on one developer's machine. Every other
+    # developer's application then refuses to start:
+    #
+    #   Detected applied migration not resolved locally: 6.
+    #
+    # This makes Flyway tolerate an applied migration it cannot find, so the
+    # team can work while that file is being pushed. It does NOT touch the
+    # database and does not mark anything deleted — when the file lands, it
+    # validates normally against the row already there and this line comes out.
+    #
+    # What it costs while it is here: a migration someone genuinely deletes
+    # stops being caught. That is the check this disables, and it is the reason
+    # this is temporary rather than a setting.
+    #
+    # Do NOT reach for `flyway repair` instead. Repair marks version 6 deleted
+    # while password_reset_token stays in the schema, so the day that branch
+    # merges Flyway tries to create a table that already exists — turning a
+    # clear error into a confusing one.
+    ignore-migration-patterns: "*:missing"
 
   jackson:
     default-property-inclusion: non_null

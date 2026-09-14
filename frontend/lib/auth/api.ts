@@ -26,6 +26,8 @@ export interface MeResponse {
   email: string | null;
   displayName: string | null;
   role: Role | null;
+  /** When the account was created — the profile screen's "Joined". */
+  createdAt: string | null;
   /** Profile picture URL from the identity provider, or null — see UserAvatar. */
   avatarUrl: string | null;
   authenticated: boolean;
@@ -190,5 +192,81 @@ export async function signOut(): Promise<void> {
     });
   } catch {
     // Deliberately swallowed — see above.
+  }
+}
+
+/**
+ * PATCH /api/v1/auth/me. Changes the caller's own display name.
+ *
+ * Name only. Email identifies the account and comes from the identity
+ * provider; role and status are the server's to decide — a profile screen that
+ * could change those would be an administration screen with no floor under it.
+ *
+ * Note for anyone who signs in with Google: the provider's name overwrites this
+ * on the next sign-in.
+ */
+export async function updateProfile(displayName: string): Promise<MeResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/me`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't save your profile. Please try again.");
+  }
+  return (await response.json()) as MeResponse;
+}
+
+/** One device the caller is signed in on — `GET /api/v1/auth/sessions`. */
+export interface SessionSummary {
+  /** Opaque; never the token hash. */
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  issuedAt: string;
+  expiresAt: string;
+  /** True for the session making this request. */
+  current: boolean;
+}
+
+/** Where this account is signed in. Own sessions only — the server uses the caller's own id. */
+export async function listSessions(): Promise<SessionSummary[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/sessions`, { credentials: "include" });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't load your sessions.");
+  }
+  return (await response.json()) as SessionSummary[];
+}
+
+/**
+ * Ends one of the caller's own sessions.
+ *
+ * The server answers 204 whether or not a row was revoked — an id belonging to
+ * someone else is indistinguishable from one that does not exist — so there is
+ * nothing to report back beyond "it went through".
+ */
+export async function revokeSession(sessionId: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/sessions/${sessionId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't end that session.");
   }
 }

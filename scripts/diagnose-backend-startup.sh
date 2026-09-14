@@ -95,6 +95,11 @@ else
   HOSTPORT="${URL#jdbc:postgresql://}"; HOSTPORT="${HOSTPORT%%/*}"
   H="${HOSTPORT%%:*}"; P="${HOSTPORT##*:}"; [ "$P" = "$H" ] && P=5432
   echo "        target ${H}:${P}  schema ${SCHEMA}"
+  if [ "$SCHEMA" = "cocdocs_dev" ]; then
+    note "You are on cocdocs_dev, the schema the whole team shares."
+    fix "Set DB_SCHEMA=cocdocs_<your name> in backend/env.local to get your own."
+    fix "One shared schema means one Flyway lineage: your migration collides with theirs."
+  fi
   if timeout 5 bash -c "cat < /dev/null > /dev/tcp/${H}/${P}" 2>/dev/null; then
     ok "TCP connect to ${H}:${P} succeeded."
   else

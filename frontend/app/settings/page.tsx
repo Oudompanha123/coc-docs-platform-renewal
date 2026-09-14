@@ -6,8 +6,7 @@ import { NotificationsCard } from "@/components/settings/NotificationsCard";
 import { SecurityTab } from "@/components/settings/SecurityTab";
 import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { BellIcon, GearIcon, MoonIcon } from "@/components/layout/icons";
-import { CURRENT_USER } from "@/lib/mock/overview";
-import { ACTIVE_SESSIONS, NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
+import { NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
 
 /**
  * All four sections are always visible — no accordion/click-to-expand.
@@ -26,7 +25,7 @@ export default function SettingsPage() {
     >
       <div className="animate-entrance">
         <SettingsCard icon={PersonIcon} title="Profile" description="Your name, email, and role information">
-          <ProfileCard data={CURRENT_USER} />
+          <ProfileCard />
         </SettingsCard>
       </div>
 
@@ -46,7 +45,7 @@ export default function SettingsPage() {
 
       <div className="animate-entrance mt-5 [animation-delay:140ms]">
         <SettingsCard icon={ShieldIcon} title="Security" description="Authentication, sessions, and account controls">
-          <SecurityTab sessions={ACTIVE_SESSIONS} />
+          <SecurityTab />
         </SettingsCard>
       </div>
     </AppShell>
