@@ -11,7 +11,7 @@ export class AuthApiError extends Error {}
 /** A registration that already exists for that email (409). Distinguished from other failures so the form can point at the email field specifically. */
 export class EmailAlreadyRegisteredError extends AuthApiError {}
 
-export type Role = "GUEST" | "USER" | "ADMIN" | "SUPER_ADMIN";
+export type Role = "guest" | "user" | "admin" | "super_admin";
 
 export interface AuthenticatedAccount {
   id: string;
