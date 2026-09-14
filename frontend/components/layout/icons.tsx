@@ -105,6 +105,30 @@ export function UsersIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function CameraIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="13" r="4" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+export function MonitorIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function GearIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>
@@ -114,6 +138,27 @@ export function GearIcon(props: SVGProps<SVGSVGElement>) {
         stroke="currentColor"
         strokeWidth="1.7"
         strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19.43 13c.04-.32.07-.65.07-1s-.03-.68-.07-1l2.11-1.63a.5.5 0 0 0 .12-.63l-2-3.46a.5.5 0 0 0-.61-.22l-2.49.99a7.5 7.5 0 0 0-1.68-.97l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.43l-.38 2.65a7.5 7.5 0 0 0-1.68.97l-2.49-.99a.49.49 0 0 0-.61.22l-2 3.46a.49.49 0 0 0 .12.63L4.57 11c-.04.32-.07.64-.07 1s.03.68.07 1l-2.11 1.63a.5.5 0 0 0-.12.63l2 3.46c.12.22.38.3.61.22l2.49-.99c.52.38 1.08.7 1.68.97l.38 2.65c.06.25.26.43.49.43h4c.23 0 .43-.18.49-.43l.38-2.65a7.5 7.5 0 0 0 1.68-.97l2.49.99c.23.08.49 0 .61-.22l2-3.46a.49.49 0 0 0-.12-.63L19.43 13Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

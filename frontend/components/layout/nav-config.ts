@@ -1,12 +1,12 @@
 import type { IconComponent } from "./icons";
 import {
   FolderIcon,
-  GearIcon,
   HeartIcon,
   HomeIcon,
   LayersIcon,
   PlugIcon,
   PulseIcon,
+  SettingsIcon,
   SparklesIcon,
   UsersIcon,
 } from "./icons";
@@ -54,7 +54,7 @@ export const NAV_SECTIONS: NavSection[] = [
 ];
 
 /** Standalone item pinned above the user card at the bottom of the sidebar. */
-export const NAV_BOTTOM: NavItem = { label: "Settings", href: "/settings", icon: GearIcon };
+export const NAV_BOTTOM: NavItem = { label: "Settings", href: "/settings", icon: SettingsIcon };
 
 /** A nav item is active on an exact match or on any of its sub-routes. */
 export function isNavItemActive(pathname: string, href: string): boolean {
