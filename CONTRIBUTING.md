@@ -129,6 +129,35 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
 
+## One server, one schema each
+
+We share a PostgreSQL server. We do **not** share a schema.
+
+Set your own in `backend/env.local`:
+
+```
+DB_SCHEMA=cocdocs_sam
+```
+
+That gives you your own tables, your own Flyway history and your own data on the same host. Leave it unset and you land in `cocdocs_dev`, the shared schema.
+
+**Why this exists.** One shared schema means one Flyway lineage for everybody. Two branches that each add a `V6` collide the moment the second person runs. Worse, the obvious escape — rebuild the schema — destroys everyone's data at once, because it is everyone's schema. On 2026-09-14 that happened twice in one morning and cost nine accounts, the audit trail, and a colleague's `password_reset_token` table. Neither person did anything unreasonable; the arrangement was.
+
+With your own schema:
+
+- Your migration runs against your history. A `V6` on your branch cannot collide with a `V6` on someone else's.
+- `scripts/db-reset-dev.sh` rebuilds **yours** and nobody notices. It refuses `cocdocs_dev` outright.
+- You can run an unmerged migration without putting a table in a database other people's code knows nothing about.
+
+**What you give up:** shared test data. If you want the content someone else set up, you need it in your own schema — usually faster to recreate than to coordinate.
+
+### Working in the shared schema anyway
+
+Sometimes right — a demo, or reproducing something only its data shows. Two rules, and both exist because breaking them has already cost a day:
+
+1. **Push a migration before you run it there.** A migration applied from an unpushed branch leaves everyone else unable to start: Flyway finds an applied version it cannot resolve, and the only real fix is the file you still have not pushed.
+2. **Never rebuild it to escape a Flyway error.** Rebuilding is a local remedy applied to shared infrastructure. Move to your own schema instead; that is the fix.
+
 ## The settings that are not obvious
 
 `backend/env.example` is a list of names and defaults. These are the ones where the default is a local convenience, or where getting it wrong fails in a way that does not name itself.
