@@ -100,6 +100,16 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
   } catch {
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
   }
+  // 403 is the one sign-in refusal the backend names: the registration exists
+  // and is waiting for approval. Everything else stays a single 401 with a
+  // fixed message, so the endpoint cannot be used to tell a real address from
+  // a made-up one.
+  if (response.status === 403) {
+    throw new RegistrationPendingError(
+      "Your registration is waiting for an administrator to approve it. " +
+        "You will be able to sign in once they do.",
+    );
+  }
   if (!response.ok) {
     throw new AuthApiError("Login failed. Your Google account may not have access yet.");
   }
@@ -134,7 +144,7 @@ export async function loginWithPassword(email: string, password: string): Promis
 }
 
 export interface RegisterResult {
-  /** Always "ACTIVE" on success — the account can sign in immediately, though registration itself never signs the caller in. */
+  /** "PENDING" — an administrator has to approve the application before sign-in works (ADR-017). */
   status: string;
   message: string;
 }
@@ -270,3 +280,16 @@ export async function revokeSession(sessionId: string): Promise<void> {
     throw new AuthApiError("Couldn't end that session.");
   }
 }
+
+/**
+ * Thrown when the caller's Google identity is genuine but their registration
+ * has not been approved yet (ADR-017).
+ *
+ * Distinct from AuthApiError on purpose. Every other sign-in failure here is
+ * deliberately indistinguishable, so the endpoint cannot be used to discover
+ * who has an account — but this one follows an action the person took on
+ * purpose, with an address they have just proved they own, so telling them
+ * discloses nothing and a generic error would read as the product being
+ * broken.
+ */
+export class RegistrationPendingError extends AuthApiError {}

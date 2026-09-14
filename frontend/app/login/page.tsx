@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
-import { loginWithIdToken, loginWithPassword, requestNonce } from "@/lib/auth/api";
+import {
+  loginWithIdToken,
+  loginWithPassword,
+  requestNonce,
+  RegistrationPendingError,
+} from "@/lib/auth/api";
 import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
 
 /**
@@ -41,7 +46,10 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error" | "pending";
+    message: string;
+  } | null>(null);
   // A ref, not state: guards against a second click landing between the
   // first click and the state update that disables the button (React state
   // updates are async; this check is synchronous).
@@ -107,6 +115,13 @@ export default function LoginPage() {
         // The user closed Google's prompt themselves — not a failure.
         return;
       }
+      if (err instanceof RegistrationPendingError) {
+        // Not an error: they applied, and this is what waiting looks like
+        // (ADR-017). Shown as a notice, so it does not read as something they
+        // did wrong or should retry.
+        setFeedback({ type: "pending", message: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : "Google sign-in failed. Please try again.";
       setFeedback({ type: "error", message });
     } finally {
@@ -142,7 +157,9 @@ export default function LoginPage() {
           className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
             feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-700"
+              : feedback.type === "pending"
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-red-200 bg-red-50 text-red-700"
           }`}
         >
           {feedback.message}
