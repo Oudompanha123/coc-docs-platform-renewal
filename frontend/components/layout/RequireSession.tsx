@@ -10,18 +10,24 @@ import { useSession } from "@/lib/auth/SessionProvider";
  *
  * <p><b>This is a courtesy, not a control.</b> Every route it covers is also
  * enforced server-side — the filter chain reads the role from the `account`
- * row on every request and ends in `anyRequest().hasRole(SUPER_ADMIN)`. A
- * visitor who skips this by disabling JavaScript gets a shell with no data in
- * it, because the API refuses them. What this fixes is the experience: before
- * it, an expired session produced an admin page with blank panels and no
+ * row on every request and ends in `anyRequest().hasRole(SUPER_ADMIN)`, and
+ * `MustChangePasswordInterceptor` refuses everything else to an account still
+ * on its temporary password (revision of ADR-017). A visitor who skips this
+ * by disabling JavaScript gets a shell with no data in it, because the API
+ * refuses them either way. What this fixes is the experience: before it, an
+ * expired session produced an admin page with blank panels and no
  * explanation of why.
+ *
+ * <p>A caller still carrying a temporary password is sent to
+ * /create-password instead of /login — they *are* signed in, just not yet
+ * allowed to use that session for anything but replacing the password.
  *
  * <p>Rendering `null` while loading rather than the page is deliberate. Showing
  * the shell first and redirecting after means a visible flash of an interface
  * the visitor is not entitled to see.
  */
 export function RequireSession({ children }: { children: ReactNode }) {
-  const { status } = useSession();
+  const { status, user } = useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -29,10 +35,12 @@ export function RequireSession({ children }: { children: ReactNode }) {
       // replace, not push: the back button should not return to a page that
       // will only bounce them here again.
       router.replace("/login");
+    } else if (status === "authenticated" && user?.mustChangePassword) {
+      router.replace("/create-password");
     }
-  }, [status, router]);
+  }, [status, user, router]);
 
-  if (status !== "authenticated") {
+  if (status !== "authenticated" || user?.mustChangePassword) {
     return null;
   }
   return <>{children}</>;

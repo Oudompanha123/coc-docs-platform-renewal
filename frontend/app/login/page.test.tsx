@@ -68,6 +68,24 @@ describe("LoginPage password form", () => {
     expect(push).toHaveBeenCalledWith("/overview");
   });
 
+  it("sends a caller still on a temporary password to /create-password instead of /overview", async () => {
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "invited@example.com",
+      displayName: "Invited Person",
+      role: "USER",
+      mustChangePassword: true,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "invited@example.com");
+    await user.type(screen.getByLabelText("Password"), "TempPassword123!");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/create-password"));
+  });
+
   it("shows the failure message when the API call is refused", async () => {
     loginWithPassword.mockRejectedValue(
       new Error("Login failed. Check your email and password, or your account may not be approved yet."),

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
+  changePassword,
   loginWithPassword,
   me,
   register,
@@ -116,5 +117,51 @@ describe("register", () => {
 
     await expect(failure).rejects.toBeInstanceOf(AuthApiError);
     await expect(failure).rejects.not.toBeInstanceOf(EmailAlreadyRegisteredError);
+  });
+});
+
+describe("changePassword", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts both password fields and returns the confirmation message", async () => {
+    const body = { message: "Password created successfully. You can now access your account." };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await changePassword("NewPassword456!", "NewPassword456!");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/auth/change-password"),
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({ newPassword: "NewPassword456!", confirmPassword: "NewPassword456!" }),
+      }),
+    );
+    expect(result).toEqual(body.message);
+  });
+
+  it("surfaces the server's own detail message on a rejection, e.g. reusing the temporary password", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          { detail: "choose a password different from your current one" },
+          { ok: false, status: 400 },
+        ),
+      ),
+    );
+
+    await expect(changePassword("SamePassword1!", "SamePassword1!")).rejects.toThrow(
+      "choose a password different from your current one",
+    );
+  });
+
+  it("throws a connection-failure AuthApiError when fetch itself rejects", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network down")));
+
+    await expect(changePassword("NewPassword456!", "NewPassword456!")).rejects.toThrow(/reach the server/i);
   });
 });

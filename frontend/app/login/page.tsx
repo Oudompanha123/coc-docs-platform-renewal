@@ -103,7 +103,10 @@ export default function LoginPage() {
       // no per-role or "remember me" variant), so it isn't sent.
       const account = await loginWithPassword(identifier, password);
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
-      router.push("/overview");
+      // A temporary password (revision of ADR-017) buys entry to exactly one
+      // place: Create New Password. Everything else refuses this session
+      // until that happens, so sending it anywhere else would just bounce.
+      router.push(account.mustChangePassword ? "/create-password" : "/overview");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setFeedback({ type: "error", message });
@@ -135,7 +138,10 @@ export default function LoginPage() {
       const account = await loginWithIdToken(idToken);
 
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
-      router.push("/overview");
+      // Same gate as the password path above: an account a super_admin
+      // invited by email can also arrive here later via Google, and the
+      // temporary password still has to be replaced first either way.
+      router.push(account.mustChangePassword ? "/create-password" : "/overview");
     } catch (err) {
       if (err instanceof GoogleSignInCancelledError) {
         // The user closed Google's prompt themselves — not a failure.
