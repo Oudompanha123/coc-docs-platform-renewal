@@ -13,6 +13,7 @@ import {
   RegistrationPendingError,
 } from "@/lib/auth/api";
 import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
+import { rememberIdToken } from "@/lib/auth/idTokenMemory";
 
 /**
  * Login — both sign-in methods are wired to the real backend.
@@ -103,6 +104,9 @@ export default function LoginPage() {
       //    back a Keycloak-issued ID token (ADR-013 — Keycloak brokers
       //    Google upstream).
       const idToken = await signInWithGoogleViaKeycloak({ nonce });
+      // Kept in memory only, so signing out can pass it as id_token_hint and
+      // skip Keycloak's "Do you want to log out?" page.
+      rememberIdToken(idToken);
       // 3. Hand it to the backend: signature/issuer/audience/nonce verified
       //    there, never trusted client-side. On success it sets the session
       //    cookie (FR-AUTH-001, FR-AUTH-007, NFR-SEC-SESSION).

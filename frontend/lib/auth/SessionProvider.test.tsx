@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RequireSession } from "@/components/layout/RequireSession";
+import { rememberIdToken } from "./idTokenMemory";
 import { SessionProvider, useSession } from "./SessionProvider";
 
 /**
@@ -133,9 +134,10 @@ describe("signing out", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
   });
 
-  it("ends the Keycloak session too, so the next sign-in can choose a different account", async () => {
+  it("ends the Keycloak session silently, so the next sign-in can choose an account", async () => {
     me.mockResolvedValue(SIGNED_IN);
     signOut.mockResolvedValue(undefined);
+    rememberIdToken("the-id-token");
 
     process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
     process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
@@ -160,8 +162,43 @@ describe("signing out", () => {
     await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
     const target = new URL(assign.mock.calls[0]![0] as string);
     expect(target.pathname).toBe("/realms/docs_platform/protocol/openid-connect/logout");
-    expect(target.searchParams.get("client_id")).toBe("cocdocs-frontend");
+    // The hint is what keeps it silent: without it Keycloak answers with a
+    // "Do you want to log out?" page.
+    expect(target.searchParams.get("id_token_hint")).toBe("the-id-token");
     expect(target.searchParams.get("post_logout_redirect_uri")).toBe("http://localhost:3000/login");
+
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
+  });
+
+  it("skips the Keycloak round trip when it has no hint, rather than showing its confirmation page", async () => {
+    me.mockResolvedValue(SIGNED_IN);
+    signOut.mockResolvedValue(undefined);
+    // No rememberIdToken: the tab was reloaded since signing in.
+
+    process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
+    process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
+    process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID = "cocdocs-frontend";
+
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { origin: "http://localhost:3000", assign },
+      writable: true,
+    });
+
+    render(
+      <SessionProvider>
+        <SignOutButton />
+      </SessionProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+
+    // Sending it without a hint would land on "Do you want to log out?",
+    // which after clicking Sign out reads as the product not having heard.
+    // prompt=login on the next sign-in re-authenticates anyway.
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
+    expect(assign).not.toHaveBeenCalled();
 
     delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
     delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;

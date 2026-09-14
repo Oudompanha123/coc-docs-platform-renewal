@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { me, signOut as signOutRequest, type MeResponse } from "./api";
+import { takeIdToken } from "./idTokenMemory";
 
 /**
  * Who is signed in, asked once per page rather than once per component.
@@ -84,15 +85,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
     const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
 
-    if (keycloakUrl && realm && clientId) {
+    // The hint is what makes this silent. Without it Keycloak shows a
+    // "Do you want to log out?" confirmation — a guard against a malicious
+    // link ending someone's session — which turns signing out into two steps.
+    const idTokenHint = takeIdToken();
+
+    if (keycloakUrl && realm && clientId && idTokenHint) {
       const logout = new URL(`${keycloakUrl}/realms/${realm}/protocol/openid-connect/logout`);
-      logout.searchParams.set("client_id", clientId);
+      logout.searchParams.set("id_token_hint", idTokenHint);
       logout.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/login`);
       window.location.assign(logout.toString());
       return;
     }
 
-    // No Keycloak configured: nothing else holds a session to end.
+    // No hint — the tab was reloaded since signing in, or Keycloak is not
+    // configured. Skipped rather than sent without one: that request would
+    // land on the confirmation page, and being asked "do you want to log
+    // out?" after clicking Sign out reads as the product not having heard.
+    //
+    // Nothing is lost by skipping it. `prompt=login` on the next sign-in
+    // re-authenticates whatever Keycloak session survives, so the next person
+    // still chooses their account.
     router.replace("/login");
   }, [router]);
 

@@ -90,6 +90,20 @@ export function signInWithGoogleViaKeycloak(options: { nonce: string }): Promise
     // at Keycloak's own login form first.
     authorizeUrl.searchParams.set("kc_idp_hint", "google");
 
+    // Always re-authenticate, never answer from Keycloak's SSO cookie.
+    //
+    // Without this, signing out and clicking the button again signed the same
+    // person straight back in: Keycloak had a live session of its own, so it
+    // answered from that cookie and the request never reached Google — there
+    // was no moment at which anyone could have chosen a different account.
+    //
+    // This makes account switching work regardless of what any other session
+    // is doing, which is why it belongs here rather than only in the sign-out
+    // path: sign-out can be skipped, interrupted, or happen in another tab.
+    // Google then offers its chooser because the identity provider is
+    // configured prompt=select_account.
+    authorizeUrl.searchParams.set("prompt", "login");
+
     const openedPopup = window.open(authorizeUrl.toString(), "coc-google-signin", POPUP_FEATURES);
     if (!openedPopup) {
       sessionStorage.removeItem(PENDING_ATTEMPT_PREFIX + state);
