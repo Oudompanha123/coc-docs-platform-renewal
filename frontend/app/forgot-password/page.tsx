@@ -8,16 +8,21 @@ import { LockIcon, MailIcon } from "@/components/auth/icons";
 import { AuthApiError, forgotPassword } from "@/lib/auth/api";
 
 /**
- * Forgot Password — POST /api/v1/auth/forgot-password (ADR-018).
+ * Forgot Password — POST /api/v1/auth/forgot-password (ADR-018, revised by
+ * ADR-019).
  *
- * Always shows the same success message on a 200, whatever actually
- * happened server-side: an unknown address, an account that only ever
- * signed in via Google, and a genuinely emailed reset link are
- * indistinguishable from here on purpose (ADR-018 decision 3, the same
- * anti-enumeration principle the login form already follows). This page
- * never claims to know whether an email was actually sent.
+ * Shows the same success message on a 200 for every case except one: an
+ * account that only ever signed in via Google and a genuinely emailed reset
+ * link are still indistinguishable from here on purpose (ADR-018 decision
+ * 3, the same anti-enumeration principle the login form follows). An
+ * address with no account at all is no longer folded into that — the
+ * backend now answers with a 404, `forgotPassword()` throws its exact
+ * message ("No account found with this email address."), and the existing
+ * catch block below shows it as an error, same as any other rejection
+ * (ADR-019 — a deliberate, explicit product decision to accept the
+ * enumeration risk on this one endpoint; see the ADR for what that costs).
  *
- * // req: FR-AUTH-002, ADR-014, ADR-018
+ * // req: FR-AUTH-002, ADR-014, ADR-018, ADR-019
  */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

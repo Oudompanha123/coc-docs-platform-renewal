@@ -67,4 +67,18 @@ describe("ForgotPasswordPage", () => {
       await screen.findByText("Couldn't reach the server. Check your connection and try again."),
     ).toBeInTheDocument();
   });
+
+  it("shows 'No account found' for an unregistered address, and lets the caller retry (ADR-019)", async () => {
+    forgotPassword.mockRejectedValue(new AuthApiError("No account found with this email address."));
+    const user = userEvent.setup();
+    render(<ForgotPasswordPage />);
+
+    await user.type(screen.getByLabelText("Email"), "nobody@example.com");
+    await user.click(screen.getByRole("button", { name: "Send Reset Link" }));
+
+    expect(await screen.findByText("No account found with this email address.")).toBeInTheDocument();
+    // Unlike a real success, this must not lock the form — the caller
+    // presumably mistyped the address and should be able to fix it.
+    expect(screen.getByRole("button", { name: "Send Reset Link" })).toBeEnabled();
+  });
 });
