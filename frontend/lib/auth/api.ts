@@ -28,6 +28,8 @@ export interface MeResponse {
   role: Role | null;
   /** When the account was created — the profile screen's "Joined". */
   createdAt: string | null;
+  /** Most recent sign-in; null when no session row exists. */
+  lastSignInAt: string | null;
   /** Profile picture URL from the identity provider, or null — see UserAvatar. */
   avatarUrl: string | null;
   authenticated: boolean;

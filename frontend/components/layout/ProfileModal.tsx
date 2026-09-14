@@ -96,6 +96,10 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           </dd>
         </div>
         <div className="flex items-center justify-between gap-4">
+          <dt className="text-muted">Last sign-in</dt>
+          <dd className="font-medium text-dash-ink">{formatWhen(user?.lastSignInAt ?? null)}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
           <dt className="text-muted">Created</dt>
           <dd className="font-medium text-dash-ink">{formatWhen(user?.createdAt ?? null)}</dd>
         </div>
