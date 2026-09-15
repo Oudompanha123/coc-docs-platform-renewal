@@ -8,14 +8,15 @@ import { LockIcon } from "@/components/auth/icons";
 import { AuthApiError, changePassword } from "@/lib/auth/api";
 import { SessionProvider, useSession } from "@/lib/auth/SessionProvider";
 
-type Errors = Partial<Record<"password" | "confirmPassword", string>>;
+type Errors = Partial<Record<"temporaryPassword" | "password" | "confirmPassword", string>>;
 
 /**
  * Create New Password — POST /api/v1/auth/change-password (revision of
- * ADR-017). The first-login completion step for an account a super_admin
- * invited with a temporary password: the caller already holds a session
- * (issued on that temporary password by /login-password or /google), and
- * this is how `mustChangePassword` turns false.
+ * ADR-017; temporary-password field added by ADR-024). The first-login
+ * completion step for an account a super_admin invited with a temporary
+ * password: the caller already holds a session (issued on that temporary
+ * password by /login-password or /google), and this is how
+ * `mustChangePassword` turns false.
  *
  * Reachable only while signed in and still under the gate — an anonymous
  * visitor is sent to /login, and someone who has already completed this step
@@ -28,12 +29,20 @@ type Errors = Partial<Record<"password" | "confirmPassword", string>>;
  * the backend keeps this exact session alive and only revokes the others —
  * so this page sends them on to /overview rather than back to /login.
  *
- * // req: FR-AUTH-002, FR-AUTH-007, ADR-017
+ * The temporary password field re-proves the credential /login-password
+ * already verified moments earlier on this same session — ADR-022 originally
+ * exempted this page from sending any `currentPassword` at all; ADR-024
+ * reverses that on direct PM request, so this now behaves like the voluntary
+ * `ChangePasswordForm`'s "Current Password" field, just labeled for what a
+ * just-invited user actually holds.
+ *
+ * // req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-022, ADR-024
  */
 function CreatePasswordForm() {
   const router = useRouter();
   const { status, user } = useSession();
 
+  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
@@ -51,6 +60,7 @@ function CreatePasswordForm() {
 
   function validate() {
     const next: Errors = {};
+    if (!temporaryPassword) next.temporaryPassword = "Enter your temporary password.";
     if (!password) next.password = "Create a new password.";
     else if (password.length < 8) next.password = "Password must be at least 8 characters.";
     if (!confirmPassword) next.confirmPassword = "Confirm your new password.";
@@ -68,7 +78,7 @@ function CreatePasswordForm() {
     setIsSubmitting(true);
     setFeedback(null);
     try {
-      const message = await changePassword(password, confirmPassword);
+      const message = await changePassword(password, confirmPassword, temporaryPassword);
       setFeedback({ type: "success", message });
       // A brief pause so the confirmation is actually readable, then on to
       // the workspace — the session from signing in with the temporary
@@ -112,6 +122,16 @@ function CreatePasswordForm() {
       )}
 
       <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+        <PasswordField
+          label="Temporary Password"
+          value={temporaryPassword}
+          onChange={setTemporaryPassword}
+          placeholder="Enter the temporary password you were emailed"
+          icon={<LockIcon className="h-4 w-4" />}
+          autoComplete="current-password"
+          error={errors.temporaryPassword}
+        />
+
         <PasswordField
           label="New Password"
           value={password}

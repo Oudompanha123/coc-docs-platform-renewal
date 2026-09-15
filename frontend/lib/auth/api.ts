@@ -3,7 +3,8 @@
  * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017, ADR-018, ADR-019, ADR-021
  */
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
+/** Also read by lib/notify/push.ts, which talks to the same backend. */
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 /** A user-facing failure from the auth API. `message` is always safe to show as-is. */
 export class AuthApiError extends Error {}
@@ -341,22 +342,24 @@ export async function resetPassword(token: string, newPassword: string): Promise
 
 /**
  * POST /api/v1/auth/change-password (revision of ADR-017; current-password
- * check added by ADR-022). Two callers share this one function:
+ * check added by ADR-022, made unconditional by ADR-024). Two callers share
+ * this one function, both now required to pass `currentPassword`:
  *
  * - The first-login completion step (`/create-password`): the caller already
- *   holds a session issued on a temporary password, and passes no
- *   `currentPassword` — there is none to give, and the backend doesn't ask
- *   for one in that case (it skips the check for an account still under
- *   ADR-020's forced-change gate).
+ *   holds a session issued on a temporary password, and passes that same
+ *   temporary password as `currentPassword` — a second proof of it,
+ *   immediately before it is retired (ADR-024).
  * - The voluntary "My Profile" / Settings → Security change (ADR-022):
- *   `currentPassword` is required here and verified server-side.
+ *   `currentPassword` is the account's existing password.
+ *
+ * Either way it is verified server-side against the stored hash.
  *
  * Unlike {@link resetPassword}, this never ends the caller's own session.
  */
 export async function changePassword(
   newPassword: string,
   confirmPassword: string,
-  currentPassword?: string,
+  currentPassword: string,
 ): Promise<string> {
   let response: Response;
   try {

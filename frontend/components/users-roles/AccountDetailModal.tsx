@@ -103,7 +103,9 @@ export function AccountDetailModal({
         <div className="flex items-center justify-between gap-4">
           <dt className="text-muted">Status</dt>
           <dd>
-            <StatusBadge status={account.active ? "active" : "deactivated"} />
+            <StatusBadge
+              status={!account.active ? "deactivated" : account.mustChangePassword ? "pending" : "active"}
+            />
           </dd>
         </div>
         <div className="flex items-center justify-between gap-4">

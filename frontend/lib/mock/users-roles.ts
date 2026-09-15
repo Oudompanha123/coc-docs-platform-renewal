@@ -1,7 +1,7 @@
 /** Mock data for Users & Roles. UI-only — no API yet, same convention as lib/mock/overview.ts. */
 
 export type AccountRole = "user" | "admin" | "super_admin";
-export type AccountStatus = "active" | "deactivated";
+export type AccountStatus = "active" | "pending" | "deactivated";
 
 export type ManagedAccount = {
   id: string;
