@@ -1,10 +1,13 @@
 import { TagIcon } from "@/components/layout/icons";
-import type { DocsHeaderNav, DocsSubItem } from "@/lib/docs/jexmcp-nav";
 
-/** Phase 2 placeholder — real content lands in Phase 3, one header at a
- *  time, starting with Jex3.0. Not fabricated feature copy: this page says
- *  plainly that it isn't written yet. */
-export function DocsStubPage({ header, item }: { header: DocsHeaderNav; item: DocsSubItem }) {
+/** Shown for a sub-item that has no saved content yet. Not fabricated
+ *  feature copy: this page says plainly that it isn't written yet.
+ *
+ *  Prop shapes are narrowed to just the fields actually used (not the full
+ *  NavProduct/NavItem from nav-api.ts) so this also still satisfies the
+ *  older, unmigrated DocsHeaderNav/DocsSubItem shape (app/docs/idea/*, a
+ *  pre-existing orphan left untouched by the nav-structure task). */
+export function DocsStubPage({ header, item }: { header: { label: string }; item: { label: string } }) {
   return (
     <div>
       <p className="text-sm font-semibold text-brand-purple">{header.label}</p>
