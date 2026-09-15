@@ -1,7 +1,10 @@
 import type { Role } from "@/lib/auth/api";
+import type { NavProduct } from "@/lib/docs/nav-api";
 import type { IconComponent } from "./icons";
 import {
   BarChartIcon,
+  DatabaseIcon,
+  DocumentIcon,
   FolderIcon,
   HomeIcon,
   LayersIcon,
@@ -24,27 +27,6 @@ export type NavItem = {
   roles?: readonly Role[];
 };
 
-/** Jex3.0's real sub-item labels, verified against content/en/jex3.0.tsx
- *  during the Phase 1 audit. Slugs match the routes under app/jex3-0/.
- *  Exported (with `slug`) so app/jex3-0/[slug]/page.tsx can look up a
- *  label without duplicating this list. Not rendered in the admin sidebar
- *  itself (that's the /jex3-0 management table's job) — this list only
- *  feeds the stub-page lookup and the content-editor registry. */
-export const JEX3_SUB_ITEMS_RAW = [
-  { label: "Overview", slug: "overview" },
-  { label: "Get started", slug: "get-started" },
-  { label: "How to use", slug: "how-to-use" },
-  { label: "Flow", slug: "flow" },
-  { label: "Structure", slug: "structure" },
-  { label: "Updating", slug: "updating" },
-  { label: "Releases", slug: "releases" },
-  { label: "FAQ", slug: "faq" },
-  { label: "Prerequisites", slug: "prerequisites" },
-  { label: "Run configs", slug: "run-configs" },
-  { label: "From scratch", slug: "from-scratch" },
-  { label: "Verify", slug: "verify" },
-];
-
 export type NavSection = {
   label: string;
   items: NavItem[];
@@ -53,24 +35,35 @@ export type NavSection = {
 /** Standalone item above the grouped sections — the dashboard home. */
 export const NAV_TOP: NavItem = { label: "Overview", href: "/overview", icon: HomeIcon };
 
-export const NAV_SECTIONS: NavSection[] = [
-  {
+/** String icon key (as stored by nav-api.ts) -> icon component. Reused by
+ *  app/[productKey]/page.tsx for the same product icon shown here. */
+export const PRODUCT_ICONS: Record<string, IconComponent> = {
+  document: DocumentIcon,
+  layers: LayersIcon,
+  users: UsersIcon,
+  database: DatabaseIcon,
+  folder: FolderIcon,
+  person: PersonIcon,
+  pulse: PulseIcon,
+  barChart: BarChartIcon,
+};
+
+/** The PRODUCTS section, built from the live nav structure (nav-api.ts)
+ *  instead of a hardcoded list — sub-items are added directly from each
+ *  product's own content-management page (ProductContentTable's "+ Add
+ *  item"), not a separate nav-management screen. */
+function productsSection(products: NavProduct[]): NavSection {
+  return {
     label: "PRODUCTS",
-    items: [
-      { label: "Jex3.0", href: "/jex3-0", icon: LayersIcon },
-      { label: "Jex2.0", href: "/jex2-0", icon: FolderIcon },
-      { label: "Coach", href: "/coach", icon: PersonIcon },
-      { label: "Team", href: "/team", icon: PulseIcon },
-    ],
-  },
-  {
-    label: "MONITORING",
-    // Repoints to the content-management table for the "Usage" product
-    // (Dashboard/Setup guide/Configuration) — the real Claude Code Usage
-    // dashboard still exists at /claude-usage, just no longer linked here,
-    // per explicit confirmation.
-    items: [{ label: "Usage", href: "/usage", icon: BarChartIcon }],
-  },
+    items: products.map((product) => ({
+      label: product.label,
+      href: `/${product.key}`,
+      icon: PRODUCT_ICONS[product.icon] ?? LayersIcon,
+    })),
+  };
+}
+
+const STATIC_SECTIONS: NavSection[] = [
   {
     label: "ADMINISTRATION",
     items: [
@@ -123,9 +116,11 @@ export function isNavItemVisible(item: NavItem, role: Role | null | undefined): 
  * the sidebar honest about what the caller can actually do; it is not what
  * stops them doing it.
  */
-export function visibleNavSections(role: Role | null | undefined): NavSection[] {
-  return NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => isNavItemVisible(item, role)),
-  })).filter((section) => section.items.length > 0);
+export function visibleNavSections(role: Role | null | undefined, products: NavProduct[]): NavSection[] {
+  return [productsSection(products), ...STATIC_SECTIONS]
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isNavItemVisible(item, role)),
+    }))
+    .filter((section) => section.items.length > 0);
 }

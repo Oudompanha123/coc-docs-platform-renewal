@@ -73,7 +73,7 @@ export type StatCardData = {
   value: string;
   trend: string;
   trendTone: "positive" | "neutral";
-  icon: "document" | "layers" | "users" | "database";
+  icon: "document" | "layers" | "users" | "database" | "folder" | "person" | "pulse" | "barChart";
   tone: Tone;
 };
 

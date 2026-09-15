@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { HomeIcon, PlayIcon, QuestionIcon, SparklesIcon, TagIcon } from "@/components/layout/icons";
-import { DOCS_HEADERS, headerForPathname, hrefFor } from "@/lib/docs/jexmcp-nav";
+import { hrefFor, productForPathname } from "@/lib/docs/nav-routing";
+import { useNavStructure } from "@/lib/docs/useNavStructure";
 
 const DOCS_NAV = [
   { label: "Overview", href: "/docs", icon: HomeIcon },
@@ -19,7 +20,8 @@ const DOCS_NAV = [
 export function DocsMobileNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const activeHeader = headerForPathname(pathname) ?? DOCS_HEADERS[0]!;
+  const products = useNavStructure();
+  const activeProduct = products ? (productForPathname(products, pathname) ?? products[0]) : undefined;
 
   return (
     <div className="border-b border-border lg:hidden">
@@ -42,41 +44,43 @@ export function DocsMobileNav() {
         })}
       </nav>
 
-      <div className="flex items-center gap-2 border-t border-border px-4 py-2.5">
-        <select
-          value={activeHeader.key}
-          onChange={(e) => {
-            const header = DOCS_HEADERS.find((h) => h.key === e.target.value);
-            if (header) router.push(hrefFor(header.key, header.items[0]?.slug ?? ""));
-          }}
-          aria-label="Knowledge base section"
-          className="shrink-0 rounded-lg border border-border bg-page px-2.5 py-1.5 text-sm font-semibold text-ink"
-        >
-          {DOCS_HEADERS.map((header) => (
-            <option key={header.key} value={header.key}>
-              {header.label}
-            </option>
-          ))}
-        </select>
+      {activeProduct && (
+        <div className="flex items-center gap-2 border-t border-border px-4 py-2.5">
+          <select
+            value={activeProduct.key}
+            onChange={(e) => {
+              const product = products?.find((p) => p.key === e.target.value);
+              if (product) router.push(hrefFor(product.key, product.items[0]?.slug ?? ""));
+            }}
+            aria-label="Knowledge base section"
+            className="shrink-0 rounded-lg border border-border bg-page px-2.5 py-1.5 text-sm font-semibold text-ink"
+          >
+            {(products ?? []).map((product) => (
+              <option key={product.key} value={product.key}>
+                {product.label}
+              </option>
+            ))}
+          </select>
 
-        <nav className="flex gap-1 overflow-x-auto">
-          {activeHeader.items.map((item) => {
-            const href = hrefFor(activeHeader.key, item.slug);
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                  active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+          <nav className="flex gap-1 overflow-x-auto">
+            {activeProduct.items.map((item) => {
+              const href = hrefFor(activeProduct.key, item.slug);
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                    active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </div>
   );
 }
