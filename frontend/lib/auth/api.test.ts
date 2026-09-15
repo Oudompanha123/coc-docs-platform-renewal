@@ -7,6 +7,8 @@ import {
   loginWithPassword,
   me,
   register,
+  resendRegistrationCode,
+  verifyRegistrationCode,
 } from "./api";
 
 function jsonResponse(body: unknown, init?: Partial<Response>): Response {
@@ -86,8 +88,11 @@ describe("register", () => {
     vi.restoreAllMocks();
   });
 
-  it("posts email, displayName and password, and returns the result on success", async () => {
-    const body = { status: "ACTIVE", message: "Your account has been created. You can now log in." };
+  it("posts email, displayName and password, and returns a code-sent challenge, not an account (ADR-021)", async () => {
+    const body = {
+      message: "We've sent a 6-digit verification code to new@example.com. It expires in 10 minutes.",
+      expiresInSeconds: 600,
+    };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -111,6 +116,15 @@ describe("register", () => {
     );
   });
 
+  it("throws the backend's cooldown message on a 429 (resubmission treated like a resend)", async () => {
+    const body = { detail: "A code was just sent to this address. Please wait a moment before requesting another." };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body, { ok: false, status: 429 })));
+
+    await expect(register({ email: "new@example.com", displayName: "New Person", password: "hunter2222" })).rejects.toThrow(
+      "A code was just sent to this address. Please wait a moment before requesting another.",
+    );
+  });
+
   it("throws a plain AuthApiError (not EmailAlreadyRegisteredError) on other failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 400 })));
 
@@ -118,6 +132,70 @@ describe("register", () => {
 
     await expect(failure).rejects.toBeInstanceOf(AuthApiError);
     await expect(failure).rejects.not.toBeInstanceOf(EmailAlreadyRegisteredError);
+  });
+});
+
+describe("resendRegistrationCode", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts the email and returns a fresh challenge on success", async () => {
+    const body = { message: "We've sent a 6-digit verification code to new@example.com. It expires in 10 minutes.", expiresInSeconds: 600 };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await resendRegistrationCode("new@example.com");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/auth/register/resend"),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ email: "new@example.com" }) }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("surfaces the backend's own message on failure rather than a generic one", async () => {
+    const body = { detail: "No registration is pending for this email. Please start registration again." };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body, { ok: false, status: 400 })));
+
+    await expect(resendRegistrationCode("nobody@example.com")).rejects.toThrow(
+      "No registration is pending for this email. Please start registration again.",
+    );
+  });
+});
+
+describe("verifyRegistrationCode", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts the email and code, and returns the pending-approval result on success", async () => {
+    const body = {
+      status: "PENDING",
+      message: "Your email is verified and your registration has been received. An administrator has to approve it before you can sign in.",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await verifyRegistrationCode("new@example.com", "123456");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/auth/register/verify"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ email: "new@example.com", code: "123456" }),
+      }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("reports an incorrect or expired code plainly, from the backend's own message", async () => {
+    const body = { detail: "That code is incorrect. Please try again." };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body, { ok: false, status: 400 })));
+
+    await expect(verifyRegistrationCode("new@example.com", "000000")).rejects.toThrow(
+      "That code is incorrect. Please try again.",
+    );
   });
 });
 
@@ -198,5 +276,39 @@ describe("changePassword", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network down")));
 
     await expect(changePassword("NewPassword456!", "NewPassword456!")).rejects.toThrow(/reach the server/i);
+  });
+
+  it("posts currentPassword too when given, for the voluntary change (ADR-022)", async () => {
+    const body = { message: "Your password has been changed." };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await changePassword("NewPassword456!", "NewPassword456!", "OldPassword123!");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/auth/change-password"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: "OldPassword123!",
+          newPassword: "NewPassword456!",
+          confirmPassword: "NewPassword456!",
+        }),
+      }),
+    );
+    expect(result).toEqual(body.message);
+  });
+
+  it("surfaces the backend's own message when the current password is wrong", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({ detail: "your current password is incorrect" }, { ok: false, status: 400 }),
+      ),
+    );
+
+    await expect(
+      changePassword("NewPassword456!", "NewPassword456!", "WrongPassword!!!"),
+    ).rejects.toThrow("your current password is incorrect");
   });
 });

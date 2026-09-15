@@ -1,44 +1,77 @@
 "use client";
 
-import { useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { FormField, PasswordField } from "@/components/auth/FormField";
-import { MailIcon, PersonIcon, PhoneIcon, PlusIcon, LockIcon } from "@/components/auth/icons";
-import { AuthApiError, EmailAlreadyRegisteredError, register } from "@/lib/auth/api";
+import { CodeField, FormField, PasswordField } from "@/components/auth/FormField";
+import { LockIcon, MailIcon, PersonIcon, PlusIcon, ShieldIcon } from "@/components/auth/icons";
+import { Stepper } from "@/components/auth/Stepper";
+import {
+  AuthApiError,
+  EmailAlreadyRegisteredError,
+  register,
+  resendRegistrationCode,
+  verifyRegistrationCode,
+} from "@/lib/auth/api";
 
-type Errors = Partial<Record<"fullName" | "email" | "phone" | "password" | "confirmPassword" | "agree", string>>;
+type FormErrors = Partial<Record<"fullName" | "email" | "password" | "confirmPassword" | "agree", string>>;
+
+type Step = "form" | "code" | "done";
+
+/** Labels for the {@link Stepper} shown on every screen of this flow. */
+const STEPS = ["Account", "Verify", "Confirm"];
+
+/** Matches the backend's cooldown (`RegistrationOtpService.RESEND_COOLDOWN`, ADR-021) — a UI countdown, not what actually enforces it. */
+const RESEND_COOLDOWN_SECONDS = 60;
 
 /**
- * Register — wired to the real backend (ADR-014, revision of ADR-008, as
- * further revised 2026-09-11): POST /api/v1/auth/register creates an account
- * with a bcrypt-hashed password, status ACTIVE. Submitting here never signs
- * the caller in itself — no session cookie is set by this call — but there is
- * no super_admin approval gate to wait on; the backend's message says the
- * account can sign in now, and the caller still goes to /login to do that.
+ * Register — three steps (ADR-021, revision of ADR-014/017): submit
+ * details, confirm the emailed 6-digit code, done.
  *
- * The phone number is collected (matching the approved mockup) but not sent
- * to the backend — no `phone` column exists on `account` (out of scope for
- * ADR-014, which added only `password`/`status`).
+ * `POST /api/v1/auth/register` no longer creates an account by itself — it
+ * mints and emails that code. `POST /api/v1/auth/register/verify` is the
+ * call that actually creates one, still `pending` a super_admin's approval
+ * (ADR-017) exactly as the old single-step register always ended in.
  *
- * // req: FR-AUTH-002, FR-AUTH-003, ADR-014
+ * The phone number field this page used to collect — matching an old
+ * mockup, never sent to the backend (there was never a `phone` column) — is
+ * gone. ADR-021 removes it outright rather than continuing to carry dead UI.
+ *
+ * // req: FR-AUTH-002, FR-AUTH-003, ADR-014, ADR-017, ADR-021
  */
 export default function RegisterPage() {
+  const [step, setStep] = useState<Step>("form");
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agree, setAgree] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | undefined>();
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+  const [doneMessage, setDoneMessage] = useState("");
+
+  // Counts the resend cooldown down to zero once a second while step "code"
+  // is showing. A UI convenience only — the backend is what actually refuses
+  // an early resend (429), this just keeps the button looking disabled until
+  // that would succeed.
+  useEffect(() => {
+    if (step !== "code" || resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((s) => Math.max(s - 1, 0)), 1000);
+    return () => clearInterval(timer);
+  }, [step, resendCooldown]);
+
   function validate() {
-    const next: Errors = {};
+    const next: FormErrors = {};
     if (!fullName.trim()) next.fullName = "Enter your full name.";
     if (!email.trim()) next.email = "Enter your email.";
-    if (!phone.trim()) next.phone = "Enter your phone number.";
     if (!password) next.password = "Create a password.";
     if (!confirmPassword) next.confirmPassword = "Confirm your password.";
     else if (password && confirmPassword && password !== confirmPassword) {
@@ -56,8 +89,11 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     setFeedback(null);
     try {
-      const result = await register({ email, displayName: fullName, password });
-      setFeedback({ type: "success", message: result.message });
+      await register({ email, displayName: fullName, password });
+      setCode("");
+      setCodeError(undefined);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      setStep("code");
     } catch (err) {
       if (err instanceof EmailAlreadyRegisteredError) {
         setErrors((prev) => ({ ...prev, email: err.message }));
@@ -70,10 +106,128 @@ export default function RegisterPage() {
     }
   }
 
+  async function handleVerify(e: FormEvent) {
+    e.preventDefault();
+    if (code.length !== 6) {
+      setCodeError("Enter the 6-digit code.");
+      return;
+    }
+
+    setIsVerifying(true);
+    setCodeError(undefined);
+    try {
+      const result = await verifyRegistrationCode(email, code);
+      setDoneMessage(result.message);
+      setStep("done");
+    } catch (err) {
+      // Expired, incorrect, or too many attempts are distinct, backend-authored
+      // messages safe to show as-is (RegistrationOtpService.verify, ADR-021).
+      setCodeError(err instanceof AuthApiError ? err.message : "Couldn't verify that code. Please try again.");
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  async function handleResend() {
+    setIsResending(true);
+    setCodeError(undefined);
+    try {
+      await resendRegistrationCode(email);
+      setCode("");
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (err) {
+      setCodeError(err instanceof AuthApiError ? err.message : "Couldn't resend the code. Please try again.");
+    } finally {
+      setIsResending(false);
+    }
+  }
+
   function handleLegalLinkClick(e: MouseEvent) {
     e.preventDefault();
     // TODO: no /terms or /privacy page exists yet — out of scope for this task.
     console.info("[stub] Legal link clicked");
+  }
+
+  if (step === "code") {
+    return (
+      <AuthShell
+        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        heading="Verify Your Email"
+        subheading="Enter the 6-digit code we emailed you to finish creating your account."
+      >
+        <h1 className="text-3xl font-extrabold text-ink">Verify Your Email</h1>
+        <p className="mt-2 text-sm text-muted">
+          We&apos;ve sent a 6-digit code to <span className="font-semibold text-ink">{email}</span>. It expires in 10
+          minutes.
+        </p>
+
+        <div className="mt-6">
+          <Stepper steps={STEPS} currentIndex={1} />
+        </div>
+
+        {codeError && (
+          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {codeError}
+          </div>
+        )}
+
+        <form className="mt-6 space-y-5" onSubmit={handleVerify} noValidate>
+          <CodeField label="Verification Code" value={code} onChange={setCode} />
+
+          <button
+            type="submit"
+            disabled={isVerifying}
+            aria-busy={isVerifying}
+            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isVerifying ? "Verifying…" : "Verify Email"}
+          </button>
+        </form>
+
+        <div className="mt-6 flex flex-col items-center gap-3 text-sm text-muted">
+          <p>
+            Didn&apos;t get a code?{" "}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending || resendCooldown > 0}
+              className="font-semibold text-brand-purple hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
+            >
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : isResending ? "Resending…" : "Resend code"}
+            </button>
+          </p>
+          <button type="button" onClick={() => setStep("form")} className="font-semibold text-brand-purple hover:underline">
+            Wrong email? Go back
+          </button>
+        </div>
+      </AuthShell>
+    );
+  }
+
+  if (step === "done") {
+    return (
+      <AuthShell
+        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        heading="Registration Received"
+        subheading="An administrator will review your application before you can sign in."
+      >
+        <h1 className="text-3xl font-extrabold text-ink">Registration Received</h1>
+
+        <div className="mt-6">
+          <Stepper steps={STEPS} currentIndex={2} />
+        </div>
+
+        <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="alert">
+          {doneMessage}
+        </div>
+        <Link
+          href="/login"
+          className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Go to Login
+        </Link>
+      </AuthShell>
+    );
   }
 
   return (
@@ -87,6 +241,10 @@ export default function RegisterPage() {
     >
       <h1 className="px-8 text-3xl font-extrabold text-ink md:px-14">Register</h1>
       <p className="mt-2 px-8 text-sm text-muted md:px-14">Create your account</p>
+
+      <div className="mt-6 px-8 md:px-14">
+        <Stepper steps={STEPS} currentIndex={0} />
+      </div>
 
       {feedback && (
         <div
@@ -125,17 +283,6 @@ export default function RegisterPage() {
           icon={<MailIcon className="h-4 w-4" />}
           autoComplete="email"
           error={errors.email}
-        />
-
-        <FormField
-          label="Phone Number"
-          type="tel"
-          value={phone}
-          onChange={setPhone}
-          placeholder="Enter your phone number"
-          icon={<PhoneIcon className="h-4 w-4" />}
-          autoComplete="tel"
-          error={errors.phone}
         />
 
         <PasswordField
@@ -188,11 +335,11 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          disabled={isSubmitting || feedback?.type === "success"}
+          disabled={isSubmitting}
           aria-busy={isSubmitting}
           className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Submitting…" : "Register"}
+          {isSubmitting ? "Submitting…" : "Continue"}
         </button>
       </form>
 
