@@ -1,13 +1,15 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listPending, useSession } = vi.hoisted(() => ({
+const { listPending, useSession, isNotificationsEnabled } = vi.hoisted(() => ({
   listPending: vi.fn(),
   useSession: vi.fn(),
+  isNotificationsEnabled: vi.fn(),
 }));
 
 vi.mock("@/lib/admin/accounts", () => ({ listPending }));
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
+vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled }));
 
 import { useNotifications } from "./useNotifications";
 
@@ -31,6 +33,7 @@ describe("useNotifications", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    isNotificationsEnabled.mockReturnValue(true);
   });
 
   it("lists who is actually waiting, not a fixed array", async () => {
@@ -147,10 +150,7 @@ describe("useNotifications", () => {
 
   it("does not raise a browser alert for people already in the queue at sign-in", async () => {
     const notificationSpy = vi.fn();
-    vi.stubGlobal(
-      "Notification",
-      Object.assign(notificationSpy, { permission: "granted" }),
-    );
+    vi.stubGlobal("Notification", notificationSpy);
     signedInAs("super_admin");
     listPending.mockResolvedValue([dana, sam]);
 
@@ -164,10 +164,7 @@ describe("useNotifications", () => {
 
   it("raises a browser alert for somebody who arrives while you are watching", async () => {
     const notificationSpy = vi.fn();
-    vi.stubGlobal(
-      "Notification",
-      Object.assign(notificationSpy, { permission: "granted" }),
-    );
+    vi.stubGlobal("Notification", notificationSpy);
     signedInAs("super_admin");
     listPending.mockResolvedValue([dana]);
 
@@ -181,5 +178,26 @@ describe("useNotifications", () => {
 
     await waitFor(() => expect(notificationSpy).toHaveBeenCalledTimes(1));
     expect(notificationSpy.mock.calls[0]?.[0]).toBe("New registration");
+  });
+
+  it("raises no alert when notifications are switched off in Settings", async () => {
+    const notificationSpy = vi.fn();
+    vi.stubGlobal("Notification", notificationSpy);
+    isNotificationsEnabled.mockReturnValue(false);
+    signedInAs("super_admin");
+    listPending.mockResolvedValue([dana]);
+
+    const { result } = renderHook(() => useNotifications());
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    listPending.mockResolvedValue([dana, sam]);
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    // Permission at the browser level is not consent here: somebody who turned
+    // this off in Settings must stop being interrupted.
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+    expect(notificationSpy).not.toHaveBeenCalled();
   });
 });

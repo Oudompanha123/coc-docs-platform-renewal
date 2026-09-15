@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listPending, type PendingAccount } from "@/lib/admin/accounts";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { isNotificationsEnabled } from "@/lib/notify/push";
 
 /**
  * What the bell in the topbar shows, and which of it has been looked at.
@@ -83,7 +84,10 @@ function storeReadIds(ids: Set<string>) {
  */
 function alertBrowser(account: PendingAccount) {
   try {
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+    // Both halves: permission at the browser level, and the person having
+    // turned this on in Settings. Permission alone would alert somebody who
+    // switched it off here.
+    if (!isNotificationsEnabled()) {
       return;
     }
     // tag collapses repeats: five registrations replace one another rather

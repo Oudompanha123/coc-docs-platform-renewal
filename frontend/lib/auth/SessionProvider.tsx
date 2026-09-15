@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { me, signOut as signOutRequest, type MeResponse } from "./api";
 import { takeIdToken } from "./idTokenMemory";
-import { disablePush } from "@/lib/notify/push";
+import { disableNotifications } from "@/lib/notify/push";
 import { keycloakLogoutUrl } from "./keycloakLogout";
 
 /**
@@ -67,7 +67,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Without this a shared browser keeps delivering the previous person's
     // notifications to whoever signs in next, until FCM happens to rotate the
     // token — which it may never do.
-    await disablePush();
+    await disableNotifications();
     await signOutRequest();
     setUser(null);
     setStatus("anonymous");
