@@ -1,7 +1,17 @@
 import type { ManagedAccount } from "@/lib/mock/users-roles";
 import { avatarColorFor } from "@/lib/mock/users-roles";
+import { UserAvatar } from "@/components/layout/UserAvatar";
 import { RoleBadge } from "./RoleBadge";
 import { StatusBadge } from "./StatusBadge";
+
+function initialsOf(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 function ClockIcon({ className }: { className?: string }) {
   return (
@@ -49,17 +59,13 @@ export function AccountsTable({
             <tr key={account.id} className="transition-colors hover:bg-[#f8fafc]">
               <td className="px-4 py-4">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm"
+                  <UserAvatar
+                    avatarUrl={account.avatarUrl}
+                    initials={initialsOf(account.name)}
+                    name={account.name}
+                    className="h-10 w-10 text-sm shadow-sm"
                     style={{ backgroundColor: avatarColorFor(index) }}
-                  >
-                    {account.name
-                      .split(" ")
-                      .map((part) => part[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </div>
+                  />
                   <div>
                     <p className="font-semibold text-dash-ink">{account.name}</p>
                     <p className="text-xs text-muted">{RoleLabelText(account.role)}</p>

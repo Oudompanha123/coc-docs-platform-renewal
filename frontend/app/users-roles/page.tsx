@@ -52,6 +52,7 @@ function toRow(account: AdminAccount): ManagedAccount {
     status: !account.active ? "deactivated" : account.mustChangePassword ? "pending" : "active",
     lastLogin: formatLastLogin(account.lastSignInAt),
     ipAddress: "—",
+    avatarUrl: account.avatarUrl,
   };
 }
 
