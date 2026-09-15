@@ -128,6 +128,37 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 | Testing rules | `docs/design/TEST-PLAN.md` |
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
+## One Keycloak each, one realm file
+
+Keycloak in dev mode runs on a local H2 file, so your Keycloak is **yours alone** — its own realm, clients and identity provider. Nothing you configure in it reaches anybody else.
+
+Start it from the realm in this repository rather than building one by hand:
+
+```
+export GOOGLE_CLIENT_SECRET=...     # ask whoever set up the Google Cloud project
+scripts/keycloak-dev.sh
+```
+
+That imports `keycloak/docs_platform-realm.json`: the realm, the `cocdocs-frontend` public client, the Google identity provider, and the declarative user profile that stops Keycloak demanding a first and last name from a Google sign-in.
+
+**Why this exists.** On 2026-09-15 a developer's Google sign-in failed with:
+
+```
+Unexpected response from token endpoint https://oauth2.googleapis.com/token
+status=401 "error": "invalid_client"
+"error_description": "The provided client secret is invalid."
+```
+
+Google, not Keycloak, rejecting a client secret typed into one machine's admin console with nothing to check it against. Everyone was reproducing the same realm by hand from memory. Configuration that exists only on whoever's machine happens to work is the same failure this project already had with database schemas.
+
+**Two things are deliberately not in the file.** The Google **client secret**, which is read from `GOOGLE_CLIENT_SECRET` at import — the script refuses to start without it, because Keycloak would otherwise import an empty secret and you would meet the error above several minutes later. And the realm **signing keys**, so each installation generates its own; sharing them would let any developer mint tokens every other developer accepts.
+
+The client ID *is* in the file. It is public by design — it appears in the address bar of every Google sign-in.
+
+`--import-realm` imports only a realm that does not already exist, so the script is safe to re-run. To take the file's version over one you have edited, delete the realm in the admin console first.
+
+If you browse the app from another device, add that origin to the client's Redirect URIs and Web Origins in the admin console — the file ships `http://localhost:3000` only.
+
 
 ## One server, one schema each
 
