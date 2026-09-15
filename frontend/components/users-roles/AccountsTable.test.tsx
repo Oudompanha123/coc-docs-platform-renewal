@@ -13,6 +13,7 @@ function row(overrides: Partial<ManagedAccount> = {}): ManagedAccount {
     status: "active",
     lastLogin: "2026-09-14 10:02",
     ipAddress: "—",
+    avatarUrl: null,
     ...overrides,
   };
 }
@@ -96,5 +97,37 @@ describe("AccountsTable actions", () => {
     await user.click(screen.getByRole("button", { name: /delete dana lee/i }));
 
     expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the account's picture when it has one", () => {
+    render(
+      <AccountsTable
+        accounts={[row({ avatarUrl: "https://lh3.googleusercontent.com/a/example" })]}
+        onDeactivate={vi.fn()}
+        onReactivate={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Dana Lee" })).toHaveAttribute(
+      "src",
+      "https://lh3.googleusercontent.com/a/example",
+    );
+  });
+
+  it("falls back to initials when the account has no picture", () => {
+    render(
+      <AccountsTable
+        accounts={[row({ avatarUrl: null })]}
+        onDeactivate={vi.fn()}
+        onReactivate={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText("DL")).toBeInTheDocument();
   });
 });

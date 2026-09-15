@@ -27,12 +27,19 @@ export function UserAvatar({
   initials,
   name,
   className = "",
+  style,
 }: {
   avatarUrl: string | null;
   initials: string;
   name: string;
   /** Gradient and sizing classes from the caller, so the shape stays theirs. */
   className?: string;
+  /**
+   * Inline style for the initials fallback only — for a caller like the
+   * Users & Roles table that assigns each row a distinct solid color at
+   * runtime, which a static Tailwind class can't express.
+   */
+  style?: React.CSSProperties;
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -57,6 +64,7 @@ export function UserAvatar({
       // aria-hidden: the initials are a decorative stand-in for a picture, and
       // the accessible name is already on the control that contains this.
       aria-hidden="true"
+      style={style}
       className={`flex shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${className}`}
     >
       {initials}
