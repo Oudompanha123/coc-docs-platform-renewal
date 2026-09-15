@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Only one lockfile. CI installs with `npm ci`, so a yarn.lock is never read
+# there — it just drifts from package-lock.json until the two resolve different
+# trees and a build works on one machine and not another.
+yarn.lock
+pnpm-lock.yaml
