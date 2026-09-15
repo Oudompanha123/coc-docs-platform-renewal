@@ -3,6 +3,7 @@ import { SettingsCard } from "@/components/settings/SettingsCard";
 import { ProfileCard } from "@/components/settings/ProfileCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { NotificationsCard } from "@/components/settings/NotificationsCard";
+import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
 import { SecurityTab } from "@/components/settings/SecurityTab";
 import { SettingsIcon } from "@/components/layout/icons";
 import { NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
@@ -37,6 +38,7 @@ export default function SettingsPage() {
 
         <div className="animate-entrance [animation-delay:70ms]">
           <SettingsCard title="Notifications" description="Choose what you get notified about">
+            <PushNotificationsCard />
             <NotificationsCard data={NOTIFICATION_PREFERENCES} />
           </SettingsCard>
         </div>
