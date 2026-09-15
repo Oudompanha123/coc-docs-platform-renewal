@@ -6,14 +6,16 @@
 #
 # Usage:
 #   backend: mvn spring-boot:run   (needs a reachable Postgres; see CONTRIBUTING.md)
+#            The dev profile must be active — /v3/api-docs is disabled in the
+#            base config and enabled only in application-dev.yml.
 #   scripts/export-openapi.sh [backend-url]
 #
 # Environment variables:
-#   BACKEND_URL=http://localhost:8080   # override for a non-default port/host
+#   BACKEND_URL=http://localhost:8081   # override for a non-default port/host
 
 set -euo pipefail
 
-BACKEND_URL="${1:-${BACKEND_URL:-http://localhost:8080}}"
+BACKEND_URL="${1:-${BACKEND_URL:-http://localhost:8081}}"
 OUT_FILE="docs/api/openapi.yaml"
 
 echo "[export-openapi] Fetching ${BACKEND_URL}/v3/api-docs.yaml ..."

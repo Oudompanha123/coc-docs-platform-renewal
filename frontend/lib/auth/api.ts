@@ -1,6 +1,6 @@
 /**
  * Thin client for the backend's login API (see docs/api/openapi.yaml).
- * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017, ADR-018, ADR-019
+ * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017, ADR-018, ADR-019, ADR-021
  */
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
@@ -11,6 +11,32 @@ export class AuthApiError extends Error {}
 /** A registration that already exists for that email (409). Distinguished from other failures so the form can point at the email field specifically. */
 export class EmailAlreadyRegisteredError extends AuthApiError {}
 
+/**
+ * The backend renders a rejected request as an RFC 9457 problem body with a
+ * `detail` field. Read only where that detail was deliberately authored to be
+ * shown plainly (ADR-018 decision 3's precedent, extended by ADR-021) --
+ * everywhere else in this file keeps its own fixed client-side string on
+ * purpose, so wording stays centrally controlled here.
+ */
+async function readErrorDetail(response: Response): Promise<string | undefined> {
+  try {
+    const body = (await response.json()) as { detail?: string };
+    return body.detail;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The role as the backend actually sends it: lower case.
+ *
+ * <p>`AppRole.wire()` lower-cases the Java enum for both the wire and the
+ * `app_role` Postgres enum, so `super_admin` is what arrives here — not
+ * `SUPER_ADMIN`. This type said the latter for a while, which typechecked
+ * perfectly and matched nothing at runtime: every `Record<Role, …>` lookup
+ * silently missed, which is why the sidebar rendered a raw `super_admin`
+ * instead of "Super Admin".
+ */
 export type Role = "guest" | "user" | "admin" | "super_admin";
 
 export interface AuthenticatedAccount {
@@ -159,17 +185,24 @@ export interface RegisterResult {
   message: string;
 }
 
+/** Step 1 (and resend)'s response shape — no account exists yet, only a code in flight. */
+export interface RegisterChallengeResult {
+  message: string;
+  /** Seconds until the emailed code expires (ADR-021: 600, i.e. 10 minutes). */
+  expiresInSeconds: number;
+}
+
 /**
- * POST /api/v1/auth/register (ADR-014, as revised 2026-09-11). Creates an
- * account with a bcrypt-hashed password, status ACTIVE, role user. No session
- * cookie is set here — the caller still has to sign in via
- * {@link loginWithPassword} — but there is no admin approval gate to wait on.
+ * POST /api/v1/auth/register (ADR-021, revision of ADR-014/017). Step 1 of
+ * three: mints a 6-digit code and emails it, rather than creating an account
+ * directly. {@link verifyRegistrationCode} is the call that actually creates
+ * one, once that code is confirmed.
  */
 export async function register(input: {
   email: string;
   displayName: string;
   password: string;
-}): Promise<RegisterResult> {
+}): Promise<RegisterChallengeResult> {
   let response: Response;
   try {
     response = await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
@@ -184,8 +217,67 @@ export async function register(input: {
   if (response.status === 409) {
     throw new EmailAlreadyRegisteredError("This email is already registered.");
   }
+  if (response.status === 429) {
+    // Resubmitting the form for an address already mid-verification is
+    // treated like a resend and shares its cooldown (ADR-021) — the
+    // backend's message already says how long to wait.
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Please wait a moment before trying again.");
+  }
   if (!response.ok) {
     throw new AuthApiError("Registration failed. Please check your details and try again.");
+  }
+  return (await response.json()) as RegisterChallengeResult;
+}
+
+/**
+ * POST /api/v1/auth/register/resend (ADR-021). Re-sends the code for a
+ * registration already in flight — the "I didn't get it" / "it expired"
+ * path — subject to the same 60-second cooldown as resubmitting the form.
+ */
+export async function resendRegistrationCode(email: string): Promise<RegisterChallengeResult> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/register/resend`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't resend the code. Please try again.");
+  }
+  return (await response.json()) as RegisterChallengeResult;
+}
+
+/**
+ * POST /api/v1/auth/register/verify (ADR-021). Step 3: confirms the emailed
+ * code and creates the account — {@code pending} until a super_admin
+ * approves it (ADR-017), same outcome the old single-step register always
+ * ended in.
+ *
+ * Unlike sign-in's deliberate genericism, a rejected code here is reported
+ * plainly: expired, incorrect, and too-many-attempts are distinct,
+ * backend-authored messages safe to show as-is — the same "the caller
+ * already holds a value from their own mailbox" reasoning {@link
+ * resetPassword} follows (ADR-018 decision 3, extended by ADR-021).
+ */
+export async function verifyRegistrationCode(email: string, code: string): Promise<RegisterResult> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/register/verify`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't verify that code. Please try again.");
   }
   return (await response.json()) as RegisterResult;
 }
