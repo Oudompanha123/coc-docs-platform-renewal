@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <!--
-    Backend, run against whatever backend/env.local points at.
+    Backend, run against whatever backend/.env.local points at.
 
     WHY THIS FILE EXISTS
-    Spring Boot does not read backend/env.local. Without something loading it,
+    Spring Boot does not read backend/.env.local. Without something loading it,
     every ${DB_URL} in application.yml falls back to its localhost default and
     the application fails with "Connection to localhost:5432 refused" — while
     env.local sits on disk, correct, being ignored.
@@ -29,7 +29,7 @@
       <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
       <ENTRIES>
         <ENTRY IS_ENABLED="true" PARSER="runconfig" IS_EXECUTABLE="false" />
-        <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$PROJECT_DIR$/backend/env.local" />
+        <ENTRY IS_ENABLED="true" PARSER="env" IS_EXECUTABLE="false" PATH="$PROJECT_DIR$/backend/.env.local" />
       </ENTRIES>
     </extension>
     <method v="2">
