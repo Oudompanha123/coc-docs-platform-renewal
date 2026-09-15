@@ -1,196 +1,915 @@
-# Coc Docs Platform API — OpenAPI contract snapshot
-#
-# This is a hand-authored SNAPSHOT of what the backend already self-generates
-# at runtime (springdoc-openapi is wired into backend/pom.xml — see
-# com.coc.docs.config.OpenApiConfig). It exists so the frontend workstream can
-# review and start coding against the auth contract now, in an environment
-# where the backend can't actually be booted (no local Postgres/Docker).
-#
-# THE APP, NOT THIS FILE, IS THE SOURCE OF TRUTH once it can run. Regenerate
-# with `scripts/export-openapi.sh` (curls a running instance's
-# /v3/api-docs.yaml) and commit the result in place of this file — do not
-# hand-edit this file and the controller annotations out of sync with each
-# other. RISK-018 (frontend/backend contract drift) is exactly the failure
-# mode this file, and the script, exist to prevent.
-#
-# Scope: the auth endpoints only (FR-AUTH-001, FR-AUTH-002, FR-AUTH-007). The
-# Sprint 0 pilot-slice content endpoints (read/save/publish a page, list
-# navigation) are a separate, not-yet-built part of this same contract.
-
-openapi: 3.0.3
+openapi: 3.0.1
 info:
   title: Coc Docs Platform API
-  description: REST API for documentation content, navigation, media and accounts.
+  description: "REST API for documentation content, navigation, media and accounts."
   version: v1
 servers:
-  - url: http://localhost:8080
-    description: Local backend (default app.frontend-origin CORS allow-list is http://localhost:3000)
-
-tags:
-  - name: Authentication
-    description: Google OIDC sign-in, backend session issuance and sign-out.
-
+- url: http://localhost:8081
+  description: Generated server url
+security:
+- cookieAuth: []
 paths:
-  /api/auth/nonce:
-    post:
-      tags: [Authentication]
-      summary: Issue a one-time nonce for a Google sign-in attempt
-      description: >
-        Pass the returned value as the `nonce` option to Google Identity
-        Services' sign-in call, then submit the resulting credential to
-        POST /api/auth/login. The same value is also set as a short-lived
-        (5 minute) httpOnly cookie (`coc_oidc_nonce`), which /login reads
-        back itself — the caller never needs to resend it.
-      security: []
-      responses:
-        "200":
-          description: Nonce issued
-          headers:
-            Set-Cookie:
-              schema:
-                type: string
-                example: "coc_oidc_nonce=<value>; Max-Age=300; Path=/api/auth; HttpOnly; SameSite=Lax; Secure"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/NonceResponse"
-
-  /api/auth/login:
-    post:
-      tags: [Authentication]
-      summary: Verify a Google ID token and issue a backend session
-      description: >
-        Signature, issuer, audience and nonce are checked server-side against
-        Google's published JWK set before anything here is believed
-        (FR-AUTH-001, TM-001). No account is auto-provisioned: a valid Google
-        identity with no matching, active account is refused.
-      security: []
-      requestBody:
+  /api/v1/admin/pages/{pageId}/versions/{locale}/draft:
+    put:
+      tags:
+      - admin-content-controller
+      operationId: saveDraft
+      parameters:
+      - name: pageId
+        in: path
         required: true
+        schema:
+          type: string
+          format: uuid
+      - name: locale
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: "#/components/schemas/SaveDraftRequest"
+        required: true
       responses:
         "200":
-          description: Signed in; the `coc_session` cookie is now set
-          headers:
-            Set-Cookie:
-              schema:
-                type: string
-                example: "coc_session=<value>; Max-Age=86400; Path=/; HttpOnly; SameSite=Lax; Secure"
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
-          description: >
-            Sign-in refused. Deliberately identical whether the token was
-            invalid, the nonce didn't match, no account is provisioned for
-            this email, or the account is deactivated — see UC-004 E-3 (no
-            account-state oracle). The specific reason is recorded
-            server-side in the audit log only.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-        "400":
-          description: Malformed request body (e.g. missing idToken)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-
-  /api/auth/logout:
+                $ref: "#/components/schemas/VersionResponse"
+  /api/v1/auth/reset-password:
     post:
-      tags: [Authentication]
-      summary: Sign out, invalidating the session server-side
-      description: >
-        A real server-side revocation (FR-AUTH-007): the session row backing
-        the cookie is deleted, not merely cleared client-side. The very next
-        request bearing the old cookie is rejected.
-      security:
-        - cookieAuth: []
-      responses:
-        "204":
-          description: Signed out; the old cookie no longer validates
-        "401":
-          description: No active session
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiError"
-
-  /api/auth/me:
-    get:
-      tags: [Authentication]
-      summary: The signed-in caller's own account
-      security:
-        - cookieAuth: []
+      tags:
+      - auth-controller
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+        required: true
       responses:
         "200":
-          description: The current session's account
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
-          description: No active session
+                $ref: "#/components/schemas/ResetPasswordResponse"
+  /api/v1/auth/register:
+    post:
+      tags:
+      - auth-controller
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+        required: true
+      responses:
+        "202":
+          description: Accepted
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: "#/components/schemas/ApiError"
-
-components:
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: coc_session
-      description: Backend-issued session cookie. Obtained from POST /api/auth/login.
-
-  schemas:
-    LoginRequest:
-      type: object
-      required: [idToken]
-      properties:
-        idToken:
+                $ref: "#/components/schemas/RegisterResponse"
+  /api/v1/auth/nonce:
+    post:
+      tags:
+      - auth-controller
+      operationId: nonce
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NonceResponse"
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - auth-controller
+      operationId: signOut
+      responses:
+        "200":
+          description: OK
+  /api/v1/auth/login-password:
+    post:
+      tags:
+      - auth-controller
+      operationId: signInWithPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordLoginRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+  /api/v1/auth/google:
+    post:
+      tags:
+      - auth-controller
+      operationId: signIn
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleSignInRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+      - auth-controller
+      operationId: forgotPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ForgotPasswordResponse"
+  /api/v1/admin/pages/{pageId}/versions/{locale}/publish:
+    post:
+      tags:
+      - admin-content-controller
+      operationId: publish
+      parameters:
+      - name: pageId
+        in: path
+        required: true
+        schema:
           type: string
-          description: The Google ID token (JWT credential) returned by Google Identity Services.
-
+          format: uuid
+      - name: locale
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+  /api/v1/admin/pages/{pageId}/versions/{locale}/open:
+    post:
+      tags:
+      - admin-content-controller
+      operationId: open
+      parameters:
+      - name: pageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: locale
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+  /api/v1/admin/content/validate:
+    post:
+      tags:
+      - admin-content-controller
+      operationId: validate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ValidateResponse"
+  /api/v1/admin/accounts:
+    get:
+      tags:
+      - admin-account-controller
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountResponse"
+    post:
+      tags:
+      - admin-account-controller
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponse"
+  /api/v1/admin/accounts/{accountId}/reject:
+    post:
+      tags:
+      - admin-account-controller
+      operationId: reject
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountSummary"
+  /api/v1/admin/accounts/{accountId}/approve:
+    post:
+      tags:
+      - admin-account-controller
+      operationId: approve
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountSummary"
+  /api/v1/auth/me:
+    get:
+      tags:
+      - auth-controller
+      operationId: me
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+    patch:
+      tags:
+      - auth-controller
+      operationId: updateProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+  /api/v1/admin/accounts/{accountId}:
+    patch:
+      tags:
+      - admin-account-controller
+      operationId: update
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponse"
+  /api/v1/sections:
+    get:
+      tags:
+      - content-controller
+      operationId: sections
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SectionResponse"
+  /api/v1/sections/{sectionSlug}/pages:
+    get:
+      tags:
+      - content-controller
+      operationId: navigation
+      parameters:
+      - name: sectionSlug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: locale
+        in: query
+        required: false
+        schema:
+          type: string
+          default: en
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NavEntryResponse"
+  /api/v1/pages/{sectionSlug}/{pageSlug}:
+    get:
+      tags:
+      - content-controller
+      operationId: page
+      parameters:
+      - name: sectionSlug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: pageSlug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: locale
+        in: query
+        required: false
+        schema:
+          type: string
+          default: en
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/v1/health:
+    get:
+      tags:
+      - health-controller
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /api/v1/auth/sessions:
+    get:
+      tags:
+      - auth-controller
+      operationId: sessions
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SessionResponse"
+  /api/v1/admin/translation-status:
+    get:
+      tags:
+      - admin-content-controller
+      operationId: translationStatus
+      parameters:
+      - name: section
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TranslationStatusResponse"
+  /api/v1/admin/roles:
+    get:
+      tags:
+      - admin-role-controller
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoleResponse"
+  /api/v1/admin/pages/{pageId}/versions/{locale}/history:
+    get:
+      tags:
+      - admin-content-controller
+      operationId: history
+      parameters:
+      - name: pageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: locale
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VersionSummaryResponse"
+  /api/v1/admin/accounts/pending:
+    get:
+      tags:
+      - admin-account-controller
+      operationId: pending
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountSummary"
+  /api/v1/auth/sessions/{sessionId}:
+    delete:
+      tags:
+      - auth-controller
+      operationId: revokeSession
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+  /api/v1/admin/pages/{pageId}:
+    delete:
+      tags:
+      - admin-content-controller
+      operationId: delete
+      parameters:
+      - name: pageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    JsonNode:
+      type: object
+    SaveDraftRequest:
+      required:
+      - body
+      - title
+      - versionNo
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        body:
+          $ref: "#/components/schemas/JsonNode"
+        versionNo:
+          type: integer
+          format: int32
+    VersionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        pageId:
+          type: string
+          format: uuid
+        locale:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        body:
+          $ref: "#/components/schemas/JsonNode"
+        versionNo:
+          type: integer
+          format: int32
+        sourceVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ResetPasswordRequest:
+      required:
+      - newPassword
+      - token
+      type: object
+      properties:
+        token:
+          type: string
+          description: The opaque token from the emailed reset link.
+        newPassword:
+          maxLength: 200
+          minLength: 8
+          type: string
+          description: Plaintext in transit only — hashed (bcrypt) before it ever
+            reaches the database.
+    ResetPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    RegisterRequest:
+      required:
+      - displayName
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+          description: The applicant's email address.
+        displayName:
+          type: string
+          description: Display name shown immediately in the new account.
+        password:
+          maxLength: 200
+          minLength: 8
+          type: string
+          description: Plaintext in transit only — hashed (bcrypt) before it ever
+            reaches the database.
+    RegisterResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: "Always ACTIVE: the account can sign in immediately, no approval\
+            \ step."
+        message:
+          type: string
     NonceResponse:
       type: object
-      required: [nonce]
       properties:
         nonce:
           type: string
-          description: Pass this value as the `nonce` option to Google Identity Services' sign-in call.
-
-    AuthResponse:
+    PasswordLoginRequest:
+      required:
+      - email
+      - password
       type: object
-      required: [id, email, displayName, role]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          description: Plaintext in transit only — checked against the stored bcrypt
+            hash server-side.
+    MeResponse:
+      type: object
       properties:
         id:
           type: string
           format: uuid
         email:
           type: string
-          format: email
         displayName:
           type: string
         role:
           type: string
-          description: The role ladder, FR-AUTH-005.
-          enum: [GUEST, USER, ADMIN, SUPER_ADMIN]
-
-    ApiError:
+        avatarUrl:
+          type: string
+        authenticated:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastSignInAt:
+          type: string
+          format: date-time
+    GoogleSignInRequest:
+      required:
+      - idToken
       type: object
-      required: [message]
+      properties:
+        idToken:
+          type: string
+    ForgotPasswordRequest:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+    ForgotPasswordResponse:
+      type: object
       properties:
         message:
           type: string
-      example:
-        message: "Sign-in failed"
-
-security:
-  - cookieAuth: []
+          description: The same text whether or not the address has an account with
+            a password.
+    ValidateRequest:
+      required:
+      - body
+      type: object
+      properties:
+        body:
+          $ref: "#/components/schemas/JsonNode"
+    IssueResponse:
+      type: object
+      properties:
+        path:
+          type: string
+        message:
+          type: string
+    ValidateResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/IssueResponse"
+    CreateAccountRequest:
+      required:
+      - email
+      - role
+      type: object
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastSignInAt:
+          type: string
+          format: date-time
+        roles:
+          type: array
+          items:
+            type: string
+    AccountSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+          enum:
+          - GUEST
+          - USER
+          - ADMIN
+          - SUPER_ADMIN
+        status:
+          type: string
+          description: "PENDING, ACTIVE, or REJECTED — the registration/approval lifecycle,\
+            \ ADR-014."
+          enum:
+          - PENDING
+          - ACTIVE
+          - REJECTED
+    ApproveRequest:
+      type: object
+      properties:
+        role:
+          type: string
+    UpdateProfileRequest:
+      required:
+      - displayName
+      type: object
+      properties:
+        displayName:
+          type: string
+    UpdateAccountRequest:
+      type: object
+      properties:
+        role:
+          type: string
+        active:
+          type: boolean
+        displayName:
+          type: string
+    SectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        order:
+          type: integer
+          format: int32
+        dbBacked:
+          type: boolean
+    NavEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        order:
+          type: integer
+          format: int32
+        badge:
+          type: string
+        title:
+          type: string
+    SessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userAgent:
+          type: string
+        ipAddress:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        current:
+          type: boolean
+    TranslationStatusResponse:
+      type: object
+      properties:
+        pageId:
+          type: string
+          format: uuid
+        sectionSlug:
+          type: string
+        pageSlug:
+          type: string
+        locale:
+          type: string
+        published:
+          type: boolean
+        stale:
+          type: boolean
+    RoleResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        rank:
+          type: integer
+          format: int32
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        accountCount:
+          type: integer
+          format: int32
+    VersionSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        locale:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        versionNo:
+          type: integer
+          format: int32
+        updatedAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      description: "Backend-issued session cookie, set by POST /api/v1/auth/google\
+        \ (Keycloak-brokered Google sign-in, ADR-013) or POST /api/v1/auth/login-password\
+        \ (ADR-014). httpOnly, so it is never readable from JavaScript and never appears\
+        \ in a response body. Role is read from the account row on every request and\
+        \ is not carried in this value."
+      name: coc_session
+      in: cookie
