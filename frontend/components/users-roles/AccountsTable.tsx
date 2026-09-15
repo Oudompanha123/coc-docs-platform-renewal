@@ -15,10 +15,18 @@ function ClockIcon({ className }: { className?: string }) {
 export function AccountsTable({
   accounts,
   onDeactivate,
+  onReactivate,
+  onDelete,
   onOpen,
 }: {
   accounts: ManagedAccount[];
   onDeactivate: (account: ManagedAccount) => void;
+  /** Lets a deactivated account back in. The row used to end at a dead
+   *  "Deactivated" label, so the only way back was a database edit — even
+   *  though the backend has supported reactivation all along. */
+  onReactivate: (account: ManagedAccount) => void;
+  /** Removes the account for good (ADR-023). Confirmed in a dialog first. */
+  onDelete: (account: ManagedAccount) => void;
   /** Opens the detail panel. A button rather than a whole clickable row: a row
    *  that navigates is invisible to a keyboard and to a screen reader. */
   onOpen: (account: ManagedAccount) => void;
@@ -86,15 +94,28 @@ export function AccountsTable({
                   <button
                     type="button"
                     onClick={() => onDeactivate(account)}
-                    className="inline-flex items-center rounded-full bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
+                    className="mr-2 inline-flex items-center rounded-full bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
                   >
                     Deactivate
                   </button>
                 ) : (
-                  <span className="inline-flex cursor-not-allowed items-center rounded-full bg-page px-4 py-1.5 text-sm font-semibold text-muted">
-                    Deactivated
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onReactivate(account)}
+                    className="mr-2 inline-flex items-center rounded-full bg-[#1f9d6b]/10 px-4 py-1.5 text-sm font-semibold text-[#1f9d6b] transition-colors hover:bg-[#1f9d6b]/20"
+                  >
+                    Reactivate
+                  </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onDelete(account)}
+                  aria-label={`Delete ${account.name}`}
+                  title="Delete permanently"
+                  className="inline-flex items-center rounded-full border border-danger/30 px-3 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
