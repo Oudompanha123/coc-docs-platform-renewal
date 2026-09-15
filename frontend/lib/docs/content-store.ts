@@ -1,74 +1,27 @@
-import { JEX3_SUB_ITEMS_RAW } from "@/lib/docs/jex3-sub-items";
-import { DOCS_HEADERS } from "@/lib/docs/jexmcp-nav";
 import type { DocContent } from "./content-types";
 
+/** The 5 products with real seed content today. Products created later
+ *  through the nav-editing UI are plain strings — see nav-api.ts's
+ *  `NavProduct` — and never have a SEED_CONTENT entry, which is fine:
+ *  getContent's fallback chain ends in `undefined` ("not written") for
+ *  those, same as any never-edited item. */
 export type ProductKey = "jex3-0" | "jex2-0" | "coach" | "team" | "usage";
 
-export type RegistryItem = {
-  productKey: ProductKey;
-  productLabel: string;
-  slug: string;
-  label: string;
-  /** Where the public page for this item actually renders. */
-  publicHref: string;
-};
-
-/** Every product's sub-item list, composed from the existing nav data
- *  (nav-config.ts for Jex3.0, lib/docs/jexmcp-nav.ts for the other 5) — not
- *  re-typed here, so there's one place each product's real label/slug list
- *  is defined. */
-export const CONTENT_REGISTRY: RegistryItem[] = [
-  ...JEX3_SUB_ITEMS_RAW.map((item) => ({
-    productKey: "jex3-0" as ProductKey,
-    productLabel: "Jex3.0",
-    slug: item.slug,
-    label: item.label,
-    publicHref: item.slug ? `/jex3-0/${item.slug}` : "/jex3-0",
-  })),
-  // jex3-0 is excluded here — it's already covered by the JEX3_SUB_ITEMS_RAW
-  // block above with the correct /jex3-0/... paths; DOCS_HEADERS also lists
-  // it (for the public docs header-switcher), but with the generic
-  // /docs/<key>/... pattern, which isn't where its real content lives.
-  ...DOCS_HEADERS.filter((header) => header.key !== "jex3-0").flatMap((header) =>
-    header.items.map((item) => ({
-      productKey: header.key as ProductKey,
-      productLabel: header.label,
-      slug: item.slug,
-      label: item.label,
-      publicHref: item.slug ? `/docs/${header.key}/${item.slug}` : `/docs/${header.key}`,
-    })),
-  ),
-];
-
-export function contentId(productKey: ProductKey, slug: string): string {
+export function contentId(productKey: string, slug: string): string {
   return `${productKey}--${slug || "index"}`;
 }
 
-function findRegistryEntry(id: string): RegistryItem | undefined {
-  return CONTENT_REGISTRY.find((r) => contentId(r.productKey, r.slug) === id);
-}
-
-const STORAGE_KEY = "coc-docs-content-store";
-
-type StoredContentMap = Record<string, DocContent>;
-
-function readStore(): StoredContentMap {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as StoredContentMap) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStore(map: StoredContentMap): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    // Storage unavailable (private mode, quota) — edit still works for this render, just won't persist.
-  }
+/** The inverse of contentId — splits on the first "--", since a product
+ *  key or slug is always a single kebab-case token that never itself
+ *  contains "--". Used by docs-content-api.ts so it can build the real
+ *  API's URL from just the id string, without depending on the nav
+ *  structure being loaded. */
+export function parseContentId(id: string): { productKey: string; slug: string } {
+  const separatorIndex = id.indexOf("--");
+  if (separatorIndex === -1) return { productKey: id, slug: "" };
+  const productKey = id.slice(0, separatorIndex);
+  const rest = id.slice(separatorIndex + 2);
+  return { productKey, slug: rest === "index" ? "" : rest };
 }
 
 /** Seed content — the real Jex3.0 copy cloned in Phase 3, converted from
@@ -591,25 +544,3 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     ],
   },
 };
-
-/** Reads a saved edit if one exists, else the seed content, else undefined
- *  (not yet written at all — the editor treats this as "create new"). */
-export function getContent(id: string): DocContent | undefined {
-  const saved = readStore()[id];
-  if (saved) return saved;
-  return SEED_CONTENT[id];
-}
-
-export function saveContent(id: string, content: DocContent): void {
-  const map = readStore();
-  map[id] = content;
-  writeStore(map);
-}
-
-export function hasRegistryEntry(id: string): boolean {
-  return Boolean(findRegistryEntry(id));
-}
-
-export function registryEntryFor(id: string): RegistryItem | undefined {
-  return findRegistryEntry(id);
-}

@@ -1,13 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { createProduct, fetchNavStructure } from "@/lib/docs/nav-api";
+import { useNavStructure } from "@/lib/docs/useNavStructure";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
-import { XIcon } from "./icons";
+import { PlusIcon, XIcon } from "./icons";
+
+function slugify(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 type SidebarProps = {
   /** Mobile/tablet off-canvas drawer state — always visible at lg+ regardless of this. */
@@ -43,8 +54,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   // caller may see is decided against the enum the server sent, never against
   // a translated string.
   const { user: session } = useSession();
-  const navSections = visibleNavSections(session?.role);
+  const fetchedProducts = useNavStructure();
+  const [products, setProducts] = useState<typeof fetchedProducts>(null);
+  useEffect(() => {
+    if (fetchedProducts) setProducts(fetchedProducts);
+  }, [fetchedProducts]);
+  const navSections = visibleNavSections(session?.role, products ?? []);
   const userAvatar = AVATAR_GRADIENTS.purple;
+
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [newProductLabel, setNewProductLabel] = useState("");
+  const [addProductBusy, setAddProductBusy] = useState(false);
+  const [addProductError, setAddProductError] = useState<string | null>(null);
+
+  async function handleAddProduct(e: React.FormEvent) {
+    e.preventDefault();
+    const key = slugify(newProductLabel);
+    if (!key) return;
+    setAddProductError(null);
+    setAddProductBusy(true);
+    try {
+      await createProduct(key, newProductLabel.trim(), "document");
+      setProducts(await fetchNavStructure());
+      setNewProductLabel("");
+      setAddingProduct(false);
+    } catch (err) {
+      setAddProductError(err instanceof Error ? err.message : "Couldn't add that product.");
+    } finally {
+      setAddProductBusy(false);
+    }
+  }
 
   const content = (
     <div className="flex h-full flex-col bg-sidebar px-4 py-5">
@@ -76,6 +115,55 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             {section.items.map((item) => (
               <NavLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
             ))}
+
+            {section.label === "PRODUCTS" && (
+              <>
+                {!addingProduct && (
+                  <button
+                    type="button"
+                    onClick={() => setAddingProduct(true)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:border-white/30 hover:bg-sidebar-hover hover:text-white"
+                  >
+                    <PlusIcon className="h-[18px] w-[18px] shrink-0" />
+                    Add product
+                  </button>
+                )}
+
+                {addingProduct && (
+                  <form onSubmit={handleAddProduct} className="rounded-xl border border-white/15 bg-white/5 p-2.5">
+                    <input
+                      autoFocus
+                      value={newProductLabel}
+                      onChange={(e) => setNewProductLabel(e.target.value)}
+                      placeholder="Product name"
+                      required
+                      className="w-full rounded-lg border border-white/15 bg-transparent px-2.5 py-1.5 text-sm text-white placeholder:text-sidebar-muted focus:outline-none"
+                    />
+                    {addProductError && <p className="mt-1.5 text-xs text-[#ff9b9b]">{addProductError}</p>}
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={addProductBusy}
+                        className="flex-1 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {addProductBusy ? "Adding…" : "Add"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddingProduct(false);
+                          setNewProductLabel("");
+                          setAddProductError(null);
+                        }}
+                        className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-sidebar-muted transition-colors hover:text-white"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
+            )}
           </div>
         ))}
       </nav>

@@ -11,7 +11,8 @@ import {
   TagIcon,
 } from "@/components/layout/icons";
 import { DocsHeaderSwitcher } from "./DocsHeaderSwitcher";
-import { DOCS_HEADERS, headerForPathname, hrefFor } from "@/lib/docs/jexmcp-nav";
+import { hrefFor, productForPathname } from "@/lib/docs/nav-routing";
+import { useNavStructure } from "@/lib/docs/useNavStructure";
 
 const DOCS_NAV = [
   { label: "Overview", href: "/docs", icon: HomeIcon },
@@ -23,7 +24,8 @@ const DOCS_NAV = [
 
 export function DocsSidebar() {
   const pathname = usePathname();
-  const activeHeader = headerForPathname(pathname) ?? DOCS_HEADERS[0]!;
+  const products = useNavStructure();
+  const activeProduct = products ? (productForPathname(products, pathname) ?? products[0]) : undefined;
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
@@ -58,28 +60,32 @@ export function DocsSidebar() {
         <div className="mt-6 flex-1 border-t border-border pt-6">
           <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Knowledge base</p>
 
-          <div className="mt-3">
-            <DocsHeaderSwitcher active={activeHeader} />
-          </div>
+          {activeProduct && (
+            <>
+              <div className="mt-3">
+                <DocsHeaderSwitcher active={activeProduct} products={products ?? []} />
+              </div>
 
-          <nav className="mt-3 space-y-0.5">
-            {activeHeader.items.map((item) => {
-              const href = hrefFor(activeHeader.key, item.slug);
-              const active = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                    active ? "bg-brand-purple/10 font-semibold text-brand-purple" : "text-muted hover:bg-page hover:text-ink"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+              <nav className="mt-3 space-y-0.5">
+                {activeProduct.items.map((item) => {
+                  const href = hrefFor(activeProduct.key, item.slug);
+                  const active = pathname === href;
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        active ? "bg-brand-purple/10 font-semibold text-brand-purple" : "text-muted hover:bg-page hover:text-ink"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </>
+          )}
         </div>
 
         <Link href="/welcome" className="px-3 text-xs font-medium text-muted hover:text-ink">
