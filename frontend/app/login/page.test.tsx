@@ -87,9 +87,7 @@ describe("LoginPage password form", () => {
   });
 
   it("shows the failure message when the API call is refused", async () => {
-    loginWithPassword.mockRejectedValue(
-      new Error("Login failed. Check your email and password, or your account may not be approved yet."),
-    );
+    loginWithPassword.mockRejectedValue(new Error("Invalid Login ID or password."));
     const user = userEvent.setup();
     render(<LoginPage />);
 
@@ -97,9 +95,7 @@ describe("LoginPage password form", () => {
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
-    expect(
-      await screen.findByText("Login failed. Check your email and password, or your account may not be approved yet."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Invalid Login ID or password.")).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
 });
