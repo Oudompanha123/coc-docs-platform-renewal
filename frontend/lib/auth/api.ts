@@ -175,7 +175,7 @@ export async function loginWithPassword(email: string, password: string): Promis
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
   }
   if (!response.ok) {
-    throw new AuthApiError("Invalid Login ID or password.");
+    throw new AuthApiError("Login failed. Check your email and password, or your account may not be approved yet.");
   }
   return (await response.json()) as AuthenticatedAccount;
 }
@@ -435,6 +435,59 @@ export async function updateProfile(displayName: string): Promise<MeResponse> {
   }
   if (!response.ok) {
     throw new AuthApiError("Couldn't save your profile. Please try again.");
+  }
+  return (await response.json()) as MeResponse;
+}
+
+/**
+ * POST /api/v1/auth/me/avatar (ADR-026). Uploads the caller's own profile
+ * photo — multipart, since this is a binary file, not a JSON field. Once
+ * set, this survives a later Google/Keycloak sign-in; only {@link
+ * removeAvatar} reverts to the identity provider's picture.
+ *
+ * Rejections (wrong file type, too large, not actually an image) come back
+ * from the backend with wording meant to be shown as-is — the same {@code
+ * detail}-reading convention {@link changePassword} follows.
+ */
+export async function uploadAvatar(file: File): Promise<MeResponse> {
+  let response: Response;
+  try {
+    const body = new FormData();
+    body.append("file", file);
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/me/avatar`, {
+      method: "POST",
+      credentials: "include",
+      // No Content-Type header: the browser sets multipart/form-data with
+      // the correct boundary itself, and overriding it here would drop
+      // that boundary and leave the backend unable to parse the body.
+      body,
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't upload that photo. Please try again.");
+  }
+  return (await response.json()) as MeResponse;
+}
+
+/**
+ * DELETE /api/v1/auth/me/avatar (ADR-026). Removes a previously uploaded
+ * photo, reverting to the identity provider's picture (or initials) on the
+ * next sign-in.
+ */
+export async function removeAvatar(): Promise<MeResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/me/avatar`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't remove that photo. Please try again.");
   }
   return (await response.json()) as MeResponse;
 }
