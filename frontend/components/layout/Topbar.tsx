@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MESSAGES, NOTIFICATIONS, TOPBAR_COUNTS } from "@/lib/mock/overview";
+import { MESSAGES, TOPBAR_COUNTS } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { useNotifications } from "@/lib/notify/useNotifications";
+import { ApproveRegistrationModal } from "./ApproveRegistrationModal";
+import { ApplicantAvatar } from "./ApplicantAvatar";
+import type { PendingAccount } from "@/lib/admin/accounts";
 import { UserAvatar } from "./UserAvatar";
 import {
   BellIcon,
@@ -80,6 +84,14 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   // has no route guard of its own yet.
   const user = useCurrentUser();
   const { signOut } = useSession();
+  // The bell no longer renders three invented items that never changed — it
+  // shows who is actually waiting for approval, which is also what the push
+  // notification deep-links to (ADR-025). Empty for anyone but a super admin.
+  const notifications = useNotifications();
+  // The applicant whose notification was clicked — approving from the bell
+  // rather than making the reader navigate to another page to act on a
+  // one-line decision.
+  const [approving, setApproving] = useState<PendingAccount | null>(null);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Topbar renders on every admin page (via AppShell), so this is what
@@ -144,7 +156,7 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
 
         <div className="relative">
           <CountBadge
-            count={TOPBAR_COUNTS.notifications}
+            count={notifications.unreadCount}
             label="Notifications"
             active={openMenu === "notifications"}
             onClick={() => toggleMenu("notifications")}
@@ -156,41 +168,72 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <p className="text-sm font-semibold text-dash-ink">Notifications</p>
-                <button
-                  type="button"
-                  onClick={() => setOpenMenu(null)}
-                  className="text-xs font-semibold text-brand-purple hover:underline"
-                >
-                  Mark all as read
-                </button>
+                {notifications.unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => notifications.markAllRead()}
+                    className="text-xs font-semibold text-brand-purple hover:underline"
+                  >
+                    Mark all as read
+                  </button>
+                )}
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
-                {NOTIFICATIONS.map((n) => (
-                  <button
-                    key={n.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => setOpenMenu(null)}
-                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
-                  >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
-                      <BellIcon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-dash-ink">{n.title}</span>
-                      <span className="block truncate text-xs text-muted">{n.detail}</span>
-                      <span className="mt-0.5 block text-[11px] text-muted">{n.timeAgo}</span>
-                    </span>
-                  </button>
-                ))}
+                {notifications.items.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-muted">Nothing needs your attention.</p>
+                ) : (
+                  notifications.items.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        // Read on open, not on approve: the person has seen it
+                        // either way, and leaving it bold after they looked and
+                        // decided not to act makes the badge mean "unread or
+                        // ignored", which is not a number anyone can act on.
+                        notifications.markRead(n.id);
+                        setApproving(n.account);
+                        setOpenMenu(null);
+                      }}
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
+                        n.read ? "" : "bg-brand-purple/5"
+                      }`}
+                    >
+                      <ApplicantAvatar
+                        name={n.account.displayName}
+                        avatarUrl={n.account.avatarUrl}
+                        className="mt-0.5 h-8 w-8 text-[11px]"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={`block truncate text-sm text-dash-ink ${
+                            n.read ? "font-medium" : "font-semibold"
+                          }`}
+                        >
+                          {n.title}
+                        </span>
+                        <span className="block truncate text-xs text-muted">{n.detail}</span>
+                      </span>
+                      {!n.read && (
+                        <span
+                          aria-label="Unread"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                        />
+                      )}
+                    </button>
+                  ))
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setOpenMenu(null)}
-                className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
-              >
-                View all
-              </button>
+              {notifications.items.length > 0 && (
+                <Link
+                  href="/users-roles?tab=pending"
+                  onClick={() => setOpenMenu(null)}
+                  className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
+                >
+                  View all
+                </Link>
+              )}
             </div>
           )}
         </div>
@@ -319,6 +362,14 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
     </header>
 
     {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+
+    {approving && (
+      <ApproveRegistrationModal
+        account={approving}
+        onClose={() => setApproving(null)}
+        onApproved={() => void notifications.refresh()}
+      />
+    )}
     </div>
   );
 }

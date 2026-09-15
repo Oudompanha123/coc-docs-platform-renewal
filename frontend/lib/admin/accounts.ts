@@ -165,6 +165,14 @@ export interface PendingAccount {
   displayName: string;
   /** Always "GUEST" while pending: the role an applicant holds grants nothing. */
   role: string;
+  /**
+   * Profile picture from Google, or null for a password registration.
+   *
+   * Rendered as initials when null, not a generic silhouette: a stand-in face
+   * among real people is worse than an obvious placeholder, and initials also
+   * say who it is.
+   */
+  avatarUrl: string | null;
   status: string;
 }
 
