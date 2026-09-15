@@ -176,3 +176,40 @@ export function isPushEnabled(): boolean {
     return false;
   }
 }
+
+/**
+ * Shows a banner for a push that arrives while the tab is open.
+ *
+ * <p>The service worker's {@code onBackgroundMessage} fires only when the app
+ * is <em>not</em> in the foreground, so without this a message that lands while
+ * somebody is looking at another part of the app is delivered and then
+ * silently dropped. Firebase deliberately leaves this half to the application,
+ * because a foreground app often wants to update its own UI instead — here it
+ * wants both: the bell re-reads the queue on its own, and the banner is what
+ * gets attention away from the current page.
+ *
+ * @returns a function that stops listening, for React to call on unmount.
+ */
+export async function listenForForegroundPush(): Promise<() => void> {
+  if (pushSupport() !== "ready" || !isPushEnabled()) {
+    return () => {};
+  }
+  try {
+    const { initializeApp } = await import("firebase/app");
+    const { getMessaging, onMessage } = await import("firebase/messaging");
+    const messaging = getMessaging(initializeApp(firebaseConfig()));
+
+    return onMessage(messaging, (payload) => {
+      if (Notification.permission !== "granted") return;
+      new Notification(payload.notification?.title ?? "Coc Docs Platform", {
+        body: payload.notification?.body ?? "",
+        icon: "/favicon.ico",
+        // Same tag as the service worker, so a foreground and a background
+        // copy of the same event replace one another rather than stacking.
+        tag: payload.data?.type ?? "coc-docs",
+      });
+    });
+  } catch {
+    return () => {};
+  }
+}
