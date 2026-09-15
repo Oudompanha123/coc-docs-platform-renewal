@@ -20,6 +20,11 @@ export type HeroContent = {
   sectionHeading: string;
   sectionIntro: string;
   features: FeatureCardData[];
+  /** Optional closing paragraph below the feature cards — for source content
+   *  that had a trailing comparison/summary this content model has no
+   *  dedicated shape for (e.g. a comparison table), reduced to prose rather
+   *  than dropped. */
+  closingNote?: string;
 };
 
 export type StepData = {

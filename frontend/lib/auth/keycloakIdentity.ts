@@ -23,6 +23,10 @@ const KEYCLOAK_URL = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
 const KEYCLOAK_REALM = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
 const KEYCLOAK_CLIENT_ID = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
 
+/** True when all three Keycloak env vars are present — use to hide the Google button when not configured. */
+export const isGoogleSignInConfigured =
+  Boolean(KEYCLOAK_URL) && Boolean(KEYCLOAK_REALM) && Boolean(KEYCLOAK_CLIENT_ID);
+
 /** sessionStorage key holding one pending attempt's PKCE verifier, keyed by its `state`. */
 const PENDING_ATTEMPT_PREFIX = "coc_kc_pending:";
 const POPUP_FEATURES = "width=500,height=650,menubar=no,toolbar=no,status=no";

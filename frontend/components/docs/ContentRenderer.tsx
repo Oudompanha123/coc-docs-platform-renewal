@@ -46,6 +46,8 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
               );
             })}
           </div>
+
+          {content.closingNote && <p className="mt-6 text-sm text-muted">{content.closingNote}</p>}
         </div>
       </div>
     );

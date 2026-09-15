@@ -1,26 +1,15 @@
-"use client";
-
 import { AppShell } from "@/components/layout/AppShell";
 import { LayersIcon } from "@/components/layout/icons";
-import { ContentRenderer } from "@/components/docs/ContentRenderer";
-import { useDocContent } from "@/lib/docs/useDocContent";
-import { contentId } from "@/lib/docs/content-store";
+import { ProductContentTable } from "@/components/docs/editor/ProductContentTable";
 
-const ID = contentId("jex3-0", "");
-
-/** Reads from the shared content store (lib/docs/content-store.ts) — the
- *  same store the admin editor at /content writes to. No hardcoded JSX
- *  content lives here anymore. */
-export default function Jex30OverviewPage() {
-  const content = useDocContent(ID);
-
+export default function Jex30ManagePage() {
   return (
     <AppShell
       pageTitle="Jex3.0"
-      pageSubtitle="One install. Every workspace. JEX Studio automation as a Claude Code plugin."
+      pageSubtitle="Manage Jex3.0's knowledge base content"
       titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
-      {content && <ContentRenderer content={content} variant="admin" />}
+      <ProductContentTable productKey="jex3-0" />
     </AppShell>
   );
 }
