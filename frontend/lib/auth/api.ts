@@ -3,7 +3,8 @@
  * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, NFR-SEC-SESSION, ADR-014, ADR-017, ADR-018, ADR-019, ADR-021
  */
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
+/** Also read by lib/notify/push.ts, which talks to the same backend. */
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 /** A user-facing failure from the auth API. `message` is always safe to show as-is. */
 export class AuthApiError extends Error {}
