@@ -2,14 +2,12 @@ import type { Role } from "@/lib/auth/api";
 import type { IconComponent } from "./icons";
 import {
   BarChartIcon,
-  DocumentIcon,
   FolderIcon,
   HomeIcon,
   LayersIcon,
   PersonIcon,
   PulseIcon,
   SettingsIcon,
-  SparklesIcon,
   UsersIcon,
 } from "./icons";
 
@@ -17,10 +15,6 @@ export type NavItem = {
   label: string;
   href: string;
   icon: IconComponent;
-  /** Shown as an indented, always-visible list directly under this item
-   *  whenever it (or one of these) is active — not a dropdown/tab, matching
-   *  the sidebar's existing "everything visible" convention. */
-  subItems?: { label: string; href: string }[];
   /**
    * Roles allowed to see this item. Omitted means every signed-in user sees
    * it. Listed roles are exact, not a floor — the hierarchy that makes
@@ -33,9 +27,11 @@ export type NavItem = {
 /** Jex3.0's real sub-item labels, verified against content/en/jex3.0.tsx
  *  during the Phase 1 audit. Slugs match the routes under app/jex3-0/.
  *  Exported (with `slug`) so app/jex3-0/[slug]/page.tsx can look up a
- *  label without duplicating this list. */
+ *  label without duplicating this list. Not rendered in the admin sidebar
+ *  itself (that's the /jex3-0 management table's job) — this list only
+ *  feeds the stub-page lookup and the content-editor registry. */
 export const JEX3_SUB_ITEMS_RAW = [
-  { label: "Overview", slug: "" },
+  { label: "Overview", slug: "overview" },
   { label: "Get started", slug: "get-started" },
   { label: "How to use", slug: "how-to-use" },
   { label: "Flow", slug: "flow" },
@@ -49,11 +45,6 @@ export const JEX3_SUB_ITEMS_RAW = [
   { label: "Verify", slug: "verify" },
 ];
 
-const JEX3_SUB_ITEMS = JEX3_SUB_ITEMS_RAW.map((item) => ({
-  label: item.label,
-  href: item.slug ? `/jex3-0/${item.slug}` : "/jex3-0",
-}));
-
 export type NavSection = {
   label: string;
   items: NavItem[];
@@ -66,16 +57,19 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "PRODUCTS",
     items: [
-      { label: "Jex3.0", href: "/jex3-0", icon: LayersIcon, subItems: JEX3_SUB_ITEMS },
-      { label: "Jex2.0", href: "/docs/jex2-0", icon: FolderIcon },
-      { label: "Coach", href: "/docs/coach", icon: PersonIcon },
-      { label: "IDEA", href: "/docs/idea", icon: SparklesIcon },
-      { label: "Workflow", href: "/docs/workflow", icon: PulseIcon },
+      { label: "Jex3.0", href: "/jex3-0", icon: LayersIcon },
+      { label: "Jex2.0", href: "/jex2-0", icon: FolderIcon },
+      { label: "Coach", href: "/coach", icon: PersonIcon },
+      { label: "Team", href: "/team", icon: PulseIcon },
     ],
   },
   {
     label: "MONITORING",
-    items: [{ label: "Usage", href: "/claude-usage", icon: BarChartIcon }],
+    // Repoints to the content-management table for the "Usage" product
+    // (Dashboard/Setup guide/Configuration) — the real Claude Code Usage
+    // dashboard still exists at /claude-usage, just no longer linked here,
+    // per explicit confirmation.
+    items: [{ label: "Usage", href: "/usage", icon: BarChartIcon }],
   },
   {
     label: "ADMINISTRATION",
@@ -86,7 +80,6 @@ export const NAV_SECTIONS: NavSection[] = [
       // content; granting roles is a different kind of authority. Listing
       // "admin" here showed them a link to a page that 403s on every request.
       { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
-      { label: "Content", href: "/content", icon: DocumentIcon },
     ],
   },
 ];
@@ -94,9 +87,15 @@ export const NAV_SECTIONS: NavSection[] = [
 /** Standalone item pinned above the user card at the bottom of the sidebar. */
 export const NAV_BOTTOM: NavItem = { label: "Settings", href: "/settings", icon: SettingsIcon };
 
-/** A nav item is active on an exact match or on any of its sub-routes. */
+/** A nav item is active on an exact match, on any of its sub-routes, or —
+ *  for a product item — while editing one of that product's own sub-items.
+ *  The edit form lives at /content/<productKey>--<slug>, a route that
+ *  shares no URL prefix with the product's own pages (/jex3-0, /jex2-0,
+ *  ...), so without this the sidebar goes dark the moment you click Edit. */
 export function isNavItemActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (pathname === href || pathname.startsWith(`${href}/`)) return true;
+  const editMatch = pathname.match(/^\/content\/([^/]+)--/);
+  return editMatch != null && href === `/${editMatch[1]}`;
 }
 
 /**
