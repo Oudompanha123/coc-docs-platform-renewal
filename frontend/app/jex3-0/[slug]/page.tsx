@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { LayersIcon, TagIcon } from "@/components/layout/icons";
-import { JEX3_SUB_ITEMS_RAW } from "@/components/layout/nav-config";
+import { JEX3_SUB_ITEMS_RAW } from "@/lib/docs/jex3-sub-items";
 
 /** Placeholder for the Jex3.0 sub-items not yet cloned (Flow, Structure,
  *  Updating, Releases, FAQ, Prerequisites, Run configs, From scratch,

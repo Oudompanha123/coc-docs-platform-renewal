@@ -1,8 +1,12 @@
-import { DocsStubPage } from "@/components/docs/DocsStubPage";
-import { DOCS_HEADERS } from "@/lib/docs/jexmcp-nav";
+"use client";
 
-const header = DOCS_HEADERS.find((h) => h.key === "jex2-0")!;
+import { ContentRenderer } from "@/components/docs/ContentRenderer";
+import { useDocContent } from "@/lib/docs/useDocContent";
+import { contentId } from "@/lib/docs/content-store";
+
+const ID = contentId("jex2-0", "");
 
 export default function Jex20OverviewPage() {
-  return <DocsStubPage header={header} item={header.items[0]!} />;
+  const content = useDocContent(ID);
+  return content ? <ContentRenderer content={content} variant="docs" /> : null;
 }
