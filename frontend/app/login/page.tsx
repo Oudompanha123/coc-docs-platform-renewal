@@ -12,7 +12,7 @@ import {
   requestNonce,
   RegistrationPendingError,
 } from "@/lib/auth/api";
-import { GoogleSignInCancelledError, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
+import { GoogleSignInCancelledError, isGoogleSignInConfigured, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
 import { rememberIdToken, takeIdToken } from "@/lib/auth/idTokenMemory";
 import { keycloakLogoutUrl } from "@/lib/auth/keycloakLogout";
 import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutcome";
@@ -280,23 +280,27 @@ export default function LoginPage() {
           >
             {isSubmitting ? "Signing in…" : "Login"}
           </button>
-  
-          <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted">or</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-  
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={isGoogleSubmitting}
-            aria-busy={isGoogleSubmitting}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <GoogleIcon className="h-5 w-5" aria-hidden="true" />
-            {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
-          </button>
+
+          {isGoogleSignInConfigured && (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleSubmitting}
+                aria-busy={isGoogleSubmitting}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <GoogleIcon className="h-5 w-5" aria-hidden="true" />
+                {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
+              </button>
+            </>
+          )}
         </form>
       )}
 
