@@ -200,4 +200,60 @@ describe("useNotifications", () => {
     await waitFor(() => expect(result.current.items).toHaveLength(2));
     expect(notificationSpy).not.toHaveBeenCalled();
   });
+
+  it("opens the approval dialog when the banner is clicked", async () => {
+    const notificationSpy = vi.fn();
+    vi.stubGlobal("Notification", notificationSpy);
+    const onOpenApproval = vi.fn();
+    signedInAs("super_admin");
+    listPending.mockResolvedValue([dana]);
+
+    const { result } = renderHook(() => useNotifications({ onOpenApproval }));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    listPending.mockResolvedValue([dana, sam]);
+    await act(async () => {
+      await result.current.refresh();
+    });
+    await waitFor(() => expect(notificationSpy).toHaveBeenCalledTimes(1));
+
+    // A banner that does nothing when clicked is worse than none: it says
+    // something needs doing and then makes the reader go and find it.
+    const banner = notificationSpy.mock.instances[0] as { onclick?: () => void; close?: () => void };
+    banner.close = vi.fn();
+    act(() => banner.onclick?.());
+
+    expect(onOpenApproval).toHaveBeenCalledTimes(1);
+    expect(onOpenApproval.mock.calls[0]?.[0]).toMatchObject({ id: "b" });
+  });
+
+  it("opens the approval dialog for an ?approve= deep link, then clears it", async () => {
+    const onOpenApproval = vi.fn();
+    window.history.replaceState({}, "", "/users-roles?tab=pending&approve=a");
+    signedInAs("super_admin");
+    listPending.mockResolvedValue([dana, sam]);
+
+    renderHook(() => useNotifications({ onOpenApproval }));
+
+    // This is how a notification clicked while the app was closed arrives.
+    await waitFor(() => expect(onOpenApproval).toHaveBeenCalledTimes(1));
+    expect(onOpenApproval.mock.calls[0]?.[0]).toMatchObject({ id: "a" });
+    // Cleared, so a refresh does not reopen the dialog.
+    expect(window.location.search).not.toContain("approve=");
+  });
+
+  it("does nothing for a deep link to somebody already approved", async () => {
+    const onOpenApproval = vi.fn();
+    window.history.replaceState({}, "", "/users-roles?approve=gone");
+    signedInAs("super_admin");
+    listPending.mockResolvedValue([dana]);
+
+    const { result } = renderHook(() => useNotifications({ onOpenApproval }));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    // Approved by a colleague between the notification and the click. The
+    // queue on screen is already the answer; a dialog about nobody is not.
+    expect(onOpenApproval).not.toHaveBeenCalled();
+    expect(window.location.search).not.toContain("approve=");
+  });
 });
