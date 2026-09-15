@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
+import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { PulseIcon } from "@/components/layout/icons";
 import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
 
 /**
- * Password change is a UI stub, not a real flow — Coc Docs Platform is
- * Google OIDC-only and stores no passwords (ADR-008, ADR-011, FR-AUTH-002;
- * backend/.../account/Account.java has no password field at all). Same
- * precedent as app/login/page.tsx's own password form: built to match an
- * explicit design request, not backed by a real credential path.
+ * Password change is real (ADR-014, ADR-017, ADR-022) — the "Google-only, no
+ * password to manage" copy this section carried predates ADR-014/ADR-020's
+ * password support and is corrected here, alongside wiring the button that
+ * was always dead. Shares {@code ChangePasswordForm} with {@code
+ * ProfileModal}'s equivalent section.
  *
  * 2FA toggle and per-session sign-out are local-state mock only, same
  * fidelity as NotificationsCard.
@@ -71,6 +72,9 @@ export function SecurityTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+
   useEffect(() => {
     listSessions()
       .then(setSessions)
@@ -94,23 +98,44 @@ export function SecurityTab() {
   return (
     <div className="flex flex-col gap-5">
       <div className="divide-y divide-border">
-        {/* Password */}
-        <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-              <LockIcon className="h-5 w-5" />
+        {/* Password (ADR-022) */}
+        <div className="py-4 first:pt-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <LockIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-dash-ink">Password</p>
+                <p className="text-xs text-muted">
+                  {passwordNotice ?? "Keep your account secure with a strong password."}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-dash-ink">Password</p>
-              <p className="text-xs text-muted">Coc Docs Platform sign-in uses Google — there is no password to manage here.</p>
-            </div>
+            {!changingPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setChangingPassword(true);
+                  setPasswordNotice(null);
+                }}
+                className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+              >
+                Change password
+              </button>
+            )}
           </div>
-          <button
-            type="button"
-            className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
-          >
-            Change password
-          </button>
+          {changingPassword && (
+            <div className="mt-4 max-w-sm">
+              <ChangePasswordForm
+                onSuccess={(message) => {
+                  setChangingPassword(false);
+                  setPasswordNotice(message);
+                }}
+                onCancel={() => setChangingPassword(false)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Authentication — Google is this app's real, only sign-in provider

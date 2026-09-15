@@ -6,6 +6,7 @@ import { updateProfile } from "@/lib/auth/api";
 import { UserAvatar } from "./UserAvatar";
 import { CameraIcon } from "./icons";
 import { LockIcon } from "@/components/auth/icons";
+import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { Modal } from "@/components/users-roles/Modal";
 import { StatusBadge } from "@/components/users-roles/StatusBadge";
 import { RoleBadge } from "@/components/users-roles/RoleBadge";
@@ -32,6 +33,9 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
   const dirty =
     displayName.trim().length > 0 && displayName.trim() !== (user?.displayName ?? "");
@@ -133,21 +137,42 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        {/* Change password */}
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-3">
-          <div className="flex items-center gap-2.5">
-            <LockIcon className="h-4 w-4 shrink-0 text-muted" />
-            <div>
-              <p className="text-sm font-semibold text-dash-ink">Password</p>
-              <p className="text-xs text-muted">Sign-in is managed by Google.</p>
+        {/* Change password (ADR-022) */}
+        <div className="rounded-xl border border-border px-3 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <LockIcon className="h-4 w-4 shrink-0 text-muted" />
+              <div>
+                <p className="text-sm font-semibold text-dash-ink">Password</p>
+                <p className="text-xs text-muted">
+                  {passwordNotice ?? "Keep your account secure with a strong password."}
+                </p>
+              </div>
             </div>
+            {!changingPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setChangingPassword(true);
+                  setPasswordNotice(null);
+                }}
+                className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+              >
+                Change password
+              </button>
+            )}
           </div>
-          <button
-            type="button"
-            className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-          >
-            Change password
-          </button>
+          {changingPassword && (
+            <div className="mt-3 border-t border-border pt-3">
+              <ChangePasswordForm
+                onSuccess={(message) => {
+                  setChangingPassword(false);
+                  setPasswordNotice(message);
+                }}
+                onCancel={() => setChangingPassword(false)}
+              />
+            </div>
+          )}
         </div>
       </div>
 

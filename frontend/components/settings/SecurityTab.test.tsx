@@ -9,11 +9,15 @@ import { SecurityTab } from "./SecurityTab";
  * that it does not offer to sign you out of the session you are using.
  */
 
-const { listSessions, revokeSession } = vi.hoisted(() => ({
+const { listSessions, revokeSession, changePassword } = vi.hoisted(() => ({
   listSessions: vi.fn(),
   revokeSession: vi.fn(),
+  changePassword: vi.fn(),
 }));
-vi.mock("@/lib/auth/api", () => ({ listSessions, revokeSession }));
+vi.mock("@/lib/auth/api", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/auth/api")>("@/lib/auth/api");
+  return { ...actual, listSessions, revokeSession, changePassword };
+});
 
 const CURRENT = {
   id: "session-current",
@@ -90,5 +94,55 @@ describe("SecurityTab sessions", () => {
     render(<SecurityTab />);
 
     expect(await screen.findByText("Couldn't load your sessions.")).toBeInTheDocument();
+  });
+});
+
+/**
+ * The "Change password" button here was dead until ADR-022 — these pin that
+ * it now does something, sharing coverage style with the sessions tests
+ * above rather than re-testing ChangePasswordForm's own validation (that
+ * lives in ChangePasswordForm.test.tsx).
+ */
+describe("SecurityTab password", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listSessions.mockResolvedValue([]);
+  });
+
+  it("reveals the change-password form on click, and hides the button meanwhile", async () => {
+    const user = userEvent.setup();
+    render(<SecurityTab />);
+
+    await user.click(await screen.findByRole("button", { name: "Change password" }));
+
+    expect(screen.getByLabelText("Current Password")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change password" })).not.toBeInTheDocument();
+  });
+
+  it("shows the server's confirmation and collapses the form back on success", async () => {
+    changePassword.mockResolvedValue("Your password has been changed.");
+    const user = userEvent.setup();
+    render(<SecurityTab />);
+
+    await user.click(await screen.findByRole("button", { name: "Change password" }));
+    await user.type(screen.getByLabelText("Current Password"), "OldPassword123!");
+    await user.type(screen.getByLabelText("New Password"), "NewPassword456!");
+    await user.type(screen.getByLabelText("Confirm New Password"), "NewPassword456!");
+    await user.click(screen.getByRole("button", { name: "Save password" }));
+
+    expect(await screen.findByText("Your password has been changed.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Current Password")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change password" })).toBeInTheDocument();
+  });
+
+  it("cancel hides the form without submitting", async () => {
+    const user = userEvent.setup();
+    render(<SecurityTab />);
+
+    await user.click(await screen.findByRole("button", { name: "Change password" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByLabelText("Current Password")).not.toBeInTheDocument();
+    expect(changePassword).not.toHaveBeenCalled();
   });
 });

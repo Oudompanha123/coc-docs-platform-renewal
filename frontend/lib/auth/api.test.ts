@@ -199,4 +199,38 @@ describe("changePassword", () => {
 
     await expect(changePassword("NewPassword456!", "NewPassword456!")).rejects.toThrow(/reach the server/i);
   });
+
+  it("posts currentPassword too when given, for the voluntary change (ADR-022)", async () => {
+    const body = { message: "Your password has been changed." };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await changePassword("NewPassword456!", "NewPassword456!", "OldPassword123!");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/auth/change-password"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: "OldPassword123!",
+          newPassword: "NewPassword456!",
+          confirmPassword: "NewPassword456!",
+        }),
+      }),
+    );
+    expect(result).toEqual(body.message);
+  });
+
+  it("surfaces the backend's own message when the current password is wrong", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({ detail: "your current password is incorrect" }, { ok: false, status: 400 }),
+      ),
+    );
+
+    await expect(
+      changePassword("NewPassword456!", "NewPassword456!", "WrongPassword!!!"),
+    ).rejects.toThrow("your current password is incorrect");
+  });
 });
