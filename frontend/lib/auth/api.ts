@@ -340,19 +340,31 @@ export async function resetPassword(token: string, newPassword: string): Promise
 }
 
 /**
- * POST /api/v1/auth/change-password (revision of ADR-017). The first-login
- * completion step: the caller already holds a session — issued on the
- * temporary password — and this is how `mustChangePassword` turns false.
+ * POST /api/v1/auth/change-password (revision of ADR-017; current-password
+ * check added by ADR-022). Two callers share this one function:
+ *
+ * - The first-login completion step (`/create-password`): the caller already
+ *   holds a session issued on a temporary password, and passes no
+ *   `currentPassword` — there is none to give, and the backend doesn't ask
+ *   for one in that case (it skips the check for an account still under
+ *   ADR-020's forced-change gate).
+ * - The voluntary "My Profile" / Settings → Security change (ADR-022):
+ *   `currentPassword` is required here and verified server-side.
+ *
  * Unlike {@link resetPassword}, this never ends the caller's own session.
  */
-export async function changePassword(newPassword: string, confirmPassword: string): Promise<string> {
+export async function changePassword(
+  newPassword: string,
+  confirmPassword: string,
+  currentPassword?: string,
+): Promise<string> {
   let response: Response;
   try {
     response = await fetch(`${BACKEND_URL}/api/v1/auth/change-password`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newPassword, confirmPassword }),
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
     });
   } catch {
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
