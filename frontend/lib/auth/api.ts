@@ -164,7 +164,7 @@ export async function loginWithPassword(email: string, password: string): Promis
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
   }
   if (!response.ok) {
-    throw new AuthApiError("Login failed. Check your email and password, or your account may not be approved yet.");
+    throw new AuthApiError("Invalid Login ID or password.");
   }
   return (await response.json()) as AuthenticatedAccount;
 }
