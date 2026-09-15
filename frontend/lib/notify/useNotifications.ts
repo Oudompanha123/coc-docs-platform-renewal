@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listPending, type PendingAccount } from "@/lib/admin/accounts";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { isNotificationsEnabled } from "@/lib/notify/push";
 
 /**
  * What the bell in the topbar shows, and which of it has been looked at.
@@ -74,6 +75,54 @@ function storeReadIds(ids: Set<string>) {
 }
 
 /**
+ * Draws initials on the brand gradient and returns it as a data URL.
+ *
+ * <p>The banner icon for somebody with no provider picture. The alternative
+ * was the app favicon, which is the Next.js logo and says nothing about who
+ * the notification is about — the same reason the in-app list shows initials
+ * rather than a stand-in face.
+ *
+ * <p>Returns undefined when canvas is unavailable, and the banner then simply
+ * has no icon, which is better than a wrong one.
+ */
+function initialsIcon(name: string): string | undefined {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 96;
+    canvas.height = 96;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+
+    const gradient = ctx.createLinearGradient(0, 0, 96, 96);
+    gradient.addColorStop(0, "#6d3ce0");
+    gradient.addColorStop(1, "#4c6ff0");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(48, 48, 48, 0, Math.PI * 2);
+    ctx.fill();
+
+    const initials =
+      name
+        .split(" ")
+        .map((part) => part[0])
+        .filter(Boolean)
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "?";
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 40px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initials, 48, 52);
+
+    return canvas.toDataURL();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Raises a browser notification for an applicant nobody has seen yet.
  *
  * <p>The fallback for a deployment with no Firebase project, and for a tab
@@ -81,25 +130,50 @@ function storeReadIds(ids: Set<string>) {
  * permission the Settings toggle asks for, and does nothing without it, so it
  * can never be the thing that prompts.
  */
-function alertBrowser(account: PendingAccount) {
+function alertBrowser(account: PendingAccount, onClick: (account: PendingAccount) => void) {
   try {
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+    // Both halves: permission at the browser level, and the person having
+    // turned this on in Settings. Permission alone would alert somebody who
+    // switched it off here.
+    if (!isNotificationsEnabled()) {
       return;
     }
     // tag collapses repeats: five registrations replace one another rather
     // than stacking five banners saying the same thing.
-    new Notification("New registration", {
+    const banner = new Notification("New registration", {
       body: `${account.displayName} is waiting for approval`,
-      icon: "/favicon.ico",
+      // Their own picture when Google gave one; initials otherwise. Never the
+      // app logo, which tells the reader nothing about who this is.
+      icon: account.avatarUrl ?? initialsIcon(account.displayName),
       tag: "registration.pending",
     });
+
+    // A banner that does nothing when clicked is worse than none: it says
+    // something needs doing and then makes the reader go and find it.
+    banner.onclick = () => {
+      window.focus();
+      banner.close();
+      onClick(account);
+    };
   } catch {
     // Some browsers throw on the constructor rather than returning; a banner
     // is never worth breaking the page for.
   }
 }
 
-export function useNotifications(): Notifications {
+export function useNotifications(options: {
+  /**
+   * Called when a browser banner is clicked, and when the app is opened by a
+   * notification deep link. The bell answers it by opening the approval
+   * dialog, so the reader acts from where they already are.
+   */
+  onOpenApproval?: (account: PendingAccount) => void;
+} = {}): Notifications {
+  // A ref so the polling effect does not restart every render just because the
+  // caller passed a new closure.
+  const onOpenApproval = useRef(options.onOpenApproval);
+  onOpenApproval.current = options.onOpenApproval;
+
   const { status, user } = useSession();
   const [pending, setPending] = useState<PendingAccount[]>([]);
   const [read, setRead] = useState<Set<string>>(new Set());
@@ -132,7 +206,7 @@ export function useNotifications(): Notifications {
         for (const account of queue) {
           if (!announced.current.has(account.id)) {
             announced.current.add(account.id);
-            alertBrowser(account);
+            alertBrowser(account, (clicked) => onOpenApproval.current?.(clicked));
           }
         }
       }
@@ -173,6 +247,25 @@ export function useNotifications(): Notifications {
       storeReadIds(next);
       return next;
     });
+  }, [pending]);
+
+  // A notification clicked while the app was closed lands here, as
+  // ?approve=<id> on whatever page the service worker opened. Acted on once
+  // the queue has loaded, so the dialog has somebody to show; the parameter is
+  // then removed so a refresh does not reopen it.
+  useEffect(() => {
+    if (typeof window === "undefined" || pending.length === 0) return;
+    const url = new URL(window.location.href);
+    const wanted = url.searchParams.get("approve");
+    if (!wanted) return;
+
+    const account = pending.find((a) => a.id === wanted);
+    url.searchParams.delete("approve");
+    window.history.replaceState({}, "", url.toString());
+    // Absent means already approved by somebody else between the notification
+    // and the click. Silently doing nothing is right: the queue on screen is
+    // already the answer.
+    if (account) onOpenApproval.current?.(account);
   }, [pending]);
 
   const items: NotificationItem[] = pending.map((account) => ({

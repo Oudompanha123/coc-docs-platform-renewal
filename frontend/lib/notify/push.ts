@@ -1,22 +1,32 @@
 "use client";
 
 /**
- * Turning push notifications on and off in this browser (ADR-025).
+ * Turning notifications on and off in this browser (ADR-025).
  *
- * <p><b>Permission is asked for once, and a refusal is permanent.</b> A denied
- * Notification prompt cannot be re-raised by script — the person has to change
- * it in browser settings, and most never will. So nothing here fires on page
- * load: {@link enablePush} is called from a deliberate control, and until
- * somebody presses it this module does nothing at all.
+ * <p><b>Two capabilities, not one.</b> This got conflated once and the result
+ * was a settings toggle that could never be pressed:
  *
- * <p><b>Firebase is loaded on demand.</b> A dynamic import keeps the SDK out of
- * the bundle every visitor downloads, for a feature only super admins use and
- * only after opting in.
+ * <ol>
+ *   <li><b>Browser notification permission</b> — needed for any banner at all,
+ *       including the ones the bell raises from polling. Needs nothing but a
+ *       browser.</li>
+ *   <li><b>FCM registration</b> — needed only to be reached while the tab is
+ *       closed. Needs a Firebase project.</li>
+ * </ol>
  *
- * <p><b>Everything degrades to "unsupported" rather than throwing.</b> Safari
- * before 16.4, Firefox in private mode, any browser without a service worker,
- * and the server during prerendering all land in the same branch. A settings
- * toggle must be able to say "not available here" without taking the page down.
+ * <p>Gating the first on the second meant that with no Firebase project the
+ * toggle was disabled, so permission was never requested, so
+ * {@code Notification.permission} stayed "default", so the polling alerts —
+ * which need no Firebase whatever — could never fire either. Nothing appeared
+ * and nothing explained why.
+ *
+ * <p>So permission is asked for whenever the browser can grant it, and FCM is
+ * attempted afterwards on a best-effort basis. Without Firebase you get banners
+ * while the app is open; with it you also get them while it is closed.
+ *
+ * <p><b>A refusal is permanent.</b> A denied prompt cannot be re-raised by
+ * script — the person must change it in browser settings. So nothing here fires
+ * on page load: {@link enableNotifications} is called from a deliberate press.
  */
 
 import { BACKEND_URL } from "@/lib/auth/api";
@@ -32,27 +42,32 @@ function firebaseConfig() {
   };
 }
 
-/** The public key that lets Google verify pushes come from this project. */
 function vapidKey(): string {
   return process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ?? "";
 }
 
-export type PushSupport =
+/** Whether this deployment can deliver to a closed tab. */
+export function isBackgroundPushConfigured(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    Boolean(firebaseConfig().projectId) &&
+    Boolean(vapidKey())
+  );
+}
+
+export type NotificationSupport =
+  /** The browser can show notifications and has not been refused. */
   | "ready"
-  /** The browser can, but Firebase is not configured for this deployment. */
-  | "not-configured"
-  /** No service worker, no Notification API, or server-side. */
+  /** No Notification API, or running on the server during prerendering. */
   | "unsupported"
   /** Asked before and refused. Cannot be re-asked from script. */
   | "denied";
 
 /** What the settings control should render, without asking for anything. */
-export function pushSupport(): PushSupport {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("Notification" in window)) {
+export function notificationSupport(): NotificationSupport {
+  if (typeof window === "undefined" || !("Notification" in window)) {
     return "unsupported";
-  }
-  if (!firebaseConfig().projectId || !vapidKey()) {
-    return "not-configured";
   }
   if (Notification.permission === "denied") {
     return "denied";
@@ -60,71 +75,63 @@ export function pushSupport(): PushSupport {
   return "ready";
 }
 
-/** The token this browser last registered, so it can be unregistered on sign-out. */
+/** Set once the person has opted in here, so the toggle and the poll agree. */
+const ENABLED_KEY = "coc_notifications_enabled";
+/** The FCM token this browser registered, so it can be unregistered later. */
 const TOKEN_KEY = "coc_push_token";
 
-function rememberToken(token: string) {
+function setFlag(on: boolean) {
   try {
-    localStorage.setItem(TOKEN_KEY, token);
+    if (on) localStorage.setItem(ENABLED_KEY, "1");
+    else localStorage.removeItem(ENABLED_KEY);
   } catch {
-    // Private mode. Push still works for this session; the token just cannot
-    // be revoked from here later, and the server's purge will collect it.
-  }
-}
-
-function takeToken(): string | null {
-  try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    return token;
-  } catch {
-    return null;
+    // Private mode. The toggle then resets on reload; alerts still work for
+    // this session because permission is granted at the browser level.
   }
 }
 
 /**
- * Registers the service worker with the config it cannot read for itself.
+ * True when banners should be shown.
  *
- * <p>The query string is how a static file gets its configuration — see the
- * comment at the top of {@code public/firebase-messaging-sw.js}.
+ * <p>Both halves matter: permission can be granted and the person can still
+ * have turned this off here, and the flag can survive a permission they later
+ * revoked in browser settings.
  */
-async function registerServiceWorker(): Promise<ServiceWorkerRegistration> {
-  const params = new URLSearchParams(firebaseConfig() as unknown as Record<string, string>);
-  return navigator.serviceWorker.register(`/firebase-messaging-sw.js?${params.toString()}`);
-}
-
-/**
- * Asks for permission, obtains a token, and tells the backend about it.
- *
- * @returns true when this browser is now registered.
- * @throws never — a refusal is a false, not an exception, because the caller
- *     is a toggle and a rejected promise there is just an unhandled error.
- */
-export async function enablePush(): Promise<boolean> {
-  if (pushSupport() !== "ready") {
+export function isNotificationsEnabled(): boolean {
+  try {
+    if (typeof window === "undefined" || !("Notification" in window)) return false;
+    return Notification.permission === "granted" && localStorage.getItem(ENABLED_KEY) === "1";
+  } catch {
     return false;
   }
+}
 
+/**
+ * Registers this browser with FCM so it can be reached while closed.
+ *
+ * <p>Best effort. A deployment with no Firebase project still gets banners
+ * while the app is open, which is the whole point of separating this from
+ * permission.
+ */
+async function registerForBackgroundPush(): Promise<void> {
+  if (!isBackgroundPushConfigured()) {
+    return;
+  }
   try {
-    // Must come from a user gesture. Called anywhere else, the browser may
-    // refuse outright and remember the refusal.
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      return false;
-    }
+    // The query string is how a static service worker gets configuration it
+    // cannot read — see the comment atop public/firebase-messaging-sw.js.
+    const params = new URLSearchParams(firebaseConfig() as unknown as Record<string, string>);
+    const registration = await navigator.serviceWorker.register(
+      `/firebase-messaging-sw.js?${params.toString()}`,
+    );
 
-    const registration = await registerServiceWorker();
     const { initializeApp } = await import("firebase/app");
     const { getMessaging, getToken } = await import("firebase/messaging");
-
-    const app = initializeApp(firebaseConfig());
-    const token = await getToken(getMessaging(app), {
+    const token = await getToken(getMessaging(initializeApp(firebaseConfig())), {
       vapidKey: vapidKey(),
       serviceWorkerRegistration: registration,
     });
-    if (!token) {
-      return false;
-    }
+    if (!token) return;
 
     const response = await fetch(`${BACKEND_URL}/api/v1/notifications/devices`, {
       method: "POST",
@@ -132,48 +139,73 @@ export async function enablePush(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, platform: "web" }),
     });
-    if (!response.ok) {
-      return false;
+    if (response.ok) {
+      try {
+        localStorage.setItem(TOKEN_KEY, token);
+      } catch {
+        // The server's purge collects it eventually.
+      }
     }
-
-    rememberToken(token);
-    return true;
   } catch {
     // A blocked SDK, a service worker that will not install, an offline
-    // network. None of it should break the settings page.
+    // network. In-app banners are unaffected.
+  }
+}
+
+/**
+ * Asks the browser for permission and turns banners on.
+ *
+ * @returns true when notifications are now enabled here.
+ * @throws never — the caller is a toggle, and a rejected promise there is just
+ *     an unhandled error.
+ */
+export async function enableNotifications(): Promise<boolean> {
+  if (notificationSupport() !== "ready") {
+    return false;
+  }
+  try {
+    // Must come from a user gesture. Raised anywhere else, the browser may
+    // refuse outright and remember the refusal.
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      return false;
+    }
+    setFlag(true);
+    // After the flag, so a failure here still leaves in-app banners working.
+    await registerForBackgroundPush();
+    return true;
+  } catch {
     return false;
   }
 }
 
 /**
- * Stops notifications to this browser.
+ * Turns banners off here, and stops background push.
  *
- * <p>Called from the toggle and from sign-out. Without the sign-out call, the
- * next person to use a shared browser would keep receiving the previous
- * person's notifications until FCM happened to rotate the token.
+ * <p>Also called on sign-out: without it, the next person to use a shared
+ * browser would keep receiving the previous person's notifications until FCM
+ * happened to rotate the token.
  */
-export async function disablePush(): Promise<void> {
-  const token = takeToken();
-  if (!token) {
-    return;
+export async function disableNotifications(): Promise<void> {
+  setFlag(false);
+
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Nothing to unregister.
   }
+  if (!token) return;
+
   try {
     await fetch(`${BACKEND_URL}/api/v1/notifications/devices/${encodeURIComponent(token)}`, {
       method: "DELETE",
       credentials: "include",
     });
   } catch {
-    // Best effort. The row is also removed when FCM reports the token dead,
-    // and by the scheduled purge.
-  }
-}
-
-/** True when this browser is currently registered. Drives the toggle's initial state. */
-export function isPushEnabled(): boolean {
-  try {
-    return typeof window !== "undefined" && localStorage.getItem(TOKEN_KEY) !== null;
-  } catch {
-    return false;
+    // Best effort: the row also goes when FCM reports the token dead, and on
+    // the scheduled purge.
   }
 }
 
@@ -181,17 +213,13 @@ export function isPushEnabled(): boolean {
  * Shows a banner for a push that arrives while the tab is open.
  *
  * <p>The service worker's {@code onBackgroundMessage} fires only when the app
- * is <em>not</em> in the foreground, so without this a message that lands while
- * somebody is looking at another part of the app is delivered and then
- * silently dropped. Firebase deliberately leaves this half to the application,
- * because a foreground app often wants to update its own UI instead — here it
- * wants both: the bell re-reads the queue on its own, and the banner is what
- * gets attention away from the current page.
+ * is <em>not</em> in the foreground, so without this a message landing while
+ * somebody is looking at another page is delivered and silently dropped.
  *
  * @returns a function that stops listening, for React to call on unmount.
  */
 export async function listenForForegroundPush(): Promise<() => void> {
-  if (pushSupport() !== "ready" || !isPushEnabled()) {
+  if (!isBackgroundPushConfigured() || !isNotificationsEnabled()) {
     return () => {};
   }
   try {

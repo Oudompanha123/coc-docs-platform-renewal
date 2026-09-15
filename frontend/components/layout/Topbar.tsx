@@ -87,7 +87,11 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   // The bell no longer renders three invented items that never changed — it
   // shows who is actually waiting for approval, which is also what the push
   // notification deep-links to (ADR-025). Empty for anyone but a super admin.
-  const notifications = useNotifications();
+  const notifications = useNotifications({
+    // A clicked banner, or an app opened by one, lands in the same dialog as
+    // clicking the item in the bell. The reader acts from wherever they are.
+    onOpenApproval: (account) => setApproving(account),
+  });
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.

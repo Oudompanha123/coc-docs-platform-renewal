@@ -42,8 +42,11 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title ?? "Coc Docs Platform";
   self.registration.showNotification(title, {
     body: payload.notification?.body ?? "",
-    // The app's own icon, served from this same origin.
-    icon: "/favicon.ico",
+    // The applicant picture when the provider gave one. A password
+    // registration has none, and an app logo would say nothing about who this
+    // is — so the banner simply goes without rather than showing a mark the
+    // reader learns to ignore.
+    icon: payload.data?.icon || undefined,
     // Collapses repeats: five registrations while the browser is closed
     // replace one another rather than stacking five identical banners. The
     // count is wrong either way — the queue is the authority — and one
