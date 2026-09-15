@@ -11,6 +11,8 @@ export type ManagedAccount = {
   status: AccountStatus;
   lastLogin: string;
   ipAddress: string;
+  /** The `picture` claim from this account's own last Google/Keycloak sign-in (ADR-013), or null. */
+  avatarUrl: string | null;
 };
 
 /**
@@ -36,6 +38,7 @@ export const MANAGED_ACCOUNTS: ManagedAccount[] = [
     status: "active",
     lastLogin: "Today, 10:24 AM",
     ipAddress: "192.168.1.10",
+    avatarUrl: null,
   },
   {
     id: "2",
@@ -45,6 +48,7 @@ export const MANAGED_ACCOUNTS: ManagedAccount[] = [
     status: "active",
     lastLogin: "Today, 09:12 AM",
     ipAddress: "192.168.1.25",
+    avatarUrl: null,
   },
   {
     id: "3",
@@ -54,6 +58,7 @@ export const MANAGED_ACCOUNTS: ManagedAccount[] = [
     status: "active",
     lastLogin: "Yesterday, 04:36 PM",
     ipAddress: "192.168.1.32",
+    avatarUrl: null,
   },
   {
     id: "4",
@@ -63,6 +68,7 @@ export const MANAGED_ACCOUNTS: ManagedAccount[] = [
     status: "active",
     lastLogin: "Yesterday, 11:20 AM",
     ipAddress: "192.168.1.18",
+    avatarUrl: null,
   },
   {
     id: "5",
@@ -72,6 +78,7 @@ export const MANAGED_ACCOUNTS: ManagedAccount[] = [
     status: "deactivated",
     lastLogin: "Jun 10, 2025, 02:14 PM",
     ipAddress: "192.168.1.45",
+    avatarUrl: null,
   },
 ];
 

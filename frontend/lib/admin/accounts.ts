@@ -37,6 +37,8 @@ export interface AdminAccount {
   lastSignInAt: string | null;
   /** True while this account is still using the temporary password its invite issued (revision of ADR-017). */
   mustChangePassword: boolean;
+  /** The `picture` claim from this account's own last Google/Keycloak sign-in (ADR-013), or null. */
+  avatarUrl: string | null;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

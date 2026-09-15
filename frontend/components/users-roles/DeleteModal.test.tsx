@@ -12,6 +12,7 @@ const account: ManagedAccount = {
   status: "active",
   lastLogin: "2026-09-14 10:02",
   ipAddress: "—",
+  avatarUrl: null,
 };
 
 describe("DeleteModal", () => {
