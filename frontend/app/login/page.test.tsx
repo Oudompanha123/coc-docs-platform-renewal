@@ -1,37 +1,40 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import LoginPage from "./page";
 
-const { loginWithPassword, loginWithIdToken, requestNonce, routerPush } = vi.hoisted(() => ({
+const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKeycloak, push } = vi.hoisted(() => ({
   loginWithPassword: vi.fn(),
   loginWithIdToken: vi.fn(),
   requestNonce: vi.fn(),
-  routerPush: vi.fn(),
+  signInWithGoogleViaKeycloak: vi.fn(),
+  push: vi.fn(),
 }));
 
-vi.mock("@/lib/auth/api", () => ({ loginWithPassword, loginWithIdToken, requestNonce }));
+// RegistrationPendingError is part of this module's contract now: the page
+// tests `err instanceof RegistrationPendingError`, so a mock without it makes
+// the catch block throw rather than the assertion fail.
+vi.mock("@/lib/auth/api", () => ({
+  loginWithPassword,
+  loginWithIdToken,
+  requestNonce,
+  RegistrationPendingError: class RegistrationPendingError extends Error {},
+}));
 
-// The page redirects to /overview 3s after a successful sign-in — mocked so
-// useRouter() doesn't throw outside a real Next.js app router context.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush }) }));
-
-// Not exercised by these tests (they cover the password form), but imported
-// by the page — mocked so nothing here tries to open a real popup.
 vi.mock("@/lib/auth/keycloakIdentity", () => ({
-  signInWithGoogleViaKeycloak: vi.fn(),
+  signInWithGoogleViaKeycloak,
   GoogleSignInCancelledError: class GoogleSignInCancelledError extends Error {},
+}));
+
+// The page redirects via next/navigation's router, not a real one — there is
+// no Next.js router context in this render, so only the call is asserted.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
 }));
 
 describe("LoginPage password form", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    // Guards against a test that used fake timers (below) leaking that
-    // config into a later test if it fails before reaching its own reset.
-    vi.useRealTimers();
   });
 
   it("shows validation errors and never calls the API when fields are empty", async () => {
@@ -43,6 +46,7 @@ describe("LoginPage password form", () => {
     expect(await screen.findByText("Enter your email, phone, or name.")).toBeInTheDocument();
     expect(screen.getByText("Enter your password.")).toBeInTheDocument();
     expect(loginWithPassword).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("signs in with the entered email and password, and shows a welcome message", async () => {
@@ -61,34 +65,26 @@ describe("LoginPage password form", () => {
 
     await waitFor(() => expect(loginWithPassword).toHaveBeenCalledWith("person@example.com", "hunter2222"));
     expect(await screen.findByText("Login successful. Welcome, Person Example!")).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/overview");
   });
 
-  it(
-    "redirects to /overview 3s after a successful sign-in",
-    async () => {
-      // Real timers, not fake ones: testing-library's findBy* polling relies
-      // on its own timers, which don't advance under vi.useFakeTimers()
-      // without extra wiring — simplest to just let the real 3s elapse.
-      loginWithPassword.mockResolvedValue({
-        id: "1",
-        email: "person@example.com",
-        displayName: "Person Example",
-        role: "USER",
-      });
-      const user = userEvent.setup();
-      render(<LoginPage />);
+  it("sends a caller still on a temporary password to /create-password instead of /overview", async () => {
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "invited@example.com",
+      displayName: "Invited Person",
+      role: "USER",
+      mustChangePassword: true,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
 
-      await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
-      await user.type(screen.getByLabelText("Password"), "hunter2222");
-      await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "invited@example.com");
+    await user.type(screen.getByLabelText("Password"), "TempPassword123!");
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
-      expect(await screen.findByText("Redirecting to your dashboard…")).toBeInTheDocument();
-      expect(routerPush).not.toHaveBeenCalled();
-
-      await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/overview"), { timeout: 4000 });
-    },
-    6000,
-  );
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/create-password"));
+  });
 
   it("shows the failure message when the API call is refused", async () => {
     loginWithPassword.mockRejectedValue(
@@ -104,5 +100,130 @@ describe("LoginPage password form", () => {
     expect(
       await screen.findByText("Login failed. Check your email and password, or your account may not be approved yet."),
     ).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe("LoginPage Google sign-in", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    requestNonce.mockResolvedValue("test-nonce");
+  });
+
+  it("redirects to /overview after a successful Google sign-in", async () => {
+    signInWithGoogleViaKeycloak.mockResolvedValue("google-id-token");
+    loginWithIdToken.mockResolvedValue({
+      id: "1",
+      email: "person@example.com",
+      displayName: "Person Example",
+      role: "USER",
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    expect(await screen.findByText("Login successful. Welcome, Person Example!")).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("does not redirect when Google sign-in is refused", async () => {
+    signInWithGoogleViaKeycloak.mockResolvedValue("google-id-token");
+    loginWithIdToken.mockRejectedValue(new Error("Login failed. Your Google account may not have access yet."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    expect(
+      await screen.findByText("Login failed. Your Google account may not have access yet."),
+    ).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("clears the Keycloak session when this app refuses a sign-in it authenticated", async () => {
+    // The case that produced "You are already authenticated as different user
+    // ... Please sign out first": Keycloak authenticated the applicant, this
+    // app refused them, and Keycloak was left holding their session. There is
+    // no Sign out button to press — they never got in.
+    signInWithGoogleViaKeycloak.mockResolvedValue("google-id-token");
+    loginWithIdToken.mockRejectedValue(new Error("nope"));
+
+    process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
+    process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
+
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { origin: "http://localhost:3000", assign },
+      writable: true,
+    });
+
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    await waitFor(() => expect(assign).toHaveBeenCalledTimes(1));
+    const target = new URL(assign.mock.calls[0]![0] as string);
+    expect(target.pathname).toBe("/realms/docs_platform/protocol/openid-connect/logout");
+    expect(target.searchParams.get("id_token_hint")).toBe("google-id-token");
+    // A plain path, so Keycloak matches it against its allow-list without
+    // argument; the reason travels in sessionStorage instead.
+    expect(target.searchParams.get("post_logout_redirect_uri")).toBe("http://localhost:3000/login");
+    expect(sessionStorage.getItem("coc_signin_outcome")).toBe("refused");
+
+    sessionStorage.clear();
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+  });
+});
+
+describe("LoginPage redirect state", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /**
+   * The form is replaced by a spinner the moment a sign-in succeeds. Without
+   * it the caller sits on a filled-in login form during the navigation, with
+   * only a banner to suggest anything happened.
+   *
+   * <p>The redirect itself is not delayed. An earlier version of this held the
+   * caller for three seconds so the success banner could be read; the push now
+   * happens immediately and the spinner covers however long the navigation
+   * actually takes.
+   */
+  it("replaces the form with a redirect notice once sign-in succeeds", async () => {
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "person@example.com",
+      displayName: "Person Example",
+      role: "user",
+      mustChangePassword: false,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    expect(await screen.findByText("Redirecting to your dashboard…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Login" })).not.toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("leaves the form in place when sign-in is refused", async () => {
+    loginWithPassword.mockRejectedValue(new Error("Invalid email or password."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    // A failed attempt must leave somewhere to retry from.
+    expect(await screen.findByText("Invalid email or password.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(screen.queryByText("Redirecting to your dashboard…")).not.toBeInTheDocument();
   });
 });

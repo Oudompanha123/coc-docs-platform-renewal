@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CURRENT_USER } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { NAV_BOTTOM, NAV_SECTIONS, NAV_TOP, isNavItemActive, type NavItem } from "./nav-config";
+import { useSession } from "@/lib/auth/SessionProvider";
+import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { UserAvatar } from "./UserAvatar";
+import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
 import { XIcon } from "./icons";
 
 type SidebarProps = {
@@ -34,7 +36,15 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const userAvatar = AVATAR_GRADIENTS[CURRENT_USER.tone];
+  // Same session-backed name/role as the Topbar (GET /api/v1/auth/me) — the
+  // two must never show a different name for the one signed-in caller.
+  const user = useCurrentUser();
+  // The raw role, not the display label useCurrentUser() formats: what a
+  // caller may see is decided against the enum the server sent, never against
+  // a translated string.
+  const { user: session } = useSession();
+  const navSections = visibleNavSections(session?.role);
+  const userAvatar = AVATAR_GRADIENTS.purple;
 
   const content = (
     <div className="flex h-full flex-col bg-sidebar px-4 py-5">
@@ -60,7 +70,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <NavLink item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
         </div>
 
-        {NAV_SECTIONS.map((section) => (
+        {navSections.map((section) => (
           <div key={section.label} className="space-y-1">
             <p className="px-3 text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
             {section.items.map((item) => {
@@ -101,12 +111,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <NavLink item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
 
         <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white ${userAvatar}`}>
-            {CURRENT_USER.initials}
-          </div>
+          <UserAvatar
+            avatarUrl={user?.avatarUrl ?? null}
+            initials={user?.initials ?? "?"}
+            name={user?.name ?? "Guest"}
+            className={`h-8 w-8 ${userAvatar}`}
+          />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{CURRENT_USER.name}</p>
-            <p className="truncate text-xs text-sidebar-muted">{CURRENT_USER.role}</p>
+            <p className="truncate text-sm font-semibold text-white">{user?.name ?? "Guest"}</p>
+            <p className="truncate text-xs text-sidebar-muted">{user?.role ?? ""}</p>
           </div>
         </div>
       </div>

@@ -5,14 +5,18 @@
   --foreground: #171717;
 }
 
+/* Brand accent colors outside @theme inline so utilities use var() at runtime,
+   enabling live accent-color changes via JS setProperty(). */
+@theme {
+  --color-brand-purple: #6d3ce0;
+  --color-brand-blue: #4c6ff0;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
 
-  /* Coc Docs Platform brand tokens */
-  --color-brand-purple: #6d3ce0;
-  --color-brand-blue: #4c6ff0;
   --color-ink: #28226d;
   --color-muted: #6b6b80;
   --color-border: #ececf2;

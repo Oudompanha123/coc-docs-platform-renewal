@@ -213,7 +213,7 @@ pass_if_clean "migration versions unique and unedited"
 checkpoint
 if [ -x scripts/check-env-documented.sh ]; then
   if ! ENV_OUT="$(bash scripts/check-env-documented.sh 2>&1)"; then
-    fail "backend/env.example does not document every variable the config reads. $(printf '%s' "$ENV_OUT" | grep -A20 'absent from' | tr '\n' ' ')"
+    fail "backend/.env.example does not document every variable the config reads. $(printf '%s' "$ENV_OUT" | grep -A20 'absent from' | tr '\n' ' ')"
   fi
 fi
 pass_if_clean "every environment variable is documented"

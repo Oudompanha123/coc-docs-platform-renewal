@@ -1,22 +1,57 @@
 "use client";
 
-import { useState } from "react";
-
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
-/** Static — one page's worth of mock rows exists, so prev/next stay disabled and the
- *  rows-per-page control is a UI stub (like Export), not wired to real pagination. */
-export function Pagination({ shown }: { shown: number }) {
-  const [pageSize, setPageSize] = useState(Math.min(shown, 5) || PAGE_SIZE_OPTIONS[0]);
+/**
+ * Pagination over the loaded list.
+ *
+ * <p>Controlled, not self-contained: the page owns `page` and `pageSize`,
+ * because it is the page that slices the rows and that has to reset to the
+ * first page when a filter changes. A component holding that state privately
+ * would leave the table showing page 4 of a two-page result.
+ *
+ * <p>Client-side paging, deliberately. The account list is one request and the
+ * whole team fits in it; server-side paging would add a round trip per page
+ * and a cursor to get wrong, to solve a problem this table does not have yet.
+ * When it does, the change is here and in one query.
+ */
+export function Pagination({
+  total,
+  page,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  /** Rows after filtering — what is actually being paged. */
+  total: number;
+  /** 1-based, matching what the buttons show. */
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const current = Math.min(page, pageCount);
+  const firstRow = total === 0 ? 0 : (current - 1) * pageSize + 1;
+  const lastRow = Math.min(current * pageSize, total);
+
+  // At most seven buttons, centred on the current page. A team of forty would
+  // otherwise render forty of them and wrap the control onto three lines.
+  const windowStart = Math.max(1, Math.min(current - 3, pageCount - 6));
+  const pages = Array.from({ length: Math.min(7, pageCount) }, (_, i) => windowStart + i);
 
   return (
-    <div className="flex items-center justify-between border-t border-border px-6 py-4 text-sm text-muted">
+    <div className="flex flex-col gap-3 border-t border-border px-6 py-4 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2">
         <span>Rows per page:</span>
         <div className="relative">
           <select
             value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
+            onChange={(e) => {
+              onPageSizeChange(Number(e.target.value));
+              // Showing more rows can remove pages from under the reader.
+              onPageChange(1);
+            }}
             aria-label="Rows per page"
             className="appearance-none rounded-lg border border-border bg-white py-1.5 pl-3 pr-8 text-sm font-semibold text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
           >
@@ -37,25 +72,45 @@ export function Pagination({ shown }: { shown: number }) {
             <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
+        <span className="ml-1 hidden sm:inline">
+          {total === 0 ? "No accounts" : `${firstRow}–${lastRow} of ${total}`}
+        </span>
       </div>
 
       <div className="flex items-center gap-1.5">
         <button
           type="button"
-          disabled
+          disabled={current <= 1}
+          onClick={() => onPageChange(current - 1)}
           aria-label="Previous page"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted disabled:cursor-not-allowed"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-brand-purple enabled:hover:text-brand-purple disabled:cursor-not-allowed disabled:opacity-50"
         >
           ‹
         </button>
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue text-sm font-semibold text-white">
-          1
-        </span>
+
+        {pages.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onPageChange(p)}
+            aria-label={`Page ${p}`}
+            aria-current={p === current ? "page" : undefined}
+            className={
+              p === current
+                ? "flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue text-sm font-semibold text-white"
+                : "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-sm font-semibold text-dash-ink transition-colors hover:border-brand-purple hover:text-brand-purple"
+            }
+          >
+            {p}
+          </button>
+        ))}
+
         <button
           type="button"
-          disabled
+          disabled={current >= pageCount}
+          onClick={() => onPageChange(current + 1)}
           aria-label="Next page"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted disabled:cursor-not-allowed"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-brand-purple enabled:hover:text-brand-purple disabled:cursor-not-allowed disabled:opacity-50"
         >
           ›
         </button>

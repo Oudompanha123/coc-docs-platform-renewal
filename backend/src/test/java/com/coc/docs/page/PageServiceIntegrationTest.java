@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.coc.docs.PostgresTestBase;
 import com.coc.docs.account.Account;
 import com.coc.docs.account.AccountRepository;
+import com.coc.docs.account.AccountStatus;
 import com.coc.docs.account.AppRole;
 import com.coc.docs.auth.CurrentUser;
 import com.coc.docs.content.Locale;
@@ -54,8 +55,9 @@ class PageServiceIntegrationTest extends PostgresTestBase {
                         + "section, account restart identity cascade")
                 .update();
 
-        Account account = accounts.insert("editor@example.com", "Editor", AppRole.ADMIN);
-        editor = new CurrentUser(account, new byte[] {1});
+        Account account = accounts.insert(
+                "editor@example.com", "Editor", AppRole.ADMIN, null, AccountStatus.ACTIVE);
+        editor = new CurrentUser(account, accounts.findPermissions(account.id()), new byte[] {1});
 
         section = sections.insert("jex2.0", 2, true);
         page = pages.insert(section.id(), "usage", 1, null, AppRole.USER);
@@ -71,8 +73,9 @@ class PageServiceIntegrationTest extends PostgresTestBase {
 
     /** A caller of the given role, backed by a real account row. */
     private CurrentUser caller(AppRole role) {
-        Account account = accounts.insert(role.wire() + "@example.com", "Test", role);
-        return new CurrentUser(account, new byte[] {2});
+        Account account = accounts.insert(
+                role.wire() + "@example.com", "Test", role, null, AccountStatus.ACTIVE);
+        return new CurrentUser(account, accounts.findPermissions(account.id()), new byte[] {2});
     }
 
     /**

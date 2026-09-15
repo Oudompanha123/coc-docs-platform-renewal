@@ -1,19 +1,37 @@
 package com.coc.docs.web;
 
+import com.coc.docs.account.Account;
 import com.coc.docs.auth.CurrentUser;
-import com.coc.docs.account.AccountService;
+import com.coc.docs.auth.PasswordResetService;
+import com.coc.docs.auth.RegistrationChallenge;
+import com.coc.docs.auth.RegistrationOtpService;
 import com.coc.docs.auth.SessionService;
+import com.coc.docs.auth.dto.ChangePasswordRequest;
+import com.coc.docs.auth.dto.ChangePasswordResponse;
+import com.coc.docs.auth.dto.ForgotPasswordRequest;
+import com.coc.docs.auth.dto.ForgotPasswordResponse;
 import com.coc.docs.auth.dto.PasswordLoginRequest;
+import com.coc.docs.auth.dto.RegisterChallengeResponse;
 import com.coc.docs.auth.dto.RegisterRequest;
 import com.coc.docs.auth.dto.RegisterResponse;
+import com.coc.docs.auth.dto.ResendRegistrationCodeRequest;
+import com.coc.docs.auth.dto.ResetPasswordRequest;
+import com.coc.docs.auth.dto.ResetPasswordResponse;
+import com.coc.docs.auth.dto.VerifyRegistrationCodeRequest;
 import com.coc.docs.config.AppProperties;
+import com.coc.docs.auth.NonceService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.Locale;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,40 +57,86 @@ public class AuthController {
 
     private final SessionService sessions;
     private final AppProperties properties;
-    private final AccountService accounts;
     private final PasswordEncoder passwordEncoder;
+    private final NonceService nonces;
+    private final PasswordResetService passwordResets;
+    private final RegistrationOtpService registrationOtp;
 
     public AuthController(
             SessionService sessions,
             AppProperties properties,
-            AccountService accounts,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            NonceService nonces,
+            PasswordResetService passwordResets,
+            RegistrationOtpService registrationOtp) {
         this.sessions = sessions;
         this.properties = properties;
-        this.accounts = accounts;
         this.passwordEncoder = passwordEncoder;
+        this.nonces = nonces;
+        this.passwordResets = passwordResets;
+        this.registrationOtp = registrationOtp;
     }
 
     /**
-     * Exchanges a verified Google ID token for a session cookie.
+     * Starts a Google sign-in attempt.
      *
-     * <p>// req: FR-AUTH-001, FR-AUTH-002
+     * <p>Returns a one-time nonce and sets the same value as a short-lived
+     * {@code httpOnly} cookie. The caller passes the returned value to
+     * Keycloak; the backend later compares the ID token's {@code nonce} claim
+     * against the <em>cookie</em>, never against anything the request body
+     * carries. {@link NonceService} explains why that distinction is the whole
+     * control rather than a detail of it (TM-001).
+     *
+     * <p>Public, and it has to be — it is the first call of a sign-in, made
+     * before anyone is signed in. It discloses nothing and creates nothing.
+     *
+     * <p>// req: FR-AUTH-001, NFR-SEC-AUTH, TM-001, ADR-013
+     */
+    @PostMapping("/nonce")
+    ResponseEntity<ApiDtos.NonceResponse> nonce() {
+        String value = nonces.newNonce();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, nonceCookie(value).toString())
+                .body(new ApiDtos.NonceResponse(value));
+    }
+
+    /**
+     * Exchanges a verified ID token for a session cookie — and, for someone
+     * arriving for the first time, creates their account at role {@code user}.
+     *
+     * <p>That is what "register with Google" is here: there is no separate
+     * registration endpoint, because a second place deciding what a new
+     * account may do is a second place to get it wrong. See
+     * {@code SessionService.createAccount}.
+     *
+     * <p>// req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003
      */
     @PostMapping("/google")
     ResponseEntity<ApiDtos.MeResponse> signIn(
             @Valid @RequestBody ApiDtos.GoogleSignInRequest request, HttpServletRequest http) {
 
-        SessionService.IssuedSession issued =
-                sessions.signIn(request.idToken(), http.getHeader(HttpHeaders.USER_AGENT), clientIp(http));
+        SessionService.IssuedSession issued = sessions.signIn(
+                request.idToken(),
+                readCookie(http, NonceService.COOKIE_NAME),
+                http.getHeader(HttpHeaders.USER_AGENT),
+                clientIp(http));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, sessionCookie(issued).toString())
+                // Spent. Leaving it in place would let a captured ID token be
+                // replayed for the rest of the nonce's five minutes, which is
+                // most of what the nonce exists to prevent.
+                .header(HttpHeaders.SET_COOKIE, expiredNonceCookie().toString())
                 .body(new ApiDtos.MeResponse(
                         issued.account().id(),
                         issued.account().email(),
                         issued.account().displayName(),
                         issued.account().role().wire(),
-                        true));
+                        issued.account().avatarUrl(),
+                        true,
+                        issued.account().createdAt(),
+                        sessions.lastSignInForAccount(issued.account().id()).orElse(null),
+                        issued.account().mustChangePassword()));
     }
 
     /**
@@ -85,7 +149,80 @@ public class AuthController {
      */
     @GetMapping("/me")
     ApiDtos.MeResponse me(@AuthenticationPrincipal CurrentUser caller) {
-        return caller == null ? ApiDtos.MeResponse.anonymous() : ApiDtos.MeResponse.of(caller);
+        if (caller == null) return ApiDtos.MeResponse.anonymous();
+        return ApiDtos.MeResponse.of(caller,
+                sessions.lastSignInForAccount(caller.id()).orElse(null));
+    }
+
+    /**
+     * Changes the caller's own display name.
+     *
+     * <p>Self-service: the account is the one that made the request, never one
+     * named in it. A profile screen that could name an account would be an
+     * administration screen with no floor under it.
+     *
+     * <p>Name only. Email identifies the account and comes from the identity
+     * provider; role and status are the system's to decide (TM-025).
+     *
+     * <p>// req: FR-AUTH-005, NFR-SEC-PII
+     */
+    @PatchMapping("/me")
+    ApiDtos.MeResponse updateProfile(
+            @Valid @RequestBody ApiDtos.UpdateProfileRequest request,
+            @AuthenticationPrincipal CurrentUser caller) {
+
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        Account updated = sessions.renameSelf(caller, request.displayName());
+        return new ApiDtos.MeResponse(
+                updated.id(),
+                updated.email(),
+                updated.displayName(),
+                updated.role().wire(),
+                updated.avatarUrl(),
+                true,
+                updated.createdAt(),
+                sessions.lastSignInForAccount(updated.id()).orElse(null),
+                updated.mustChangePassword());
+    }
+
+    /**
+     * Where this account is signed in.
+     *
+     * <p>The caller's own sessions and no others: the account comes from the
+     * resolved session, so there is no parameter here that could point at
+     * anyone else (NFR-SEC-PII).
+     *
+     * <p>// req: FR-AUTH-004, FR-AUTH-007
+     */
+    @GetMapping("/sessions")
+    java.util.List<ApiDtos.SessionResponse> sessions(@AuthenticationPrincipal CurrentUser caller) {
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        return sessions.listOwnSessions(caller).stream().map(ApiDtos.SessionResponse::of).toList();
+    }
+
+    /**
+     * Ends one of the caller's own sessions — "sign out this other device".
+     *
+     * <p>204 whether or not a row was revoked. An id that belongs to someone
+     * else and an id that does not exist answer identically, because telling
+     * them apart is only useful to someone enumerating other people's
+     * sessions.
+     *
+     * <p>// req: FR-AUTH-007, TM-003
+     */
+    @DeleteMapping("/sessions/{sessionId}")
+    ResponseEntity<Void> revokeSession(
+            @PathVariable java.util.UUID sessionId, @AuthenticationPrincipal CurrentUser caller) {
+
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        sessions.revokeOwnSession(caller, sessionId);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -145,6 +282,53 @@ public class AuthController {
     }
 
     /**
+     * The nonce cookie.
+     *
+     * <p>{@code httpOnly} for the reason the whole mechanism depends on: if
+     * script could read it, an XSS could read the expected value and mint a
+     * matching token request, and the nonce would be checking the caller
+     * against a value the caller supplied.
+     *
+     * <p>{@code path=/} rather than scoped to the auth routes. The browser
+     * must send it on the sign-in POST, and a narrower path is one of those
+     * settings that works until someone moves an endpoint.
+     */
+    private ResponseCookie nonceCookie(String value) {
+        return ResponseCookie.from(NonceService.COOKIE_NAME, value)
+                .httpOnly(true)
+                .secure(properties.cookieSecure())
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(NonceService.TTL)
+                .build();
+    }
+
+    private ResponseCookie expiredNonceCookie() {
+        return ResponseCookie.from(NonceService.COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(properties.cookieSecure())
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+    }
+
+    /** Null when absent or blank, which {@code KeycloakIdTokenService} refuses outright. */
+    private static String readCookie(HttpServletRequest request, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName())) {
+                String value = cookie.getValue();
+                return (value == null || value.isBlank()) ? null : value;
+            }
+        }
+        return null;
+    }
+
+    /**
      * The client address, for the audit trail only.
      *
      * <p>{@code X-Forwarded-For} is client-controlled and is read here anyway,
@@ -167,31 +351,84 @@ public class AuthController {
     }
 
     // -----------------------------------------------------------------------
-    // Password self-registration (ADR-014)
+    // Password self-registration (ADR-014, ADR-017), email OTP (ADR-021)
     // -----------------------------------------------------------------------
 
     /**
-     * Applies for an account.
+     * Step 1 of registration: mints a 6-digit code and emails it, rather than
+     * creating an account directly (ADR-021, revision of ADR-014/017).
      *
-     * <p>Creates nothing anyone can sign in with: the row is {@code pending}
-     * with role {@code user}, and only a {@code super_admin} moves it on. Role
-     * and status are literals in the insert, never taken from this request —
-     * that is what keeps registration off the privilege-escalation path
-     * (TM-025).
+     * <p>No account row exists after this call — proving control of the
+     * inbox happens before the row is created, not after. {@link
+     * #verifyRegistration} is the step that actually creates it, via the
+     * same {@code AccountService.register} this endpoint used to call
+     * directly; that method's {@code pending}/{@code guest}, literal-role
+     * behaviour (ADR-017, TM-025) is completely unchanged.
      *
-     * <p>202, not 201: the account is not usable yet, and a 201 with a Location
-     * would suggest otherwise.
+     * <p>202: accepted, and there still isn't even a pending application to
+     * approve until the code is confirmed.
      *
-     * <p>// req: FR-AUTH-002, FR-AUTH-003, ADR-014
+     * <p>// req: FR-AUTH-002, FR-AUTH-003, ADR-014, ADR-017, ADR-021
      */
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
-        accounts.register(
+    RegisterChallengeResponse register(@Valid @RequestBody RegisterRequest request) {
+        RegistrationChallenge challenge = registrationOtp.start(
                 request.email(), request.displayName(), passwordEncoder.encode(request.password()));
+        return challengeResponse(challenge);
+    }
+
+    /**
+     * Re-sends the registration code — the "I didn't get it" / "it expired"
+     * path. Subject to the same 60-second cooldown as resubmitting the form
+     * itself; see {@code RegistrationOtpService}.
+     *
+     * <p>Public, and it has to be — this runs before any account, and
+     * therefore any session, exists.
+     *
+     * <p>// req: ADR-021
+     */
+    @PostMapping("/register/resend")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    RegisterChallengeResponse resendRegistrationCode(@Valid @RequestBody ResendRegistrationCodeRequest request) {
+        RegistrationChallenge challenge = registrationOtp.resend(request.email());
+        return challengeResponse(challenge);
+    }
+
+    /**
+     * Step 3: confirms the emailed code — the step that used to be all of
+     * {@code /register} (ADR-021). Creates a {@code pending} row at role
+     * {@code guest} — an application, not an account that works (ADR-017).
+     *
+     * <p>201, not 202: unlike step 1, a resource now genuinely exists. It is
+     * still not usable — {@code pending} and {@code active} remain different
+     * claims, same as they always have been.
+     *
+     * <p>An expired or wrong code is reported plainly rather than folded
+     * into one generic failure — see {@code RegistrationOtpService.verify}'s
+     * javadoc for why the anti-enumeration reasoning behind {@link
+     * #signInWithPassword}'s genericism does not apply here.
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-003, ADR-014, ADR-017, ADR-021
+     */
+    @PostMapping("/register/verify")
+    @ResponseStatus(HttpStatus.CREATED)
+    RegisterResponse verifyRegistration(@Valid @RequestBody VerifyRegistrationCodeRequest request) {
+        Account created = registrationOtp.verify(request.email(), request.code());
 
         return new RegisterResponse(
-                "PENDING", "Your registration is waiting for an administrator to approve it.");
+                created.status().wire().toUpperCase(Locale.ROOT),
+                "Your email is verified and your registration has been received. An administrator "
+                        + "has to approve it before you can sign in.");
+    }
+
+    /** Shared by {@link #register} and {@link #resendRegistrationCode} — both hand back the same shape. */
+    private static RegisterChallengeResponse challengeResponse(RegistrationChallenge challenge) {
+        long ttlSeconds = RegistrationOtpService.TTL.toSeconds();
+        return new RegisterChallengeResponse(
+                "We've sent a 6-digit verification code to " + challenge.email() + ". It expires in "
+                        + (ttlSeconds / 60) + " minutes.",
+                ttlSeconds);
     }
 
     /**
@@ -220,6 +457,108 @@ public class AuthController {
                         issued.account().email(),
                         issued.account().displayName(),
                         issued.account().role().wire(),
-                        true));
+                        issued.account().avatarUrl(),
+                        true,
+                        issued.account().createdAt(),
+                        sessions.lastSignInForAccount(issued.account().id()).orElse(null),
+                        issued.account().mustChangePassword()));
+    }
+
+    // -----------------------------------------------------------------------
+    // Self-service password change (revision of ADR-017)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Replaces the caller's own password.
+     *
+     * <p>Two entry points share this one route: the "Create New Password"
+     * step of the first-login flow — the caller already holds a session,
+     * issued by {@link #signInWithPassword} on the temporary password — and,
+     * since ADR-022, the voluntary "My Profile &rarr; Change Password"
+     * self-service screen. {@code SessionService.changeOwnPassword} tells
+     * the two apart by {@code caller.account().mustChangePassword()} and
+     * requires {@code currentPassword} for the voluntary case only; see its
+     * javadoc for why.
+     *
+     * <p>Requires only {@code USER} rank because it acts on the caller's own
+     * account and cannot name another (see {@code SecurityConfig}'s
+     * self-service block). Both new-password fields are required here even
+     * though the frontend already checks they match — see {@code
+     * ChangePasswordRequest}'s javadoc.
+     *
+     * <p>The confirmation message differs by which entry point this was: the
+     * forced flow says the account is now usable, which would be a false
+     * promise for someone who already had full access before this call.
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-022
+     */
+    @PostMapping("/change-password")
+    ChangePasswordResponse changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal CurrentUser caller) {
+
+        if (caller == null) {
+            throw ApiException.forbidden("sign in first");
+        }
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw ApiException.badRequest("newPassword and confirmPassword must match");
+        }
+
+        boolean wasForcedFirstLogin = caller.account().mustChangePassword();
+        sessions.changeOwnPassword(caller, request.currentPassword(), request.newPassword());
+
+        return new ChangePasswordResponse(
+                wasForcedFirstLogin
+                        ? "Password created successfully. You can now access your account."
+                        : "Your password has been changed.");
+    }
+
+    // -----------------------------------------------------------------------
+    // Password reset (ADR-018, revision of ADR-014)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Starts a password reset.
+     *
+     * <p>200 with the same generic message for every case <em>except</em> "no
+     * account at all" — {@code PasswordResetService.requestReset} throws for
+     * that one (ADR-019), which {@code ApiExceptionHandler} turns into the
+     * {@code 404} the caller actually sees. This method adds nothing that
+     * would tell the remaining cases apart; a Google-only account and a
+     * genuinely emailed reset are still indistinguishable from here (ADR-018
+     * decision 3, narrowed by ADR-019).
+     *
+     * <p>Public, and it has to be — a signed-out visitor who forgot their
+     * password is, by definition, not signed in yet.
+     *
+     * <p>// req: FR-AUTH-002, ADR-018, ADR-019
+     */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.OK)
+    ForgotPasswordResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResets.requestReset(request.email());
+        return ForgotPasswordResponse.generic();
+    }
+
+    /**
+     * Completes a password reset: sets the new password and spends the token.
+     *
+     * <p>Unlike {@link #forgotPassword}, a rejected token here is reported
+     * plainly — the caller already holds a value that came from their own
+     * mailbox, so refusing it discloses nothing about anyone else's account
+     * (ADR-018 decision 3; see {@code PasswordResetService.resetPassword}).
+     *
+     * <p>Never sets a session cookie, matching {@code /register}'s "this
+     * never signs the caller in" convention — and every session that
+     * predated the reset is revoked server-side, so the caller signs in fresh
+     * at {@code /login} either way.
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-007, ADR-018
+     */
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.OK)
+    ResetPasswordResponse resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResets.resetPassword(request.token(), request.newPassword());
+        return new ResetPasswordResponse("Your password has been reset. You can now log in.");
     }
 }

@@ -1,6 +1,9 @@
 package com.coc.docs.web;
 
 import com.coc.docs.account.Account;
+import com.coc.docs.account.AppRole;
+import com.coc.docs.account.Permission;
+import com.coc.docs.account.RoleRepository;
 import com.coc.docs.auth.CurrentUser;
 import com.coc.docs.page.Page;
 import com.coc.docs.page.PageRepository;
@@ -9,6 +12,7 @@ import com.coc.docs.page.PageVersion;
 import com.coc.docs.page.PageVersionRepository;
 import com.coc.docs.section.Section;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
@@ -35,8 +39,54 @@ public final class ApiDtos {
     // Auth
     // -----------------------------------------------------------------------
 
-    /** The sign-in request: a Google ID token and nothing else. */
+    /**
+     * The sign-in request: an ID token and nothing else.
+     *
+     * <p>No nonce field, deliberately. The expected nonce is read from the
+     * {@code coc_oidc_nonce} cookie, because a value the caller supplies
+     * cannot be evidence about the caller — a replayer would send the captured
+     * token together with the nonce baked into it and both would agree.
+     */
     public record GoogleSignInRequest(@NotBlank String idToken) {}
+
+    /**
+     * The nonce for one sign-in attempt.
+     *
+     * <p>Returned in the body so the caller can pass it to Keycloak, and set
+     * as an {@code httpOnly} cookie so the backend keeps a copy the caller
+     * cannot choose. Both, deliberately: the body copy is an instruction, the
+     * cookie copy is the evidence.
+     */
+    public record NonceResponse(String nonce) {}
+
+    /** A change to the caller's own profile. Name only — see SessionService.renameSelf. */
+    public record UpdateProfileRequest(@NotBlank String displayName) {}
+
+    /**
+     * One device the caller is signed in on.
+     *
+     * <p>{@code id} is the opaque surrogate from V6, never the token hash:
+     * the hash is what the server compares a presented token against, and it
+     * has no business travelling to the client that presents one.
+     */
+    public record SessionResponse(
+            UUID id,
+            String userAgent,
+            String ipAddress,
+            Instant issuedAt,
+            Instant expiresAt,
+            boolean current) {
+
+        public static SessionResponse of(com.coc.docs.auth.SessionService.OwnSession session) {
+            return new SessionResponse(
+                    session.id(),
+                    session.userAgent(),
+                    session.ipAddress(),
+                    session.issuedAt(),
+                    session.expiresAt(),
+                    session.current());
+        }
+    }
 
     /**
      * Who the caller is.
@@ -56,11 +106,35 @@ public final class ApiDtos {
      * <p>// req: NFR-SEC-PII, FR-AUTH-005
      */
     public record MeResponse(
-            UUID id, String email, String displayName, String role, boolean authenticated) {
+            UUID id,
+            String email,
+            String displayName,
+            String role,
+            String avatarUrl,
+            boolean authenticated,
+            /** When the account was created — the profile screen's "Joined". */
+            Instant createdAt,
+            /** Most recent sign-in; null when no session row exists yet. */
+            Instant lastSignInAt,
+            /**
+             * True while a {@code super_admin}-issued temporary password is
+             * still in force. The frontend gates on this: it redirects to
+             * Create New Password instead of the normal workspace until it
+             * turns false (revision of ADR-017).
+             */
+            boolean mustChangePassword) {
 
-        public static MeResponse of(CurrentUser user) {
+        public static MeResponse of(CurrentUser user, Instant lastSignInAt) {
             return new MeResponse(
-                    user.id(), user.email(), user.account().displayName(), user.role().wire(), true);
+                    user.id(),
+                    user.email(),
+                    user.account().displayName(),
+                    user.role().wire(),
+                    user.account().avatarUrl(),
+                    true,
+                    user.account().createdAt(),
+                    lastSignInAt,
+                    user.account().mustChangePassword());
         }
 
         /**
@@ -72,7 +146,7 @@ public final class ApiDtos {
          * satisfied here or not at all. // req: NFR-SEC-PII
          */
         public static MeResponse anonymous() {
-            return new MeResponse(null, null, null, null, false);
+            return new MeResponse(null, null, null, null, null, false, null, null, false);
         }
     }
 
@@ -273,16 +347,41 @@ public final class ApiDtos {
             String displayName,
             String role,
             boolean active,
-            Instant createdAt) {
+            Instant createdAt,
+            Instant lastSignInAt,
+            /**
+             * Every role held, rank order. {@code role} above is the highest
+             * of these and is what authorisation compares against; this is
+             * here so an administrator can see the whole grant rather than
+             * its effect (ADR-016).
+             */
+            List<String> roles,
+            /**
+             * True while this account is still using the temporary password a
+             * {@code super_admin} invite issued it. Lets the administration
+             * screen show "invited, awaiting first login" rather than looking
+             * identical to an account that has never needed one.
+             */
+            boolean mustChangePassword) {
 
         public static AccountResponse of(Account account) {
+            return of(account, null);
+        }
+
+        public static AccountResponse of(Account account, Instant lastSignInAt) {
             return new AccountResponse(
                     account.id(),
                     account.email(),
                     account.displayName(),
                     account.role().wire(),
                     account.isActive(),
-                    account.createdAt());
+                    account.createdAt(),
+                    lastSignInAt,
+                    account.roles().stream()
+                            .sorted(java.util.Comparator.comparingInt(Enum::ordinal))
+                            .map(AppRole::wire)
+                            .toList(),
+                    account.mustChangePassword());
         }
     }
 
@@ -293,5 +392,45 @@ public final class ApiDtos {
      * that changing a role does not require restating whether the account is
      * active and risk toggling it by omission.
      */
-    public record UpdateAccountRequest(String role, Boolean active) {}
+    /**
+     * A change to a role, an activation state, a display name, or any
+     * combination. An absent field means "leave alone".
+     */
+    public record UpdateAccountRequest(String role, Boolean active, String displayName) {}
+
+    /**
+     * One role and what it grants.
+     *
+     * <p>Sent so the administration screen can show what a role means rather
+     * than leaving someone to infer it from the name. Read-only: roles are
+     * seeded by migration, not created here (ADR-016).
+     */
+    public record RoleResponse(
+            String key, int rank, String description, List<String> permissions, int accountCount) {
+
+        public static RoleResponse of(RoleRepository.RoleDetail detail) {
+            return new RoleResponse(
+                    detail.role().wire(),
+                    detail.rank(),
+                    detail.description(),
+                    detail.permissions().stream().map(Permission::key).toList(),
+                    detail.accountCount());
+        }
+    }
+
+    /**
+     * An account a {@code super_admin} creates before its owner first signs in.
+     *
+     * <p>Email and role only. No password — the person authenticates with
+     * Google — and no status, because a {@code super_admin} creating the
+     * account is itself the approval.
+     */
+    /**
+     * The role to admit a pending applicant at. Optional — absent means
+     * {@code user}.
+     */
+    public record ApproveRequest(String role) {}
+
+    public record CreateAccountRequest(
+            @NotBlank @Email String email, @NotBlank String role) {}
 }

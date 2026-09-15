@@ -8,12 +8,20 @@
 name: Security Audit (L2 Hook)
 
 on:
-  pull_request:
-    branches: [main, dev]
+  # No branch filter, matching ci.yml. This filter names the branch being
+  # pushed TO, so [main, dev] meant a feature branch was never scanned until
+  # a PR existed -- which is the wrong moment to first learn a secret was
+  # committed, because by then it is already on the remote and shared.
   push:
+  pull_request:
     branches: [main, dev]
   schedule:
     - cron: "0 2 * * 1"  # Scheduled scan every Monday at 02:00
+
+# One run per ref; a newer push supersedes the scan already in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Listing permissions explicitly sets every scope NOT listed to 'none'.
 # codeql-action/analyze reads its own workflow run via the Actions API

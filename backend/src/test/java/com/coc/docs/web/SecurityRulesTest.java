@@ -67,6 +67,22 @@ class SecurityRulesTest {
     @MockitoBean SessionService sessionService;
     @MockitoBean BlockBodyValidator validator;
 
+    // AuthController needs it to construct (ADR-018); mocked for the same
+    // reason as sessionService above — this test is about which routes the
+    // filter chain admits, not what password reset actually does.
+    @MockitoBean com.coc.docs.auth.PasswordResetService passwordResetService;
+
+    // Mocked: this test is about which routes the filter chain admits, not
+    // about what a nonce contains. AuthController needs it to construct, so
+    // without it the whole context fails before a single rule is exercised.
+    @MockitoBean com.coc.docs.auth.NonceService nonceService;
+    @MockitoBean com.coc.docs.auth.SessionRepository sessionRepository;
+    @MockitoBean com.coc.docs.account.RoleRepository roleRepository;
+
+    // AuthController needs it to construct (ADR-021); mocked for the same
+    // reason as passwordResetService above.
+    @MockitoBean com.coc.docs.auth.RegistrationOtpService registrationOtpService;
+
     @TestConfiguration
     static class Beans {
 
@@ -127,10 +143,59 @@ class SecurityRulesTest {
         }
 
         @Test
+        void nonce_is_reachable_without_a_session() throws Exception {
+            // It has to be: it is the first call of a sign-in, made by someone
+            // who is by definition not signed in yet. A 401 here would make
+            // Google sign-in impossible to start.
+            mvc.perform(post("/api/v1/auth/nonce")).andExpect(status().isOk());
+        }
+
+        @Test
         void sign_in_is_reachable_without_a_session() throws Exception {
             // 400 because the body is empty, which is the point: the route was
             // reached rather than refused at the security layer.
             mvc.perform(post("/api/v1/auth/google")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void forgot_password_is_reachable_without_a_session() throws Exception {
+            // ADR-018. Has to be: a visitor who forgot their password, by
+            // definition, has no session to present.
+            mvc.perform(post("/api/v1/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"someone@example.com\"}"))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void reset_password_is_reachable_without_a_session() throws Exception {
+            // 400 because the body is empty — the route was reached rather
+            // than refused at the security layer, same reasoning as
+            // sign_in_is_reachable_without_a_session above.
+            mvc.perform(post("/api/v1/auth/reset-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void register_resend_is_reachable_without_a_session() throws Exception {
+            // ADR-021. Has to be: this runs before any account, and
+            // therefore any session, exists. 400 because the body is empty —
+            // the route was reached rather than refused at the security layer.
+            mvc.perform(post("/api/v1/auth/register/resend")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{}"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void register_verify_is_reachable_without_a_session() throws Exception {
+            // ADR-021. Same necessity as register/resend above.
+            mvc.perform(post("/api/v1/auth/register/verify")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}"))
                     .andExpect(status().isBadRequest());
