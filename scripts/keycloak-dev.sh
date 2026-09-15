@@ -112,6 +112,41 @@ KC_BIN="$(command -v "$KC")"
 KC_HOME="$(cd "$(dirname "$KC_BIN")/.." && pwd)"
 IMPORT_DIR="$KC_HOME/data/import"
 
+# Keycloak in dev mode keeps its data in an H2 file that exactly one process
+# may hold. Start a second one and Keycloak reports it like this:
+#
+#   Caused by: org.h2.mvstore.MVStoreException:
+#   The file is locked: .../data/h2/keycloakdb.mv.db
+#
+# — at the bottom of a forty-frame Hibernate stack trace, under "Failed to
+# obtain JDBC connection", which reads like a database misconfiguration rather
+# than "the one you started earlier is still running". Caught here so the
+# answer is one sentence.
+#
+# The port is the proxy: a Keycloak already serving on this port is necessarily
+# already holding the lock. A second instance on a different port would slip
+# past this check and hit the stack trace, which is worth the simplicity of not
+# hunting processes across three operating systems.
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
+  cat >&2 <<PORT_BUSY
+Something is already listening on port $PORT.
+
+Almost always the Keycloak you started earlier. Dev mode keeps its data in an
+H2 file only one process can open, so a second one fails with "The file is
+locked" under a long Hibernate stack trace.
+
+Stop it and run this again:
+  - press Ctrl+C in the window running it, or
+  - close that terminal, or
+  - Windows:  taskkill /F /IM java.exe       (ends every Java process)
+    macOS/Linux: pkill -f keycloak
+
+Or start this one somewhere else:
+  scripts/keycloak-dev.sh --port 8181
+PORT_BUSY
+  exit 1
+fi
+
 mkdir -p "$IMPORT_DIR"
 cp "$REALM_FILE" "$IMPORT_DIR/docs_platform-realm.json"
 

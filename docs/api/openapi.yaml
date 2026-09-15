@@ -760,6 +760,10 @@ components:
           type: array
           items:
             type: string
+        mustChangePassword:
+          type: boolean
+        avatarUrl:
+          type: string
     AccountSummary:
       type: object
       properties:
