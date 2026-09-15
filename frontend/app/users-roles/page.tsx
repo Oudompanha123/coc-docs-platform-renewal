@@ -6,6 +6,7 @@ import { UsersIcon } from "@/components/layout/icons";
 import { AccountsTable } from "@/components/users-roles/AccountsTable";
 import { AddAccountModal } from "@/components/users-roles/AddAccountModal";
 import { DeactivateModal } from "@/components/users-roles/DeactivateModal";
+import { DeleteModal } from "@/components/users-roles/DeleteModal";
 import { FilterBar, type RoleFilter, type StatusFilter } from "@/components/users-roles/FilterBar";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal";
@@ -19,12 +20,14 @@ import {
   listRoles,
   rejectAccount,
   updateAccount,
+  deleteAccount,
   type AccountRole as AdminRole,
   type AdminAccount,
   type PendingAccount,
   type RoleDetail,
 } from "@/lib/admin/accounts";
-import { CURRENT_ACCOUNT_ID, type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
+import { type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
+import { me } from "@/lib/auth/api";
 
 /**
  * The API speaks in accounts; this table speaks in rows. One place to translate
@@ -88,8 +91,42 @@ export default function UsersRolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<ManagedAccount | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ManagedAccount | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [addedMessage, setAddedMessage] = useState<string | null>(null);
+
+  // The signed-in account id, read from the session the server already
+  // resolved.
+  //
+  // This was CURRENT_ACCOUNT_ID, the literal "1" in lib/mock/users-roles, and
+  // real ids are UUIDs — so every "is this me?" check on this page was false.
+  // The page offered to deactivate your own account and the backend then
+  // refused it, which reads as the feature being broken rather than as the
+  // guard doing its job.
+  //
+  // Not useSession(): SessionProvider is mounted inside AppShell, which this
+  // page renders, so a hook call up here sits outside the provider. It
+  // typechecks and passes in the browser, then fails the production build
+  // during prerendering with "useSession must be used inside
+  // <SessionProvider>". One request to the endpoint the provider would have
+  // called anyway.
+  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void me()
+      .then((session) => {
+        if (!cancelled) setCurrentAccountId(session.id);
+      })
+      .catch(() => {
+        // Leave it null. Every "is this me?" check then reads false, which
+        // shows the action and lets the server refuse it — the behaviour
+        // before this fix, and an acceptable floor if /auth/me is unreachable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [pending, setPending] = useState<PendingAccount[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
@@ -244,6 +281,44 @@ export default function UsersRolesPage() {
     }
   }
 
+
+  /**
+   * Lets a deactivated account back in.
+   *
+   * No confirmation dialog: restoring access is reversible by the same button
+   * that undid it, and a prompt for every reversible action trains people to
+   * dismiss prompts without reading them — which is what makes the one on
+   * Delete worth stopping for.
+   */
+  async function handleReactivate(target: ManagedAccount) {
+    try {
+      const updated = await updateAccount(target.id, { active: true });
+      setRecords((prev) => prev.map((r) => (r.id === target.id ? updated : r)));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't reactivate that account.");
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    try {
+      await deleteAccount(target.id);
+      // Dropped from the list rather than reloaded: there is nothing to fetch,
+      // and a refetch would leave the row on screen until it returned.
+      setRecords((prev) => prev.filter((r) => r.id !== target.id));
+      if (detailId === target.id) setDetailId(null);
+      setError(null);
+      setAddedMessage(`${target.email} has been deleted.`);
+    } catch (err) {
+      // "you cannot delete your own account", or "this is the only active
+      // super admin; promote someone else before deleting ...". The row stays
+      // because the server kept it.
+      setError(err instanceof Error ? err.message : "Couldn't delete that account.");
+    }
+  }
   return (
     <AppShell
       pageTitle="Users & Roles"
@@ -378,6 +453,8 @@ export default function UsersRolesPage() {
                 <AccountsTable
                   accounts={visible}
                   onDeactivate={setDeactivateTarget}
+                  onReactivate={handleReactivate}
+                  onDelete={setDeleteTarget}
                   onOpen={(account) => setDetailId(account.id)}
                 />
               )}
@@ -408,7 +485,7 @@ export default function UsersRolesPage() {
       {detail && (
         <AccountDetailModal
           account={detail}
-          isSelf={detail.id === CURRENT_ACCOUNT_ID}
+          isSelf={detail.id === currentAccountId}
           isLastActiveSuperAdmin={
             detail.role === "super_admin" &&
             detail.active &&
@@ -423,9 +500,19 @@ export default function UsersRolesPage() {
         <DeactivateModal
           account={deactivateTarget}
           isLastActiveSuperAdmin={isLastActiveSuperAdmin(deactivateTarget)}
-          isSelf={deactivateTarget.id === CURRENT_ACCOUNT_ID}
+          isSelf={deactivateTarget.id === currentAccountId}
           onClose={() => setDeactivateTarget(null)}
           onConfirm={handleConfirmDeactivate}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteModal
+          account={deleteTarget}
+          isLastActiveSuperAdmin={isLastActiveSuperAdmin(deleteTarget)}
+          isSelf={deleteTarget.id === currentAccountId}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </AppShell>
