@@ -21,7 +21,7 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto px-[30px] py-0">
       <FormField label="Eyebrow">
         <input className={fieldInputClass} value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
       </FormField>

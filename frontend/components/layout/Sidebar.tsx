@@ -73,36 +73,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {navSections.map((section) => (
           <div key={section.label} className="space-y-1">
             <p className="px-3 text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
-            {section.items.map((item) => {
-              const active = isNavItemActive(pathname, item.href);
-              return (
-                <div key={item.href}>
-                  <NavLink item={item} active={active} onClick={onClose} />
-                  {active && item.subItems && (
-                    <div className="ml-[22px] mt-1 space-y-0.5 border-l border-white/10 pl-3">
-                      {item.subItems.map((sub) => {
-                        const subActive = pathname === sub.href;
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            onClick={onClose}
-                            aria-current={subActive ? "page" : undefined}
-                            className={`block rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
-                              subActive
-                                ? "font-semibold text-white"
-                                : "text-sidebar-muted hover:text-white"
-                            }`}
-                          >
-                            {sub.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {section.items.map((item) => (
+              <NavLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
+            ))}
           </div>
         ))}
       </nav>

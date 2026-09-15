@@ -25,7 +25,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
   }
 
   return (
-    <div className="space-y-4">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto px-[30px] py-0">
       <FormField label="Heading" required>
         <input className={fieldInputClass} value={value.heading} onChange={(e) => set("heading", e.target.value)} />
       </FormField>
@@ -113,6 +113,15 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
           ))}
         </div>
       </div>
+
+      <FormField label="Closing note (optional paragraph below the feature cards)">
+        <textarea
+          rows={3}
+          className={fieldTextareaClass}
+          value={value.closingNote ?? ""}
+          onChange={(e) => set("closingNote", e.target.value || undefined)}
+        />
+      </FormField>
     </div>
   );
 }
