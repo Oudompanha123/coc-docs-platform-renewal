@@ -34,15 +34,27 @@ describe("visibleNavSections", () => {
     expect(labelsFor(null)).not.toContain("Users & Roles");
   });
 
-  it("drops the ADMINISTRATION heading rather than rendering it empty", () => {
-    const headings = visibleNavSections("user").map((section) => section.label);
-    expect(headings).not.toContain("ADMINISTRATION");
-    expect(visibleNavSections("super_admin").map((s) => s.label)).toContain("ADMINISTRATION");
+  it("filters within a section rather than hiding the whole section", () => {
+    // ADMINISTRATION used to vanish for a non-super-admin, because Users & Roles
+    // was the only item in it. It now also holds Content, which carries no role
+    // restriction, so the heading stays and only the restricted item goes.
+    //
+    // The empty-section path in visibleNavSections still exists and is still
+    // wanted — no current section happens to exercise it, and saying so beats
+    // an assertion that passes for the wrong reason.
+    const adminSection = (role: Role) =>
+      visibleNavSections(role).find((section) => section.label === "ADMINISTRATION");
+
+    expect(adminSection("user")?.items.map((i) => i.label)).toEqual(["Content"]);
+    expect(adminSection("super_admin")?.items.map((i) => i.label)).toEqual([
+      "Users & Roles",
+      "Content",
+    ]);
   });
 
   it("leaves unrestricted items visible to every role", () => {
     for (const role of ["guest", "user", "admin", "super_admin"] as const) {
-      expect(labelsFor(role)).toEqual(expect.arrayContaining(["Projects", "Doc Studio", "Activity"]));
+      expect(labelsFor(role)).toEqual(expect.arrayContaining(["Jex3.0", "Usage", "Content"]));
     }
   });
 });
