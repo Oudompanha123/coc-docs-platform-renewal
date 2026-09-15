@@ -89,6 +89,7 @@ export function FilterBar({
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
+          <option value="pending">Pending</option>
           <option value="deactivated">Deactivated</option>
         </select>
         <svg viewBox="0 0 24 24" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">

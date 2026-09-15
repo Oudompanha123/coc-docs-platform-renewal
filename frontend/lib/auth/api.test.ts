@@ -238,19 +238,23 @@ describe("changePassword", () => {
     vi.restoreAllMocks();
   });
 
-  it("posts both password fields and returns the confirmation message", async () => {
+  it("posts all three password fields and returns the confirmation message", async () => {
     const body = { message: "Password created successfully. You can now access your account." };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await changePassword("NewPassword456!", "NewPassword456!");
+    const result = await changePassword("NewPassword456!", "NewPassword456!", "TempPassword123!");
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/auth/change-password"),
       expect.objectContaining({
         method: "POST",
         credentials: "include",
-        body: JSON.stringify({ newPassword: "NewPassword456!", confirmPassword: "NewPassword456!" }),
+        body: JSON.stringify({
+          currentPassword: "TempPassword123!",
+          newPassword: "NewPassword456!",
+          confirmPassword: "NewPassword456!",
+        }),
       }),
     );
     expect(result).toEqual(body.message);
@@ -267,18 +271,20 @@ describe("changePassword", () => {
       ),
     );
 
-    await expect(changePassword("SamePassword1!", "SamePassword1!")).rejects.toThrow(
-      "choose a password different from your current one",
-    );
+    await expect(
+      changePassword("SamePassword1!", "SamePassword1!", "SamePassword1!"),
+    ).rejects.toThrow("choose a password different from your current one");
   });
 
   it("throws a connection-failure AuthApiError when fetch itself rejects", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network down")));
 
-    await expect(changePassword("NewPassword456!", "NewPassword456!")).rejects.toThrow(/reach the server/i);
+    await expect(
+      changePassword("NewPassword456!", "NewPassword456!", "TempPassword123!"),
+    ).rejects.toThrow(/reach the server/i);
   });
 
-  it("posts currentPassword too when given, for the voluntary change (ADR-022)", async () => {
+  it("posts currentPassword for the voluntary change too (ADR-022)", async () => {
     const body = { message: "Your password has been changed." };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
     vi.stubGlobal("fetch", fetchMock);

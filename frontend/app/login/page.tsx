@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
@@ -40,9 +40,14 @@ import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutco
  *
  * // req: FR-AUTH-001, FR-AUTH-002, FR-AUTH-003, ADR-008, ADR-011 §2.5, ADR-013, ADR-014
  */
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const searchParams = useSearchParams();
+  // The account-invite and reset-password emails link back here with
+  // ?email=<address> so the person only has to type their (temporary)
+  // password, not the address the email was already sent to.
+  const emailFromLink = searchParams.get("email") ?? "";
+  const [identifier, setIdentifier] = useState(emailFromLink);
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
@@ -80,6 +85,13 @@ export default function LoginPage() {
         message: "Login failed. Your Google account may not have access yet.",
       });
     }
+  }, []);
+
+  // The email is already filled in from the link; send focus straight to
+  // the password field so there's nothing left to click before typing.
+  useEffect(() => {
+    if (emailFromLink) document.getElementById("login-password")?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // A ref, not state: guards against a second click landing between the
@@ -245,6 +257,7 @@ export default function LoginPage() {
           />
   
           <PasswordField
+            id="login-password"
             label="Password"
             value={password}
             onChange={setPassword}
@@ -307,5 +320,16 @@ export default function LoginPage() {
         </Link>
       </p>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  // useSearchParams() requires a Suspense boundary in the App Router so the
+  // page can still be prerendered; the fallback is never visible in
+  // practice for a client-side navigation, only briefly on a hard load.
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

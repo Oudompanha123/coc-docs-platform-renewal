@@ -90,7 +90,7 @@ export function AccountsTable({
                 >
                   Details
                 </button>
-                {account.status === "active" ? (
+                {account.status !== "deactivated" ? (
                   <button
                     type="button"
                     onClick={() => onDeactivate(account)}

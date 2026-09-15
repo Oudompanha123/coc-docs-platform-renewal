@@ -15,11 +15,12 @@ type Errors = Partial<Record<"currentPassword" | "newPassword" | "confirmPasswor
  *
  * Always sends {@code currentPassword}: this form is the voluntary path,
  * never the forced first-login completion (that one is `/create-password`,
- * which calls {@link changePassword} directly with no current password to
- * give). The backend verifies it against the stored hash and refuses a
- * mismatch plainly — see {@code SessionService.changeOwnPassword}.
+ * which collects the temporary password instead and calls {@link
+ * changePassword} with that as {@code currentPassword} — see ADR-024). The
+ * backend verifies it against the stored hash and refuses a mismatch
+ * plainly — see {@code SessionService.changeOwnPassword}.
  *
- * // req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-020, ADR-022
+ * // req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-020, ADR-022, ADR-024
  */
 export function ChangePasswordForm({
   onSuccess,

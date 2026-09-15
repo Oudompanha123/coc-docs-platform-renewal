@@ -43,7 +43,13 @@ function toRow(account: AdminAccount): ManagedAccount {
     name: account.displayName,
     email: account.email,
     role: account.role === "guest" ? "user" : account.role,
-    status: account.active ? "active" : "deactivated",
+    // Pending is a login state, not the backend's own `active` flag: an
+    // invite creates the account already active (revision of ADR-017) so a
+    // role can be waiting for someone before they ever sign in. Until they
+    // do — mustChangePassword still true, still on the temporary password —
+    // showing "Active" reads as if they have already logged in, when nobody
+    // has used the account yet.
+    status: !account.active ? "deactivated" : account.mustChangePassword ? "pending" : "active",
     lastLogin: formatLastLogin(account.lastSignInAt),
     ipAddress: "—",
   };
@@ -223,10 +229,12 @@ export default function UsersRolesPage() {
     setError(null);
   }
 
+  // "Active" here means the backend's `active` flag — pending counts, since a
+  // pending account can still sign in and act. Only `deactivated` is out.
   function isLastActiveSuperAdmin(account: ManagedAccount): boolean {
-    if (account.role !== "super_admin" || account.status !== "active") return false;
+    if (account.role !== "super_admin" || account.status === "deactivated") return false;
     const otherActiveSuperAdmins = accounts.filter(
-      (a) => a.id !== account.id && a.role === "super_admin" && a.status === "active",
+      (a) => a.id !== account.id && a.role === "super_admin" && a.status !== "deactivated",
     );
     return otherActiveSuperAdmins.length === 0;
   }
