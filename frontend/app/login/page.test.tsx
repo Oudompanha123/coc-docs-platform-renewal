@@ -3,13 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LoginPage from "./page";
 
-const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKeycloak, push } = vi.hoisted(() => ({
-  loginWithPassword: vi.fn(),
-  loginWithIdToken: vi.fn(),
-  requestNonce: vi.fn(),
-  signInWithGoogleViaKeycloak: vi.fn(),
-  push: vi.fn(),
-}));
+const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKeycloak, push, searchParams } =
+  vi.hoisted(() => ({
+    loginWithPassword: vi.fn(),
+    loginWithIdToken: vi.fn(),
+    requestNonce: vi.fn(),
+    signInWithGoogleViaKeycloak: vi.fn(),
+    push: vi.fn(),
+    // A box, not a plain URLSearchParams: the mock factory below closes over
+    // this reference once, so tests mutate `.current` to change what
+    // useSearchParams() returns on the next render rather than re-mocking.
+    searchParams: { current: new URLSearchParams() },
+  }));
 
 // RegistrationPendingError is part of this module's contract now: the page
 // tests `err instanceof RegistrationPendingError`, so a mock without it makes
@@ -28,9 +33,18 @@ vi.mock("@/lib/auth/keycloakIdentity", () => ({
 
 // The page redirects via next/navigation's router, not a real one — there is
 // no Next.js router context in this render, so only the call is asserted.
+// useSearchParams defaults to an empty query string; the "prefills the email
+// from ?email=" test below overrides it per-case.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
+  useSearchParams: () => searchParams.current,
 }));
+
+// Applies to every test in this file: without it, a later test could
+// silently inherit whatever ?email= the "prefill" test below left behind.
+beforeEach(() => {
+  searchParams.current = new URLSearchParams();
+});
 
 describe("LoginPage password form", () => {
   beforeEach(() => {
@@ -225,5 +239,26 @@ describe("LoginPage redirect state", () => {
     expect(await screen.findByText("Invalid email or password.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
     expect(screen.queryByText("Redirecting to your dashboard…")).not.toBeInTheDocument();
+  });
+});
+
+describe("LoginPage email prefill from an emailed link", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("prefills the email field from ?email= and focuses the password field", async () => {
+    searchParams.current = new URLSearchParams({ email: "invited@example.com" });
+    render(<LoginPage />);
+
+    expect(await screen.findByDisplayValue("invited@example.com")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toHaveFocus();
+  });
+
+  it("leaves the email field empty and unfocused when the link carries no email", async () => {
+    render(<LoginPage />);
+
+    expect(await screen.findByLabelText("Email, Phone or Name")).toHaveValue("");
+    expect(screen.getByLabelText("Password")).not.toHaveFocus();
   });
 });

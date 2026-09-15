@@ -61,6 +61,25 @@ describe("AccountsTable actions", () => {
     expect(screen.queryByRole("button", { name: "Reactivate" })).not.toBeInTheDocument();
   });
 
+  it("offers Deactivate, not Reactivate, on a pending account — it is still active in the backend", async () => {
+    const onDeactivate = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AccountsTable
+        accounts={[row({ status: "pending" })]}
+        onDeactivate={onDeactivate}
+        onReactivate={vi.fn()}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Deactivate" }));
+
+    expect(onDeactivate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Reactivate" })).not.toBeInTheDocument();
+  });
+
   it("offers Delete whatever the status, since a deactivated row still needs removing", async () => {
     const onDelete = vi.fn();
     const user = userEvent.setup();

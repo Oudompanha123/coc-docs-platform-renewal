@@ -84,7 +84,8 @@ describe("CreatePasswordPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Create Password" }));
 
-    expect(await screen.findByText("Create a new password.")).toBeInTheDocument();
+    expect(await screen.findByText("Enter your temporary password.")).toBeInTheDocument();
+    expect(screen.getByText("Create a new password.")).toBeInTheDocument();
     expect(screen.getByText("Confirm your new password.")).toBeInTheDocument();
     expect(changePassword).not.toHaveBeenCalled();
   });
@@ -95,6 +96,7 @@ describe("CreatePasswordPage", () => {
     render(<CreatePasswordPage />);
     await screen.findByRole("heading", { name: "Create New Password" });
 
+    await user.type(screen.getByLabelText("Temporary Password"), "TempPassword123!");
     await user.type(screen.getByLabelText("New Password"), "NewPassword456!");
     await user.type(screen.getByLabelText("Confirm Password"), "SomethingElse!");
     await user.click(screen.getByRole("button", { name: "Create Password" }));
@@ -111,11 +113,14 @@ describe("CreatePasswordPage", () => {
     render(<CreatePasswordPage />);
     await screen.findByRole("heading", { name: "Create New Password" });
 
+    await user.type(screen.getByLabelText("Temporary Password"), "TempPassword123!");
     await user.type(screen.getByLabelText("New Password"), "NewPassword456!");
     await user.type(screen.getByLabelText("Confirm Password"), "NewPassword456!");
     await user.click(screen.getByRole("button", { name: "Create Password" }));
 
-    await waitFor(() => expect(changePassword).toHaveBeenCalledWith("NewPassword456!", "NewPassword456!"));
+    await waitFor(() =>
+      expect(changePassword).toHaveBeenCalledWith("NewPassword456!", "NewPassword456!", "TempPassword123!"),
+    );
     expect(
       await screen.findByText("Password created successfully. You can now access your account."),
     ).toBeInTheDocument();
@@ -135,6 +140,7 @@ describe("CreatePasswordPage", () => {
     render(<CreatePasswordPage />);
     await screen.findByRole("heading", { name: "Create New Password" });
 
+    await user.type(screen.getByLabelText("Temporary Password"), "TempPassword123!");
     await user.type(screen.getByLabelText("New Password"), "TempPassword123!");
     await user.type(screen.getByLabelText("Confirm Password"), "TempPassword123!");
     await user.click(screen.getByRole("button", { name: "Create Password" }));
