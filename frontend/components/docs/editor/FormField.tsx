@@ -26,4 +26,4 @@ export function FormField({
 export const fieldInputClass =
   "w-full rounded-xl border border-border px-3 py-2 text-sm text-dash-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple";
 
-export const fieldTextareaClass = `${fieldInputClass} resize-y`;
+export const fieldTextareaClass = `${fieldInputClass} h-[120px] resize-none`;

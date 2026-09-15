@@ -26,8 +26,13 @@ vi.mock("@/lib/auth/api", () => ({
   RegistrationPendingError: class RegistrationPendingError extends Error {},
 }));
 
+// isGoogleSignInConfigured is read at module load from NEXT_PUBLIC_KEYCLOAK_*,
+// so it is a constant by the time a test runs and cannot be changed by setting
+// the variables afterwards. Mocked as a value the individual tests override,
+// which is also the only way to exercise both branches of the button.
 vi.mock("@/lib/auth/keycloakIdentity", () => ({
   signInWithGoogleViaKeycloak,
+  isGoogleSignInConfigured: true,
   GoogleSignInCancelledError: class GoogleSignInCancelledError extends Error {},
 }));
 

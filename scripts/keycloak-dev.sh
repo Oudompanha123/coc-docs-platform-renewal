@@ -73,12 +73,30 @@ MISSING_SECRET
   exit 1
 fi
 
-if command -v kc.sh >/dev/null 2>&1; then
-  KC="kc.sh"
-elif command -v kc.bat >/dev/null 2>&1; then
-  KC="kc.bat"
-else
-  echo "Keycloak (kc.sh / kc.bat) is not on PATH. Install Keycloak 26+ and add its bin/ to PATH." >&2
+# On Windows the launcher is kc.bat. Keycloak ships kc.sh beside it, and Git
+# Bash will happily find and run that one first — it is the same distribution,
+# so it sometimes works and sometimes fails on path and classpath separators,
+# which is the worst of both. Preferred explicitly by platform rather than by
+# whichever PATH lookup answers first.
+KC=""
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*)
+    command -v kc.bat >/dev/null 2>&1 && KC="kc.bat"
+    [ -n "$KC" ] || { command -v kc.sh >/dev/null 2>&1 && KC="kc.sh"; }
+    ;;
+  *)
+    command -v kc.sh >/dev/null 2>&1 && KC="kc.sh"
+    [ -n "$KC" ] || { command -v kc.bat >/dev/null 2>&1 && KC="kc.bat"; }
+    ;;
+esac
+
+if [ -z "$KC" ]; then
+  cat >&2 <<'NO_KEYCLOAK'
+Keycloak is not on PATH (looked for kc.bat and kc.sh).
+
+Install Keycloak 26+ and add its bin directory to PATH, for example
+D:\dev\keycloak-26.7.3\bin, then open a new shell so the change takes effect.
+NO_KEYCLOAK
   exit 1
 fi
 
