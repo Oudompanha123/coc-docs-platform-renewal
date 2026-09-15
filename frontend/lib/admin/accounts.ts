@@ -111,6 +111,22 @@ export function updateAccount(
   });
 }
 
+/**
+ * Removes an account outright (ADR-023).
+ *
+ * The irreversible one. `updateAccount(id, { active: false })` keeps the row,
+ * keeps the person against their work and lets them back in later; this does
+ * not. The audit trail survives either way — entries keep the email of whoever
+ * wrote them, so removing the account does not remove what they did.
+ *
+ * Refusals come back with the backend wording: "you cannot delete your own
+ * account", or "this is the only active super admin; promote someone else
+ * before deleting ...". Both say what to do instead, so show them as they are.
+ */
+export function deleteAccount(id: string): Promise<void> {
+  return request<void>(`/${id}`, { method: "DELETE" });
+}
+
 /** One role and what it grants — `/api/v1/admin/roles`. */
 export interface RoleDetail {
   key: AccountRole;

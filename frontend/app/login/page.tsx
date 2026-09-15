@@ -49,6 +49,10 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  // Set once either sign-in path has succeeded and the redirect is under way.
+  // Without it the caller is left sitting on a filled-in login form with only
+  // a feedback banner, which reads as "nothing happened" during the navigation.
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error" | "pending";
     message: string;
@@ -106,6 +110,7 @@ export default function LoginPage() {
       // A temporary password (revision of ADR-017) buys entry to exactly one
       // place: Create New Password. Everything else refuses this session
       // until that happens, so sending it anywhere else would just bounce.
+      setIsRedirecting(true);
       router.push(account.mustChangePassword ? "/create-password" : "/overview");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
@@ -141,6 +146,7 @@ export default function LoginPage() {
       // Same gate as the password path above: an account a super_admin
       // invited by email can also arrive here later via Google, and the
       // temporary password still has to be replaced first either way.
+      setIsRedirecting(true);
       router.push(account.mustChangePassword ? "/create-password" : "/overview");
     } catch (err) {
       if (err instanceof GoogleSignInCancelledError) {
@@ -218,71 +224,81 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
-        <FormField
-          label="Email, Phone or Name"
-          value={identifier}
-          onChange={setIdentifier}
-          placeholder="Email, phone or full name"
-          icon={<PersonIcon className="h-4 w-4" />}
-          autoComplete="username"
-          error={errors.identifier}
-        />
-
-        <PasswordField
-          label="Password"
-          value={password}
-          onChange={setPassword}
-          placeholder="Enter your password"
-          icon={<LockIcon className="h-4 w-4" />}
-          autoComplete="current-password"
-          error={errors.password}
-        />
-
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-muted">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-border text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
-            />
-            Remember me
-          </label>
-          <Link
-            href="/forgot-password"
-            className="text-sm font-semibold text-brand-purple hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded"
+      {isRedirecting ? (
+        <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
+          <div
+            aria-hidden="true"
+            className="h-8 w-8 animate-spin rounded-full border-4 border-brand-purple/20 border-t-brand-purple"
+          />
+          <p>Redirecting to your dashboard…</p>
+        </div>
+      ) : (
+        <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+          <FormField
+            label="Email, Phone or Name"
+            value={identifier}
+            onChange={setIdentifier}
+            placeholder="Email, phone or full name"
+            icon={<PersonIcon className="h-4 w-4" />}
+            autoComplete="username"
+            error={errors.identifier}
+          />
+  
+          <PasswordField
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            placeholder="Enter your password"
+            icon={<LockIcon className="h-4 w-4" />}
+            autoComplete="current-password"
+            error={errors.password}
+          />
+  
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              />
+              Remember me
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-brand-purple hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded"
+            >
+              Forgot password?
+            </Link>
+          </div>
+  
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Forgot password?
-          </Link>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "Signing in…" : "Login"}
-        </button>
-
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted">or</span>
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={isGoogleSubmitting}
-          aria-busy={isGoogleSubmitting}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <GoogleIcon className="h-5 w-5" aria-hidden="true" />
-          {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
-        </button>
-      </form>
+            {isSubmitting ? "Signing in…" : "Login"}
+          </button>
+  
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted">or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+  
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleSubmitting}
+            aria-busy={isGoogleSubmitting}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <GoogleIcon className="h-5 w-5" aria-hidden="true" />
+            {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
+          </button>
+        </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-muted">
         Don&apos;t have an account?{" "}

@@ -172,3 +172,54 @@ describe("LoginPage Google sign-in", () => {
     delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
   });
 });
+
+describe("LoginPage redirect state", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /**
+   * The form is replaced by a spinner the moment a sign-in succeeds. Without
+   * it the caller sits on a filled-in login form during the navigation, with
+   * only a banner to suggest anything happened.
+   *
+   * <p>The redirect itself is not delayed. An earlier version of this held the
+   * caller for three seconds so the success banner could be read; the push now
+   * happens immediately and the spinner covers however long the navigation
+   * actually takes.
+   */
+  it("replaces the form with a redirect notice once sign-in succeeds", async () => {
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "person@example.com",
+      displayName: "Person Example",
+      role: "user",
+      mustChangePassword: false,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    expect(await screen.findByText("Redirecting to your dashboard…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Login" })).not.toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("leaves the form in place when sign-in is refused", async () => {
+    loginWithPassword.mockRejectedValue(new Error("Invalid email or password."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    // A failed attempt must leave somewhere to retry from.
+    expect(await screen.findByText("Invalid email or password.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(screen.queryByText("Redirecting to your dashboard…")).not.toBeInTheDocument();
+  });
+});
