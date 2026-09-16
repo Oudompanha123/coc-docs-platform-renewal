@@ -27,8 +27,79 @@ interface PendingAuthAttempt {
   redirectUri: string;
 }
 
+/**
+ * Marks the second visit to this page: the one Keycloak sends us back to after
+ * it has ended its own session. Nothing left to do but close.
+ */
+const SIGNED_OUT_PARAM = "kc_signed_out";
+
+/**
+ * Ends the Keycloak session this sign-in just created, then closes the popup.
+ *
+ * <p><b>Why sign out immediately after signing in.</b> Keycloak keeps a browser
+ * session of its own, and this product does not want one: `prompt=login` means
+ * every sign-in goes to Google afresh, so the session is never read — it is
+ * only ever in the way. When it holds one account and somebody authenticates
+ * as another, Keycloak refuses the flow outright:
+ *
+ * <pre>
+ *   You are already authenticated as different user 'someone@example.com'
+ *   in this session. Please sign out first.
+ * </pre>
+ *
+ * <p>`prompt=login` does not prevent that. It forces re-authentication; it does
+ * not end the session the new user is being compared against.
+ *
+ * <p>Sign-out and a refused sign-in already end the session, but both are
+ * missable — a closed tab, an unclicked confirmation page, a person who never
+ * signs in again — and the error lands on whoever comes next, inside Keycloak,
+ * where this application cannot say anything about it. Ending it here means
+ * there is never one to collide with.
+ *
+ * <p><b>Why in the popup.</b> This window is about to navigate to Keycloak's
+ * own origin as a top-level page, so its cookie is first-party and actually
+ * gets cleared. An iframe on the opener would be a third-party context and is
+ * exactly what browsers are in the middle of blocking.
+ *
+ * <p>The ID token stays valid: the backend verifies it against the realm's
+ * public keys (`JwtDecoder`), not by asking Keycloak whether the session still
+ * exists. Signing out here cannot invalidate the token the opener is already
+ * sending.
+ */
+function endKeycloakSession(idToken: string): void {
+  const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+  const keycloakRealm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+  if (!keycloakUrl || !keycloakRealm) {
+    window.close();
+    return;
+  }
+
+  const returnTo = new URL(window.location.origin + window.location.pathname);
+  returnTo.searchParams.set(SIGNED_OUT_PARAM, "1");
+
+  const logout = new URL(`${keycloakUrl}/realms/${keycloakRealm}/protocol/openid-connect/logout`);
+  // With the hint Keycloak logs out silently. Without it there is a "Do you
+  // want to log out?" page, which in a popup nobody is looking at would mean a
+  // session that never ends — so the hint is the whole reason this happens
+  // here, where the token is in hand, rather than later.
+  logout.searchParams.set("id_token_hint", idToken);
+  logout.searchParams.set("post_logout_redirect_uri", returnTo.toString());
+
+  // If Keycloak is unreachable or refuses the redirect, the popup would sit on
+  // an error page nobody asked for. The opener already has what it needs.
+  window.setTimeout(() => window.close(), 5000);
+  window.location.replace(logout.toString());
+}
+
 async function exchangeCodeAndReportResult() {
   const params = new URLSearchParams(window.location.search);
+
+  // Second visit: Keycloak has cleared its cookie and sent the popup back.
+  if (params.get(SIGNED_OUT_PARAM)) {
+    window.close();
+    return;
+  }
+
   const state = params.get("state");
   const code = params.get("code");
   const errorParam = params.get("error");
@@ -47,6 +118,13 @@ async function exchangeCodeAndReportResult() {
         : { type: message.type, state, message: message.errorMessage },
       window.location.origin,
     );
+    // The opener is told first and carries on independently. A success then
+    // takes one more hop through Keycloak to end its session; an error has no
+    // session to end, because no token was ever issued.
+    if (message.type === "coc-keycloak-auth-success" && message.idToken) {
+      endKeycloakSession(message.idToken);
+      return;
+    }
     window.close();
   }
 
