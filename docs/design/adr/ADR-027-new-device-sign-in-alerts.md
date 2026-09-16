@@ -57,7 +57,7 @@ only property that makes anybody read the ones that fire.
 
 ### 2. Computed and stored at sign-in, not derived on read
 
-`app_session.new_device` (V15) is written once, by the sign-in that created the
+`app_session.new_device` (V16) is written once, by the sign-in that created the
 row. It cannot be derived later: a moment after the insert, the row is itself a
 prior session from that device, and the query would answer no for ever after.
 
@@ -66,7 +66,7 @@ prior session from that device, and the query would answer no for ever after.
 is a second thing to keep in step, and the two disagreeing is precisely how a
 security alert turns into noise.
 
-### 3. Rows written before V15 are not backfilled, and the first sign-in after it is quiet
+### 3. Rows written before V16 are not backfilled, and the first sign-in after it is quiet
 
 There is no honest way to invent a key for a session written before the column
 existed, and writing the browser rules a second time in SQL to guess one is the
@@ -211,7 +211,7 @@ doors pass through.
   `NewDeviceSignInEvent.java`, `SessionService.issue`,
   `SessionRepository.hasDevice`, `notify/SignInNotifier.java`,
   `notify/NotificationService.notifyAccount`,
-  `db/migration/V15__session_device.sql`,
+  `db/migration/V16__session_device.sql`,
   `frontend/components/layout/NewSignInModal.tsx`,
   `frontend/lib/notify/useNotifications.ts`
 - Tests: `DeviceDescriptionTest`, `NewDeviceSignInTest`, `NotificationTypeTest`,
