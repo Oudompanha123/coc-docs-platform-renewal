@@ -13,18 +13,50 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
   const heading = variant === "admin" ? "text-dash-ink" : "text-ink";
 
   if (content.kind === "hero") {
+    const isSplit = content.layout === "split";
+    const heroText = (
+      <>
+        <h1 className={`text-3xl font-extrabold ${heading}`}>{content.heading}</h1>
+        <p className={`mt-3 text-lg font-medium ${heading}`}>{content.tagline}</p>
+        <p className="mt-1 text-sm text-muted">{content.subline}</p>
+        <Link
+          href={content.ctaHref}
+          className="mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+        >
+          {content.ctaLabel}
+        </Link>
+      </>
+    );
+
     return (
       <div>
-        <div className={`rounded-2xl border border-border bg-white p-8 text-center shadow-sm sm:p-12`}>
-          <h1 className={`text-3xl font-extrabold ${heading}`}>{content.heading}</h1>
-          <p className={`mt-3 text-lg font-medium ${heading}`}>{content.tagline}</p>
-          <p className="mt-1 text-sm text-muted">{content.subline}</p>
-          <Link
-            href={content.ctaHref}
-            className="mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-          >
-            {content.ctaLabel}
-          </Link>
+        <div
+          className={`rounded-2xl border border-border bg-white p-8 shadow-sm sm:p-12 ${
+            isSplit ? "text-center sm:flex sm:items-center sm:gap-10 sm:text-left" : "text-center"
+          }`}
+        >
+          <div className={isSplit ? "sm:flex-1" : ""}>{heroText}</div>
+
+          {isSplit && content.features.length > 0 && (
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-0 sm:w-48 sm:shrink-0">
+              {content.features.slice(0, 4).map((feature, i) => {
+                const Icon = ICON_MAP[feature.icon];
+                return (
+                  <div
+                    key={i}
+                    className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue text-white"
+                  >
+                    {feature.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={feature.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Icon className="h-7 w-7" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="mt-6">
@@ -37,8 +69,13 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
               const Icon = ICON_MAP[feature.icon];
               return (
                 <div key={feature.title} className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-                    <Icon className="h-5 w-5" />
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                    {feature.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={feature.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
                   </div>
                   <h3 className={`mt-3 text-base font-semibold ${heading}`}>{feature.title}</h3>
                   <p className="mt-1 text-sm text-muted">{feature.description}</p>
