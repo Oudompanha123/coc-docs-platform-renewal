@@ -39,6 +39,12 @@ export default function SettingsPage() {
 
         <div className="animate-entrance [animation-delay:70ms]">
           <SettingsCard title="Notifications" description="Choose what you get notified about">
+            {/* The browser-permission toggle. Dropped from this page in
+                900b81f while its import stayed, which is what failed the
+                build — and a deliberate removal would have taken both. It is
+                the only control that asks for notification permission, so
+                without it nothing can be enabled at all (ADR-025). */}
+            <PushNotificationsCard />
             <NotificationsCard data={NOTIFICATION_PREFERENCES} />
           </SettingsCard>
         </div>
