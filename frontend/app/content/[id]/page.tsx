@@ -9,7 +9,10 @@ import { ContentRenderer } from "@/components/docs/ContentRenderer";
 import { HeroForm } from "@/components/docs/editor/HeroForm";
 import { StepsForm } from "@/components/docs/editor/StepsForm";
 import { SectionsForm } from "@/components/docs/editor/SectionsForm";
-import { getContent, registryEntryFor, saveContent } from "@/lib/docs/content-store";
+import { parseContentId } from "@/lib/docs/content-store";
+import { fetchDocContent, saveDocContent } from "@/lib/docs/docs-content-api";
+import { hrefFor } from "@/lib/docs/nav-routing";
+import { useNavStructure } from "@/lib/docs/useNavStructure";
 import type { DocContent } from "@/lib/docs/content-types";
 
 const BLANK: Record<DocContent["kind"], DocContent> = {
@@ -31,10 +34,16 @@ const BLANK: Record<DocContent["kind"], DocContent> = {
 
 export default function ContentEditPage() {
   const { id } = useParams<{ id: string }>();
-  const entry = registryEntryFor(id);
+  const { productKey, slug } = parseContentId(id);
+  const products = useNavStructure();
+  const product = products?.find((p) => p.key === productKey);
+  const item = product?.items.find((i) => i.slug === slug);
+  const entry = product && item ? { productKey, productLabel: product.label, label: item.label, publicHref: hrefFor(productKey, slug) } : undefined;
 
   const [draft, setDraft] = useState<DocContent | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // A callback ref, not useRef+useEffect: the previous version read
   // previewRef.current inside an effect keyed on Boolean(draft), which
   // depends on the ref already being attached by the time that effect runs.
@@ -45,7 +54,17 @@ export default function ContentEditPage() {
   const [previewHeight, setPreviewHeight] = useState<number | null>(null);
 
   useEffect(() => {
-    setDraft(getContent(id) ?? BLANK.sections);
+    let cancelled = false;
+    fetchDocContent(id)
+      .then((content) => {
+        if (!cancelled) setDraft(content ?? BLANK.sections);
+      })
+      .catch(() => {
+        if (!cancelled) setDraft(BLANK.sections);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   // The editor panel's height follows the live preview panel's actual
@@ -68,6 +87,18 @@ export default function ContentEditPage() {
     observer.observe(previewEl);
     return () => observer.disconnect();
   }, [previewEl]);
+
+  if (!products) {
+    return (
+      <AppShell
+        pageTitle="Content"
+        pageSubtitle="Loading…"
+        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      >
+        <p className="text-sm text-muted">Loading…</p>
+      </AppShell>
+    );
+  }
 
   if (!entry) {
     return (
@@ -94,10 +125,18 @@ export default function ContentEditPage() {
     setDraft(BLANK[kind]);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!draft) return;
-    saveContent(id, draft);
-    setSavedAt(Date.now());
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await saveDocContent(id, draft);
+      setSavedAt(Date.now());
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Couldn't save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -111,7 +150,8 @@ export default function ContentEditPage() {
           ← Back to {entry.productLabel}
         </Link>
         <div className="flex items-center gap-3">
-          {savedAt && <span className="text-xs font-semibold text-[#1f9d6b]">Saved</span>}
+          {saveError && <span className="text-xs font-semibold text-[#c94040]">{saveError}</span>}
+          {!saveError && savedAt && <span className="text-xs font-semibold text-[#1f9d6b]">Saved</span>}
           <Link
             href={entry.publicHref}
             target="_blank"
@@ -122,9 +162,10 @@ export default function ContentEditPage() {
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            disabled={saving}
+            className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Save
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>

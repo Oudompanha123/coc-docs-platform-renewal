@@ -1,16 +1,42 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { notFound, useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { LayersIcon, TagIcon } from "@/components/layout/icons";
-import { JEX3_SUB_ITEMS_RAW } from "@/lib/docs/jex3-sub-items";
+import { ContentRenderer } from "@/components/docs/ContentRenderer";
+import { contentId } from "@/lib/docs/content-store";
+import { useDocContent } from "@/lib/docs/useDocContent";
+import { useNavStructure } from "@/lib/docs/useNavStructure";
 
-/** Placeholder for the Jex3.0 sub-items not yet cloned (Flow, Structure,
- *  Updating, Releases, FAQ, Prerequisites, Run configs, From scratch,
- *  Verify) — honest "not written yet", same as Phase 2. Overview/Get
- *  started/How to use have their own real pages and never reach this file. */
-export default async function Jex30SubPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const item = JEX3_SUB_ITEMS_RAW.find((i) => i.slug === slug);
-  if (!item) notFound();
+/** Every Jex3.0 sub-item, real content or not-written-yet — replaces the
+ *  static per-item pages (overview/page.tsx, get-started/page.tsx, ...)
+ *  plus the old stub-only catch-all, now that the sub-item list itself is
+ *  admin-editable. Lives under /jex3-0/* rather than /docs/jex3-0/*: its
+ *  content is under the authenticated admin shell, not the public /docs
+ *  layout (see nav-routing.ts's hrefFor). */
+export default function Jex30SubPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const products = useNavStructure();
+  const product = products?.find((p) => p.key === "jex3-0");
+  const item = product?.items.find((i) => i.slug === slug);
+  const content = useDocContent(contentId("jex3-0", slug));
+
+  if (products && !item) {
+    notFound();
+  }
+  if (!item) return null;
+
+  if (content) {
+    return (
+      <AppShell
+        pageTitle={`Jex3.0 — ${item.label}`}
+        pageSubtitle="jexmcp3.0"
+        titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      >
+        <ContentRenderer content={content} variant="admin" />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

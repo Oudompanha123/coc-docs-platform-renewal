@@ -32,8 +32,6 @@ export function Pagination({
 }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(page, pageCount);
-  const firstRow = total === 0 ? 0 : (current - 1) * pageSize + 1;
-  const lastRow = Math.min(current * pageSize, total);
 
   // At most seven buttons, centred on the current page. A team of forty would
   // otherwise render forty of them and wrap the control onto three lines.
@@ -72,9 +70,6 @@ export function Pagination({
             <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="ml-1 hidden sm:inline">
-          {total === 0 ? "No accounts" : `${firstRow}–${lastRow} of ${total}`}
-        </span>
       </div>
 
       <div className="flex items-center gap-1.5">

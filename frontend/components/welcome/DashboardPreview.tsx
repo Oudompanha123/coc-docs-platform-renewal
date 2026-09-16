@@ -1,13 +1,45 @@
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { DatabaseIcon, DocumentIcon, LayersIcon, UsersIcon } from "@/components/layout/icons";
-import { NAV_BOTTOM, NAV_SECTIONS, NAV_TOP } from "@/components/layout/nav-config";
+import {
+  BarChartIcon,
+  DatabaseIcon,
+  DocumentIcon,
+  FolderIcon,
+  LayersIcon,
+  PersonIcon,
+  PulseIcon,
+  UsersIcon,
+} from "@/components/layout/icons";
+import { NAV_BOTTOM, NAV_TOP, type NavSection } from "@/components/layout/nav-config";
 import { CURRENT_USER, RECENT_DOCUMENTS, STAT_CARDS } from "@/lib/mock/overview";
+
+/** A static illustration of the sidebar's shape for this read-only preview —
+ *  the real PRODUCTS section is admin-editable now (nav-api.ts), so there's
+ *  no single hardcoded list left to import here; this preview was never
+ *  meant to reflect live edits anyway. */
+const PREVIEW_SECTIONS: NavSection[] = [
+  {
+    label: "PRODUCTS",
+    items: [
+      { label: "Jex3.0", href: "/jex3-0", icon: LayersIcon },
+      { label: "Jex2.0", href: "/jex2-0", icon: FolderIcon },
+      { label: "Coach", href: "/coach", icon: PersonIcon },
+    ],
+  },
+  {
+    label: "ADMINISTRATION",
+    items: [{ label: "Users & Roles", href: "/users-roles", icon: UsersIcon }],
+  },
+];
 
 const STAT_ICONS = {
   document: DocumentIcon,
   layers: LayersIcon,
   users: UsersIcon,
   database: DatabaseIcon,
+  folder: FolderIcon,
+  person: PersonIcon,
+  pulse: PulseIcon,
+  barChart: BarChartIcon,
 } as const;
 
 /**
@@ -57,7 +89,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               {NAV_TOP.label}
             </span>
 
-            {NAV_SECTIONS.map((section) => (
+            {PREVIEW_SECTIONS.map((section) => (
               <div key={section.label} className="flex flex-col gap-1">
                 <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">
                   {section.label}
