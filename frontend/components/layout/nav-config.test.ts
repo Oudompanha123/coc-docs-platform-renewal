@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Role } from "@/lib/auth/api";
+import type { NavProduct } from "@/lib/docs/nav-api";
 import { visibleNavSections } from "./nav-config";
 
+const FIXTURE_PRODUCTS: NavProduct[] = [
+  { key: "jex3-0", label: "Jex3.0", icon: "layers", items: [] },
+  { key: "jex2-0", label: "Jex2.0", icon: "folder", items: [] },
+];
+
 /** Every item label a role would see in the sidebar, flattened. */
-function labelsFor(role: Role | null): string[] {
-  return visibleNavSections(role).flatMap((section) => section.items.map((item) => item.label));
+function labelsFor(role: Role | null, products: NavProduct[] = FIXTURE_PRODUCTS): string[] {
+  return visibleNavSections(role, products).flatMap((section) => section.items.map((item) => item.label));
 }
 
 describe("visibleNavSections", () => {
@@ -35,22 +41,27 @@ describe("visibleNavSections", () => {
   });
 
   it("drops the ADMINISTRATION heading rather than rendering it empty", () => {
-    // Content moved out of ADMINISTRATION and into its own per-product admin
-    // pages, so Users & Roles is the section's only item again — meaning it's
-    // the empty-section path (not the filter-within-a-section one) that's
-    // actually exercised for a non-super-admin now.
-    const headings = visibleNavSections("user").map((section) => section.label);
+    const headings = visibleNavSections("user", FIXTURE_PRODUCTS).map((section) => section.label);
     expect(headings).not.toContain("ADMINISTRATION");
-    expect(visibleNavSections("super_admin").map((s) => s.label)).toContain("ADMINISTRATION");
+    expect(visibleNavSections("super_admin", FIXTURE_PRODUCTS).map((s) => s.label)).toContain("ADMINISTRATION");
 
     const adminSection = (role: Role) =>
-      visibleNavSections(role).find((section) => section.label === "ADMINISTRATION");
+      visibleNavSections(role, FIXTURE_PRODUCTS).find((section) => section.label === "ADMINISTRATION");
     expect(adminSection("super_admin")?.items.map((i) => i.label)).toEqual(["Users & Roles"]);
+    expect(adminSection("admin")).toBeUndefined();
   });
 
-  it("leaves unrestricted items visible to every role", () => {
+  it("builds the PRODUCTS section from the live nav structure, not a hardcoded list", () => {
     for (const role of ["guest", "user", "admin", "super_admin"] as const) {
-      expect(labelsFor(role)).toEqual(expect.arrayContaining(["Jex3.0", "Usage"]));
+      expect(labelsFor(role)).toEqual(expect.arrayContaining(["Jex3.0", "Jex2.0"]));
     }
+
+    const differentFixture: NavProduct[] = [{ key: "brand-new", label: "Brand New", icon: "layers", items: [] }];
+    expect(labelsFor("user", differentFixture)).toEqual(["Brand New"]);
+  });
+
+  it("drops the PRODUCTS heading when there are no products yet", () => {
+    const headings = visibleNavSections("user", []).map((section) => section.label);
+    expect(headings).not.toContain("PRODUCTS");
   });
 });

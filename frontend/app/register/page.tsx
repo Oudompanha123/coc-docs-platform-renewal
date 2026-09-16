@@ -317,10 +317,20 @@ export default function RegisterPage() {
             />
             <label htmlFor="agree-terms" className="text-sm text-muted">
               I agree to the{" "}
+              {/* Anchors, not buttons or Links. These navigate nowhere yet —
+                  handleLegalLinkClick calls preventDefault and no /terms or
+                  /privacy page exists. next/link is what the rule wants, but it
+                  only started firing because app/[productKey] now matches any
+                  single-segment path, so the pages merely look real. A button
+                  is worse: <button> is a labelable element, so nesting one in
+                  this <label> makes getByLabelText match three controls instead
+                  of the checkbox. These become <Link> when the pages exist. */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/terms" onClick={handleLegalLinkClick} className="font-semibold text-brand-purple hover:underline">
                 Terms of Service
               </a>{" "}
               and{" "}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a href="/privacy" onClick={handleLegalLinkClick} className="font-semibold text-brand-purple hover:underline">
                 Privacy Policy
               </a>
