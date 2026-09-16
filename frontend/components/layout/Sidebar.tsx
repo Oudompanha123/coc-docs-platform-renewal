@@ -10,7 +10,7 @@ import { createProduct, deleteProduct, fetchNavStructure } from "@/lib/docs/nav-
 import { useNavStructure } from "@/lib/docs/useNavStructure";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
-import { PlusIcon, XIcon } from "./icons";
+import { MonitorIcon, PlusIcon, XIcon } from "./icons";
 
 function slugify(label: string): string {
   return label
@@ -205,6 +205,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       </nav>
 
       <div className="space-y-3 border-t border-white/10 pt-4">
+        {/* Opens in a new tab rather than navigating away: this is the same
+            admin session looking at the public side of the same product,
+            not leaving the admin app. */}
+        <Link
+          href="/welcome"
+          target="_blank"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+        >
+          <MonitorIcon className="h-[18px] w-[18px] shrink-0" />
+          View site
+        </Link>
         <NavLink item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
 
         <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">

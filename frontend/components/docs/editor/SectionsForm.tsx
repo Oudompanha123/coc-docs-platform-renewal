@@ -1,4 +1,5 @@
 import { FormField, fieldInputClass, fieldTextareaClass } from "./FormField";
+import { moveItem } from "./reorder";
 import type { SectionsContent } from "@/lib/docs/content-types";
 
 export function SectionsForm({
@@ -24,6 +25,10 @@ export function SectionsForm({
 
   function addSection() {
     onChange({ ...value, sections: [...value.sections, { title: "" }] });
+  }
+
+  function moveSection(index: number, direction: -1 | 1) {
+    onChange({ ...value, sections: moveItem(value.sections, index, direction) });
   }
 
   return (
@@ -60,6 +65,26 @@ export function SectionsForm({
           {value.sections.map((section, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
               <div className="flex items-center gap-2">
+                <div className="flex shrink-0 flex-col">
+                  <button
+                    type="button"
+                    disabled={i === 0}
+                    onClick={() => moveSection(i, -1)}
+                    aria-label="Move section up"
+                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={i === value.sections.length - 1}
+                    onClick={() => moveSection(i, 1)}
+                    aria-label="Move section down"
+                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                </div>
                 <input
                   className={fieldInputClass}
                   placeholder="Section title"

@@ -340,13 +340,12 @@ function LoginForm() {
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
-            feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : feedback.type === "pending"
-                ? "border-amber-200 bg-amber-50 text-amber-900"
-                : "border-red-200 bg-red-50 text-red-700"
-          }`}
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${feedback.type === "success"
+            ? "border-green-200 bg-green-50 text-green-800"
+            : feedback.type === "pending"
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : "border-red-200 bg-red-50 text-red-700"
+            }`}
         >
           {feedback.message}
         </div>
@@ -371,7 +370,7 @@ function LoginForm() {
             autoComplete="username"
             error={errors.identifier}
           />
-  
+
           <PasswordField
             id="login-password"
             label="Password"
@@ -382,7 +381,7 @@ function LoginForm() {
             autoComplete="current-password"
             error={errors.password}
           />
-  
+
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-muted">
               <input
