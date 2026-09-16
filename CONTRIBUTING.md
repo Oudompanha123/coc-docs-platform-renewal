@@ -275,6 +275,10 @@ Correcting one field by hand and not the others only moves you to the next messa
 
 Your database ran a different file at that version — usually because you had a branch checked out that added its own. Flyway stores one row per version and refuses to start when it does not match what is on disk.
 
+**The other cause is editing a migration that has already run — including its comments.** Flyway checksums the whole file, so correcting a typo, a stale ADR number or a wording choice in an applied migration stops the application booting for everyone whose database ran the old bytes. On 2026-09-16 an ADR renumbering rewrote a comment in applied migrations and broke startup, twice, on two different branches.
+
+**A migration is immutable the moment it is applied anywhere.** If something in it is wrong, the fix goes in a new migration, or — for a comment that cannot hurt anybody — nowhere, with the correction recorded in the ADR it points at. `V15__totp_mfa.sql` cites ADR-028 for what is now ADR-031 for exactly this reason, and ADR-031 says so at the top. A wrong reference in an applied file costs one confused reader; editing it costs every developer a repair.
+
 **On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
 
 ```bash

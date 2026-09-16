@@ -6,6 +6,25 @@
 > **Approver**: PM — pending review, same provenance note as G1/G2 in `docs/.harness-state.yaml`
 > **Related ADR**: [ADR-011](ADR-011-security-model.md) (security model, §Authentication pillar), [ADR-014](ADR-014-revision-of-008-password-registration.md) (password sign-in), [ADR-021](ADR-021-revision-of-014-registration-email-otp.md) (the challenge/token shape this reuses), [ADR-013](ADR-013-revision-of-008-identity-broker.md) (Keycloak/Google — explicitly untouched by this ADR)
 
+> **Numbered 028 when written, and `V15__totp_mfa.sql` still says so.** ADR-028
+> was taken by [ADR-028](ADR-028-live-notification-stream.md) before this
+> branch merged, and the number that landed first keeps it. Every citation
+> moved with this document except the ones inside that migration, and those
+> stay where they are on purpose. Flyway checksums the whole file, comments
+> included, so editing an applied migration stops the application booting for
+> everybody whose database already ran it — which is exactly what happened when
+> the renumbering first swept through it:
+>
+> ```
+> Migration checksum mismatch for migration version 15
+> -> Applied to database : 1673170774
+> -> Resolved locally    : 1004200969
+> ```
+>
+> A migration is immutable the moment it is applied anywhere. One confusing
+> reference costs a reader a minute; editing it costs every developer a repair.
+> This paragraph is the correction.
+
 ---
 
 ## 1. Context
