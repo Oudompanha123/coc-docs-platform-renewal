@@ -1,4 +1,5 @@
 import { FormField, fieldInputClass, fieldTextareaClass } from "./FormField";
+import { moveItem } from "./reorder";
 import type { StepsContent } from "@/lib/docs/content-types";
 
 export function StepsForm({ value, onChange }: { value: StepsContent; onChange: (next: StepsContent) => void }) {
@@ -18,6 +19,10 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
 
   function addStep() {
     onChange({ ...value, steps: [...value.steps, { title: "", body: "" }] });
+  }
+
+  function moveStep(index: number, direction: -1 | 1) {
+    onChange({ ...value, steps: moveItem(value.steps, index, direction) });
   }
 
   return (
@@ -69,6 +74,26 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
           {value.steps.map((step, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
               <div className="flex items-center gap-2">
+                <div className="flex shrink-0 flex-col">
+                  <button
+                    type="button"
+                    disabled={i === 0}
+                    onClick={() => moveStep(i, -1)}
+                    aria-label="Move step up"
+                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={i === value.steps.length - 1}
+                    onClick={() => moveStep(i, 1)}
+                    aria-label="Move step down"
+                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                </div>
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-white">
                   {i + 1}
                 </span>

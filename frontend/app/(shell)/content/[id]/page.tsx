@@ -127,9 +127,12 @@ export default function ContentEditPage() {
           <Link
             href={entry.publicHref}
             target="_blank"
-            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink hover:bg-page"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/30 hover:text-brand-purple hover:shadow"
           >
             View live page
+            <span aria-hidden="true" className="text-xs">
+              ↗
+            </span>
           </Link>
           <button
             type="button"

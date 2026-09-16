@@ -17,9 +17,10 @@ import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api
  * fidelity as NotificationsCard.
  *
  * Sub-sections are plain divided rows, not their own nested white cards —
- * this whole component lives inside one SettingsCard, and several
+ * this whole component lives inside one accordion section, and several
  * cards-within-a-card would read as visual clutter, not hierarchy. Danger
- * zone stays visually distinct (red-tinted inset block) as required.
+ * zone moved out to its own top-level DangerZoneCard, matching the
+ * reference layout's separate red card rather than an inset block here.
  */
 /**
  * A user agent is a long string nobody wants to read in a list. This pulls out
@@ -226,37 +227,6 @@ export function SecurityTab() {
                 )}
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Danger zone */}
-      <div className="rounded-xl border border-danger/40 bg-danger/5 p-4">
-        <p className="text-sm font-semibold text-danger">Danger zone</p>
-        <div className="mt-3 divide-y divide-danger/20">
-          <div className="flex items-center justify-between gap-4 py-3 first:pt-0">
-            <div>
-              <p className="text-sm font-semibold text-dash-ink">Export your data</p>
-              <p className="text-xs text-muted">Download a copy of your profile and activity.</p>
-            </div>
-            <button
-              type="button"
-              className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
-            >
-              Export data
-            </button>
-          </div>
-          <div className="flex items-center justify-between gap-4 py-3 last:pb-0">
-            <div>
-              <p className="text-sm font-semibold text-dash-ink">Deactivate your account</p>
-              <p className="text-xs text-muted">You&apos;ll lose access; your content and audit history are preserved.</p>
-            </div>
-            <button
-              type="button"
-              className="shrink-0 rounded-full border border-danger px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
-            >
-              Deactivate account
-            </button>
           </div>
         </div>
       </div>
