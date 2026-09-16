@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 /** No modal primitive exists elsewhere in this app yet — this is the minimal
  *  shell both AddAccountModal and DeactivateModal need, styled to match the
@@ -17,10 +17,16 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-[50px]" onClick={onClose}>
       <div
-        className="w-full max-w-md rounded-2xl border border-border bg-white p-5 shadow-xl"
+        className="w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-white p-5 shadow-xl"
+        style={{ maxHeight: "100%" }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && <h2 className="text-base font-bold text-dash-ink">{title}</h2>}

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SecurityTab } from "./SecurityTab";
+import type { SessionSummary } from "@/lib/auth/api";
 
 /**
  * The sessions list is the one screen that can end a credential, so the two
@@ -19,21 +20,30 @@ vi.mock("@/lib/auth/api", async () => {
   return { ...actual, listSessions, revokeSession, changePassword };
 });
 
-const CURRENT = {
+
+// `device` is what the server sends and what the row renders; the user agent
+// it was derived from is kept because the response still carries it, and a
+// fixture that quietly drops a field stops being a fixture for the real thing.
+// The rules that turn one into the other live in DeviceDescriptionTest.java.
+const CURRENT: SessionSummary = {
   id: "session-current",
   userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
   ipAddress: "192.168.1.10",
   issuedAt: "2026-09-14T08:00:00Z",
   expiresAt: "2026-09-15T08:00:00Z",
+  device: "Chrome on Windows",
+  newDevice: false,
   current: true,
 };
 
-const OTHER = {
+const OTHER: SessionSummary = {
   id: "session-phone",
   userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605 Safari/604.1",
   ipAddress: "10.0.0.4",
   issuedAt: "2026-09-13T19:30:00Z",
   expiresAt: "2026-09-14T19:30:00Z",
+  device: "Safari on iOS",
+  newDevice: false,
   current: false,
 };
 

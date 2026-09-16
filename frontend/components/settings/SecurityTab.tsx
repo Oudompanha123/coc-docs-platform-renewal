@@ -22,46 +22,11 @@ import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api
  * zone moved out to its own top-level DangerZoneCard, matching the
  * reference layout's separate red card rather than an inset block here.
  */
-/**
- * A user agent is a long string nobody wants to read in a list. This pulls out
- * the two things that identify a device to its owner — browser and platform —
- * and falls back to the raw value rather than hiding it, because "Unknown
- * device" helps nobody decide whether to end a session.
- */
-function describeDevice(userAgent: string | null): string {
-  if (!userAgent) return "Unknown device";
-
-  // Order matters. Chrome's user agent contains "Safari", Edge's contains
-  // both, and Opera's contains all three — so the most specific claim has to
-  // be tested first or everything reports as Safari.
-  const browser = /Edg\//.test(userAgent)
-    ? "Edge"
-    : /OPR\/|Opera/.test(userAgent)
-      ? "Opera"
-      : /Chrome\//.test(userAgent)
-        ? "Chrome"
-        : /Firefox\//.test(userAgent)
-          ? "Firefox"
-          : /Safari\//.test(userAgent)
-            ? "Safari"
-            : null;
-
-  const platform = /Windows/.test(userAgent)
-    ? "Windows"
-    : /Android/.test(userAgent)
-      ? "Android"
-      : /iPhone|iPad/.test(userAgent)
-        ? "iOS"
-        : /Mac OS X|Macintosh/.test(userAgent)
-          ? "macOS"
-          : /Linux/.test(userAgent)
-            ? "Linux"
-            : null;
-
-  if (browser && platform) return `${browser} on ${platform}`;
-  return browser ?? platform ?? userAgent.slice(0, 40);
-}
-
+/* The user agent used to be parsed here, into "Chrome on Windows". The server
+   sends that string now (SessionResponse.device), because it composes the push
+   notification about the same device and the two descriptions have to match —
+   a banner saying Chrome beside a list row saying Safari makes a person
+   distrust both. The rules live in DeviceDescription.java. */
 function formatWhen(iso: string): string {
   const when = new Date(iso);
   return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
@@ -205,10 +170,19 @@ export function SecurityTab() {
               <div key={session.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-dash-ink">
-                    {describeDevice(session.userAgent)}
+                    {session.device}
                     {session.current && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-semibold text-brand-blue">
                         This device
+                      </span>
+                    )}
+                    {session.newDevice && !session.current && (
+                      // The same fact the alert was about, left on the row it
+                      // belongs to. Somebody who dismissed the notification, or
+                      // never had notifications on, can still see which of
+                      // these appeared out of nowhere.
+                      <span className="ml-2 inline-flex items-center rounded-full bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">
+                        New device
                       </span>
                     )}
                   </p>
