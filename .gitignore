@@ -33,6 +33,13 @@ env.local
 env.*.local
 **/env.local
 
+# ...and any near-miss of those names. On 2026-09-16 a mistyped `..env.local`
+# matched none of the patterns above, and a commit then pointed application.yml
+# at it — a file holding the database password, the Google client secret and
+# the Firebase service account, one `git add .` from being tracked. The name
+# people get wrong is exactly the one that stops being ignored.
+*env.local
+
 # Backend log output (logback-spring.xml).
 logs/
 backend/logs/
