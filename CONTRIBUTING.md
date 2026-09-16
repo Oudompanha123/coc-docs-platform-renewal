@@ -293,6 +293,20 @@ scripts/flyway-repair-dev.sh
 
 **Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day, and then cost another one when the half-corrected bookkeeping it left behind surfaced weeks later.
 
+### `Detected applied migration not resolved locally: 17`
+
+The database has run a version this checkout has never heard of — somebody applied their migration before pushing the file.
+
+`application.yml` already sets `ignore-migration-patterns: "*:missing"` and it does not cover this, which is what makes the setting look broken. Flyway has two categories and one message: an applied version **below** your highest local one is `missing`, one **above** it is `future`. V17 against a checkout that stops at V16 is `future`.
+
+Uncomment this in your own `backend/.env.local` while you wait for that file:
+
+```properties
+spring.flyway.ignore-migration-patterns=*:missing,*:future
+```
+
+Then take it out again — it also stops a genuinely deleted migration being caught. Two things fix it properly: whoever applied V17 pushes it, and, if you are sharing a schema with them, you take a `DB_SCHEMA` of your own. A schema nobody else writes to cannot get ahead of your checkout, which is the whole point of the per-developer rule.
+
 ## Seeing what the backend is doing
 
 Logging is configured in `backend/src/main/resources/logback-spring.xml`. It **extends** Spring Boot's defaults rather than replacing them, so `logging.level.*` and `logging.pattern.*` in `application.yml` still work and still win.
