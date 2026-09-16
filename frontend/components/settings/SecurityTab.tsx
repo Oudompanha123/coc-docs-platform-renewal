@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { PulseIcon } from "@/components/layout/icons";
-import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
+import { TotpDisableForm, TotpSetupWizard } from "@/components/settings/TotpSetupForm";
+import { getMfaStatus, listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
+import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
  * Password change is real (ADR-014, ADR-017, ADR-022) — the "Google-only, no
@@ -13,8 +15,13 @@ import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api
  * was always dead. Shares {@code ChangePasswordForm} with {@code
  * ProfileModal}'s equivalent section.
  *
- * 2FA toggle and per-session sign-out are local-state mock only, same
- * fidelity as NotificationsCard.
+ * Two-factor authentication (ADR-028) is real too, as of the same change
+ * that corrected the copy above: the toggle reflects {@code GET
+ * /api/v1/auth/mfa/status}, turning it on opens {@link TotpSetupWizard}
+ * (QR code, manual secret, confirmation code), and turning it off opens
+ * {@link TotpDisableForm} (current password required). It used to be
+ * local-state mock only, same fidelity as NotificationsCard — per-session
+ * sign-out above is the one remaining place that's still real from before.
  *
  * Sub-sections are plain divided rows, not their own nested white cards —
  * this whole component lives inside one SettingsCard, and several
@@ -67,7 +74,7 @@ function formatWhen(iso: string): string {
 }
 
 export function SecurityTab() {
-  const [twoFactor, setTwoFactor] = useState(false);
+  const { user } = useSession();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,11 +82,27 @@ export function SecurityTab() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
+  // ADR-028: reflects GET /api/v1/auth/mfa/status. Defaults to false while
+  // that call is in flight, same as sessions defaulting to [] above.
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [mfaMode, setMfaMode] = useState<"idle" | "enabling" | "disabling">("idle");
+  const [mfaNotice, setMfaNotice] = useState<string | null>(null);
+
   useEffect(() => {
     listSessions()
       .then(setSessions)
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load your sessions."))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getMfaStatus()
+      .then(setMfaEnabled)
+      .catch(() => {
+        // Left false. The toggle is still usable -- turning it on calls
+        // startMfaSetup, which reports its own failure if the backend is
+        // genuinely unreachable.
+      });
   }, []);
 
   async function signOutSession(id: string) {
@@ -98,7 +121,8 @@ export function SecurityTab() {
   return (
     <div className="flex flex-col gap-5">
       <div className="divide-y divide-border">
-        {/* Password (ADR-022) */}
+        {/* Password (ADR-022) — "Set a password" instead for a Google-only
+            account, which has none to change yet (ADR-030). */}
         <div className="py-4 first:pt-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -108,7 +132,10 @@ export function SecurityTab() {
               <div>
                 <p className="text-sm font-semibold text-dash-ink">Password</p>
                 <p className="text-xs text-muted">
-                  {passwordNotice ?? "Keep your account secure with a strong password."}
+                  {passwordNotice ??
+                    (user?.hasPassword
+                      ? "Keep your account secure with a strong password."
+                      : "You signed in with Google. Add a password to also sign in with your email.")}
                 </p>
               </div>
             </div>
@@ -121,13 +148,14 @@ export function SecurityTab() {
                 }}
                 className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
               >
-                Change password
+                {user?.hasPassword ? "Change password" : "Set password"}
               </button>
             )}
           </div>
           {changingPassword && (
             <div className="mt-4 max-w-sm">
               <ChangePasswordForm
+                hasPassword={user?.hasPassword ?? false}
                 onSuccess={(message) => {
                   setChangingPassword(false);
                   setPasswordNotice(message);
@@ -157,33 +185,60 @@ export function SecurityTab() {
           </span>
         </div>
 
-        {/* Two-factor authentication */}
-        <div className="flex items-center justify-between gap-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-              <ShieldIcon className="h-5 w-5" />
+        {/* Two-factor authentication (ADR-028) */}
+        <div className="py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <ShieldIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-dash-ink">Two-factor authentication</p>
+                <p className="text-xs text-muted">{mfaNotice ?? "Add an extra step when signing in."}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-dash-ink">Two-factor authentication</p>
-              <p className="text-xs text-muted">Add an extra step when signing in.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={twoFactor}
-            aria-label="Toggle two-factor authentication"
-            onClick={() => setTwoFactor((v) => !v)}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
-              twoFactor ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
-                twoFactor ? "left-[22px]" : "left-0.5"
+            <button
+              type="button"
+              role="switch"
+              aria-checked={mfaEnabled}
+              aria-label="Toggle two-factor authentication"
+              disabled={mfaMode !== "idle"}
+              onClick={() => {
+                setMfaNotice(null);
+                setMfaMode(mfaEnabled ? "disabling" : "enabling");
+              }}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60 ${
+                mfaEnabled ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
               }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+                  mfaEnabled ? "left-[22px]" : "left-0.5"
+                }`}
+              />
+            </button>
+          </div>
+
+          {mfaMode === "enabling" && (
+            <TotpSetupWizard
+              onEnabled={(message) => {
+                setMfaEnabled(true);
+                setMfaMode("idle");
+                setMfaNotice(message);
+              }}
+              onCancel={() => setMfaMode("idle")}
             />
-          </button>
+          )}
+          {mfaMode === "disabling" && (
+            <TotpDisableForm
+              onDisabled={(message) => {
+                setMfaEnabled(false);
+                setMfaMode("idle");
+                setMfaNotice(message);
+              }}
+              onCancel={() => setMfaMode("idle")}
+            />
+          )}
         </div>
 
         {/* Active sessions */}

@@ -11,7 +11,8 @@ import { AuthApiError, resetPassword } from "@/lib/auth/api";
 type Errors = Partial<Record<"password" | "confirmPassword", string>>;
 
 /**
- * Reset Password — POST /api/v1/auth/reset-password (ADR-018).
+ * Reset Password — POST /api/v1/auth/reset-password (ADR-018, revised by
+ * ADR-029).
  *
  * Reads `token` from the URL the emailed link pointed at
  * (/reset-password?token=<...>) and never asks the visitor to type it in.
@@ -20,11 +21,17 @@ type Errors = Partial<Record<"password" | "confirmPassword", string>>;
  * them it's invalid or expired discloses nothing about anyone else's account
  * (ADR-018 decision 3).
  *
+ * Doubles as "set your first password" for a Google-only account, since
+ * ADR-029 — the backend decides which of the two this is and returns a
+ * message worded accordingly ("...has been set..." vs "...has been
+ * reset..."); this page just shows whatever `resetPassword()` resolves
+ * with rather than assuming either wording itself.
+ *
  * A successful reset does not sign the caller in — the backend never sets a
  * session cookie here, matching Register's "this never signs you in either"
  * convention — so this page sends them to /login to do that.
  *
- * // req: FR-AUTH-002, FR-AUTH-007, ADR-018
+ * // req: FR-AUTH-002, FR-AUTH-007, ADR-018, ADR-029
  */
 function ResetPasswordForm() {
   const router = useRouter();

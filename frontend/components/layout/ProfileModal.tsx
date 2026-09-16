@@ -215,7 +215,8 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        {/* Change password (ADR-022) */}
+        {/* Change password (ADR-022) — "Set a password" instead for a
+            Google-only account, which has none to change yet (ADR-030). */}
         <div className="rounded-xl border border-border px-3 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
@@ -223,7 +224,10 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               <div>
                 <p className="text-sm font-semibold text-dash-ink">Password</p>
                 <p className="text-xs text-muted">
-                  {passwordNotice ?? "Keep your account secure with a strong password."}
+                  {passwordNotice ??
+                    (user?.hasPassword
+                      ? "Keep your account secure with a strong password."
+                      : "You signed in with Google. Add a password to also sign in with your email.")}
                 </p>
               </div>
             </div>
@@ -236,13 +240,14 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 }}
                 className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
               >
-                Change password
+                {user?.hasPassword ? "Change password" : "Set password"}
               </button>
             )}
           </div>
           {changingPassword && (
             <div className="mt-3 border-t border-border pt-3">
               <ChangePasswordForm
+                hasPassword={user?.hasPassword ?? false}
                 onSuccess={(message) => {
                   setChangingPassword(false);
                   setPasswordNotice(message);

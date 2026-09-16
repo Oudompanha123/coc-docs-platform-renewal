@@ -28,6 +28,10 @@ const { sessionUser } = vi.hoisted(() => ({
     lastSignInAt: "2026-09-14T08:00:00Z",
     avatarUrl: null as string | null,
     authenticated: true,
+    // A password-holding account by default (the common case) — the
+    // Google-only / ADR-030 case is its own describe block below, which
+    // flips this and restores it afterwards.
+    hasPassword: true,
   },
 }));
 
@@ -44,13 +48,16 @@ vi.mock("@/lib/auth/SessionProvider", () => ({
  * "Change password" here was a dead button until ADR-022 — these pin that
  * clicking it now does something real, sharing the same {@code
  * ChangePasswordForm} its own test file covers in detail (validation,
- * submission, error surfacing are not re-tested here).
+ * submission, error surfacing are not re-tested here). This block covers
+ * the common case, {@code hasPassword: true}; the Google-only case
+ * (ADR-030) is its own block below.
  */
 describe("ProfileModal password", () => {
   const onClose = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionUser.hasPassword = true;
   });
 
   it("reveals the change-password form on click, replacing the button", async () => {
@@ -120,6 +127,52 @@ describe("ProfileModal password", () => {
   });
 });
 
+/** ADR-030: a Google-only account (no password_hash) sets one for the first time here. */
+describe("ProfileModal password — Google-only account", () => {
+  const onClose = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionUser.hasPassword = false;
+  });
+
+  it("offers 'Set password' rather than 'Change password', with no dead 'no password' copy", () => {
+    render(<ProfileModal onClose={onClose} />);
+
+    expect(screen.getByRole("button", { name: "Set password" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change password" })).not.toBeInTheDocument();
+  });
+
+  it("reveals a form with no Current Password field on click", async () => {
+    const user = userEvent.setup();
+    render(<ProfileModal onClose={onClose} />);
+
+    await user.click(screen.getByRole("button", { name: "Set password" }));
+
+    expect(screen.queryByLabelText("Current Password")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("New Password")).toBeInTheDocument();
+  });
+
+  it("submits with no currentPassword and shows the 'set' confirmation", async () => {
+    changePassword.mockResolvedValue(
+      "Your password has been set. You can now also sign in with your email and password.",
+    );
+    const user = userEvent.setup();
+    render(<ProfileModal onClose={onClose} />);
+
+    await user.click(screen.getByRole("button", { name: "Set password" }));
+    await user.type(screen.getByLabelText("New Password"), "NewPassword456!");
+    await user.type(screen.getByLabelText("Confirm New Password"), "NewPassword456!");
+    await user.click(screen.getByRole("button", { name: "Save password" }));
+
+    expect(changePassword).toHaveBeenCalledWith("NewPassword456!", "NewPassword456!", undefined);
+    expect(await screen.findByText(
+      "Your password has been set. You can now also sign in with your email and password.",
+    )).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Set password" })).toBeInTheDocument();
+  });
+});
+
 /** ADR-026. */
 describe("ProfileModal avatar", () => {
   const onClose = vi.fn();
@@ -127,6 +180,7 @@ describe("ProfileModal avatar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionUser.avatarUrl = null;
+    sessionUser.hasPassword = true;
   });
 
   function pngFile(name = "photo.png") {
