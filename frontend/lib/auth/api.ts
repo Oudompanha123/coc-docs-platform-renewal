@@ -169,7 +169,7 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
  * ever signed in via Google/Keycloak (no password_hash set) all produce this
  * one generic failure — this client doesn't try to distinguish them either.
  *
- * Since ADR-028: a correct password for an account with confirmed TOTP does
+ * Since ADR-031: a correct password for an account with confirmed TOTP does
  * not resolve here at all — it throws {@link MfaRequiredError} instead,
  * carrying no session. The backend has already set the `coc_mfa_pending`
  * cookie by the time this rejects; the caller is expected to collect a code
@@ -197,7 +197,7 @@ export async function loginWithPassword(email: string, password: string): Promis
   return body as AuthenticatedAccount;
 }
 
-/** `POST /api/v1/auth/login-password`'s shape when the account has confirmed TOTP (ADR-028), instead of {@link AuthenticatedAccount}. */
+/** `POST /api/v1/auth/login-password`'s shape when the account has confirmed TOTP (ADR-031), instead of {@link AuthenticatedAccount}. */
 interface MfaRequiredBody {
   mfaRequired: true;
   expiresInSeconds: number;
@@ -205,12 +205,12 @@ interface MfaRequiredBody {
 
 /**
  * Thrown by {@link loginWithPassword} when the password was correct but the
- * account has confirmed TOTP (ADR-028) — not a refusal. The caller should
+ * account has confirmed TOTP (ADR-031) — not a refusal. The caller should
  * switch to an "enter your code" step and call {@link verifyMfaLogin}.
  */
 export class MfaRequiredError extends AuthApiError {}
 
-/** The material a TOTP setup wizard needs (ADR-028) — `GET`/`POST /api/v1/auth/mfa/setup/start`'s response shape. */
+/** The material a TOTP setup wizard needs (ADR-031) — `GET`/`POST /api/v1/auth/mfa/setup/start`'s response shape. */
 export interface MfaSetupMaterial {
   /** Base32 secret, for manual entry if scanning the QR code isn't possible. */
   secret: string;
@@ -221,7 +221,7 @@ export interface MfaSetupMaterial {
 }
 
 /**
- * POST /api/v1/auth/mfa/setup/start (ADR-028). Starts (or restarts) TOTP
+ * POST /api/v1/auth/mfa/setup/start (ADR-031). Starts (or restarts) TOTP
  * enrollment for the signed-in caller's own account. Refused (409-shaped,
  * surfaced as a generic failure here) if this account already has confirmed
  * TOTP — disable it first.
@@ -243,7 +243,7 @@ export async function startMfaSetup(): Promise<MfaSetupMaterial> {
 }
 
 /**
- * POST /api/v1/auth/mfa/setup/verify (ADR-028). Confirms a pending
+ * POST /api/v1/auth/mfa/setup/verify (ADR-031). Confirms a pending
  * enrollment with a code from the authenticator app the QR/secret was just
  * added to. A wrong or expired-looking code is reported plainly — same
  * "the caller just looked at this value themselves" reasoning {@link
@@ -269,7 +269,7 @@ export async function verifyMfaSetup(code: string): Promise<string> {
 }
 
 /**
- * POST /api/v1/auth/mfa/disable (ADR-028). Turns TOTP off. Requires the
+ * POST /api/v1/auth/mfa/disable (ADR-031). Turns TOTP off. Requires the
  * account's current password — verified server-side, same reasoning {@link
  * changePassword}'s current-password check already follows for a
  * security-lowering self-service action.
@@ -293,7 +293,7 @@ export async function disableMfa(currentPassword: string): Promise<string> {
   return body.message;
 }
 
-/** GET /api/v1/auth/mfa/status (ADR-028) — what `SecurityTab`'s toggle reflects on load. */
+/** GET /api/v1/auth/mfa/status (ADR-031) — what `SecurityTab`'s toggle reflects on load. */
 export async function getMfaStatus(): Promise<boolean> {
   let response: Response;
   try {
@@ -309,7 +309,7 @@ export async function getMfaStatus(): Promise<boolean> {
 }
 
 /**
- * POST /api/v1/auth/mfa/verify (ADR-028). Redeems the `coc_mfa_pending`
+ * POST /api/v1/auth/mfa/verify (ADR-031). Redeems the `coc_mfa_pending`
  * cookie {@link loginWithPassword} left behind against a TOTP code (or the
  * configured developer code, in test mode) — on success, sets the real
  * session cookie exactly as {@link loginWithPassword} would have.

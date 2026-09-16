@@ -209,6 +209,6 @@ unrelated `ADR-027-new-device-sign-in-alerts.md` first. Renumbered to 030
 on pulling `dev` to avoid a genuine collision — the same situation
 [ADR-019](ADR-019-revision-of-018-forgot-password-reveals-existence.md)'s
 own numbering note records; no decision in this document changed. 028 and
-029 were taken in the same window by ADR-028 (TOTP second factor) and
+029 were taken in the same window by ADR-031 (TOTP second factor) and
 ADR-029 (forgot-password covers Google-only accounts), both also awaiting
 first review — 030 is the next number free of any of the three.

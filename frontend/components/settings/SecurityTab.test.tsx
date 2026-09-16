@@ -235,7 +235,7 @@ describe("SecurityTab password — Google-only account", () => {
   });
 });
 
-/** ADR-028: the toggle used to be local-state mock only; these pin that it's wired to the real endpoints now. */
+/** ADR-031: the toggle used to be local-state mock only; these pin that it's wired to the real endpoints now. */
 describe("SecurityTab two-factor authentication", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -253,6 +253,18 @@ describe("SecurityTab two-factor authentication", () => {
     render(<SecurityTab />);
 
     await waitFor(() => expect(toggle()).toHaveAttribute("aria-checked", "true"));
+  });
+
+  it("is disabled with an explanation for a Google-only account (revision of ADR-031)", async () => {
+    sessionUser.hasPassword = false;
+    getMfaStatus.mockResolvedValue(false);
+
+    render(<SecurityTab />);
+
+    expect(await screen.findByText(/Set a password first to turn this on/)).toBeInTheDocument();
+    expect(toggle()).toBeDisabled();
+    await userEvent.click(toggle());
+    expect(startMfaSetup).not.toHaveBeenCalled();
   });
 
   it("starts the setup wizard on click, showing the QR code and manual secret", async () => {

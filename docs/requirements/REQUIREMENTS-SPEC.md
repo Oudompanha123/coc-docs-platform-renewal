@@ -111,7 +111,7 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | FR-AUTH-006 | Every page carries a **minimum role required to view**, enforced server-side | Must | Integration test |
 | FR-AUTH-007 | A signed-in user can sign out, invalidating the session | Must | E2E test |
 | FR-AUTH-008 | An `admin` may not access account management | Must | Security test (negative) |
-| FR-AUTH-009 | An account may enroll a TOTP (Google Authenticator) second factor; once enrolled, `/login-password` requires a valid code before a session is issued. Opt-in per account — the Google/Keycloak sign-in path is unaffected. See §7.4, ADR-028 | Must | Security test + integration test |
+| FR-AUTH-009 | An account may enroll a TOTP (Google Authenticator) second factor; once enrolled, `/login-password` requires a valid code before a session is issued. Opt-in per account — the Google/Keycloak sign-in path is unaffected. See §7.4, ADR-031 | Must | Security test + integration test |
 
 ### 2.6 Reader Experience (`FR-READ-`)
 
@@ -284,7 +284,7 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | 2026-09-08 | **1.1** | **Amends the G1-approved baseline.** `CONST-TECH-01/02` scoped to the frontend; `CONST-TECH-05/06/07/08` added for the two-service Spring Boot architecture. See §7.1 | `architect` per PM decision |
 | 2026-09-09 | **1.2** | `CONST-RES-01` (one part-time developer) **superseded** by `CONST-RES-02` (six developers). Hosting resolved to Google Cloud (ADR-012 §2.1). See §7.2 | `architect` per PM decision |
 | 2026-09-10 | **1.3** | `FR-AUTH-002`/`FR-AUTH-003` amended: password self-registration added alongside Google/Keycloak OIDC, gated by super_admin approval (ADR-014). See §7.3 | `architect`, confirmed in-session by the developer implementing it — **formal PM sign-off recommended**, not yet recorded, unlike every prior row in this table |
-| 2026-09-16 | **1.4** | New `FR-AUTH-009`: opt-in TOTP (Google Authenticator) second factor gating `/login-password` only. See §7.4, ADR-028 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3 row above |
+| 2026-09-16 | **1.4** | New `FR-AUTH-009`: opt-in TOTP (Google Authenticator) second factor gating `/login-password` only. See §7.4, ADR-031 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3 row above |
 | 2026-09-16 | **1.5** | `FR-AUTH-002` amended again: `/forgot-password` now covers a Google-only account too, as a path to its first password. See §7.5, ADR-029 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4 rows above |
 
 ### 7.5 Forgot-Password Also Covers Google-Only Accounts — 2026-09-16
@@ -318,7 +318,7 @@ authenticator app.
 enroll TOTP from Settings → Security (`POST /api/v1/auth/mfa/setup/start`,
 `/mfa/setup/verify`); once confirmed, `POST /api/v1/auth/login-password`
 returns a pending-MFA challenge instead of a session, redeemed at
-`POST /api/v1/auth/mfa/verify`. See `ADR-028` for the full design,
+`POST /api/v1/auth/mfa/verify`. See `ADR-031` for the full design,
 alternatives considered (notably: Google/Keycloak sign-in is explicitly
 **not** gated by this — password login only), and the follow-up it still
 owes (no recovery codes; no new rate limiting beyond what `/login-password`

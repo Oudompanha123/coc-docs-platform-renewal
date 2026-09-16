@@ -15,13 +15,22 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * was always dead. Shares {@code ChangePasswordForm} with {@code
  * ProfileModal}'s equivalent section.
  *
- * Two-factor authentication (ADR-028) is real too, as of the same change
+ * Two-factor authentication (ADR-031) is real too, as of the same change
  * that corrected the copy above: the toggle reflects {@code GET
  * /api/v1/auth/mfa/status}, turning it on opens {@link TotpSetupWizard}
  * (QR code, manual secret, confirmation code), and turning it off opens
  * {@link TotpDisableForm} (current password required). It used to be
  * local-state mock only, same fidelity as NotificationsCard — per-session
  * sign-out above is the one remaining place that's still real from before.
+ *
+ * <p>The toggle is disabled — not hidden — for an account with no password
+ * (`user.hasPassword` false): TOTP only ever gates `/login-password`
+ * (ADR-031's own scope decision), so there is no password sign-in on a
+ * Google-only account for it to protect yet. Disabled-with-an-explanation
+ * matches this section's own existing convention for the Password row just
+ * above, rather than hiding the row and leaving someone to wonder where it
+ * went. The backend enforces the same rule independently
+ * (`TotpService.startSetup`) — this is not solely a client-side gate.
  *
  * Sub-sections are plain divided rows, not their own nested white cards —
  * this whole component lives inside one SettingsCard, and several
@@ -47,7 +56,7 @@ export function SecurityTab() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
-  // ADR-028: reflects GET /api/v1/auth/mfa/status. Defaults to false while
+  // ADR-031: reflects GET /api/v1/auth/mfa/status. Defaults to false while
   // that call is in flight, same as sessions defaulting to [] above.
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaMode, setMfaMode] = useState<"idle" | "enabling" | "disabling">("idle");
@@ -150,7 +159,11 @@ export function SecurityTab() {
           </span>
         </div>
 
-        {/* Two-factor authentication (ADR-028) */}
+        {/* Two-factor authentication (ADR-031). Requires a password: TOTP only
+            ever gates /login-password (ADR-031's own scope decision), so a
+            Google-only account has no password sign-in for it to protect —
+            offering the toggle would turn "on" a control that does nothing
+            until they also set a password (ADR-030/ADR-029). */}
         <div className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -159,7 +172,12 @@ export function SecurityTab() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-dash-ink">Two-factor authentication</p>
-                <p className="text-xs text-muted">{mfaNotice ?? "Add an extra step when signing in."}</p>
+                <p className="text-xs text-muted">
+                  {mfaNotice ??
+                    (user?.hasPassword
+                      ? "Add an extra step when signing in."
+                      : "Set a password first to turn this on — it protects password sign-in only.")}
+                </p>
               </div>
             </div>
             <button
@@ -167,7 +185,7 @@ export function SecurityTab() {
               role="switch"
               aria-checked={mfaEnabled}
               aria-label="Toggle two-factor authentication"
-              disabled={mfaMode !== "idle"}
+              disabled={mfaMode !== "idle" || !user?.hasPassword}
               onClick={() => {
                 setMfaNotice(null);
                 setMfaMode(mfaEnabled ? "disabling" : "enabling");

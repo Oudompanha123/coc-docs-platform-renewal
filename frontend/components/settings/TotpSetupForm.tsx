@@ -6,7 +6,7 @@ import { LockIcon } from "@/components/auth/icons";
 import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupMaterial } from "@/lib/auth/api";
 
 /**
- * The guided TOTP setup wizard (ADR-028): QR code, manual-entry secret, and
+ * The guided TOTP setup wizard (ADR-031): QR code, manual-entry secret, and
  * the confirmation code — everything "Setup OTP" means once a session
  * already exists, which is the only place it can mean anything (a login
  * page has no account to enroll yet; see {@code app/login/page.tsx}'s
@@ -16,7 +16,7 @@ import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupM
  * component — {@code startMfaSetup} mints a fresh one each call, so
  * re-running it would invalidate whatever the person already scanned.
  *
- * // req: FR-AUTH-009, ADR-028
+ * // req: FR-AUTH-009, ADR-031
  */
 export function TotpSetupWizard({
   onEnabled,
@@ -64,7 +64,7 @@ export function TotpSetupWizard({
     } catch (err) {
       // A wrong code is almost always a mistyped digit or clock drift, not
       // an expired one -- unlike an emailed code, there is nothing here to
-      // separately call "expired" (ADR-028).
+      // separately call "expired" (ADR-031).
       setCodeError(err instanceof AuthApiError ? err.message : "Couldn't verify that code. Please try again.");
     } finally {
       setIsVerifying(false);
@@ -137,7 +137,7 @@ export function TotpSetupWizard({
 }
 
 /**
- * Turns TOTP off (ADR-028). Requires the current password — verified
+ * Turns TOTP off (ADR-031). Requires the current password — verified
  * server-side ({@code TotpService.disable}) — the same reasoning {@link
  * ChangePasswordForm}'s current-password check already follows for a
  * security-lowering self-service action.

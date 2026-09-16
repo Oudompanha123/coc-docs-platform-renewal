@@ -67,7 +67,7 @@ function LoginForm() {
   const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ADR-028: a correct password for an account with confirmed TOTP switches
+  // ADR-031: a correct password for an account with confirmed TOTP switches
   // here instead of signing in — the account exists behind the scenes as
   // the coc_mfa_pending cookie loginWithPassword's rejection already left
   // behind, not as anything this component holds itself.

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 // The mocked class below (vi.mock("@/lib/auth/api", ...)) -- imported so
 // these tests can construct real instances of what handleSubmit's catch
-// block actually checks with `instanceof` (ADR-028).
+// block actually checks with `instanceof` (ADR-031).
 import { MfaRequiredError } from "@/lib/auth/api";
 import LoginPage from "./page";
 
@@ -28,7 +28,7 @@ const {
   searchParams: { current: new URLSearchParams() },
 }));
 
-// RegistrationPendingError and MfaRequiredError (ADR-028) are part of this
+// RegistrationPendingError and MfaRequiredError (ADR-031) are part of this
 // module's contract now: the page tests `err instanceof X`, so a mock
 // without either makes the catch block throw rather than the assertion fail.
 vi.mock("@/lib/auth/api", () => ({
@@ -304,7 +304,7 @@ describe("LoginPage email prefill from an emailed link", () => {
 });
 
 /**
- * ADR-028. A correct password for an account with confirmed TOTP throws
+ * ADR-031. A correct password for an account with confirmed TOTP throws
  * {@link MfaRequiredError} rather than resolving — not a refusal, so it must
  * not show the red error banner {@link loginWithPassword}'s other rejections
  * do; it switches to the OTP step instead.

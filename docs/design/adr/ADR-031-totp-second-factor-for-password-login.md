@@ -1,4 +1,4 @@
-# ADR-028: TOTP (Google Authenticator) second factor for password login
+# ADR-031: TOTP (Google Authenticator) second factor for password login
 
 > **Status**: PROPOSED
 > **Date**: 2026-09-16
@@ -131,6 +131,19 @@ gating both paths.
    doesn't fully close (ADR-011) — must not be sufficient to silently turn
    off the account's own second factor.
 
+8. **Enrollment requires an existing password, enforced in both places
+   (added 2026-09-16, on direct PM/developer instruction, before this
+   ADR's first approval).** Since TOTP only ever gates `/login-password`
+   (Alternative A1, below), a Google-only account has no password sign-in
+   for a second factor to protect — `TotpService.startSetup` refuses with
+   a plain message, and `SecurityTab`'s toggle is disabled (not hidden,
+   matching the Password row's own existing convention) with the same
+   explanation. This is a product-clarity rule, not a security control:
+   enrolling TOTP on a password-less account isn't unsafe, it's just a
+   control that would do nothing until they also set a password (ADR-029,
+   ADR-030) — but per `CONST-TECH-07`, that distinction is still enforced
+   backend-side, not left as something only the frontend happens to hide.
+
 ## 3. Considered Alternatives
 
 | # | Alternative | Pros | Cons | Adopted |
@@ -218,6 +231,16 @@ gating both paths.
   password-required-for-sensitive-self-service-actions precedent, Key
   Choice 7)
 
+## Numbering
+
+Drafted and implemented as "ADR-028" before `origin/dev` merged its own,
+unrelated `ADR-028-live-notification-stream.md` first. Renumbered to 031 on
+pulling `dev` a second time, the same situation
+[ADR-030](ADR-030-revision-of-022-024-google-only-account-may-set-initial-password.md)'s
+own numbering note already records for this branch (and, before that,
+[ADR-019](ADR-019-revision-of-018-forgot-password-reveals-existence.md)'s)
+— no decision in this document changed.
+
 ---
 
 ## Change History
@@ -226,6 +249,8 @@ gating both paths.
 |---|---|---|---|
 | 2026-09-16 | 1.0 | Initial draft, implemented alongside the code it describes | AI, on direct PM/developer instruction |
 | 2026-09-16 | 1.1 | Key Choice 6 revised: removed the login page's "Set up two-factor authentication" disclosure link, on direct PM/developer instruction, before this ADR's first approval — `frontend/app/login/page.tsx` no longer mentions TOTP setup at all | AI, on direct PM/developer instruction |
+| 2026-09-16 | 1.2 | New Key Choice 8: enrollment now requires an existing password, enforced in `TotpService.startSetup` and mirrored (disabled, not hidden) in `SecurityTab` — on direct PM/developer instruction, before this ADR's first approval | AI, on direct PM/developer instruction |
+| 2026-09-16 | 1.3 | Renumbered from ADR-028 to ADR-031 on pulling `dev` a second time, whose own unrelated ADR-028 (live notification stream) landed first — see this file's own Numbering section. No decision changed | AI, on direct PM/developer instruction |
 
 ---
 
