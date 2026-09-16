@@ -107,14 +107,58 @@ export function isNotificationsEnabled(): boolean {
 }
 
 /**
+ * Names the Firebase settings this build is missing.
+ *
+ * <p>Empty when everything needed is present. The six are inlined at build
+ * time, so a value added to `.env.local` after `next dev` started is still
+ * absent here — restarting the dev server is part of the answer and the
+ * message says so.
+ */
+function missingFirebaseSettings(): string[] {
+  const required: Record<string, string> = {
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "",
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:
+      process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
+    NEXT_PUBLIC_FIREBASE_VAPID_KEY: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY ?? "",
+  };
+  return Object.entries(required)
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+}
+
+/**
  * Registers this browser with FCM so it can be reached while closed.
  *
  * <p>Best effort. A deployment with no Firebase project still gets banners
  * while the app is open, which is the whole point of separating this from
  * permission.
+ *
+ * <p><b>Every failure here says so in the console.</b> It used to say nothing:
+ * a toggle that reported success, a device token that was never registered,
+ * and push that silently never arrived — with a missing environment variable,
+ * a rejected VAPID key and an expired session all looking identical from the
+ * outside. This is a setup path, walked once per person per browser, and the
+ * hour it costs to guess is worth more than the two lines it takes to say.
  */
 async function registerForBackgroundPush(): Promise<void> {
+  const missing = missingFirebaseSettings();
+  if (missing.length > 0) {
+    console.warn(
+      "[notifications] banners are on, but push to a closed tab is off: " +
+        `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not set. ` +
+        "Add them to frontend/.env.local and restart the dev server — they are " +
+        "inlined at build time, so a running server will not pick them up.",
+    );
+    return;
+  }
   if (!isBackgroundPushConfigured()) {
+    console.warn(
+      "[notifications] push to a closed tab is unavailable: this browser has no " +
+        "service worker support, or the page is not on https/localhost.",
+    );
     return;
   }
   try {
@@ -131,7 +175,18 @@ async function registerForBackgroundPush(): Promise<void> {
       vapidKey: vapidKey(),
       serviceWorkerRegistration: registration,
     });
-    if (!token) return;
+    if (!token) {
+      // FCM answered without one. Almost always a VAPID key that does not
+      // belong to this project, or a browser that blocks push at OS level.
+      console.warn(
+        "[notifications] Firebase returned no device token. Check that " +
+          "NEXT_PUBLIC_FIREBASE_VAPID_KEY is the Web Push certificate of " +
+          "project " +
+          firebaseConfig().projectId +
+          ", and that notifications are not blocked for this site.",
+      );
+      return;
+    }
 
     const response = await fetch(`${BACKEND_URL}/api/v1/notifications/devices`, {
       method: "POST",
@@ -139,16 +194,26 @@ async function registerForBackgroundPush(): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, platform: "web" }),
     });
-    if (response.ok) {
-      try {
-        localStorage.setItem(TOKEN_KEY, token);
-      } catch {
-        // The server's purge collects it eventually.
-      }
+    if (!response.ok) {
+      // 401 here means the session died between enabling and registering,
+      // which is worth saying: the toggle looks successful and the device is
+      // reachable by nothing.
+      console.warn(
+        `[notifications] the backend refused this device token (HTTP ${response.status}). ` +
+          "Push to a closed tab will not arrive until it is registered.",
+      );
+      return;
     }
-  } catch {
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+    } catch {
+      // The server's purge collects it eventually.
+    }
+  } catch (error) {
     // A blocked SDK, a service worker that will not install, an offline
-    // network. In-app banners are unaffected.
+    // network. In-app banners are unaffected, which is why this is a warning
+    // and not a failure.
+    console.warn("[notifications] could not register this browser for push:", error);
   }
 }
 
