@@ -11,11 +11,23 @@ import {
   loginWithPassword,
   requestNonce,
   RegistrationPendingError,
+  type AuthenticatedAccount,
 } from "@/lib/auth/api";
 import { GoogleSignInCancelledError, isGoogleSignInConfigured, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
 import { rememberIdToken, takeIdToken } from "@/lib/auth/idTokenMemory";
 import { keycloakLogoutUrl } from "@/lib/auth/keycloakLogout";
 import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutcome";
+
+/** Where a signed-in account lands. A temporary password buys entry to
+ *  exactly one place regardless of role (see the comment at each call
+ *  site); otherwise the admin app (sidebar, Overview, PRODUCTS pages,
+ *  Users & Roles, Settings) is admin/super_admin only — a plain "user"
+ *  account goes to the public landing page instead, same destination
+ *  RequireSession sends them to if they try an admin URL directly. */
+function postLoginDestination(account: AuthenticatedAccount): string {
+  if (account.mustChangePassword) return "/create-password";
+  return account.role === "admin" || account.role === "super_admin" ? "/overview" : "/welcome";
+}
 
 /**
  * Login — both sign-in methods are wired to the real backend.
@@ -123,7 +135,7 @@ function LoginForm() {
       // place: Create New Password. Everything else refuses this session
       // until that happens, so sending it anywhere else would just bounce.
       setIsRedirecting(true);
-      router.push(account.mustChangePassword ? "/create-password" : "/overview");
+      router.push(postLoginDestination(account));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setFeedback({ type: "error", message });
@@ -159,7 +171,7 @@ function LoginForm() {
       // invited by email can also arrive here later via Google, and the
       // temporary password still has to be replaced first either way.
       setIsRedirecting(true);
-      router.push(account.mustChangePassword ? "/create-password" : "/overview");
+      router.push(postLoginDestination(account));
     } catch (err) {
       if (err instanceof GoogleSignInCancelledError) {
         // The user closed Google's prompt themselves — not a failure.
