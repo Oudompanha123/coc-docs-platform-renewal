@@ -4,8 +4,8 @@ import type { NavProduct } from "@/lib/docs/nav-api";
 import { visibleNavSections } from "./nav-config";
 
 const FIXTURE_PRODUCTS: NavProduct[] = [
-  { key: "jex3-0", label: "Jex3.0", icon: "layers", items: [] },
-  { key: "jex2-0", label: "Jex2.0", icon: "folder", items: [] },
+  { key: "jex3-0", label: "Jex3.0", icon: "layers", minRole: "user", items: [] },
+  { key: "jex2-0", label: "Jex2.0", icon: "folder", minRole: "user", items: [] },
 ];
 
 /** Every item label a role would see in the sidebar, flattened. */
@@ -56,7 +56,9 @@ describe("visibleNavSections", () => {
       expect(labelsFor(role)).toEqual(expect.arrayContaining(["Jex3.0", "Jex2.0"]));
     }
 
-    const differentFixture: NavProduct[] = [{ key: "brand-new", label: "Brand New", icon: "layers", items: [] }];
+    const differentFixture: NavProduct[] = [
+      { key: "brand-new", label: "Brand New", icon: "layers", minRole: "user", items: [] },
+    ];
     expect(labelsFor("user", differentFixture)).toEqual(["Brand New"]);
   });
 

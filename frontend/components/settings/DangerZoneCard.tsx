@@ -17,9 +17,9 @@ export function DangerZoneCard() {
         <p className="text-lg font-bold text-danger">Danger zone</p>
       </div>
       <div className="mt-4 divide-y divide-danger/20">
-        <div className="flex items-center justify-between gap-4 py-3.5 first:pt-0">
-          <div className="flex items-center gap-3">
-            <DownloadIcon className="h-4 w-4 shrink-0 text-danger" />
+        <div className="flex items-start justify-between gap-4 py-3.5 first:pt-0">
+          <div className="flex items-start gap-3">
+            <DownloadIcon className="h-[25px] w-[25px] shrink-0 text-danger" />
             <div>
               <p className="text-sm font-semibold text-dash-ink">Export your data</p>
               <p className="text-xs text-muted">Download a copy of your profile and activity.</p>
@@ -33,9 +33,9 @@ export function DangerZoneCard() {
             Export data
           </button>
         </div>
-        <div className="flex items-center justify-between gap-4 py-3.5 last:pb-0">
-          <div className="flex items-center gap-3">
-            <TrashIcon className="h-4 w-4 shrink-0 text-danger" />
+        <div className="flex items-start justify-between gap-4 py-3.5 last:pb-0">
+          <div className="flex items-start gap-3">
+            <TrashIcon className="h-[25px] w-[25px] shrink-0 text-danger" />
             <div>
               <p className="text-sm font-semibold text-dash-ink">Deactivate your account</p>
               <p className="text-xs text-muted">You&apos;ll lose access; your content and audit history are preserved.</p>
