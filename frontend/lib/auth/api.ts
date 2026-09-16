@@ -500,6 +500,17 @@ export interface SessionSummary {
   ipAddress: string | null;
   issuedAt: string;
   expiresAt: string;
+  /**
+   * Browser and platform, as the server reads them — "Chrome on Windows".
+   *
+   * The frontend used to derive this from `userAgent` itself. Two copies of
+   * those rules meant the list could describe a device one way while the push
+   * notification about that same device described it another, which is the
+   * sort of disagreement that makes a person distrust both.
+   */
+  device: string;
+  /** True when this sign-in was the first from a device like it (ADR-027). */
+  newDevice: boolean;
   /** True for the session making this request. */
   current: boolean;
 }

@@ -11,7 +11,7 @@ const google = {
   id: "a",
   email: "dana@example.com",
   displayName: "Dana Lee",
-  role: "GUEST",
+  role: "guest",
   status: "PENDING",
   avatarUrl: "https://lh3.example.com/dana.jpg",
 };
