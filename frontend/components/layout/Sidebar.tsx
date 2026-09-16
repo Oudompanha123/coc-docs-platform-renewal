@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
-import { createProduct, fetchNavStructure } from "@/lib/docs/nav-api";
+import { createProduct, deleteProduct, fetchNavStructure } from "@/lib/docs/nav-api";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
@@ -62,16 +62,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navSections = visibleNavSections(session?.role, products ?? []);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
+  // Same role floor the backend enforces on /api/v1/admin/nav/** — hiding
+  // these controls for anyone else is presentation, not the actual control;
+  // a "user" caller who reached the endpoint directly still gets refused
+  // server-side.
+  const canManage = session?.role === "admin" || session?.role === "super_admin";
+
   const [addingProduct, setAddingProduct] = useState(false);
   const [newProductLabel, setNewProductLabel] = useState("");
   const [addProductBusy, setAddProductBusy] = useState(false);
-  const [addProductError, setAddProductError] = useState<string | null>(null);
+  const [productsError, setProductsError] = useState<string | null>(null);
 
   async function handleAddProduct(e: React.FormEvent) {
     e.preventDefault();
     const key = slugify(newProductLabel);
     if (!key) return;
-    setAddProductError(null);
+    setProductsError(null);
     setAddProductBusy(true);
     try {
       await createProduct(key, newProductLabel.trim(), "document");
@@ -79,9 +85,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       setNewProductLabel("");
       setAddingProduct(false);
     } catch (err) {
-      setAddProductError(err instanceof Error ? err.message : "Couldn't add that product.");
+      setProductsError(err instanceof Error ? err.message : "Couldn't add that product.");
     } finally {
       setAddProductBusy(false);
+    }
+  }
+
+  async function handleDeleteProduct(key: string, label: string) {
+    if (!window.confirm(`Remove "${label}"? This only works while it has no sub-items left.`)) return;
+    setProductsError(null);
+    try {
+      await deleteProduct(key);
+      setProducts(await fetchNavStructure());
+    } catch (err) {
+      setProductsError(err instanceof Error ? err.message : "Couldn't remove that product.");
     }
   }
 
@@ -112,12 +129,32 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {navSections.map((section) => (
           <div key={section.label} className="space-y-1">
             <p className="px-3 text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
-            {section.items.map((item) => (
-              <NavLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
-            ))}
+            {section.items.map((item) =>
+              section.label === "PRODUCTS" ? (
+                <div key={item.href} className="group flex items-center gap-1">
+                  <div className="min-w-0 flex-1">
+                    <NavLink item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
+                  </div>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProduct(item.href.slice(1), item.label)}
+                      aria-label={`Remove ${item.label}`}
+                      className="shrink-0 rounded-lg p-2 text-sidebar-muted opacity-0 transition-opacity hover:bg-sidebar-hover hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
+                    >
+                      <XIcon className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <NavLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
+              ),
+            )}
 
-            {section.label === "PRODUCTS" && (
+            {section.label === "PRODUCTS" && canManage && (
               <>
+                {productsError && <p className="px-3 text-xs text-[#ff9b9b]">{productsError}</p>}
+
                 {!addingProduct && (
                   <button
                     type="button"
@@ -139,7 +176,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                       required
                       className="w-full rounded-lg border border-white/15 bg-transparent px-2.5 py-1.5 text-sm text-white placeholder:text-sidebar-muted focus:outline-none"
                     />
-                    {addProductError && <p className="mt-1.5 text-xs text-[#ff9b9b]">{addProductError}</p>}
                     <div className="mt-2 flex gap-2">
                       <button
                         type="submit"
@@ -153,7 +189,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         onClick={() => {
                           setAddingProduct(false);
                           setNewProductLabel("");
-                          setAddProductError(null);
+                          setProductsError(null);
                         }}
                         className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-sidebar-muted transition-colors hover:text-white"
                       >
