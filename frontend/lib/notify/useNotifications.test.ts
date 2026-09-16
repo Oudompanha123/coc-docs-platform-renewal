@@ -20,7 +20,13 @@ const {
 );
 
 vi.mock("@/lib/admin/accounts", () => ({ listPending }));
-vi.mock("@/lib/auth/api", () => ({ listSessions, revokeSession }));
+vi.mock("@/lib/auth/api", async () => {
+  // The real module, with only the two calls replaced. The error classes have
+  // to be the real ones: the hook does `instanceof SessionExpiredError`, and a
+  // stubbed module would give the test a different class that never matches.
+  const actual = await vi.importActual<typeof import("@/lib/auth/api")>("@/lib/auth/api");
+  return { ...actual, listSessions, revokeSession };
+});
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
 vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled }));
 vi.mock("@/lib/notify/stream", () => ({ subscribeToNotifications }));
@@ -443,6 +449,49 @@ describe("useNotifications", () => {
 
       await waitFor(() => expect(listSessions).not.toHaveBeenCalled());
       expect(subscribeToNotifications).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a session that has ended underneath the tab", () => {
+    it("re-reads the session rather than showing an empty bell", async () => {
+      // What this replaces: a 401 was caught and turned into no items, so a
+      // tab whose session had been revoked — which is what signing in again in
+      // the same browser does — went on looking signed in, with a bell that
+      // said there was nothing to report. Indistinguishable from working.
+      const { SessionExpiredError } = await import("@/lib/auth/api");
+      signedInAs("user");
+      listSessions.mockRejectedValue(new SessionExpiredError("ended"));
+      const refresh = vi.fn();
+      useSession.mockReturnValue({
+        status: "authenticated",
+        user: { id: "1", role: "user" },
+        refresh,
+      });
+
+      const { result } = renderHook(() => useNotifications());
+
+      // The provider is the one authority on session state; RequireSession
+      // already knows what to do when it turns anonymous.
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+      expect(result.current.items).toHaveLength(0);
+    });
+
+    it("leaves the bell alone for an ordinary failure", async () => {
+      const { AuthApiError } = await import("@/lib/auth/api");
+      signedInAs("user");
+      listSessions.mockRejectedValue(new AuthApiError("backend down"));
+      const refresh = vi.fn();
+      useSession.mockReturnValue({
+        status: "authenticated",
+        user: { id: "1", role: "user" },
+        refresh,
+      });
+
+      renderHook(() => useNotifications());
+
+      // A backend that is merely unreachable must not sign anybody out.
+      await waitFor(() => expect(listSessions).toHaveBeenCalled());
+      expect(refresh).not.toHaveBeenCalled();
     });
   });
 });
