@@ -44,14 +44,6 @@ export default function ContentEditPage() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  // A callback ref, not useRef+useEffect: the previous version read
-  // previewRef.current inside an effect keyed on Boolean(draft), which
-  // depends on the ref already being attached by the time that effect runs.
-  // A callback ref removes that ordering assumption entirely — React calls
-  // it exactly when the node attaches/detaches, so the ResizeObserver setup
-  // effect below can depend on the node itself, not a derived boolean.
-  const [previewEl, setPreviewEl] = useState<HTMLDivElement | null>(null);
-  const [previewHeight, setPreviewHeight] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,26 +59,6 @@ export default function ContentEditPage() {
     };
   }, [id]);
 
-  // The editor panel's height follows the live preview panel's actual
-  // rendered height (not a fixed vh value) — measured here since CSS grid
-  // stretch can only equalize both columns to whichever is naturally
-  // taller, not designate one column as the authority the other follows.
-  useEffect(() => {
-    if (!previewEl) return;
-    // Measure synchronously on attach rather than waiting solely on
-    // ResizeObserver's own first callback, which fires asynchronously and,
-    // under React Strict Mode's mount→cleanup→remount dev cycle, has shown
-    // timing quirks that left it never actually reporting a first size —
-    // so previewHeight stayed null and the height style silently no-opped.
-    setPreviewHeight(previewEl.getBoundingClientRect().height);
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) setPreviewHeight(entry.contentRect.height);
-    });
-    observer.observe(previewEl);
-    return () => observer.disconnect();
-  }, [previewEl]);
 
   if (!products) {
     return (
@@ -170,12 +142,28 @@ export default function ContentEditPage() {
         </div>
       </div>
 
+        {/* No items-start, so the columns stretch and the row is as tall as
+            the preview needs. From lg up the editor is absolutely positioned
+            inside a wrapper, which is the whole trick: an absolutely
+            positioned child takes no part in sizing its parent, so the editor
+            contributes nothing to the row height and the preview is the only
+            authority on it. Stretch alone would size the row to whichever
+            column is naturally taller, and a long form would then stretch the
+            preview to match.
+
+            This replaced a ResizeObserver that measured the preview and wrote
+            the result onto the editor as an inline pixel height. That worked,
+            and it left dead space below the page whenever the measured value
+            outlived the layout it came from — visible only to whoever had a
+            viewport short enough to scroll that far.
+
+            Below lg the columns stack and both flow normally: there is no
+            second column to match, and absolute positioning would collapse
+            the editor to nothing. */}
       {draft && (
-        <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-          <div
-            className="flex flex-col rounded-2xl border border-border bg-white py-5 px-0 shadow-sm"
-            style={{ height: previewHeight ? `${previewHeight}px` : undefined }}
-          >
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="relative min-h-0">
+            <div className="flex flex-col rounded-2xl border border-border bg-white py-5 px-0 shadow-sm lg:absolute lg:inset-0">
             <div className="mb-4 shrink-0 px-5">
               <span className="text-xs font-semibold text-muted">Content type</span>
               <div className="mt-1.5 flex gap-2">
@@ -199,9 +187,10 @@ export default function ContentEditPage() {
             {draft.kind === "hero" && <HeroForm value={draft} onChange={setDraft} />}
             {draft.kind === "steps" && <StepsForm value={draft} onChange={setDraft} />}
             {draft.kind === "sections" && <SectionsForm value={draft} onChange={setDraft} />}
+            </div>
           </div>
 
-          <div ref={setPreviewEl}>
+          <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Live preview</p>
             <div className="rounded-2xl bg-page">
               <ContentRenderer content={draft} variant={entry.productKey === "jex3-0" ? "admin" : "docs"} />
