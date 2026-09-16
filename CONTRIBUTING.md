@@ -150,9 +150,18 @@ Keycloak in dev mode runs on a local H2 file, so your Keycloak is **yours alone*
 
 Start it from the realm in this repository rather than building one by hand:
 
-```
-export GOOGLE_CLIENT_SECRET=...     # ask whoever set up the Google Cloud project
+Git Bash:
+
+```bash
+export GOOGLE_CLIENT_SECRET='...'
 scripts/keycloak-dev.sh
+```
+
+PowerShell:
+
+```powershell
+$env:GOOGLE_CLIENT_SECRET = '...'
+bash scripts/keycloak-dev.sh
 ```
 
 That imports `keycloak/docs_platform-realm.json`: the realm, the `cocdocs-frontend` public client, the Google identity provider, and the declarative user profile that stops Keycloak demanding a first and last name from a Google sign-in.

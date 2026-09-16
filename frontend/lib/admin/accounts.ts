@@ -165,7 +165,7 @@ export interface PendingAccount {
   id: string;
   email: string;
   displayName: string;
-  /** Always "GUEST" while pending: the role an applicant holds grants nothing. */
+  /** Always "guest" while pending — lower case, as AppRole.wire() sends it. The role an applicant holds grants nothing. */
   role: string;
   /**
    * Profile picture from Google, or null for a password registration.
