@@ -24,16 +24,10 @@ import {
 } from "./icons";
 import Link from "next/link";
 import { ProfileModal } from "./ProfileModal";
+import { useShell } from "@/lib/layout/ShellContext";
 
 type TopbarProps = {
-  title: string;
-  subtitle: string;
   onMenuClick: () => void;
-  /** A pre-rendered element, not a component reference — Overview and
-   *  Settings are Server Components, and passing a bare function down into
-   *  this Client Component isn't serializable across that boundary. Each
-   *  page renders its own `<XIcon className="..." />` instead. */
-  titleIcon?: React.ReactNode;
 };
 
 type MenuKey = "notifications" | "mail" | "user";
@@ -74,7 +68,8 @@ function CountBadge({
   );
 }
 
-export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps) {
+export function Topbar({ onMenuClick }: TopbarProps) {
+  const { header: { title, subtitle, titleIcon } } = useShell();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfile, setShowProfile] = useState(false);
