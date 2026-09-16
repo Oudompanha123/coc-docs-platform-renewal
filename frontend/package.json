@@ -19,6 +19,7 @@
     "@blocknote/react": "0.54.0",
     "@mantine/core": "9.6.0",
     "@mantine/hooks": "9.6.0",
+    "firebase": "^12.19.0",
     "next": "15.5.25",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
@@ -37,7 +39,7 @@
     "eslint-config-next": "15.5.25",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "5.7.2",
+    "typescript": "5.8.2",
     "vitest": "4.1.11"
   },
   "engines": {

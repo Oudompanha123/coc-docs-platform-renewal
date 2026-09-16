@@ -77,7 +77,7 @@ class AdminAccountControllerTest {
                     "http://localhost:3000",
                     false,
                     "test-client-id",
-                    new com.coc.docs.config.AppProperties.Storage("", "test", "us-east-1"));
+                    new com.coc.docs.config.AppProperties.Storage("", "test", "us-east-1", "", ""));
         }
 
         /** Real bcrypt: the filter chain is under test, and a fake encoder
@@ -103,10 +103,12 @@ class AdminAccountControllerTest {
                 "Person",
                 EnumSet.of(role),
                 null,
+                null,
                 AccountStatus.ACTIVE,
                 null,
                 Instant.parse("2026-09-01T09:00:00Z"),
-                Instant.parse("2026-09-01T09:00:00Z"));
+                Instant.parse("2026-09-01T09:00:00Z"),
+                false);
     }
 
     /** A super admin, the only role that reaches any of this. */
@@ -240,10 +242,11 @@ class AdminAccountControllerTest {
         void deactivatesAccount() throws Exception {
             Account deactivated = new Account(
                     ACCOUNT_ID, "person@example.com", "Person",
-                    EnumSet.of(AppRole.USER), null, AccountStatus.ACTIVE,
+                    EnumSet.of(AppRole.USER), null, null, AccountStatus.ACTIVE,
                     Instant.parse("2026-09-14T10:00:00Z"),
                     Instant.parse("2026-09-01T09:00:00Z"),
-                    Instant.parse("2026-09-14T10:00:00Z"));
+                    Instant.parse("2026-09-14T10:00:00Z"),
+                    false);
 
             when(accountService.update(eq(ACCOUNT_ID), isNull(), eq(false), isNull(), any()))
                     .thenReturn(deactivated);

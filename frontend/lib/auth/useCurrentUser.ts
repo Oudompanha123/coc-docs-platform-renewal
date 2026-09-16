@@ -17,10 +17,10 @@ import type { Role } from "./api";
  */
 
 const ROLE_LABELS: Record<Role, string> = {
-  GUEST: "Guest",
-  USER: "User",
-  ADMIN: "Admin",
-  SUPER_ADMIN: "Super Admin",
+  guest: "Guest",
+  user: "User",
+  admin: "Admin",
+  super_admin: "Super Admin",
 };
 
 function initialsOf(name: string): string {

@@ -1,8 +1,13 @@
 # Coc Docs Platform — build and test both services.
 #
-# Runs on every PR into dev or main. These are the checks that make
-# "PR must pass" mean something: without them, branch protection only
-# enforces that somebody clicked a button.
+# Runs on every push to any branch, and on every PR into dev or main.
+#
+# Both, because they check different things. A push run builds the branch as
+# it stands -- the fast signal you want before opening anything. A PR run
+# builds the MERGE RESULT, the branch combined with its target, which is the
+# only thing that catches a branch and its base being fine apart and broken
+# together. These are also the checks that make "PR must pass" mean something:
+# without them, branch protection only enforces that somebody clicked a button.
 #
 # The security workflow (gitleaks, dependency scan, SAST) is separate —
 # see security-audit.yml, the L2 hook from HARNESS-PROCESS-STANDARD §5.4.
@@ -10,10 +15,21 @@
 name: CI
 
 on:
+  # No branch filter. This filter names the branch being pushed TO, so
+  # [main, dev] meant a feature branch built nothing at all -- and the
+  # pre-push hook refuses direct pushes to main and dev, which left it
+  # matching almost nothing in practice. Errors should be visible on the
+  # branch, before a PR exists.
+  push:
   pull_request:
     branches: [main, dev]
-  push:
-    branches: [main, dev]
+
+# One run per ref. Pushing again supersedes the run already in flight instead
+# of queueing behind it. Push and pull_request events carry different refs, so
+# this never cancels a merge-result check on behalf of a branch check.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

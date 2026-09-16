@@ -35,6 +35,10 @@ export interface AdminAccount {
   createdAt: string;
   /** Absent when they have never signed in, or not since their last session was purged. */
   lastSignInAt: string | null;
+  /** True while this account is still using the temporary password its invite issued (revision of ADR-017). */
+  mustChangePassword: boolean;
+  /** The `picture` claim from this account's own last Google/Keycloak sign-in (ADR-013), or null. */
+  avatarUrl: string | null;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -80,8 +84,11 @@ export function listAccounts(): Promise<AdminAccount[]> {
 
 /**
  * Creates an account before its owner first signs in, so a role above `user`
- * can be waiting for them. No password: they authenticate with Google, and the
- * row is matched on email.
+ * can be waiting for them (revision of ADR-017). The backend generates a
+ * temporary password, emails it to `email` along with the login URL, and
+ * marks the account as requiring a password change on first login — the
+ * plaintext password itself never appears in this response. The account can
+ * also still be matched by Google sign-in later; the two are not exclusive.
  */
 export function createAccount(email: string, role: AccountRole): Promise<AdminAccount> {
   return request<AdminAccount>("", {
@@ -104,6 +111,22 @@ export function updateAccount(
     method: "PATCH",
     body: JSON.stringify(changes),
   });
+}
+
+/**
+ * Removes an account outright (ADR-023).
+ *
+ * The irreversible one. `updateAccount(id, { active: false })` keeps the row,
+ * keeps the person against their work and lets them back in later; this does
+ * not. The audit trail survives either way — entries keep the email of whoever
+ * wrote them, so removing the account does not remove what they did.
+ *
+ * Refusals come back with the backend wording: "you cannot delete your own
+ * account", or "this is the only active super admin; promote someone else
+ * before deleting ...". Both say what to do instead, so show them as they are.
+ */
+export function deleteAccount(id: string): Promise<void> {
+  return request<void>(`/${id}`, { method: "DELETE" });
 }
 
 /** One role and what it grants — `/api/v1/admin/roles`. */
@@ -144,6 +167,14 @@ export interface PendingAccount {
   displayName: string;
   /** Always "GUEST" while pending: the role an applicant holds grants nothing. */
   role: string;
+  /**
+   * Profile picture from Google, or null for a password registration.
+   *
+   * Rendered as initials when null, not a generic silhouette: a stand-in face
+   * among real people is worse than an obvious placeholder, and initials also
+   * say who it is.
+   */
+  avatarUrl: string | null;
   status: string;
 }
 

@@ -1,7 +1,17 @@
 import type { ManagedAccount } from "@/lib/mock/users-roles";
 import { avatarColorFor } from "@/lib/mock/users-roles";
+import { UserAvatar } from "@/components/layout/UserAvatar";
 import { RoleBadge } from "./RoleBadge";
 import { StatusBadge } from "./StatusBadge";
+
+function initialsOf(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 function ClockIcon({ className }: { className?: string }) {
   return (
@@ -15,10 +25,18 @@ function ClockIcon({ className }: { className?: string }) {
 export function AccountsTable({
   accounts,
   onDeactivate,
+  onReactivate,
+  onDelete,
   onOpen,
 }: {
   accounts: ManagedAccount[];
   onDeactivate: (account: ManagedAccount) => void;
+  /** Lets a deactivated account back in. The row used to end at a dead
+   *  "Deactivated" label, so the only way back was a database edit — even
+   *  though the backend has supported reactivation all along. */
+  onReactivate: (account: ManagedAccount) => void;
+  /** Removes the account for good (ADR-023). Confirmed in a dialog first. */
+  onDelete: (account: ManagedAccount) => void;
   /** Opens the detail panel. A button rather than a whole clickable row: a row
    *  that navigates is invisible to a keyboard and to a screen reader. */
   onOpen: (account: ManagedAccount) => void;
@@ -41,17 +59,13 @@ export function AccountsTable({
             <tr key={account.id} className="transition-colors hover:bg-[#f8fafc]">
               <td className="px-4 py-4">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm"
+                  <UserAvatar
+                    avatarUrl={account.avatarUrl}
+                    initials={initialsOf(account.name)}
+                    name={account.name}
+                    className="h-10 w-10 text-sm shadow-sm"
                     style={{ backgroundColor: avatarColorFor(index) }}
-                  >
-                    {account.name
-                      .split(" ")
-                      .map((part) => part[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </div>
+                  />
                   <div>
                     <p className="font-semibold text-dash-ink">{account.name}</p>
                     <p className="text-xs text-muted">{RoleLabelText(account.role)}</p>
@@ -82,19 +96,32 @@ export function AccountsTable({
                 >
                   Details
                 </button>
-                {account.status === "active" ? (
+                {account.status !== "deactivated" ? (
                   <button
                     type="button"
                     onClick={() => onDeactivate(account)}
-                    className="inline-flex items-center rounded-full bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
+                    className="mr-2 inline-flex items-center rounded-full bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
                   >
                     Deactivate
                   </button>
                 ) : (
-                  <span className="inline-flex cursor-not-allowed items-center rounded-full bg-page px-4 py-1.5 text-sm font-semibold text-muted">
-                    Deactivated
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onReactivate(account)}
+                    className="mr-2 inline-flex items-center rounded-full bg-[#1f9d6b]/10 px-4 py-1.5 text-sm font-semibold text-[#1f9d6b] transition-colors hover:bg-[#1f9d6b]/20"
+                  >
+                    Reactivate
+                  </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onDelete(account)}
+                  aria-label={`Delete ${account.name}`}
+                  title="Delete permanently"
+                  className="inline-flex items-center rounded-full border border-danger/30 px-3 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}

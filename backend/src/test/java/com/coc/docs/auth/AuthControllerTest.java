@@ -7,7 +7,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +41,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -66,13 +70,20 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  * ADR-011, TM-002
  */
 @WebMvcTest(controllers = com.coc.docs.web.AuthController.class)
-@Import({SecurityConfig.class, ProblemResponses.class, AuthControllerTest.Beans.class})
+@Import({
+    SecurityConfig.class,
+    ProblemResponses.class,
+    com.coc.docs.config.WebMvcConfig.class,
+    MustChangePasswordInterceptor.class,
+    AuthControllerTest.Beans.class
+})
 class AuthControllerTest {
 
     @Autowired MockMvc mvc;
 
     @MockitoBean SessionService sessions;
     @MockitoBean PasswordResetService passwordResets;
+    @MockitoBean RegistrationOtpService registrationOtp;
 
     // Present so the context and the filter chain wire up; untouched here.
     @MockitoBean PageService pageService;
@@ -108,7 +119,7 @@ class AuthControllerTest {
                     "http://localhost:3000",
                     false,
                     "test-client-id",
-                    new AppProperties.Storage("", "test", "us-east-1"));
+                    new AppProperties.Storage("", "test", "us-east-1", "", ""));
         }
 
         @Bean
@@ -126,7 +137,7 @@ class AuthControllerTest {
      */
     @BeforeEach
     void resetSessionService() {
-        Mockito.reset(sessions, passwordResets);
+        Mockito.reset(sessions, passwordResets, registrationOtp);
     }
 
     private static RequestPostProcessor as(AppRole role) {
@@ -295,17 +306,129 @@ class AuthControllerTest {
     }
 
     /**
-     * As of the 2026-09-11 revision of ADR-014, a self-registration is
-     * created {@code active} immediately — no {@code super_admin} approval
-     * gate. This replaces the {@code PENDING}/"awaiting approval" behaviour
-     * these tests would otherwise have covered.
+     * ADR-021 (revision of ADR-014/017): registration is now three calls,
+     * none of which is {@code accountService.register} directly any more —
+     * that call moved inside {@code RegistrationOtpService.verify}, mocked
+     * here like every other collaborator this controller talks to.
      */
     @Nested
     @DisplayName("POST /api/v1/auth/register")
     class Register {
 
         @Test
-        @DisplayName("takes the application and says it is waiting, not that they can sign in")
+        @DisplayName("mints and emails a code rather than creating an account")
+        void startsAChallengeInsteadOfAnAccount() throws Exception {
+            RegistrationChallenge challenge = new RegistrationChallenge(
+                    UUID.randomUUID(),
+                    "new.person@example.com",
+                    "New Person",
+                    "bcrypt-hash",
+                    new byte[] {1, 2, 3},
+                    0,
+                    0,
+                    Instant.now(),
+                    Instant.now().plus(RegistrationOtpService.TTL));
+            when(registrationOtp.start(eq("new.person@example.com"), eq("New Person"), any()))
+                    .thenReturn(challenge);
+
+            mvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"new.person@example.com","displayName":"New Person","password":"hunter2222"}
+                                    """))
+                    // 202: accepted, and there still isn't even a pending
+                    // application until the code is confirmed.
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.message").value(
+                            "We've sent a 6-digit verification code to new.person@example.com. "
+                                    + "It expires in 10 minutes."))
+                    .andExpect(jsonPath("$.expiresInSeconds").value(600));
+
+            verify(registrationOtp).start(eq("new.person@example.com"), eq("New Person"), any());
+            verify(accountService, never()).register(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("rejects a blank email without reaching the service")
+        void rejectsBlankEmail() throws Exception {
+            mvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"","displayName":"New Person","password":"hunter2222"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(registrationOtp, never()).start(any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/auth/register/resend")
+    class ResendRegistrationCode {
+
+        @Test
+        @DisplayName("re-sends the code, same response shape as /register")
+        void resends() throws Exception {
+            RegistrationChallenge challenge = new RegistrationChallenge(
+                    UUID.randomUUID(),
+                    "new.person@example.com",
+                    "New Person",
+                    "bcrypt-hash",
+                    new byte[] {1, 2, 3},
+                    0,
+                    1,
+                    Instant.now(),
+                    Instant.now().plus(RegistrationOtpService.TTL));
+            when(registrationOtp.resend("new.person@example.com")).thenReturn(challenge);
+
+            mvc.perform(post("/api/v1/auth/register/resend")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"new.person@example.com"}
+                                    """))
+                    .andExpect(status().isAccepted())
+                    .andExpect(jsonPath("$.expiresInSeconds").value(600));
+
+            verify(registrationOtp).resend("new.person@example.com");
+        }
+
+        @Test
+        @DisplayName("reports a too-soon resend as 429, not a generic failure")
+        void reportsCooldownPlainly() throws Exception {
+            when(registrationOtp.resend(any()))
+                    .thenThrow(new ApiException(
+                            HttpStatus.TOO_MANY_REQUESTS,
+                            "A code was just sent to this address. Please wait a moment before "
+                                    + "requesting another."));
+
+            mvc.perform(post("/api/v1/auth/register/resend")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"new.person@example.com"}
+                                    """))
+                    .andExpect(status().isTooManyRequests());
+        }
+
+        @Test
+        @DisplayName("rejects a blank email without reaching the service")
+        void rejectsBlankEmail() throws Exception {
+            mvc.perform(post("/api/v1/auth/register/resend")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":""}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(registrationOtp, never()).resend(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/auth/register/verify")
+    class VerifyRegistration {
+
+        @Test
+        @DisplayName("creates the pending application on a confirmed code")
         void createsPendingApplication() throws Exception {
             Account created = new Account(
                     UUID.randomUUID(),
@@ -313,26 +436,60 @@ class AuthControllerTest {
                     "New Person",
                     java.util.EnumSet.of(AppRole.GUEST),
                     null,
+                    null,
                     AccountStatus.PENDING,
                     null,
                     Instant.now(),
-                    Instant.now());
-            when(accountService.register(eq("new.person@example.com"), eq("New Person"), any()))
-                    .thenReturn(created);
+                    Instant.now(),
+                    false);
+            when(registrationOtp.verify("new.person@example.com", "123456")).thenReturn(created);
 
-            mvc.perform(post("/api/v1/auth/register")
+            mvc.perform(post("/api/v1/auth/register/verify")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"email":"new.person@example.com","displayName":"New Person","password":"hunter2222"}
+                                    {"email":"new.person@example.com","code":"123456"}
                                     """))
-                    // 202: accepted, nothing usable yet. Until ADR-017 this
-                    // answered 200 with "You can now log in", which became a
-                    // promise the next request refused to keep.
-                    .andExpect(status().isAccepted())
+                    // 201, not 202: unlike step 1, the account row now
+                    // genuinely exists — still not usable until approved.
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.status").value("PENDING"))
                     .andExpect(jsonPath("$.message")
-                            .value("Your registration has been received. An administrator has to "
-                                    + "approve it before you can sign in."));
+                            .value("Your email is verified and your registration has been received. "
+                                    + "An administrator has to approve it before you can sign in."));
+        }
+
+        @Test
+        @DisplayName("rejects a code that isn't 6 digits without reaching the service")
+        void rejectsMalformedCode() throws Exception {
+            mvc.perform(post("/api/v1/auth/register/verify")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"new.person@example.com","code":"12"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(registrationOtp, never()).verify(any(), any());
+        }
+
+        /**
+         * Unlike sign-in's genericism, a rejected code here is reported
+         * plainly — see {@code RegistrationOtpService.verify}'s javadoc for
+         * why: the caller is the one who supplied this exact email to
+         * {@code /register} moments earlier, not a third party.
+         */
+        @Test
+        @DisplayName("reports an incorrect code plainly, as 400")
+        void reportsWrongCodePlainly() throws Exception {
+            when(registrationOtp.verify(eq("new.person@example.com"), eq("000000")))
+                    .thenThrow(ApiException.badRequest("That code is incorrect. Please try again."));
+
+            mvc.perform(post("/api/v1/auth/register/verify")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"email":"new.person@example.com","code":"000000"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("That code is incorrect. Please try again."));
         }
     }
 
@@ -532,6 +689,286 @@ class AuthControllerTest {
                     .andExpect(status().isBadRequest());
 
             verify(passwordResets, never()).resetPassword(any(), any());
+        }
+    }
+
+    /**
+     * Two entry points, one route (ADR-022, revision of ADR-020/017): the
+     * first-login completion — the caller already holds a session issued on
+     * the temporary password — and the voluntary "My Profile &rarr; Change
+     * Password" self-service screen. {@code SessionService} is mocked, so
+     * these tests cover the HTTP/DTO layer and the message branch only; the
+     * real current-password rule lives in {@code
+     * ChangeOwnPasswordIntegrationTest}.
+     */
+    @Nested
+    @DisplayName("POST /api/v1/auth/change-password")
+    class ChangePassword {
+
+        @Test
+        @DisplayName("voluntary change: confirms with the 'changed' message, not the first-login one")
+        void changesPasswordVoluntarily() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"OldPassword123!","newPassword":"NewPassword123!","confirmPassword":"NewPassword123!"}
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Your password has been changed."));
+
+            verify(sessions).changeOwnPassword(any(), eq("OldPassword123!"), eq("NewPassword123!"));
+        }
+
+        @Test
+        @DisplayName("forced first-login: confirms with the 'you can now access your account' message")
+        void changesPasswordDuringForcedFirstLogin() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                    TestCallers.authentication(AppRole.USER, true)))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"TempPassword123!","newPassword":"NewPassword123!","confirmPassword":"NewPassword123!"}
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value(
+                            "Password created successfully. You can now access your account."));
+
+            verify(sessions).changeOwnPassword(any(), eq("TempPassword123!"), eq("NewPassword123!"));
+        }
+
+        @Test
+        @DisplayName("forced first-login: rejects a missing temporary password without reaching the session layer (ADR-024)")
+        void rejectsMissingCurrentPasswordDuringForcedFirstLogin() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                    TestCallers.authentication(AppRole.USER, true)))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newPassword":"NewPassword123!","confirmPassword":"NewPassword123!"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(sessions, never()).changeOwnPassword(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("rejects mismatched confirmation without reaching the session layer")
+        void rejectsMismatch() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"OldPassword123!","newPassword":"NewPassword123!","confirmPassword":"Different123!"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(sessions, never()).changeOwnPassword(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("rejects a short password without reaching the session layer")
+        void rejectsShortPassword() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"OldPassword123!","newPassword":"short","confirmPassword":"short"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+
+            verify(sessions, never()).changeOwnPassword(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("refuses an anonymous caller")
+        void refusesAnonymous() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"OldPassword123!","newPassword":"NewPassword123!","confirmPassword":"NewPassword123!"}
+                                    """))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("reports reusing the current password plainly, as 400")
+        void rejectsCurrentPasswordReuse() throws Exception {
+            doThrow(ApiException.badRequest("choose a password different from your current one"))
+                    .when(sessions)
+                    .changeOwnPassword(any(), any(), any());
+
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"SamePassword123!","newPassword":"SamePassword123!","confirmPassword":"SamePassword123!"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value(
+                            "choose a password different from your current one"));
+        }
+
+        @Test
+        @DisplayName("reports an incorrect current password plainly, as 400 (ADR-022)")
+        void rejectsWrongCurrentPassword() throws Exception {
+            doThrow(ApiException.badRequest("your current password is incorrect"))
+                    .when(sessions)
+                    .changeOwnPassword(any(), any(), any());
+
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"WrongPassword123!","newPassword":"NewPassword123!","confirmPassword":"NewPassword123!"}
+                                    """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("your current password is incorrect"));
+        }
+    }
+
+    /**
+     * ADR-026. {@link SessionService} is mocked, so these cover the HTTP/DTO
+     * layer only — validation and storage belong to {@code S3AvatarStorageTest}.
+     */
+    @Nested
+    @DisplayName("POST /api/v1/auth/me/avatar")
+    class UploadAvatar {
+
+        @Test
+        @DisplayName("uploads and returns the caller's updated profile")
+        void uploadsAndReturnsUpdatedProfile() throws Exception {
+            var caller = TestCallers.user(AppRole.USER);
+            Account updated = caller.account().withUploadedAvatar(
+                    "https://s3.test/bucket/avatars/" + caller.id() + "/photo.png", Instant.now());
+            when(sessions.uploadOwnAvatar(any(), any())).thenReturn(updated);
+
+            org.springframework.mock.web.MockMultipartFile file =
+                    new org.springframework.mock.web.MockMultipartFile(
+                            "file", "photo.png", "image/png", new byte[] {1, 2, 3});
+
+            mvc.perform(multipart("/api/v1/auth/me/avatar").file(file).with(as(AppRole.USER)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.avatarUrl").value(updated.avatarUrl()));
+        }
+
+        @Test
+        @DisplayName("reports a rejected file plainly, as 400")
+        void reportsRejectedFilePlainly() throws Exception {
+            when(sessions.uploadOwnAvatar(any(), any()))
+                    .thenThrow(ApiException.badRequest("photos must be PNG, JPEG, or WebP"));
+
+            org.springframework.mock.web.MockMultipartFile file =
+                    new org.springframework.mock.web.MockMultipartFile(
+                            "file", "photo.txt", "text/plain", new byte[] {1, 2, 3});
+
+            mvc.perform(multipart("/api/v1/auth/me/avatar").file(file).with(as(AppRole.USER)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("photos must be PNG, JPEG, or WebP"));
+        }
+
+        @Test
+        @DisplayName("refuses an anonymous caller")
+        void refusesAnonymous() throws Exception {
+            org.springframework.mock.web.MockMultipartFile file =
+                    new org.springframework.mock.web.MockMultipartFile(
+                            "file", "photo.png", "image/png", new byte[] {1, 2, 3});
+
+            mvc.perform(multipart("/api/v1/auth/me/avatar").file(file))
+                    .andExpect(status().isUnauthorized());
+
+            verify(sessions, never()).uploadOwnAvatar(any(), any());
+        }
+    }
+
+    /** ADR-026. */
+    @Nested
+    @DisplayName("DELETE /api/v1/auth/me/avatar")
+    class RemoveAvatar {
+
+        @Test
+        @DisplayName("removes the uploaded photo and returns the caller's updated profile")
+        void removesAndReturnsUpdatedProfile() throws Exception {
+            var caller = TestCallers.user(AppRole.USER);
+            when(sessions.removeOwnAvatar(any())).thenReturn(caller.account());
+
+            mvc.perform(delete("/api/v1/auth/me/avatar").with(as(AppRole.USER)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("reports there being nothing to remove plainly, as 400")
+        void reportsNothingToRemovePlainly() throws Exception {
+            when(sessions.removeOwnAvatar(any()))
+                    .thenThrow(ApiException.badRequest("there is no uploaded photo to remove"));
+
+            mvc.perform(delete("/api/v1/auth/me/avatar").with(as(AppRole.USER)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail").value("there is no uploaded photo to remove"));
+        }
+
+        @Test
+        @DisplayName("refuses an anonymous caller")
+        void refusesAnonymous() throws Exception {
+            mvc.perform(delete("/api/v1/auth/me/avatar"))
+                    .andExpect(status().isUnauthorized());
+
+            verify(sessions, never()).removeOwnAvatar(any());
+        }
+    }
+
+    /**
+     * {@code MustChangePasswordInterceptor}, exercised through this
+     * controller's own routes rather than a synthetic one, since it is what
+     * an invited account actually hits on its first request after logging in
+     * with the temporary password.
+     */
+    @Nested
+    @DisplayName("the first-login gate (must-change-password)")
+    class MustChangePasswordGate {
+
+        private static RequestPostProcessor mustChangePassword() {
+            return SecurityMockMvcRequestPostProcessors.authentication(
+                    TestCallers.authentication(AppRole.USER, true));
+        }
+
+        @Test
+        @DisplayName("blocks PATCH /auth/me for a caller who must still change their password")
+        void blocksProfileUpdate() throws Exception {
+            mvc.perform(patch("/api/v1/auth/me")
+                            .with(mustChangePassword())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"displayName":"New Name"}
+                                    """))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("does not block GET /auth/me — the frontend needs it to learn mustChangePassword")
+        void doesNotBlockMe() throws Exception {
+            mvc.perform(get("/api/v1/auth/me").with(mustChangePassword()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.mustChangePassword").value(true));
+        }
+
+        @Test
+        @DisplayName("does not block POST /auth/change-password — it is the way out")
+        void doesNotBlockChangePassword() throws Exception {
+            mvc.perform(post("/api/v1/auth/change-password")
+                            .with(mustChangePassword())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"TempPassword123!","newPassword":"NewPassword123!","confirmPassword":"NewPassword123!"}
+                                    """))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("does not block POST /auth/logout")
+        void doesNotBlockLogout() throws Exception {
+            mvc.perform(post("/api/v1/auth/logout").with(mustChangePassword()))
+                    .andExpect(status().isNoContent());
         }
     }
 }

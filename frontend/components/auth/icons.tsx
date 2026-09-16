@@ -92,6 +92,8 @@ export function ShieldIcon({ className }: { className?: string }) {
       />
     </svg>
   );
+
+  
 }
 
 export function PlusIcon({ className }: { className?: string }) {

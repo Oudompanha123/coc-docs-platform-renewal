@@ -3,13 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LoginPage from "./page";
 
-const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKeycloak, push } = vi.hoisted(() => ({
-  loginWithPassword: vi.fn(),
-  loginWithIdToken: vi.fn(),
-  requestNonce: vi.fn(),
-  signInWithGoogleViaKeycloak: vi.fn(),
-  push: vi.fn(),
-}));
+const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKeycloak, push, searchParams } =
+  vi.hoisted(() => ({
+    loginWithPassword: vi.fn(),
+    loginWithIdToken: vi.fn(),
+    requestNonce: vi.fn(),
+    signInWithGoogleViaKeycloak: vi.fn(),
+    push: vi.fn(),
+    // A box, not a plain URLSearchParams: the mock factory below closes over
+    // this reference once, so tests mutate `.current` to change what
+    // useSearchParams() returns on the next render rather than re-mocking.
+    searchParams: { current: new URLSearchParams() },
+  }));
 
 // RegistrationPendingError is part of this module's contract now: the page
 // tests `err instanceof RegistrationPendingError`, so a mock without it makes
@@ -21,16 +26,30 @@ vi.mock("@/lib/auth/api", () => ({
   RegistrationPendingError: class RegistrationPendingError extends Error {},
 }));
 
+// isGoogleSignInConfigured is read at module load from NEXT_PUBLIC_KEYCLOAK_*,
+// so it is a constant by the time a test runs and cannot be changed by setting
+// the variables afterwards. Mocked as a value the individual tests override,
+// which is also the only way to exercise both branches of the button.
 vi.mock("@/lib/auth/keycloakIdentity", () => ({
   signInWithGoogleViaKeycloak,
+  isGoogleSignInConfigured: true,
   GoogleSignInCancelledError: class GoogleSignInCancelledError extends Error {},
 }));
 
 // The page redirects via next/navigation's router, not a real one — there is
 // no Next.js router context in this render, so only the call is asserted.
+// useSearchParams defaults to an empty query string; the "prefills the email
+// from ?email=" test below overrides it per-case.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
+  useSearchParams: () => searchParams.current,
 }));
+
+// Applies to every test in this file: without it, a later test could
+// silently inherit whatever ?email= the "prefill" test below left behind.
+beforeEach(() => {
+  searchParams.current = new URLSearchParams();
+});
 
 describe("LoginPage password form", () => {
   beforeEach(() => {
@@ -66,6 +85,24 @@ describe("LoginPage password form", () => {
     await waitFor(() => expect(loginWithPassword).toHaveBeenCalledWith("person@example.com", "hunter2222"));
     expect(await screen.findByText("Login successful. Welcome, Person Example!")).toBeInTheDocument();
     expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("sends a caller still on a temporary password to /create-password instead of /overview", async () => {
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "invited@example.com",
+      displayName: "Invited Person",
+      role: "USER",
+      mustChangePassword: true,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "invited@example.com");
+    await user.type(screen.getByLabelText("Password"), "TempPassword123!");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/create-password"));
   });
 
   it("shows the failure message when the API call is refused", async () => {
@@ -156,5 +193,77 @@ describe("LoginPage Google sign-in", () => {
     sessionStorage.clear();
     delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
     delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+  });
+});
+
+describe("LoginPage redirect state", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /**
+   * The form is replaced by a spinner the moment a sign-in succeeds. Without
+   * it the caller sits on a filled-in login form during the navigation, with
+   * only a banner to suggest anything happened.
+   *
+   * <p>The redirect itself is not delayed. An earlier version of this held the
+   * caller for three seconds so the success banner could be read; the push now
+   * happens immediately and the spinner covers however long the navigation
+   * actually takes.
+   */
+  it("replaces the form with a redirect notice once sign-in succeeds", async () => {
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "person@example.com",
+      displayName: "Person Example",
+      role: "user",
+      mustChangePassword: false,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    expect(await screen.findByText("Redirecting to your dashboard…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Login" })).not.toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("leaves the form in place when sign-in is refused", async () => {
+    loginWithPassword.mockRejectedValue(new Error("Invalid email or password."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    // A failed attempt must leave somewhere to retry from.
+    expect(await screen.findByText("Invalid email or password.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
+    expect(screen.queryByText("Redirecting to your dashboard…")).not.toBeInTheDocument();
+  });
+});
+
+describe("LoginPage email prefill from an emailed link", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("prefills the email field from ?email= and focuses the password field", async () => {
+    searchParams.current = new URLSearchParams({ email: "invited@example.com" });
+    render(<LoginPage />);
+
+    expect(await screen.findByDisplayValue("invited@example.com")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toHaveFocus();
+  });
+
+  it("leaves the email field empty and unfocused when the link carries no email", async () => {
+    render(<LoginPage />);
+
+    expect(await screen.findByLabelText("Email, Phone or Name")).toHaveValue("");
+    expect(screen.getByLabelText("Password")).not.toHaveFocus();
   });
 });

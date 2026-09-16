@@ -6,6 +6,7 @@ import { UsersIcon } from "@/components/layout/icons";
 import { AccountsTable } from "@/components/users-roles/AccountsTable";
 import { AddAccountModal } from "@/components/users-roles/AddAccountModal";
 import { DeactivateModal } from "@/components/users-roles/DeactivateModal";
+import { DeleteModal } from "@/components/users-roles/DeleteModal";
 import { FilterBar, type RoleFilter, type StatusFilter } from "@/components/users-roles/FilterBar";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal";
@@ -19,12 +20,14 @@ import {
   listRoles,
   rejectAccount,
   updateAccount,
+  deleteAccount,
   type AccountRole as AdminRole,
   type AdminAccount,
   type PendingAccount,
   type RoleDetail,
 } from "@/lib/admin/accounts";
-import { CURRENT_ACCOUNT_ID, type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
+import { type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
+import { me } from "@/lib/auth/api";
 
 /**
  * The API speaks in accounts; this table speaks in rows. One place to translate
@@ -40,9 +43,16 @@ function toRow(account: AdminAccount): ManagedAccount {
     name: account.displayName,
     email: account.email,
     role: account.role === "guest" ? "user" : account.role,
-    status: account.active ? "active" : "deactivated",
+    // Pending is a login state, not the backend's own `active` flag: an
+    // invite creates the account already active (revision of ADR-017) so a
+    // role can be waiting for someone before they ever sign in. Until they
+    // do — mustChangePassword still true, still on the temporary password —
+    // showing "Active" reads as if they have already logged in, when nobody
+    // has used the account yet.
+    status: !account.active ? "deactivated" : account.mustChangePassword ? "pending" : "active",
     lastLogin: formatLastLogin(account.lastSignInAt),
     ipAddress: "—",
+    avatarUrl: account.avatarUrl,
   };
 }
 
@@ -88,7 +98,42 @@ export default function UsersRolesPage() {
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState<ManagedAccount | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ManagedAccount | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [addedMessage, setAddedMessage] = useState<string | null>(null);
+
+  // The signed-in account id, read from the session the server already
+  // resolved.
+  //
+  // This was CURRENT_ACCOUNT_ID, the literal "1" in lib/mock/users-roles, and
+  // real ids are UUIDs — so every "is this me?" check on this page was false.
+  // The page offered to deactivate your own account and the backend then
+  // refused it, which reads as the feature being broken rather than as the
+  // guard doing its job.
+  //
+  // Not useSession(): SessionProvider is mounted inside AppShell, which this
+  // page renders, so a hook call up here sits outside the provider. It
+  // typechecks and passes in the browser, then fails the production build
+  // during prerendering with "useSession must be used inside
+  // <SessionProvider>". One request to the endpoint the provider would have
+  // called anyway.
+  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void me()
+      .then((session) => {
+        if (!cancelled) setCurrentAccountId(session.id);
+      })
+      .catch(() => {
+        // Leave it null. Every "is this me?" check then reads false, which
+        // shows the action and lets the server refuse it — the behaviour
+        // before this fix, and an acceptable floor if /auth/me is unreachable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [pending, setPending] = useState<PendingAccount[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
@@ -185,10 +230,12 @@ export default function UsersRolesPage() {
     setError(null);
   }
 
+  // "Active" here means the backend's `active` flag — pending counts, since a
+  // pending account can still sign in and act. Only `deactivated` is out.
   function isLastActiveSuperAdmin(account: ManagedAccount): boolean {
-    if (account.role !== "super_admin" || account.status !== "active") return false;
+    if (account.role !== "super_admin" || account.status === "deactivated") return false;
     const otherActiveSuperAdmins = accounts.filter(
-      (a) => a.id !== account.id && a.role === "super_admin" && a.status === "active",
+      (a) => a.id !== account.id && a.role === "super_admin" && a.status !== "deactivated",
     );
     return otherActiveSuperAdmins.length === 0;
   }
@@ -208,17 +255,23 @@ export default function UsersRolesPage() {
     await reloadPending();
   }
 
+  // Left to throw on failure rather than caught here: AddAccountModal is a
+  // full-screen overlay, so an error set on this page's own `error` state
+  // would render directly behind it, completely hidden from view — a failed
+  // create would look identical to the button doing nothing. The modal
+  // awaits this call itself and shows the reason in place; the modal only
+  // stays open on that path, which is also what we want — a duplicate
+  // address is something the person can correct without retyping everything.
   async function handleAdd(email: string, role: AccountRole) {
-    try {
-      const created = await createAccount(email, role);
-      setRecords((prev) => [...prev, created]);
-      setError(null);
-      setAddOpen(false);
-    } catch (err) {
-      // The modal stays open: a duplicate address is something the person can
-      // correct in place, and closing the form would make them retype it.
-      setError(err instanceof Error ? err.message : "Couldn't create that account.");
-    }
+    const created = await createAccount(email, role);
+    setRecords((prev) => [...prev, created]);
+    setAddOpen(false);
+    // A temporary password was just emailed to this address (revision of
+    // ADR-017) — the plaintext itself never reaches this response, so this
+    // banner is the only confirmation the admin gets that it went out.
+    setAddedMessage(
+      `Account created successfully. A temporary password has been sent to ${created.email}.`,
+    );
   }
 
   async function handleConfirmDeactivate() {
@@ -237,6 +290,44 @@ export default function UsersRolesPage() {
     }
   }
 
+
+  /**
+   * Lets a deactivated account back in.
+   *
+   * No confirmation dialog: restoring access is reversible by the same button
+   * that undid it, and a prompt for every reversible action trains people to
+   * dismiss prompts without reading them — which is what makes the one on
+   * Delete worth stopping for.
+   */
+  async function handleReactivate(target: ManagedAccount) {
+    try {
+      const updated = await updateAccount(target.id, { active: true });
+      setRecords((prev) => prev.map((r) => (r.id === target.id ? updated : r)));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't reactivate that account.");
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+    try {
+      await deleteAccount(target.id);
+      // Dropped from the list rather than reloaded: there is nothing to fetch,
+      // and a refetch would leave the row on screen until it returned.
+      setRecords((prev) => prev.filter((r) => r.id !== target.id));
+      if (detailId === target.id) setDetailId(null);
+      setError(null);
+      setAddedMessage(`${target.email} has been deleted.`);
+    } catch (err) {
+      // "you cannot delete your own account", or "this is the only active
+      // super admin; promote someone else before deleting ...". The row stays
+      // because the server kept it.
+      setError(err instanceof Error ? err.message : "Couldn't delete that account.");
+    }
+  }
   return (
     <AppShell
       pageTitle="Users & Roles"
@@ -336,7 +427,10 @@ export default function UsersRolesPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAddOpen(true)}
+                  onClick={() => {
+                    setAddedMessage(null);
+                    setAddOpen(true);
+                  }}
                   className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -346,6 +440,12 @@ export default function UsersRolesPage() {
                 </button>
               </div>
             </div>
+
+            {addedMessage && (
+              <div className="mx-6 mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                {addedMessage}
+              </div>
+            )}
 
             {error && (
               <div className="mx-6 mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -362,6 +462,8 @@ export default function UsersRolesPage() {
                 <AccountsTable
                   accounts={visible}
                   onDeactivate={setDeactivateTarget}
+                  onReactivate={handleReactivate}
+                  onDelete={setDeleteTarget}
                   onOpen={(account) => setDetailId(account.id)}
                 />
               )}
@@ -392,7 +494,7 @@ export default function UsersRolesPage() {
       {detail && (
         <AccountDetailModal
           account={detail}
-          isSelf={detail.id === CURRENT_ACCOUNT_ID}
+          isSelf={detail.id === currentAccountId}
           isLastActiveSuperAdmin={
             detail.role === "super_admin" &&
             detail.active &&
@@ -407,9 +509,19 @@ export default function UsersRolesPage() {
         <DeactivateModal
           account={deactivateTarget}
           isLastActiveSuperAdmin={isLastActiveSuperAdmin(deactivateTarget)}
-          isSelf={deactivateTarget.id === CURRENT_ACCOUNT_ID}
+          isSelf={deactivateTarget.id === currentAccountId}
           onClose={() => setDeactivateTarget(null)}
           onConfirm={handleConfirmDeactivate}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteModal
+          account={deleteTarget}
+          isLastActiveSuperAdmin={isLastActiveSuperAdmin(deleteTarget)}
+          isSelf={deleteTarget.id === currentAccountId}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </AppShell>

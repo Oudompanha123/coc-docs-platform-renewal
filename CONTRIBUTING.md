@@ -128,6 +128,37 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 | Testing rules | `docs/design/TEST-PLAN.md` |
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
+## One Keycloak each, one realm file
+
+Keycloak in dev mode runs on a local H2 file, so your Keycloak is **yours alone** — its own realm, clients and identity provider. Nothing you configure in it reaches anybody else.
+
+Start it from the realm in this repository rather than building one by hand:
+
+```
+export GOOGLE_CLIENT_SECRET=...     # ask whoever set up the Google Cloud project
+scripts/keycloak-dev.sh
+```
+
+That imports `keycloak/docs_platform-realm.json`: the realm, the `cocdocs-frontend` public client, the Google identity provider, and the declarative user profile that stops Keycloak demanding a first and last name from a Google sign-in.
+
+**Why this exists.** On 2026-09-15 a developer's Google sign-in failed with:
+
+```
+Unexpected response from token endpoint https://oauth2.googleapis.com/token
+status=401 "error": "invalid_client"
+"error_description": "The provided client secret is invalid."
+```
+
+Google, not Keycloak, rejecting a client secret typed into one machine's admin console with nothing to check it against. Everyone was reproducing the same realm by hand from memory. Configuration that exists only on whoever's machine happens to work is the same failure this project already had with database schemas.
+
+**Two things are deliberately not in the file.** The Google **client secret**, which is read from `GOOGLE_CLIENT_SECRET` at import — the script refuses to start without it, because Keycloak would otherwise import an empty secret and you would meet the error above several minutes later. And the realm **signing keys**, so each installation generates its own; sharing them would let any developer mint tokens every other developer accepts.
+
+The client ID *is* in the file. It is public by design — it appears in the address bar of every Google sign-in.
+
+`--import-realm` imports only a realm that does not already exist, so the script is safe to re-run. To take the file's version over one you have edited, delete the realm in the admin console first.
+
+If you browse the app from another device, add that origin to the client's Redirect URIs and Web Origins in the admin console — the file ships `http://localhost:3000` only.
+
 
 ## One server, one schema each
 
@@ -139,7 +170,9 @@ Set your own in `backend/.env.local`:
 DB_SCHEMA=cocdocs_sam
 ```
 
-That gives you your own tables, your own Flyway history and your own data on the same host. Leave it unset and you land in `cocdocs_dev`, the shared schema.
+That gives you your own tables, your own Flyway history and your own data on the same host. **There is no default.** Leave it unset and the application refuses to start rather than guess.
+
+It used to fall back to `cocdocs_dev` — which is not a "shared" schema, it is one developer's. That is how, on 2026-09-14, an unpushed `V8__temp_password.sql` was applied to somebody else's database by a colleague who never intended to go near it, and was found only when the owner's application refused to start against a migration that exists on no branch. The connection URL had also been changed back to a hard-coded `currentSchema=cocdocs_dev` while resolving a merge, so for a while setting `DB_SCHEMA` moved where Flyway migrated without moving where the application connected. `SchemaIsPerDeveloperTest` now fails the build if either is reintroduced.
 
 **Why this exists.** One shared schema means one Flyway lineage for everybody. Two branches that each add a `V6` collide the moment the second person runs. Worse, the obvious escape — rebuild the schema — destroys everyone's data at once, because it is everyone's schema. On 2026-09-14 that happened twice in one morning and cost nine accounts, the audit trail, and a colleague's `password_reset_token` table. Neither person did anything unreasonable; the arrangement was.
 
@@ -169,6 +202,7 @@ Sometimes right — a demo, or reproducing something only its data shows. Two ru
 | `DB_HOST` / `DB_PORT` / `DB_NAME` | Separate variables rather than one JDBC URL: `application.yml` composes it, so the schema and connection parameters stay in one shared place instead of being retyped in each developer's `.env.local`. The default is `localhost`; the team database is elsewhere. |
 | `DB_PASSWORD` | The only real secret in the file. `.env.local` is gitignored; `.env.example` must never hold a live one. |
 | `KEYCLOAK_ISSUER_URI` + `KEYCLOAK_AUDIENCE` | **Both or neither.** Blank means Keycloak sign-in does not exist on this deployment and the app boots as if it were never mentioned. An issuer with no audience refuses to start, deliberately: without an audience, a token Keycloak minted for any other client in the same realm would verify here. |
+| Google's `picture` claim, in the realm | **Not on by default.** `KeycloakIdTokenService` reads a `picture` claim straight off the token (ADR-013) and, when present, it flows into `account.avatar_url` automatically — but Keycloak does not forward a brokered Google account's `picture` into anything by default; it has to be told to, twice, in the realm's admin console (there is no realm-export or IaC for this checked into the repo): (1) the Google identity provider's Default Scopes must include `profile`, and it needs an **Attribute Importer** mapper — Claim `picture` → User Attribute `picture`; (2) this app's Keycloak **client** needs its own protocol mapper — a User Attribute mapper, User Attribute `picture` → Token Claim Name `picture`, added to the ID token. Skip either half and every account signs in fine but `avatar_url` stays null forever, silently — nothing here fails loudly, so this is easy to leave undone and forget. |
 | `SESSION_TTL` | ISO-8601. One day, per AMB-006 / NFR-SEC-SESSION. Shortening it cannot retire sessions already issued — expiry is stored as an absolute instant on the row. |
 | `S3_*` | S3-compatible API only, never a provider SDK (`CONST-TECH-08`). MinIO locally. |
 

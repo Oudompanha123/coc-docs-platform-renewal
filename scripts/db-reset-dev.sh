@@ -28,7 +28,7 @@ set -uo pipefail
 # DB_URL still wins, so an unusual target can be named directly.
 URL="${DB_URL:-}"
 if [ -z "$URL" ] && [ -n "${DB_HOST:-}" ]; then
-  URL="jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME:-cocdocs}?currentSchema=${DB_SCHEMA:-cocdocs_dev}"
+  URL="jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME:-cocdocs}?currentSchema=${DB_SCHEMA:?DB_SCHEMA is not set. Set it in backend/.env.local to your own schema (cocdocs_<your name>) — there is no default, because the default used to be a colleague’s schema.}"
 fi
 if [ -z "$URL" ]; then
   cat >&2 <<'EOF'
@@ -38,8 +38,10 @@ Load the same environment the application uses:
 
   set -a; . ./backend/.env.local; set +a
 
-That should define DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASSWORD. If your
-schema is not cocdocs_dev, set DB_SCHEMA too.
+That should define DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD and
+DB_SCHEMA. DB_SCHEMA has no default anywhere any more — it used to fall back
+to one developer's schema, which is how other people's migrations ended up in
+it.
 EOF
   exit 1
 fi

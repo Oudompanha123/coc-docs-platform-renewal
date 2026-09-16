@@ -36,6 +36,11 @@ import java.util.UUID;
  * so it cannot ride along into session issuance, responses or the audit trail
  * where {@code Account} is passed around freely.
  *
+ * <p>{@code mustChangePassword} is not a secret the way the hash is — it is an
+ * account-level fact, the same shape as {@code status} or {@code
+ * deactivatedAt} — so unlike the hash it does live here, and does travel with
+ * {@code Account} into responses that need to act on it.
+ *
  * <p>// req: FR-AUTH-002, FR-AUTH-003, FR-AUTH-005, ADR-014
  */
 public record Account(
@@ -44,10 +49,24 @@ public record Account(
         String displayName,
         Set<AppRole> roles,
         String avatarUrl,
+        /**
+         * Non-null from the moment this account's owner uploads their own
+         * photo (ADR-026) until they remove it. Marks {@code avatarUrl} as
+         * theirs to control: {@code SessionService.refreshProfile} must not
+         * overwrite it with the identity provider's {@code picture} claim on
+         * a later Google/Keycloak sign-in while this is set.
+         */
+        Instant avatarUploadedAt,
         AccountStatus status,
         Instant deactivatedAt,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        /**
+         * True from the moment a {@code super_admin} invite sets a temporary
+         * password until this account's owner replaces it. See
+         * {@code AccountService.create} and {@code SessionService.changeOwnPassword}.
+         */
+        boolean mustChangePassword) {
 
     /**
      * Defensive copy. The role set backs every authorisation decision made
@@ -101,11 +120,22 @@ public record Account(
 
     /** A copy with a different status, for a {@code super_admin}'s approve or reject. */
     public Account withStatus(AccountStatus newStatus) {
-        return new Account(id, email, displayName, roles, avatarUrl, newStatus, deactivatedAt, createdAt, updatedAt);
+        return new Account(
+                id, email, displayName, roles, avatarUrl, avatarUploadedAt, newStatus, deactivatedAt, createdAt,
+                updatedAt, mustChangePassword);
     }
 
     /** A copy holding a different set of roles. */
     public Account withRoles(Set<AppRole> newRoles) {
-        return new Account(id, email, displayName, newRoles, avatarUrl, status, deactivatedAt, createdAt, updatedAt);
+        return new Account(
+                id, email, displayName, newRoles, avatarUrl, avatarUploadedAt, status, deactivatedAt, createdAt,
+                updatedAt, mustChangePassword);
+    }
+
+    /** A copy with a self-uploaded photo (ADR-026) — {@code avatarUploadedAt} marks it as owner-controlled. */
+    public Account withUploadedAvatar(String newAvatarUrl, Instant uploadedAt) {
+        return new Account(
+                id, email, displayName, roles, newAvatarUrl, uploadedAt, status, deactivatedAt, createdAt,
+                updatedAt, mustChangePassword);
     }
 }

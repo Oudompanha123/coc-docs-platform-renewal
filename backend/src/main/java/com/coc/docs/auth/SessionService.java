@@ -5,6 +5,7 @@ import com.coc.docs.account.AccountCredential;
 import com.coc.docs.account.AccountRepository;
 import com.coc.docs.account.AccountStatus;
 import com.coc.docs.account.AppRole;
+import com.coc.docs.account.AvatarStorage;
 import com.coc.docs.audit.AuditAction;
 import com.coc.docs.audit.AuditRepository;
 import com.coc.docs.config.AppProperties;
@@ -57,6 +58,14 @@ public class SessionService {
      * deployment without Keycloak must still boot and serve the reader path.
      */
     private final ObjectProvider<KeycloakIdTokenService> keycloak;
+
+    /**
+     * Present only when object storage is actually configured
+     * (CONST-TECH-08, ADR-012 §2 — still {@code [DEFERRED]}). The same
+     * optional-bean shape as {@link #keycloak}: a deployment that has not
+     * chosen a provider yet must still boot and serve every other route.
+     */
+    private final ObjectProvider<AvatarStorage> avatarStorage;
     private final AppProperties properties;
     private final ObjectMapper json;
     private final Clock clock;
@@ -79,6 +88,7 @@ public class SessionService {
             AuditRepository audit,
             GoogleIdTokenVerifier google,
             ObjectProvider<KeycloakIdTokenService> keycloak,
+            ObjectProvider<AvatarStorage> avatarStorage,
             AppProperties properties,
             ObjectMapper json,
             Clock clock,
@@ -88,6 +98,7 @@ public class SessionService {
         this.audit = audit;
         this.google = google;
         this.keycloak = keycloak;
+        this.avatarStorage = avatarStorage;
         this.properties = properties;
         this.json = json;
         this.clock = clock;
@@ -210,13 +221,23 @@ public class SessionService {
      * <p>Only what the provider owns. Role, status and deactivation belong to
      * this system and are never touched here — signing in must not be able to
      * change what someone may do.
+     *
+     * <p><b>Except the picture, once its owner has uploaded one of their own
+     * (ADR-026).</b> {@code avatarUploadedAt} being set means a person made a
+     * deliberate choice through "My Profile"; a sign-in — an action about
+     * proving identity, not about editing a profile — must not silently
+     * undo it. They stay in control of it until they remove it themselves
+     * ({@link #removeOwnAvatar}), at which point the provider's picture is
+     * free to fill back in on the next sign-in, same as before this existed.
      */
     private Account refreshProfile(Account existing, VerifiedIdentity identity) {
         String displayName = identity.displayName();
-        String avatarUrl = identity.avatarUrl();
-
         boolean nameChanged = !existing.displayName().equals(displayName);
-        boolean avatarChanged = !java.util.Objects.equals(existing.avatarUrl(), avatarUrl);
+
+        boolean avatarOwnerControlled = existing.avatarUploadedAt() != null;
+        String avatarUrl = avatarOwnerControlled ? existing.avatarUrl() : identity.avatarUrl();
+        boolean avatarChanged = !avatarOwnerControlled
+                && !java.util.Objects.equals(existing.avatarUrl(), avatarUrl);
 
         if (!nameChanged && !avatarChanged) {
             return existing;
@@ -234,10 +255,12 @@ public class SessionService {
                 displayName,
                 existing.roles(),
                 avatarUrl,
+                existing.avatarUploadedAt(),
                 existing.status(),
                 existing.deactivatedAt(),
                 existing.createdAt(),
-                existing.updatedAt());
+                existing.updatedAt(),
+                existing.mustChangePassword());
     }
 
     /**
@@ -588,5 +611,144 @@ public class SessionService {
         }
         accounts.updateDisplayName(caller.account().id(), trimmed);
         return accounts.findById(caller.account().id()).orElseThrow();
+    }
+
+    // -----------------------------------------------------------------------
+    // Self-service avatar upload (ADR-026)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Uploads and sets the caller's own profile photo.
+     *
+     * <p>Self-service, the same shape as {@link #renameSelf}: acts on the
+     * caller's own account, resolved from the session, never a parameter that
+     * could name someone else.
+     *
+     * <p>The previous object is deleted only after the new one is stored — a
+     * failed upload must leave the old photo in place, not a blank one.
+     * {@link AvatarStorage#delete} is itself a no-op for a URL it did not
+     * create, so an account whose current picture is still the identity
+     * provider's is left untouched.
+     *
+     * <p>// req: FR-AUTH-005, NFR-SEC-PII, ADR-026
+     */
+    @Transactional
+    public Account uploadOwnAvatar(CurrentUser caller, org.springframework.web.multipart.MultipartFile file) {
+        AvatarStorage storage = avatarStorage.getIfAvailable();
+        if (storage == null) {
+            throw ApiException.badRequest(
+                    "Photo upload is not available on this deployment yet.");
+        }
+
+        Account existing = caller.account();
+        String newUrl = storage.upload(existing.id(), file);
+        Instant uploadedAt = clock.instant();
+
+        accounts.updateUploadedAvatar(existing.id(), newUrl, uploadedAt);
+
+        if (existing.avatarUploadedAt() != null && existing.avatarUrl() != null) {
+            storage.delete(existing.avatarUrl());
+        }
+
+        return accounts.findById(existing.id()).orElseThrow();
+    }
+
+    /**
+     * Removes the caller's own uploaded photo, reverting to initials until
+     * the next Google/Keycloak sign-in supplies the identity provider's
+     * picture again — the same fallback as an account that never uploaded
+     * one at all.
+     *
+     * <p>// req: FR-AUTH-005, NFR-SEC-PII, ADR-026
+     */
+    @Transactional
+    public Account removeOwnAvatar(CurrentUser caller) {
+        Account existing = caller.account();
+        if (existing.avatarUploadedAt() == null) {
+            throw ApiException.badRequest("there is no uploaded photo to remove");
+        }
+
+        AvatarStorage storage = avatarStorage.getIfAvailable();
+        if (storage != null && existing.avatarUrl() != null) {
+            storage.delete(existing.avatarUrl());
+        }
+        accounts.clearUploadedAvatar(existing.id());
+        return accounts.findById(existing.id()).orElseThrow();
+    }
+
+    // -----------------------------------------------------------------------
+    // Self-service password change (revision of ADR-017)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Replaces the caller's own password — the first-login completion of a
+     * {@code super_admin} temporary-password invite, and usable afterwards for
+     * any account that holds a password credential.
+     *
+     * <p>Self-service, the same shape as {@link #renameSelf}: the account acted
+     * on is the caller's own, resolved from the session, never a parameter that
+     * could name someone else.
+     *
+     * <p><b>Current-password check (ADR-022, revision of ADR-020; made
+     * unconditional by ADR-024).</b> Every caller — voluntary change and
+     * forced first-login completion alike — must prove {@code
+     * currentRawPassword} against the stored hash first. Without this, a
+     * session alone (left open on a shared machine, or lifted by an XSS the
+     * {@code httpOnly} cookie doesn't fully close off, ADR-011) would be
+     * enough to lock the real owner out by silently setting a new password.
+     * The forced flow re-proves the same temporary password {@code
+     * /login-password} just verified moments earlier on this exact session —
+     * ADR-022 originally exempted this case for that reason, but ADR-024
+     * removes the exemption on direct PM request for an old-password field
+     * on {@code /create-password}.
+     *
+     * <p>Refuses a Google-only account (no {@code password_hash} to replace)
+     * and refuses reusing the current password — the one rule this endpoint
+     * exists to enforce for a just-invited account, since a temporary password
+     * that could be "changed" back to itself was never actually replaced.
+     *
+     * <p>Every other live session for this account is revoked, not this one:
+     * the caller is using this exact session to make the change, and ending it
+     * here would contradict "then redirect to normal application" immediately
+     * after success. See {@code PasswordResetService.resetPassword} for the
+     * reset path, which has no current session to spare and revokes all of
+     * them.
+     *
+     * <p>// req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-022, ADR-024
+     */
+    @Transactional
+    public void changeOwnPassword(CurrentUser caller, String currentRawPassword, String newRawPassword) {
+        AccountCredential credential = accounts.findCredentialById(caller.id()).orElseThrow();
+
+        if (credential.passwordHash() == null) {
+            throw ApiException.badRequest(
+                    "this account has no password set; sign in with Google instead");
+        }
+
+        if (currentRawPassword == null
+                || currentRawPassword.isBlank()
+                || !passwordEncoder.matches(currentRawPassword, credential.passwordHash())) {
+            // Reported plainly, not folded into a generic failure: the caller
+            // already holds a live session as themselves, so there is no third
+            // party here for a generic message to protect from enumeration —
+            // same reasoning ADR-018 decision 3 applies to /reset-password.
+            throw ApiException.badRequest("your current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(newRawPassword, credential.passwordHash())) {
+            throw ApiException.badRequest(
+                    "choose a password different from your current one");
+        }
+
+        accounts.updatePasswordHash(caller.id(), passwordEncoder.encode(newRawPassword));
+        int revoked = sessions.revokeAllForExcept(caller.id(), caller.sessionTokenHash());
+
+        audit.append(
+                caller.id(),
+                caller.email(),
+                AuditAction.PASSWORD_CHANGE_COMPLETE,
+                AuditAction.TARGET_ACCOUNT,
+                caller.id(),
+                json.createObjectNode().put("otherSessionsRevoked", revoked));
     }
 }

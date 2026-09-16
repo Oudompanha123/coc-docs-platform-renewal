@@ -1,4 +1,13 @@
-import { DatabaseIcon, DocumentIcon, LayersIcon, UsersIcon } from "@/components/layout/icons";
+import {
+  BarChartIcon,
+  DatabaseIcon,
+  DocumentIcon,
+  FolderIcon,
+  LayersIcon,
+  PersonIcon,
+  PulseIcon,
+  UsersIcon,
+} from "@/components/layout/icons";
 import type { StatCardData } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "./tone";
 
@@ -7,6 +16,10 @@ const STAT_ICONS = {
   layers: LayersIcon,
   users: UsersIcon,
   database: DatabaseIcon,
+  folder: FolderIcon,
+  person: PersonIcon,
+  pulse: PulseIcon,
+  barChart: BarChartIcon,
 } as const;
 
 export function StatCard({ data }: { data: StatCardData }) {

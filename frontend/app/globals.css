@@ -16,6 +16,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
+  /* Opt-in only — font-sans/Inter stays the default everywhere. Use the
+     `font-pretendard` utility this generates on anything that wants it. */
+  --font-pretendard: var(--font-pretendard);
 
   --color-ink: #28226d;
   --color-muted: #6b6b80;
@@ -240,83 +243,6 @@ button:not(:disabled) {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-entrance {
-    animation: none;
-  }
-}
-
-/* 404 page (app/not-found.tsx) illustration motion — the character paces a
-   short distance back and forth along the path (alternate direction, so it
-   reverses smoothly with no fade/reset trick needed and no risk of ever
-   leaving an empty scene). */
-@keyframes walk-drift {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(14px);
-  }
-}
-
-.animate-walk-drift {
-  animation: walk-drift 2.2s ease-in-out infinite alternate;
-}
-
-@keyframes leg-swing {
-  0%,
-  100% {
-    transform: rotate(-11deg);
-  }
-  50% {
-    transform: rotate(11deg);
-  }
-}
-
-.animate-leg-swing {
-  transform-box: fill-box;
-  transform-origin: 50% 0%;
-  animation: leg-swing 0.5s ease-in-out infinite;
-}
-
-@keyframes body-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-}
-
-.animate-body-bob {
-  animation: body-bob 0.5s ease-in-out infinite;
-}
-
-@keyframes teardrop-fall {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  25% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 0.4;
-  }
-  100% {
-    transform: translateY(14px);
-    opacity: 0;
-  }
-}
-
-.animate-teardrop-fall {
-  animation: teardrop-fall 1.8s ease-in infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-walk-drift,
-  .animate-leg-swing,
-  .animate-body-bob,
-  .animate-teardrop-fall {
     animation: none;
   }
 }

@@ -92,6 +92,11 @@ public class SecurityConfig {
                         // ADR-014: applying for an account, and signing in with one. Public
                         // by necessity — nobody has a session before either succeeds.
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
+                        // ADR-021: the code-request/verify steps registration was split
+                        // into. Same necessity as /register itself — no account, and
+                        // therefore no session, exists until the last of these succeeds.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register/resend").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register/verify").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login-password").permitAll()
                         // ADR-018: starting or completing a password reset. Both public
                         // by the same necessity — a visitor who forgot their password,
@@ -113,11 +118,34 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/me").hasRole(AppRole.USER.name())
 
+                        // Self-service avatar upload/removal (ADR-026): same floor and
+                        // the same reasoning as PATCH /auth/me above — acts on the
+                        // caller's own account only.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/me/avatar").hasRole(AppRole.USER.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/auth/me/avatar").hasRole(AppRole.USER.name())
+
+                        // Self-service password change (revision of ADR-017): acts on
+                        // the caller's own account, resolved from the session, and
+                        // cannot name another — same floor as PATCH /auth/me above.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/change-password")
+                        .hasRole(AppRole.USER.name())
+
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/sessions").hasRole(AppRole.USER.name())
 
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/auth/sessions/**")
 
                         .hasRole(AppRole.USER.name())
+                        // Registering a device to be notified on (ADR-026). Any signed-in
+                        // caller, not just an approver: only super admins receive
+                        // anything today, but registering a destination is not the same
+                        // act as being sent to, and gating it by role would both need
+                        // changing the moment another notification exists and make the
+                        // endpoint itself disclose who the approvers are. The account is
+                        // taken from the session, never from the body, so a caller can
+                        // only ever address their own.
+                        .requestMatchers("/api/v1/notifications/devices/**")
+                        .hasRole(AppRole.USER.name())
+
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
                         // Liveness only. Carries no version, no configuration and
                         // no dependency status, so it discloses nothing.
@@ -158,6 +186,18 @@ public class SecurityConfig {
                         // BR-026 requires be made deliberately.
                         .requestMatchers(HttpMethod.GET, "/api/v1/sections/**").hasRole(AppRole.USER.name())
                         .requestMatchers(HttpMethod.GET, "/api/v1/pages/**").hasRole(AppRole.USER.name())
+
+                        // Product docs pages (/docs/**, /jex3-0/**, ...) carry no
+                        // auth gate on the frontend and are meant to be public —
+                        // a deliberate, separate decision from the `user` floor
+                        // above, not an oversight of it. Write access still sits
+                        // behind the admin floor via /api/v1/admin/** below.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/docs-content/**").permitAll()
+
+                        // The nav structure (product/sub-item list) drives the
+                        // same public sidebar/docs pages as docs-content above,
+                        // so it carries the same public-read exception.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/nav/**").permitAll()
 
                         // --- default deny ------------------------------------
                         // Deliberately the strictest role, not authenticated().

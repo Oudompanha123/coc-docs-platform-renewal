@@ -3,6 +3,7 @@ package com.coc.docs.account;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -11,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -36,7 +38,8 @@ public class AccountRepository {
      * drift into the other by accident.
      */
     private static final String ACCOUNT_COLUMNS =
-            "a.id, a.email, a.display_name, a.avatar_url, a.status, a.deactivated_at, a.created_at, a.updated_at";
+            "a.id, a.email, a.display_name, a.avatar_url, a.avatar_uploaded_at, a.status, a.deactivated_at, "
+                    + "a.created_at, a.updated_at, a.must_change_password";
 
     /**
      * {@code filter (where ...)} rather than a plain {@code array_agg}: the
@@ -64,23 +67,28 @@ public class AccountRepository {
             (rs, rowNum) -> new AccountCredential(map(rs, rowNum), rs.getString("password_hash"));
 
     private final JdbcClient jdbc;
+    private final ApplicationEventPublisher events;
 
-    public AccountRepository(JdbcClient jdbc) {
+    public AccountRepository(JdbcClient jdbc, ApplicationEventPublisher events) {
         this.jdbc = jdbc;
+        this.events = events;
     }
 
     private static Account map(ResultSet rs, int rowNum) throws SQLException {
         OffsetDateTime deactivated = rs.getObject("deactivated_at", OffsetDateTime.class);
+        OffsetDateTime avatarUploadedAt = rs.getObject("avatar_uploaded_at", OffsetDateTime.class);
         return new Account(
                 rs.getObject("id", UUID.class),
                 rs.getString("email"),
                 rs.getString("display_name"),
                 readRoles(rs),
                 rs.getString("avatar_url"),
+                avatarUploadedAt == null ? null : avatarUploadedAt.toInstant(),
                 AccountStatus.fromDb(rs.getString("status")),
                 deactivated == null ? null : deactivated.toInstant(),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(),
-                rs.getObject("updated_at", OffsetDateTime.class).toInstant());
+                rs.getObject("updated_at", OffsetDateTime.class).toInstant(),
+                rs.getBoolean("must_change_password"));
     }
 
     /**
@@ -164,6 +172,18 @@ public class AccountRepository {
     }
 
     /**
+     * The self-service password-change path only: the caller already holds a
+     * session for this exact id, so there is no enumeration risk here the way
+     * there is for {@link #findCredentialByEmailIgnoreCase}.
+     */
+    public Optional<AccountCredential> findCredentialById(UUID id) {
+        return jdbc.sql(SELECT_WITH_CREDENTIAL + " where a.id = ?" + GROUP_BY)
+                .param(id)
+                .query(CREDENTIAL_MAPPER)
+                .optional();
+    }
+
+    /**
      * Every permission granted by any role this account holds.
      *
      * <p>Resolved per request alongside the account, never cached in the
@@ -212,6 +232,28 @@ public class AccountRepository {
     }
 
     /**
+     * Every account holding a role and still able to act.
+     *
+     * <p>{@code status = 'active'} as well as {@code deactivated_at is null}:
+     * a pending applicant who somehow held a role is not someone to notify, and
+     * neither is a rejected one.
+     *
+     * <p>// req: FR-AUTH-008, ADR-026
+     */
+    public List<Account> findActiveByRole(AppRole role) {
+        return jdbc.sql(SELECT
+                        + " where a.id in (select ar.account_id from account_role ar"
+                        + "                 where ar.role_key = ?::app_role)"
+                        + "   and a.deactivated_at is null"
+                        + "   and a.status = 'active'::account_status"
+                        + GROUP_BY
+                        + " order by a.created_at")
+                .param(role.wire())
+                .query(MAPPER)
+                .list();
+    }
+
+    /**
      * Whether removing {@code excluding} would leave no active super admin.
      *
      * <p>The database holds the same rule as a deferred constraint trigger, which
@@ -256,12 +298,31 @@ public class AccountRepository {
      */
     public Account insert(
             String email, String displayName, AppRole role, String avatarUrl, AccountStatus status) {
+        return insert(email, displayName, role, avatarUrl, status, null, false);
+    }
+
+    /**
+     * Creates an account carrying a password credential from the moment it
+     * exists — the {@code super_admin} temporary-password invite path (revision
+     * of ADR-017). {@code passwordHash} is already a bcrypt digest; hashing
+     * belongs to the caller's {@code PasswordEncoder}, not here, for the same
+     * reason {@link #insertApplication} never hashes either.
+     */
+    public Account insert(
+            String email,
+            String displayName,
+            AppRole role,
+            String avatarUrl,
+            AccountStatus status,
+            String passwordHash,
+            boolean mustChangePassword) {
         UUID id = jdbc.sql("""
-                        insert into account (email, display_name, avatar_url, status)
-                        values (?, ?, ?, ?::account_status)
+                        insert into account
+                          (email, display_name, avatar_url, status, password_hash, must_change_password)
+                        values (?, ?, ?, ?::account_status, ?, ?)
                         returning id
                         """)
-                .params(email, displayName, avatarUrl, status.wire())
+                .params(email, displayName, avatarUrl, status.wire(), passwordHash, mustChangePassword)
                 .query(UUID.class)
                 .single();
         grantRole(id, role, null);
@@ -297,17 +358,40 @@ public class AccountRepository {
                 .query(UUID.class)
                 .single();
         grantRole(id, AppRole.GUEST, null);
-        return findById(id).orElseThrow();
+        Account created = findById(id).orElseThrow();
+
+        // Published here rather than from the two callers, because this INSERT
+        // is the one statement both registration doors pass through: the
+        // password path via AccountService.register once the emailed code is
+        // confirmed (ADR-021), the Google path via SessionService on a first
+        // sign-in. Publishing from the call sites would leave a third door free
+        // to forget, which is a mistake this project has already made once —
+        // the approval gate had to be fixed in both doors for that reason.
+        //
+        // Delivery is deferred to after commit by the listener, so a rolled
+        // back registration announces nobody (ADR-026 decision 1).
+        events.publishEvent(
+                new AccountRegisteredEvent(created.id(), created.email(), created.avatarUrl()));
+        return created;
     }
 
     /**
-     * Sets a new password hash — the reset path (ADR-018) and nowhere else.
-     * Also usable to give a Google-only account its first password hash, but
-     * nothing in this codebase does that yet (ADR-018 decision 2 deliberately
-     * does not go there).
+     * Sets a new password hash — the reset path (ADR-018), the self-service
+     * change path (revision of ADR-017), and nowhere else. Also usable to give
+     * a Google-only account its first password hash, but nothing in this
+     * codebase does that yet (ADR-018 decision 2 deliberately does not go
+     * there).
+     *
+     * <p>Always clears {@code must_change_password}. Whichever path landed a
+     * new hash on this row, the temporary credential it was guarding against
+     * has just been replaced, so there is nothing left for the flag to gate.
      */
     public int updatePasswordHash(UUID id, String passwordHash) {
-        return jdbc.sql("update account set password_hash = ?, updated_at = now() where id = ?")
+        return jdbc.sql("""
+                        update account
+                        set password_hash = ?, must_change_password = false, updated_at = now()
+                        where id = ?
+                        """)
                 .params(passwordHash, id)
                 .update();
     }
@@ -355,6 +439,34 @@ public class AccountRepository {
     }
 
     /**
+     * Records a self-uploaded photo (ADR-026). Setting {@code avatar_uploaded_at}
+     * is what makes this an owner-controlled value from now on — see
+     * {@code SessionService.refreshProfile}, which checks it before writing
+     * the identity provider's picture over this on a later sign-in.
+     */
+    public int updateUploadedAvatar(UUID id, String avatarUrl, Instant uploadedAt) {
+        return jdbc.sql("""
+                        update account set avatar_url = ?, avatar_uploaded_at = ?, updated_at = now()
+                        where id = ?
+                        """)
+                .params(avatarUrl, uploadedAt, id)
+                .update();
+    }
+
+    /**
+     * Removes a self-uploaded photo, reverting to initials until the next
+     * Google/Keycloak sign-in supplies a provider picture again (ADR-026).
+     */
+    public int clearUploadedAvatar(UUID id) {
+        return jdbc.sql("""
+                        update account set avatar_url = null, avatar_uploaded_at = null, updated_at = now()
+                        where id = ?
+                        """)
+                .param(id)
+                .update();
+    }
+
+    /**
      * Grants one role. Idempotent — granting a role already held is not an
      * error, and must not disturb {@code granted_at}.
      *
@@ -393,7 +505,11 @@ public class AccountRepository {
         }
     }
 
-    /** Deactivate, never delete: authored content keeps its attribution. */
+    /**
+     * Deactivates without removing: authored content keeps its attribution and
+     * the person can be let back in. The reversible half of the pair — see
+     * {@link #delete} for the other.
+     */
     public int setDeactivated(UUID id, boolean deactivated) {
         return jdbc.sql("""
                         update account
@@ -403,5 +519,27 @@ public class AccountRepository {
                         """)
                 .params(deactivated, id)
                 .update();
+    }
+
+    /**
+     * Removes the account row outright (ADR-023).
+     *
+     * <p>One statement, because the schema already says what everything else
+     * should do: sessions, role grants and reset tokens cascade away, while
+     * {@code audit_log.actor_id} and {@code page_version.created_by} go null so
+     * the trail and the content outlive the person. V10 fixed the one column
+     * that did not say — {@code account_role.granted_by} had no ON DELETE
+     * action, so PostgreSQL refused the delete for anyone who had ever granted
+     * a role, which is every super_admin who ever approved a colleague.
+     *
+     * <p>The super_admin floor is not enforced here. V4's deferred trigger
+     * fires on this DELETE and raises at COMMIT if the floor would be emptied;
+     * {@link AccountService} checks first so the caller gets a sentence rather
+     * than a constraint violation.
+     *
+     * <p>Returns rows removed — 0 when the id was already gone.
+     */
+    public int delete(UUID id) {
+        return jdbc.sql("delete from account where id = ?").param(id).update();
     }
 }

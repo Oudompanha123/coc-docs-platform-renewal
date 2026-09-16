@@ -26,21 +26,33 @@ public final class TestCallers {
     private TestCallers() {}
 
     public static CurrentUser user(AppRole role) {
+        return user(role, false);
+    }
+
+    /** As {@link #user(AppRole)}, for a caller still under the first-login gate. */
+    public static CurrentUser user(AppRole role, boolean mustChangePassword) {
         Account account = new Account(
                 UUID.randomUUID(),
                 role.wire() + "@example.com",
                 "Test " + role.wire(),
                 java.util.EnumSet.of(role),
                 null,
+                null,
                 AccountStatus.ACTIVE,
                 null,
                 Instant.now(),
-                Instant.now());
+                Instant.now(),
+                mustChangePassword);
         return new CurrentUser(account, com.coc.docs.account.TestPermissions.of(role), new byte[] {1, 2, 3});
     }
 
     /** The same authentication the real filter installs, for a caller of this role. */
     public static Authentication authentication(AppRole role) {
         return new SessionAuthenticationFilter.SessionAuthentication(user(role));
+    }
+
+    /** As {@link #authentication(AppRole)}, for a caller still under the first-login gate. */
+    public static Authentication authentication(AppRole role, boolean mustChangePassword) {
+        return new SessionAuthenticationFilter.SessionAuthentication(user(role, mustChangePassword));
     }
 }

@@ -115,7 +115,14 @@ public final class ApiDtos {
             /** When the account was created — the profile screen's "Joined". */
             Instant createdAt,
             /** Most recent sign-in; null when no session row exists yet. */
-            Instant lastSignInAt) {
+            Instant lastSignInAt,
+            /**
+             * True while a {@code super_admin}-issued temporary password is
+             * still in force. The frontend gates on this: it redirects to
+             * Create New Password instead of the normal workspace until it
+             * turns false (revision of ADR-017).
+             */
+            boolean mustChangePassword) {
 
         public static MeResponse of(CurrentUser user, Instant lastSignInAt) {
             return new MeResponse(
@@ -126,7 +133,8 @@ public final class ApiDtos {
                     user.account().avatarUrl(),
                     true,
                     user.account().createdAt(),
-                    lastSignInAt);
+                    lastSignInAt,
+                    user.account().mustChangePassword());
         }
 
         /**
@@ -138,7 +146,7 @@ public final class ApiDtos {
          * satisfied here or not at all. // req: NFR-SEC-PII
          */
         public static MeResponse anonymous() {
-            return new MeResponse(null, null, null, null, null, false, null, null);
+            return new MeResponse(null, null, null, null, null, false, null, null, false);
         }
     }
 
@@ -347,7 +355,22 @@ public final class ApiDtos {
              * here so an administrator can see the whole grant rather than
              * its effect (ADR-016).
              */
-            List<String> roles) {
+            List<String> roles,
+            /**
+             * True while this account is still using the temporary password a
+             * {@code super_admin} invite issued it. Lets the administration
+             * screen show "invited, awaiting first login" rather than looking
+             * identical to an account that has never needed one.
+             */
+            boolean mustChangePassword,
+            /**
+             * The {@code picture} claim captured at this account's own last
+             * Google/Keycloak sign-in (ADR-013), or null. Null is ordinary for
+             * an account invited but not yet signed in, or one that only ever
+             * uses the password path — same meaning as on {@link MeResponse},
+             * just for someone else's account rather than the caller's own.
+             */
+            String avatarUrl) {
 
         public static AccountResponse of(Account account) {
             return of(account, null);
@@ -365,7 +388,9 @@ public final class ApiDtos {
                     account.roles().stream()
                             .sorted(java.util.Comparator.comparingInt(Enum::ordinal))
                             .map(AppRole::wire)
-                            .toList());
+                            .toList(),
+                    account.mustChangePassword(),
+                    account.avatarUrl());
         }
     }
 
@@ -417,4 +442,40 @@ public final class ApiDtos {
 
     public record CreateAccountRequest(
             @NotBlank @Email String email, @NotBlank String role) {}
+
+    // -----------------------------------------------------------------------
+    // Nav structure
+    // -----------------------------------------------------------------------
+
+    /** One sidebar/docs product, with its ordered sub-items. */
+    public record NavProductResponse(String key, String label, String icon, List<NavItemResponse> items) {
+
+        public static NavProductResponse of(com.coc.docs.nav.NavProduct product) {
+            return new NavProductResponse(
+                    product.key(),
+                    product.label(),
+                    product.icon(),
+                    product.items().stream().map(NavItemResponse::of).toList());
+        }
+    }
+
+    /** One sub-item under a product. */
+    public record NavItemResponse(String slug, String label) {
+
+        public static NavItemResponse of(com.coc.docs.nav.NavItem item) {
+            return new NavItemResponse(item.slug(), item.label());
+        }
+    }
+
+    public record CreateNavProductRequest(@NotBlank String key, @NotBlank String label, @NotBlank String icon) {}
+
+    public record UpdateNavProductRequest(@NotBlank String label, @NotBlank String icon) {}
+
+    public record ReorderProductsRequest(@NotNull List<String> keys) {}
+
+    public record CreateNavItemRequest(@NotNull String slug, @NotBlank String label) {}
+
+    public record UpdateNavItemRequest(@NotBlank String label) {}
+
+    public record ReorderItemsRequest(@NotNull List<String> slugs) {}
 }

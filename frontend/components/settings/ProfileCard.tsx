@@ -21,10 +21,10 @@ import { useSession } from "@/lib/auth/SessionProvider";
  */
 
 const ROLE_LABELS: Record<string, string> = {
-  GUEST: "Guest",
-  USER: "User",
-  ADMIN: "Admin",
-  SUPER_ADMIN: "Super Admin",
+  guest: "Guest",
+  user: "User",
+  admin: "Admin",
+  super_admin: "Super Admin",
 };
 
 function initialsOf(name: string): string {

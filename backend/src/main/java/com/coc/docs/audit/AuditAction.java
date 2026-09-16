@@ -28,9 +28,20 @@ public final class AuditAction {
     public static final String ACCOUNT_DEACTIVATE = "account.deactivate";
     public static final String ACCOUNT_REACTIVATE = "account.reactivate";
 
+    /**
+     * The account row is gone (ADR-023). The only account action whose target
+     * cannot be looked up afterwards, so the entry carries the subject email
+     * and roles in {@code detail} — the trail has to answer "who was removed"
+     * without a row left to join to.
+     */
+    public static final String ACCOUNT_DELETE = "account.delete";
+
     public static final String ACCOUNT_REGISTER = "account.register";
     public static final String ACCOUNT_APPROVE = "account.approve";
     public static final String ACCOUNT_REJECT = "account.reject";
+
+    /** A registration code was minted and emailed — the first step of ADR-021, before any account row exists. */
+    public static final String ACCOUNT_REGISTER_OTP_REQUEST = "account.register_otp_request";
 
     public static final String AUTH_SIGN_IN = "auth.sign_in";
     public static final String AUTH_SIGN_OUT = "auth.sign_out";
@@ -38,6 +49,9 @@ public final class AuditAction {
 
     public static final String PASSWORD_RESET_REQUEST = "auth.password_reset_request";
     public static final String PASSWORD_RESET_COMPLETE = "auth.password_reset_complete";
+
+    /** A self-service password change — first-login (temporary password) or otherwise. */
+    public static final String PASSWORD_CHANGE_COMPLETE = "auth.password_change_complete";
 
     /** Target types, for the {@code target_type} column. */
     public static final String TARGET_PAGE = "page";
