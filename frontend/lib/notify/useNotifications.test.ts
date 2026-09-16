@@ -1,13 +1,21 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listPending, listSessions, revokeSession, useSession, isNotificationsEnabled } = vi.hoisted(
+const {
+  listPending,
+  listSessions,
+  revokeSession,
+  useSession,
+  isNotificationsEnabled,
+  subscribeToNotifications,
+} = vi.hoisted(
   () => ({
     listPending: vi.fn(),
     listSessions: vi.fn(),
     revokeSession: vi.fn(),
     useSession: vi.fn(),
     isNotificationsEnabled: vi.fn(),
+    subscribeToNotifications: vi.fn(),
   }),
 );
 
@@ -15,6 +23,7 @@ vi.mock("@/lib/admin/accounts", () => ({ listPending }));
 vi.mock("@/lib/auth/api", () => ({ listSessions, revokeSession }));
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
 vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled }));
+vi.mock("@/lib/notify/stream", () => ({ subscribeToNotifications }));
 
 import { useNotifications } from "./useNotifications";
 
@@ -58,6 +67,9 @@ describe("useNotifications", () => {
     // them from also asserting about sign-in alerts they do not set up.
     listSessions.mockResolvedValue([]);
     listPending.mockResolvedValue([]);
+    // Returns the unsubscribe the hook calls on unmount. Overridden in the
+    // stream cases below to capture the handler and fire it.
+    subscribeToNotifications.mockReturnValue(() => {});
   });
 
   it("lists who is actually waiting, not a fixed array", async () => {
@@ -380,6 +392,57 @@ describe("useNotifications", () => {
 
       expect(result.current.items).toHaveLength(0);
       expect(JSON.parse(localStorage.getItem("coc_read_notifications") ?? "[]")).toEqual([]);
+    });
+  });
+
+  describe("the live stream", () => {
+    it("re-reads as soon as the server says something changed", async () => {
+      // The complaint this answers: a notification did not appear until the
+      // page was reloaded. Polling every sixty seconds looks exactly like
+      // nothing happening, and the immediate path was a Firebase push that
+      // almost nobody is configured for.
+      let fire: () => void = () => {};
+      subscribeToNotifications.mockImplementation((onEvent: () => void) => {
+        fire = onEvent;
+        return () => {};
+      });
+      signedInAs("user");
+      listSessions.mockResolvedValue([]);
+
+      const { result } = renderHook(() => useNotifications());
+      await waitFor(() => expect(listSessions).toHaveBeenCalledTimes(1));
+
+      listSessions.mockResolvedValue([session()]);
+      await act(async () => {
+        fire();
+      });
+
+      // No timer advanced, no reload.
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+    });
+
+    it("closes the connection when the bell goes away", async () => {
+      const close = vi.fn();
+      subscribeToNotifications.mockReturnValue(close);
+      signedInAs("user");
+
+      const { unmount } = renderHook(() => useNotifications());
+      await waitFor(() => expect(subscribeToNotifications).toHaveBeenCalled());
+
+      unmount();
+
+      // A connection per mount that is never closed is a connection per
+      // navigation, held open on the server for half an hour each.
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens no connection for a visitor who is not signed in", async () => {
+      signedInAs(null);
+
+      renderHook(() => useNotifications());
+
+      await waitFor(() => expect(listSessions).not.toHaveBeenCalled());
+      expect(subscribeToNotifications).not.toHaveBeenCalled();
     });
   });
 });
