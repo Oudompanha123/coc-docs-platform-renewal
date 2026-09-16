@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PlusIcon } from "@/components/layout/icons";
+import { PlusIcon, XIcon } from "@/components/layout/icons";
+import { useSession } from "@/lib/auth/SessionProvider";
 import { contentId } from "@/lib/docs/content-store";
 import { fetchDocContent } from "@/lib/docs/docs-content-api";
-import { createItem, fetchNavStructure } from "@/lib/docs/nav-api";
+import { createItem, deleteItem, fetchNavStructure } from "@/lib/docs/nav-api";
+import { hrefFor } from "@/lib/docs/nav-routing";
 
 type Row = { id: string; slug: string; label: string; hasContent: boolean };
 
@@ -27,6 +29,13 @@ function slugify(label: string): string {
  *  new sub-item, without adding a refetch capability every other consumer
  *  of that hook would have to carry too. */
 export function ProductContentTable({ productKey }: { productKey: string }) {
+  // Same role floor the backend enforces on /api/v1/admin/nav/** and
+  // /api/v1/admin/docs-content/**: hiding Add/Delete/Edit here is
+  // presentation, not the actual control — a "user" caller who reached
+  // either endpoint directly still gets refused server-side.
+  const { user: session } = useSession();
+  const canManage = session?.role === "admin" || session?.role === "super_admin";
+
   const [rows, setRows] = useState<Row[] | null>(null);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
@@ -78,12 +87,23 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
     }
   }
 
+  async function handleDeleteItem(row: Row) {
+    if (!window.confirm(`Remove "${row.label}"? This only works while it has no saved content.`)) return;
+    setError(null);
+    try {
+      await deleteItem(productKey, row.slug);
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove that item.");
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
         {error && <p className="text-xs font-semibold text-[#c94040]">{error}</p>}
         <div className="flex-1" />
-        {!adding && (
+        {canManage && !adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
@@ -95,7 +115,7 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
         )}
       </div>
 
-      {adding && (
+      {canManage && adding && (
         <form onSubmit={handleAddItem} className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-white p-3 shadow-sm">
           <input
             autoFocus
@@ -145,19 +165,42 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
                   >
                     {row.hasContent ? "Has content" : "Not written"}
                   </span>
-                  <Link
-                    href={`/content/${row.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-                  >
-                    {row.hasContent ? (
-                      "Edit"
-                    ) : (
-                      <>
-                        <PlusIcon className="h-3.5 w-3.5" />
-                        Write
-                      </>
-                    )}
-                  </Link>
+
+                  {canManage ? (
+                    <>
+                      <Link
+                        href={`/content/${row.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                      >
+                        {row.hasContent ? (
+                          "Edit"
+                        ) : (
+                          <>
+                            <PlusIcon className="h-3.5 w-3.5" />
+                            Write
+                          </>
+                        )}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteItem(row)}
+                        aria-label={`Remove ${row.label}`}
+                        className="inline-flex items-center rounded-full border border-border p-1.5 text-muted transition-colors hover:border-[#c94040] hover:text-[#c94040]"
+                      >
+                        <XIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    row.hasContent && (
+                      <Link
+                        href={hrefFor(productKey, row.slug)}
+                        target="_blank"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                      >
+                        View
+                      </Link>
+                    )
+                  )}
                 </div>
               </div>
             ))}

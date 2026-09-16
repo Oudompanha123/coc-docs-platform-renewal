@@ -8,9 +8,12 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { ApproveRegistrationModal } from "./ApproveRegistrationModal";
+import { NewSignInModal } from "./NewSignInModal";
 import { ApplicantAvatar } from "./ApplicantAvatar";
 import type { PendingAccount } from "@/lib/admin/accounts";
+import type { SessionSummary } from "@/lib/auth/api";
 import { UserAvatar } from "./UserAvatar";
+import { ShieldIcon } from "@/components/auth/icons";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -24,16 +27,10 @@ import {
 } from "./icons";
 import Link from "next/link";
 import { ProfileModal } from "./ProfileModal";
+import { useShell } from "@/lib/layout/ShellContext";
 
 type TopbarProps = {
-  title: string;
-  subtitle: string;
   onMenuClick: () => void;
-  /** A pre-rendered element, not a component reference — Overview and
-   *  Settings are Server Components, and passing a bare function down into
-   *  this Client Component isn't serializable across that boundary. Each
-   *  page renders its own `<XIcon className="..." />` instead. */
-  titleIcon?: React.ReactNode;
 };
 
 type MenuKey = "notifications" | "mail" | "user";
@@ -74,7 +71,8 @@ function CountBadge({
   );
 }
 
-export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps) {
+export function Topbar({ onMenuClick }: TopbarProps) {
+  const { header: { title, subtitle, titleIcon } } = useShell();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -84,18 +82,24 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   // has no route guard of its own yet.
   const user = useCurrentUser();
   const { signOut } = useSession();
-  // The bell no longer renders three invented items that never changed — it
-  // shows who is actually waiting for approval, which is also what the push
-  // notification deep-links to (ADR-025). Empty for anyone but a super admin.
+  // The bell no longer renders three invented items that never changed. It
+  // carries two real things: who is waiting for approval, which only a super
+  // admin sees (ADR-025), and whether this account was signed in to from a
+  // device it has not been used on, which only its owner sees (ADR-027).
   const notifications = useNotifications({
     // A clicked banner, or an app opened by one, lands in the same dialog as
     // clicking the item in the bell. The reader acts from wherever they are.
     onOpenApproval: (account) => setApproving(account),
+    onOpenSignIn: (session) => setReviewingSignIn(session),
   });
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.
   const [approving, setApproving] = useState<PendingAccount | null>(null);
+  // The unfamiliar session whose alert was clicked, shown with the detail and
+  // the button that ends it. Same reasoning: the answer to "was that you?"
+  // belongs where the question was asked.
+  const [reviewingSignIn, setReviewingSignIn] = useState<SessionSummary | null>(null);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Topbar renders on every admin page (via AppShell), so this is what
@@ -192,23 +196,34 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                       type="button"
                       role="menuitem"
                       onClick={() => {
-                        // Read on open, not on approve: the person has seen it
+                        // Read on open, not on acting: the person has seen it
                         // either way, and leaving it bold after they looked and
                         // decided not to act makes the badge mean "unread or
                         // ignored", which is not a number anyone can act on.
                         notifications.markRead(n.id);
-                        setApproving(n.account);
+                        if (n.kind === "sign-in") setReviewingSignIn(n.session);
+                        else setApproving(n.account);
                         setOpenMenu(null);
                       }}
                       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                         n.read ? "" : "bg-brand-purple/5"
                       }`}
                     >
-                      <ApplicantAvatar
-                        name={n.account.displayName}
-                        avatarUrl={n.account.avatarUrl}
-                        className="mt-0.5 h-8 w-8 text-[11px]"
-                      />
+                      {n.kind === "sign-in" ? (
+                        // A shield, not a face. This notification is about a
+                        // browser, and the account owner's own picture beside
+                        // it would read as "we know who this was" — which is
+                        // the one thing nobody knows yet.
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+                          <ShieldIcon className="h-4 w-4" />
+                        </span>
+                      ) : (
+                        <ApplicantAvatar
+                          name={n.account.displayName}
+                          avatarUrl={n.account.avatarUrl}
+                          className="mt-0.5 h-8 w-8 text-[11px]"
+                        />
+                      )}
                       <span className="min-w-0 flex-1">
                         <span
                           className={`block truncate text-sm text-dash-ink ${
@@ -229,7 +244,7 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                   ))
                 )}
               </div>
-              {notifications.items.length > 0 && (
+              {notifications.items.some((n) => n.kind === "registration") && (
                 <Link
                   href="/users-roles?tab=pending"
                   onClick={() => setOpenMenu(null)}
@@ -372,6 +387,14 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
         account={approving}
         onClose={() => setApproving(null)}
         onApproved={() => void notifications.refresh()}
+      />
+    )}
+
+    {reviewingSignIn && (
+      <NewSignInModal
+        session={reviewingSignIn}
+        onClose={() => setReviewingSignIn(null)}
+        onEnded={() => void notifications.refresh()}
       />
     )}
     </div>

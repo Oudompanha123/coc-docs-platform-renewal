@@ -128,15 +128,40 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 | Testing rules | `docs/design/TEST-PLAN.md` |
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
+
+## Running it from IntelliJ
+
+Two run configurations are checked in under `.run/`, so they appear in the run dropdown as soon as you open the project — no setup.
+
+| Configuration | What it does |
+| --- | --- |
+| **Frontend (dev)** | `npm run dev` in `frontend/` — the Next.js dev server on http://localhost:3000 |
+| **Frontend (check)** | `npm run check` — typecheck, lint and tests, the same three CI runs |
+
+They need Node configured once per machine: **Settings → Languages & Frameworks → Node.js**, pointing at your Node 24 install. The configurations say `project`, so they follow whatever you set there.
+
+No EnvFile plugin, unlike the backend configuration — Next.js reads `frontend/.env.local` by itself.
+
+**To add one by hand** (or to build a variant): Run → Edit Configurations → **+** → **npm** → set *package.json* to `frontend/package.json`, *Command* to `run`, *Scripts* to `dev`. Tick **Store as project file** so it lands in `.run/` and everyone gets it; leave it unticked and it exists only on your machine, which is how this project has already lost time on database schemas and the Keycloak realm.
+
 ## One Keycloak each, one realm file
 
 Keycloak in dev mode runs on a local H2 file, so your Keycloak is **yours alone** — its own realm, clients and identity provider. Nothing you configure in it reaches anybody else.
 
 Start it from the realm in this repository rather than building one by hand:
 
-```
-export GOOGLE_CLIENT_SECRET=...     # ask whoever set up the Google Cloud project
+Git Bash:
+
+```bash
+export GOOGLE_CLIENT_SECRET='...'
 scripts/keycloak-dev.sh
+```
+
+PowerShell:
+
+```powershell
+$env:GOOGLE_CLIENT_SECRET = '...'
+bash scripts/keycloak-dev.sh
 ```
 
 That imports `keycloak/docs_platform-realm.json`: the realm, the `cocdocs-frontend` public client, the Google identity provider, and the declarative user profile that stops Keycloak demanding a first and last name from a Google sign-in.

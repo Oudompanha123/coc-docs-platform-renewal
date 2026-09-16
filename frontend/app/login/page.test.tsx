@@ -87,7 +87,7 @@ describe("LoginPage password form", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "USER",
+      role: "admin",
     });
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -101,12 +101,33 @@ describe("LoginPage password form", () => {
     expect(push).toHaveBeenCalledWith("/overview");
   });
 
+  it("sends a plain \"user\" role to the public landing page, not the admin app", async () => {
+    // The admin app (sidebar, Overview, per-product content management,
+    // Users & Roles, Settings) is admin/super_admin only now — a "user"
+    // account reads the public /docs/* pages instead, same destination
+    // RequireSession sends them to if they try an admin URL directly.
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "reader@example.com",
+      displayName: "Reader Example",
+      role: "user",
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "reader@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/welcome"));
+  });
+
   it("sends a caller still on a temporary password to /create-password instead of /overview", async () => {
     loginWithPassword.mockResolvedValue({
       id: "1",
       email: "invited@example.com",
       displayName: "Invited Person",
-      role: "USER",
+      role: "user",
       mustChangePassword: true,
     });
     const user = userEvent.setup();
@@ -149,7 +170,7 @@ describe("LoginPage Google sign-in", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "USER",
+      role: "admin",
     });
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -230,7 +251,7 @@ describe("LoginPage redirect state", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "user",
+      role: "admin",
       mustChangePassword: false,
     });
     const user = userEvent.setup();
@@ -317,7 +338,7 @@ describe("LoginPage TOTP second factor", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "user",
+      role: "admin",
       mustChangePassword: false,
     });
     const user = userEvent.setup();

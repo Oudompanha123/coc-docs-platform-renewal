@@ -1,42 +1,29 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { SessionProvider } from "@/lib/auth/SessionProvider";
-import { RequireSession } from "./RequireSession";
-import { Sidebar } from "./Sidebar";
-import { Topbar } from "./Topbar";
+import { useEffect, type ReactNode } from "react";
+import { useShell } from "@/lib/layout/ShellContext";
 
 type AppShellProps = {
   pageTitle: string;
   pageSubtitle: string;
-  titleIcon?: React.ReactNode;
+  titleIcon?: ReactNode;
   children: ReactNode;
 };
 
-/** Reusable authenticated shell (sidebar + topbar) for every admin page. */
+/**
+ * Sets the shell header (title/subtitle/icon) for the current page and
+ * renders its children into the shared layout's <main> area.
+ *
+ * The sidebar, topbar chrome, session guard, and mobile-nav state all live in
+ * app/(shell)/layout.tsx, which stays mounted across navigations — this
+ * component only tells that layout what the current page is called.
+ */
 export function AppShell({ pageTitle, pageSubtitle, titleIcon, children }: AppShellProps) {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { setHeader } = useShell();
 
-  return (
-    // Provider outside the guard: the guard reads the session it publishes,
-    // and the sidebar and topbar inside read the same one answer rather than
-    // asking the server again each.
-    <SessionProvider>
-      <RequireSession>
-        <div data-shell="admin" className="min-h-screen bg-page lg:flex">
-          <Sidebar isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+  useEffect(() => {
+    setHeader({ title: pageTitle, subtitle: pageSubtitle, titleIcon });
+  }, [pageTitle, pageSubtitle, titleIcon, setHeader]);
 
-          <div className="flex min-h-screen flex-1 flex-col lg:min-w-0">
-            <Topbar
-              title={pageTitle}
-              subtitle={pageSubtitle}
-              titleIcon={titleIcon}
-              onMenuClick={() => setMobileNavOpen(true)}
-            />
-            <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-          </div>
-        </div>
-      </RequireSession>
-    </SessionProvider>
-  );
+  return <>{children}</>;
 }

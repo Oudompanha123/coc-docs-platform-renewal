@@ -1,13 +1,18 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listPending, useSession, isNotificationsEnabled } = vi.hoisted(() => ({
-  listPending: vi.fn(),
-  useSession: vi.fn(),
-  isNotificationsEnabled: vi.fn(),
-}));
+const { listPending, listSessions, revokeSession, useSession, isNotificationsEnabled } = vi.hoisted(
+  () => ({
+    listPending: vi.fn(),
+    listSessions: vi.fn(),
+    revokeSession: vi.fn(),
+    useSession: vi.fn(),
+    isNotificationsEnabled: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/admin/accounts", () => ({ listPending }));
+vi.mock("@/lib/auth/api", () => ({ listSessions, revokeSession }));
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
 vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled }));
 
@@ -20,20 +25,39 @@ function signedInAs(role: string | null) {
   });
 }
 
+/** A session row as the server sends it. */
+function session(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "s1",
+    userAgent: "ua",
+    ipAddress: "203.0.113.4",
+    issuedAt: "2026-09-16T08:00:00Z",
+    expiresAt: "2026-09-17T08:00:00Z",
+    device: "Firefox on Windows",
+    newDevice: true,
+    current: false,
+    ...overrides,
+  };
+}
+
 const dana = {
   id: "a",
   email: "dana@example.com",
   displayName: "Dana Lee",
-  role: "GUEST",
+  role: "guest",
   status: "PENDING",
 };
-const sam = { id: "b", email: "sam@example.com", displayName: "Sam Ray", role: "GUEST", status: "PENDING" };
+const sam = { id: "b", email: "sam@example.com", displayName: "Sam Ray", role: "guest", status: "PENDING" };
 
 describe("useNotifications", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     isNotificationsEnabled.mockReturnValue(true);
+    // Most cases are about the approval queue; an empty session list keeps
+    // them from also asserting about sign-in alerts they do not set up.
+    listSessions.mockResolvedValue([]);
+    listPending.mockResolvedValue([]);
   });
 
   it("lists who is actually waiting, not a fixed array", async () => {
@@ -255,5 +279,107 @@ describe("useNotifications", () => {
     // queue on screen is already the answer; a dialog about nobody is not.
     expect(onOpenApproval).not.toHaveBeenCalled();
     expect(window.location.search).not.toContain("approve=");
+  });
+
+  describe("new-device sign-in alerts (ADR-027)", () => {
+    it("alerts an ordinary user, who never sees the approval queue", async () => {
+      // The report this was built from: signing in from another browser
+      // produced nothing at all. Note the role — a user, not a super admin.
+      // The bell used to be empty for everyone but an approver.
+      signedInAs("user");
+      listSessions.mockResolvedValue([session()]);
+
+      const { result } = renderHook(() => useNotifications());
+
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+      expect(result.current.items[0]?.kind).toBe("sign-in");
+      expect(result.current.items[0]?.detail).toContain("Firefox on Windows");
+      expect(result.current.items[0]?.detail).toContain("203.0.113.4");
+      expect(listPending).not.toHaveBeenCalled();
+    });
+
+    it("says nothing about the device being used to read it", async () => {
+      signedInAs("user");
+      // A first sign-in flags itself, and the browser it happened in is
+      // reading this. Telling somebody their own sign-in was suspicious is how
+      // an alert becomes noise on its first outing.
+      listSessions.mockResolvedValue([session({ newDevice: true, current: true })]);
+
+      const { result } = renderHook(() => useNotifications());
+
+      await waitFor(() => expect(listSessions).toHaveBeenCalled());
+      expect(result.current.items).toHaveLength(0);
+    });
+
+    it("says nothing about devices the server recognises", async () => {
+      signedInAs("user");
+      listSessions.mockResolvedValue([
+        session({ id: "s1", newDevice: false }),
+        session({ id: "s2", newDevice: false }),
+      ]);
+
+      const { result } = renderHook(() => useNotifications());
+
+      await waitFor(() => expect(listSessions).toHaveBeenCalled());
+      expect(result.current.items).toHaveLength(0);
+    });
+
+    it("puts sign-in alerts above approvals", async () => {
+      signedInAs("super_admin");
+      listPending.mockResolvedValue([dana]);
+      listSessions.mockResolvedValue([session()]);
+
+      const { result } = renderHook(() => useNotifications());
+
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+      // One of these might mean somebody else is in the account. The other is
+      // a queue that has waited this long already.
+      expect(result.current.items[0]?.kind).toBe("sign-in");
+      expect(result.current.items[1]?.kind).toBe("registration");
+    });
+
+    it("still shows sign-in alerts when the approval queue fails", async () => {
+      signedInAs("super_admin");
+      listPending.mockRejectedValue(new Error("backend down"));
+      listSessions.mockResolvedValue([session()]);
+
+      const { result } = renderHook(() => useNotifications());
+
+      // Settled separately for exactly this reason: the less important of the
+      // two sources must not be able to suppress the more important one.
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+      expect(result.current.items[0]?.kind).toBe("sign-in");
+    });
+
+    it("keeps the bell empty when nobody is signed in", async () => {
+      signedInAs(null);
+      listSessions.mockResolvedValue([session()]);
+
+      const { result } = renderHook(() => useNotifications());
+
+      await waitFor(() => expect(result.current.items).toHaveLength(0));
+      expect(listSessions).not.toHaveBeenCalled();
+    });
+
+    it("forgets the read mark once the session is gone", async () => {
+      signedInAs("user");
+      listSessions.mockResolvedValue([session()]);
+      const { result } = renderHook(() => useNotifications());
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+      act(() => result.current.markRead("s1"));
+      expect(result.current.unreadCount).toBe(0);
+
+      // Ended from Settings, or expired. The stored id would otherwise sit in
+      // localStorage forever, and would silence a later session that happened
+      // to be issued the same id.
+      listSessions.mockResolvedValue([]);
+      await act(async () => {
+        await result.current.refresh();
+      });
+
+      expect(result.current.items).toHaveLength(0);
+      expect(JSON.parse(localStorage.getItem("coc_read_notifications") ?? "[]")).toEqual([]);
+    });
   });
 });
