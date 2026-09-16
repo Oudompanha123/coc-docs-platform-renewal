@@ -1,0 +1,25 @@
+<component name="ProjectRunConfigurationManager">
+  <!--
+    Next.js dev server for frontend/.
+
+    Checked in rather than left to each developer's IDE: a run configuration
+    that only exists on one machine is the same problem this project already
+    had with database schemas and the Keycloak realm.
+
+    .run/ rather than .idea/runConfigurations/ — it is the shareable location
+    JetBrains reads for exactly this purpose, and it survives an .idea wipe.
+
+    No EnvFile plugin here, unlike the backend configuration: Next.js reads
+    frontend/.env.local by itself.
+  -->
+  <configuration default="false" name="Frontend (dev)" type="js.build_tools.npm" nameIsGenerated="false">
+    <package-json value="$PROJECT_DIR$/frontend/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="dev" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>
