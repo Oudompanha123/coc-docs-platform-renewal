@@ -7,6 +7,7 @@ const {
   revokeSession,
   useSession,
   isNotificationsEnabled,
+  ensureBackgroundPushRegistered,
   subscribeToNotifications,
 } = vi.hoisted(
   () => ({
@@ -15,14 +16,21 @@ const {
     revokeSession: vi.fn(),
     useSession: vi.fn(),
     isNotificationsEnabled: vi.fn(),
+    ensureBackgroundPushRegistered: vi.fn(),
     subscribeToNotifications: vi.fn(),
   }),
 );
 
 vi.mock("@/lib/admin/accounts", () => ({ listPending }));
-vi.mock("@/lib/auth/api", () => ({ listSessions, revokeSession }));
+vi.mock("@/lib/auth/api", async () => {
+  // The real module, with only the two calls replaced. The error classes have
+  // to be the real ones: the hook does `instanceof SessionExpiredError`, and a
+  // stubbed module would give the test a different class that never matches.
+  const actual = await vi.importActual<typeof import("@/lib/auth/api")>("@/lib/auth/api");
+  return { ...actual, listSessions, revokeSession };
+});
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
-vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled }));
+vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled, ensureBackgroundPushRegistered }));
 vi.mock("@/lib/notify/stream", () => ({ subscribeToNotifications }));
 
 import { useNotifications } from "./useNotifications";
@@ -70,6 +78,7 @@ describe("useNotifications", () => {
     // Returns the unsubscribe the hook calls on unmount. Overridden in the
     // stream cases below to capture the handler and fire it.
     subscribeToNotifications.mockReturnValue(() => {});
+    ensureBackgroundPushRegistered.mockResolvedValue(undefined);
   });
 
   it("lists who is actually waiting, not a fixed array", async () => {
@@ -443,6 +452,76 @@ describe("useNotifications", () => {
 
       await waitFor(() => expect(listSessions).not.toHaveBeenCalled());
       expect(subscribeToNotifications).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a session that has ended underneath the tab", () => {
+    it("re-reads the session rather than showing an empty bell", async () => {
+      // What this replaces: a 401 was caught and turned into no items, so a
+      // tab whose session had been revoked — which is what signing in again in
+      // the same browser does — went on looking signed in, with a bell that
+      // said there was nothing to report. Indistinguishable from working.
+      const { SessionExpiredError } = await import("@/lib/auth/api");
+      signedInAs("user");
+      listSessions.mockRejectedValue(new SessionExpiredError("ended"));
+      const refresh = vi.fn();
+      useSession.mockReturnValue({
+        status: "authenticated",
+        user: { id: "1", role: "user" },
+        refresh,
+      });
+
+      const { result } = renderHook(() => useNotifications());
+
+      // The provider is the one authority on session state; RequireSession
+      // already knows what to do when it turns anonymous.
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+      expect(result.current.items).toHaveLength(0);
+    });
+
+    it("leaves the bell alone for an ordinary failure", async () => {
+      const { AuthApiError } = await import("@/lib/auth/api");
+      signedInAs("user");
+      listSessions.mockRejectedValue(new AuthApiError("backend down"));
+      const refresh = vi.fn();
+      useSession.mockReturnValue({
+        status: "authenticated",
+        user: { id: "1", role: "user" },
+        refresh,
+      });
+
+      renderHook(() => useNotifications());
+
+      // A backend that is merely unreachable must not sign anybody out.
+      await waitFor(() => expect(listSessions).toHaveBeenCalled());
+      expect(refresh).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("push registration is reconciled, not only set on a press", () => {
+    it("registers this browser when the bell mounts", async () => {
+      // The bug: registerForBackgroundPush ran only from the Settings toggle.
+      // Turn notifications on before the deployment has a Firebase project —
+      // which everyone here did, because banners work without one — and the
+      // flag is stored, the toggle reads as on for ever, and the only path
+      // that could register a token is behind the press that now turns it off.
+      // Add Firebase later and nothing retries: no token, no push, no error.
+      signedInAs("user");
+
+      renderHook(() => useNotifications());
+
+      await waitFor(() => expect(ensureBackgroundPushRegistered).toHaveBeenCalled());
+    });
+
+    it("asks nothing of a visitor who is not signed in", async () => {
+      // Registering a token is an authenticated call; there is nobody to
+      // register it to yet.
+      signedInAs(null);
+
+      renderHook(() => useNotifications());
+
+      await waitFor(() => expect(listSessions).not.toHaveBeenCalled());
+      expect(ensureBackgroundPushRegistered).not.toHaveBeenCalled();
     });
   });
 });

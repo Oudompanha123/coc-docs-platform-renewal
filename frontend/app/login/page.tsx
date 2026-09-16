@@ -4,14 +4,16 @@ import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { FormField, PasswordField } from "@/components/auth/FormField";
+import { CodeField, FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import {
   loginWithIdToken,
   loginWithPassword,
+  MfaRequiredError,
   requestNonce,
   RegistrationPendingError,
   type AuthenticatedAccount,
+  verifyMfaLogin,
 } from "@/lib/auth/api";
 import { GoogleSignInCancelledError, isGoogleSignInConfigured, signInWithGoogleViaKeycloak } from "@/lib/auth/keycloakIdentity";
 import { rememberIdToken, takeIdToken } from "@/lib/auth/idTokenMemory";
@@ -64,6 +66,15 @@ function LoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ identifier?: string; password?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ADR-031: a correct password for an account with confirmed TOTP switches
+  // here instead of signing in — the account exists behind the scenes as
+  // the coc_mfa_pending cookie loginWithPassword's rejection already left
+  // behind, not as anything this component holds itself.
+  const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState<string | undefined>();
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
 
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   // Set once either sign-in path has succeeded and the redirect is under way.
@@ -137,10 +148,39 @@ function LoginForm() {
       setIsRedirecting(true);
       router.push(postLoginDestination(account));
     } catch (err) {
+      if (err instanceof MfaRequiredError) {
+        // Not a refusal: the password was correct. Switch to the OTP step
+        // rather than showing an error banner.
+        setOtpCode("");
+        setOtpError(undefined);
+        setStep("otp");
+        return;
+      }
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setFeedback({ type: "error", message });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleVerifyOtp(e: FormEvent) {
+    e.preventDefault();
+    if (otpCode.length !== 6) {
+      setOtpError("Enter the 6-digit code.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError(undefined);
+    try {
+      const account = await verifyMfaLogin(otpCode);
+      setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+      setIsRedirecting(true);
+      router.push(postLoginDestination(account));
+    } catch (err) {
+      setOtpError(err instanceof Error ? err.message : "Couldn't verify that code. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
     }
   }
 
@@ -210,6 +250,70 @@ function LoginForm() {
       googleSignInInFlight.current = false;
       setIsGoogleSubmitting(false);
     }
+  }
+
+  if (step === "otp") {
+    return (
+      <AuthShell
+        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        heading="Two-Factor Authentication"
+        subheading="Enter the 6-digit code from your authenticator app to finish signing in."
+      >
+        <h1 className="text-3xl font-extrabold text-ink">Enter Your Code</h1>
+        <p className="mt-2 text-sm text-muted">Open your authenticator app and enter the current 6-digit code.</p>
+
+        {feedback && (
+          <div
+            role="alert"
+            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+              feedback.type === "success"
+                ? "border-green-200 bg-green-50 text-green-800"
+                : feedback.type === "pending"
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-red-200 bg-red-50 text-red-700"
+            }`}
+          >
+            {feedback.message}
+          </div>
+        )}
+        {otpError && (
+          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {otpError}
+          </div>
+        )}
+
+        {isRedirecting ? (
+          <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
+            <div
+              aria-hidden="true"
+              className="h-8 w-8 animate-spin rounded-full border-4 border-brand-purple/20 border-t-brand-purple"
+            />
+            <p>Redirecting to your dashboard…</p>
+          </div>
+        ) : (
+          <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
+            <CodeField label="Authentication Code" value={otpCode} onChange={setOtpCode} />
+
+            <button
+              type="submit"
+              disabled={isVerifyingOtp}
+              aria-busy={isVerifyingOtp}
+              className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isVerifyingOtp ? "Verifying…" : "Verify"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep("credentials")}
+              className="w-full text-center text-sm font-semibold text-brand-purple hover:underline"
+            >
+              Back to login
+            </button>
+          </form>
+        )}
+      </AuthShell>
+    );
   }
 
   return (
@@ -296,7 +400,7 @@ function LoginForm() {
               Forgot password?
             </Link>
           </div>
-  
+
           <button
             type="submit"
             disabled={isSubmitting}
