@@ -131,6 +131,9 @@ than an oversight:
 - The action this alert offers is *ending a live session*. A notification that
   outlives its session is a button with nothing behind it.
 
+Delivery is a separate question from storage, and ADR-028 answers it: a live
+stream tells the bell to re-read, so a derived list is not also a slow one.
+
 What is given up is stated in Consequences, and the table is still the
 follow-up.
 
