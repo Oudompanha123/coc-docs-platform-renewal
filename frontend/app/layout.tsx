@@ -41,7 +41,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${pretendard.variable}`}>
+    // suppressHydrationWarning on <html> for the same reason <body> already has
+    // it, and for one more.
+    //
+    // Browser extensions write to <html> before React hydrates — the reported
+    // mismatch was data-qb-installed, from an extension — and React compares
+    // the DOM it finds against the HTML the server sent. An attribute that
+    // arrived in between is a difference React cannot explain, so it warns.
+    //
+    // lib/theme.ts also writes data-theme to document.documentElement. That
+    // runs after hydration today and so is not the current cause, but it makes
+    // <html> an element this application mutates, which is exactly the case
+    // this attribute exists for.
+    //
+    // It suppresses one level only: the attributes and text of <html> itself,
+    // never its descendants. A real mismatch inside the app still reports.
+    <html
+      lang="en"
+      className={`${inter.variable} ${pretendard.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased" suppressHydrationWarning>
         {children}
       </body>
