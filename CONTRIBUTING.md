@@ -67,7 +67,7 @@ This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as s
 **3. Copy the environment template.** `backend/.env.example` documents every variable the backend reads, with a safe local default for each:
 
 ```bash
-cp backend/.env.example backend/.env.local
+cp backend/.env.example backend/..env.local
 ```
 
 `.env.local` is gitignored; `.env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
@@ -134,9 +134,11 @@ Keycloak in dev mode runs on a local H2 file, so your Keycloak is **yours alone*
 
 Start it from the realm in this repository rather than building one by hand:
 
-```
-export GOOGLE_CLIENT_SECRET=...     # ask whoever set up the Google Cloud project
+```bash
+export GOOGLE_CLIENT_SECRET='...'      # Git Bash
 scripts/keycloak-dev.sh
+$env:GOOGLE_CLIENT_SECRET = '...'      # PowerShell
+bash scripts/keycloak-dev.sh
 ```
 
 That imports `keycloak/docs_platform-realm.json`: the realm, the `cocdocs-frontend` public client, the Google identity provider, and the declarative user profile that stops Keycloak demanding a first and last name from a Google sign-in.
@@ -226,7 +228,7 @@ From IntelliJ, use the **`Backend (dev)`** run configuration. It loads the file 
 From a shell:
 
 ```bash
-set -a; . ./backend/.env.local; set +a
+set -a; . ./backend/..env.local; set +a
 ./backend/mvnw -f backend/pom.xml spring-boot:run
 ```
 
@@ -253,7 +255,7 @@ Your database ran a different file at that version — usually because you had a
 **On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
 
 ```bash
-set -a; . ./backend/.env.local; set +a
+set -a; . ./backend/..env.local; set +a
 scripts/db-reset-dev.sh
 ```
 
@@ -262,7 +264,7 @@ It refuses any host that is not localhost, refuses a schema that does not name i
 **On the shared dev database you cannot do that**, and `db-reset-dev.sh` will refuse — deliberately. Dropping it destroys everyone's accounts, sessions and the audit trail. There, repair is the right tool, but only once you have checked the thing repair cannot check for you: that the schema the *other* file left behind is the schema this file describes. Compare the real table against the migration — columns, types, defaults, indexes (including partial ones), check constraints, foreign keys — and if anything differs, stop and raise it rather than repairing over it.
 
 ```bash
-set -a; . ./backend/.env.local; set +a
+set -a; . ./backend/..env.local; set +a
 scripts/flyway-repair-dev.sh
 ```
 
