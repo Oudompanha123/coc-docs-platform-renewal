@@ -148,7 +148,33 @@ PORT_BUSY
 fi
 
 mkdir -p "$IMPORT_DIR"
-cp "$REALM_FILE" "$IMPORT_DIR/docs_platform-realm.json"
+# The secret is substituted here, not by Keycloak.
+#
+# The realm file carries ${env.GOOGLE_CLIENT_SECRET} and I assumed Keycloak
+# would resolve it on import. It does not — verified by importing a realm with
+# that placeholder in a non-secret field and reading it back: the literal
+# string is what gets stored. The Google identity provider then holds
+# "${env.GOOGLE_CLIENT_SECRET}" as its client secret, Google rejects it, and
+# the browser shows "Unexpected error when authenticating with identity
+# provider" while the server log says invalid_client.
+#
+# So the copy in data/import is the substituted one. It holds a real secret and
+# lives in the Keycloak installation, never in the repository — the same place
+# Keycloak is about to store that secret in its own database anyway.
+#
+# The filename must match the realm inside it. Keycloak refuses a mismatch with
+# "File name / realm name mismatch. x.json, contains realm y", which is clear
+# enough once seen and impossible to guess beforehand.
+PLACEHOLDER='${env.GOOGLE_CLIENT_SECRET}'
+realm_json="$(cat "$REALM_FILE")"
+printf '%s' "${realm_json//"$PLACEHOLDER"/$GOOGLE_CLIENT_SECRET}" \
+  > "$IMPORT_DIR/docs_platform-realm.json"
+
+if grep -q 'env.GOOGLE_CLIENT_SECRET' "$IMPORT_DIR/docs_platform-realm.json"; then
+  echo "Failed to substitute the Google client secret into the realm file." >&2
+  echo "Keycloak would import the placeholder and Google would reject it." >&2
+  exit 1
+fi
 
 cat <<BANNER
 Starting Keycloak on http://localhost:$PORT
