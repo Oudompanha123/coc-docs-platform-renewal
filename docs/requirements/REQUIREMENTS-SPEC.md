@@ -1,6 +1,6 @@
 # Requirements Specification — Coc Docs Platform
 
-> **Version**: 1.0
+> **Version**: 1.5
 > **Date**: 2026-09-08
 > **Preceding**: [PROJECT-PROPOSAL.md](../planning/PROJECT-PROPOSAL.md), [BUSINESS-REQUIREMENTS.md](../planning/BUSINESS-REQUIREMENTS.md)
 > **Traceability Matrix**: [requirements-matrix.csv](requirements-matrix.csv)
@@ -111,6 +111,7 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | FR-AUTH-006 | Every page carries a **minimum role required to view**, enforced server-side | Must | Integration test |
 | FR-AUTH-007 | A signed-in user can sign out, invalidating the session | Must | E2E test |
 | FR-AUTH-008 | An `admin` may not access account management | Must | Security test (negative) |
+| FR-AUTH-009 | An account may enroll a TOTP (Google Authenticator) second factor; once enrolled, `/login-password` requires a valid code before a session is issued. Opt-in per account — the Google/Keycloak sign-in path is unaffected. See §7.4, ADR-031 | Must | Security test + integration test |
 
 ### 2.6 Reader Experience (`FR-READ-`)
 
@@ -283,6 +284,51 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | 2026-09-08 | **1.1** | **Amends the G1-approved baseline.** `CONST-TECH-01/02` scoped to the frontend; `CONST-TECH-05/06/07/08` added for the two-service Spring Boot architecture. See §7.1 | `architect` per PM decision |
 | 2026-09-09 | **1.2** | `CONST-RES-01` (one part-time developer) **superseded** by `CONST-RES-02` (six developers). Hosting resolved to Google Cloud (ADR-012 §2.1). See §7.2 | `architect` per PM decision |
 | 2026-09-10 | **1.3** | `FR-AUTH-002`/`FR-AUTH-003` amended: password self-registration added alongside Google/Keycloak OIDC, gated by super_admin approval (ADR-014). See §7.3 | `architect`, confirmed in-session by the developer implementing it — **formal PM sign-off recommended**, not yet recorded, unlike every prior row in this table |
+| 2026-09-16 | **1.4** | New `FR-AUTH-009`: opt-in TOTP (Google Authenticator) second factor gating `/login-password` only. See §7.4, ADR-031 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3 row above |
+| 2026-09-16 | **1.5** | `FR-AUTH-002` amended again: `/forgot-password` now covers a Google-only account too, as a path to its first password. See §7.5, ADR-029 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4 rows above |
+
+### 7.5 Forgot-Password Also Covers Google-Only Accounts — 2026-09-16
+
+The PM/developer asked that a Google-only account (one that registered or
+signed in with Google and has never set a password) be able to use
+"Forgot Password" too, rather than being the one case that endpoint left
+untouched.
+
+**What changed**: `PasswordResetService.requestReset` no longer refuses to
+mint a token and email a link for a Google-only account — it now mints and
+emails for every account that exists, distinguished from a "no account at
+all" `404` (ADR-019, unchanged). `POST /reset-password` now tells "set your
+first password" apart from "reset your existing one" for its confirmation
+message and audit `detail.kind`, mirroring the same distinction ADR-030
+already draws for the authenticated Settings → Security path. See `ADR-029`
+for the full design and why this closes a side-channel rather than opening
+one.
+
+**Same caveat as §7.3/§7.4**: this row reflects direction given during the
+implementation session itself, not yet a recorded PM decision.
+
+### 7.4 TOTP Second Factor — 2026-09-16
+
+The PM asked for Google-Authenticator-based two-factor authentication on the
+login page: a guided setup wizard (QR code, manual secret), and a
+config-driven bypass so local/CI testing doesn't require installing an
+authenticator app.
+
+**What changed**: a new `FR-AUTH-009` requirement, above. An account can
+enroll TOTP from Settings → Security (`POST /api/v1/auth/mfa/setup/start`,
+`/mfa/setup/verify`); once confirmed, `POST /api/v1/auth/login-password`
+returns a pending-MFA challenge instead of a session, redeemed at
+`POST /api/v1/auth/mfa/verify`. See `ADR-031` for the full design,
+alternatives considered (notably: Google/Keycloak sign-in is explicitly
+**not** gated by this — password login only), and the follow-up it still
+owes (no recovery codes; no new rate limiting beyond what `/login-password`
+already accepts as an open gap per ADR-014/018/021).
+
+**Same caveat as §7.3**: this row reflects direction given during the
+implementation session itself, not yet a recorded PM decision. Recorded per
+this repo's own rule that a requirements change is written down when it
+happens; PM confirmation should still be sought and this row updated once
+it is.
 
 ### 7.3 Password Self-Registration — 2026-09-10
 

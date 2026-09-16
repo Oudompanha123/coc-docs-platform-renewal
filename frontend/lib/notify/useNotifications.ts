@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listPending, type PendingAccount } from "@/lib/admin/accounts";
-import { listSessions, type SessionSummary } from "@/lib/auth/api";
+import { listSessions, SessionExpiredError, type SessionSummary } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { isNotificationsEnabled } from "@/lib/notify/push";
 import { subscribeToNotifications } from "@/lib/notify/stream";
@@ -203,7 +203,7 @@ export function useNotifications(
   const onOpenSignIn = useRef(options.onOpenSignIn);
   onOpenSignIn.current = options.onOpenSignIn;
 
-  const { status, user } = useSession();
+  const { status, user, refresh: refreshSession } = useSession();
   const [pending, setPending] = useState<PendingAccount[]>([]);
   const [signIns, setSignIns] = useState<SessionSummary[]>([]);
   const [read, setRead] = useState<Set<string>>(new Set());
@@ -233,6 +233,24 @@ export function useNotifications(
       isApprover ? listPending() : Promise.resolve<PendingAccount[]>([]),
       listSessions(),
     ]);
+    // A 401 here is not "could not load" — it is "you are not signed in any
+    // more", and showing an empty bell for it is how a tab that had been
+    // signed out for an hour went on looking normal. Signing in again in the
+    // same browser revokes the session it replaces, so an older tab is exactly
+    // where this happens.
+    //
+    // Answered by re-reading /auth/me rather than redirecting from here: the
+    // provider is the one authority on session state, and RequireSession
+    // already knows what to do when it turns anonymous.
+    if (
+      sessionResult.status === "rejected" &&
+      sessionResult.reason instanceof SessionExpiredError
+    ) {
+      void refreshSession();
+      setPending([]);
+      setSignIns([]);
+      return;
+    }
 
     const queue = queueResult.status === "fulfilled" ? queueResult.value : [];
     // Only sessions the server flagged as unfamiliar, and never the one being
@@ -289,7 +307,7 @@ export function useNotifications(
       if (kept.size !== prev.size) storeReadIds(kept);
       return kept.size === prev.size ? prev : kept;
     });
-  }, [signedIn, isApprover]);
+  }, [signedIn, isApprover, refreshSession]);
 
   useEffect(() => {
     void refresh();

@@ -25,7 +25,9 @@ vi.mock("@/lib/auth/api", () => ({
   loginWithPassword: vi.fn(),
   loginWithIdToken: vi.fn(),
   requestNonce: vi.fn(),
+  verifyMfaLogin: vi.fn(),
   RegistrationPendingError: class RegistrationPendingError extends Error {},
+  MfaRequiredError: class MfaRequiredError extends Error {},
 }));
 
 vi.mock("next/navigation", () => ({
