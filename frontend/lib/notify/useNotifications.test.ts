@@ -24,10 +24,10 @@ const dana = {
   id: "a",
   email: "dana@example.com",
   displayName: "Dana Lee",
-  role: "GUEST",
+  role: "guest",
   status: "PENDING",
 };
-const sam = { id: "b", email: "sam@example.com", displayName: "Sam Ray", role: "GUEST", status: "PENDING" };
+const sam = { id: "b", email: "sam@example.com", displayName: "Sam Ray", role: "guest", status: "PENDING" };
 
 describe("useNotifications", () => {
   beforeEach(() => {

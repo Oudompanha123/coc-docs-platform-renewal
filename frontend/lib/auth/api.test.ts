@@ -26,7 +26,7 @@ describe("me", () => {
   });
 
   it("returns the caller's current name and role when a session cookie is present", async () => {
-    const body = { id: "1", email: "a@example.com", displayName: "Person Example", role: "USER", authenticated: true };
+    const body = { id: "1", email: "a@example.com", displayName: "Person Example", role: "user", authenticated: true };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -53,7 +53,7 @@ describe("loginWithPassword", () => {
   });
 
   it("posts email and password, and returns the account on success", async () => {
-    const account = { id: "1", email: "a@example.com", displayName: "A", role: "USER" };
+    const account = { id: "1", email: "a@example.com", displayName: "A", role: "user" };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(account));
     vi.stubGlobal("fetch", fetchMock);
 
