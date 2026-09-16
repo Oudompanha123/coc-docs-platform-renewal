@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listPending, type PendingAccount } from "@/lib/admin/accounts";
 import { listSessions, SessionExpiredError, type SessionSummary } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
-import { isNotificationsEnabled } from "@/lib/notify/push";
+import { ensureBackgroundPushRegistered, isNotificationsEnabled } from "@/lib/notify/push";
 import { subscribeToNotifications } from "@/lib/notify/stream";
 
 /**
@@ -312,6 +312,11 @@ export function useNotifications(
   useEffect(() => {
     void refresh();
     if (!signedIn) return;
+
+    // Register this browser for push if it should be and is not — see
+    // ensureBackgroundPushRegistered. Fire and forget: the bell works whether
+    // or not it succeeds, and it says so in the console when it does not.
+    void ensureBackgroundPushRegistered();
 
     // The live connection: the server says something changed and this re-reads
     // at once. This is what makes the bell change while somebody is watching
