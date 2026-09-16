@@ -5,6 +5,7 @@ import { listPending, type PendingAccount } from "@/lib/admin/accounts";
 import { listSessions, type SessionSummary } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { isNotificationsEnabled } from "@/lib/notify/push";
+import { subscribeToNotifications } from "@/lib/notify/stream";
 
 /**
  * What the bell in the topbar shows, and which of it has been looked at.
@@ -32,10 +33,11 @@ import { isNotificationsEnabled } from "@/lib/notify/push";
  * follow-up in ADR-027, where it is now the second notification type's problem
  * as well.
  *
- * <p><b>Polling, at a deliberately unhurried interval.</b> The badge should not
- * need a page reload to be right. Sixty seconds is chosen against the thing it
- * competes with: FCM, which is immediate. This is the floor for somebody who
- * has not enabled push, not the mechanism.
+ * <p><b>Live, with polling underneath.</b> An open stream (ADR-028) tells this
+ * to re-read the moment something changes, which is what makes the bell
+ * correct while somebody is watching it. The sixty-second poll stays as the
+ * floor: a stream can be cut by a proxy or a frozen tab without telling
+ * either end, and a minute late is a poor experience where never is a bug.
  */
 
 const READ_KEY = "coc_read_notifications";
@@ -292,8 +294,22 @@ export function useNotifications(
   useEffect(() => {
     void refresh();
     if (!signedIn) return;
+
+    // The live connection: the server says something changed and this re-reads
+    // at once. This is what makes the bell change while somebody is watching
+    // it, on every machine, with no Firebase project and no granted permission.
+    const stopStream = subscribeToNotifications(() => void refresh());
+
+    // The poll stays, at a deliberately unhurried interval, as the floor under
+    // it. A stream can be cut by a proxy that strips buffering, a corporate
+    // middlebox, or a browser tab the OS froze — none of which announce
+    // themselves. A minute late is a poor experience; never is a bug.
     const timer = setInterval(() => void refresh(), POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+
+    return () => {
+      stopStream();
+      clearInterval(timer);
+    };
   }, [refresh, signedIn]);
 
   const markRead = useCallback((id: string) => {
