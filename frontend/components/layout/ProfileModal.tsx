@@ -114,7 +114,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           takes precedence over the identity provider's picture — signing in
           with Google no longer overwrites it. Remove it to go back to that
           provider picture (or initials, absent one). */}
-      <div className="flex flex-col items-center pb-4">
+      <div className="sticky top-0 z-10 -mx-5 -mt-5 flex flex-col items-center border-b border-border bg-white px-5 pb-4 pt-5">
         <label
           className={`group flex flex-col items-center ${avatarBusy ? "cursor-wait" : "cursor-pointer"}`}
         >
