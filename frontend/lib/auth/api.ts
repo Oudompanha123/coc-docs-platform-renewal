@@ -13,6 +13,20 @@ export class AuthApiError extends Error {}
 export class EmailAlreadyRegisteredError extends AuthApiError {}
 
 /**
+ * The server says this caller is not signed in (401), on a route that only a
+ * signed-in caller can reach.
+ *
+ * <p>Distinguished from every other failure because it means something
+ * different and needs a different answer: not "try again", but "you are not
+ * signed in any more". A tab can be left holding a session that has since been
+ * revoked — signing in again elsewhere in the same browser replaces it — and
+ * the page goes on looking signed in while every request it makes is refused.
+ * Silently. That is how a bell that showed nothing turned out to be a tab that
+ * had been signed out for an hour.
+ */
+export class SessionExpiredError extends AuthApiError {}
+
+/**
  * The backend renders a rejected request as an RFC 9457 problem body with a
  * `detail` field. Read only where that detail was deliberately authored to be
  * shown plainly (ADR-018 decision 3's precedent, extended by ADR-021) --
@@ -686,6 +700,13 @@ export async function listSessions(): Promise<SessionSummary[]> {
     response = await fetch(`${BACKEND_URL}/api/v1/auth/sessions`, { credentials: "include" });
   } catch {
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    // Not a failure to load — a failure to still be signed in. The caller
+    // needs to act on it rather than show an empty list, which is what it did
+    // and which made a revoked session indistinguishable from having no other
+    // devices.
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
   }
   if (!response.ok) {
     throw new AuthApiError("Couldn't load your sessions.");
