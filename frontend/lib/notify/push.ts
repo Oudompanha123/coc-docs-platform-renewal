@@ -224,6 +224,50 @@ async function registerForBackgroundPush(): Promise<void> {
  * @throws never — the caller is a toggle, and a rejected promise there is just
  *     an unhandled error.
  */
+/**
+ * Registers this browser for push if it should be and is not.
+ *
+ * <p><b>The gap this closes.</b> {@link registerForBackgroundPush} only ever
+ * ran from a press of the Settings toggle. Turn notifications on before the
+ * deployment has a Firebase project — which is what everybody here did, because
+ * banners work without one — and the opt-in flag is stored, the toggle reads
+ * as on for ever after, and the one code path that could register a device
+ * token is behind the press that now switches it *off*. Add Firebase later and
+ * nothing re-tries: no token, no push, no error, and a Settings page that says
+ * notifications are enabled. That is exactly where this project sat on
+ * 2026-09-16.
+ *
+ * <p>So the state is reconciled on load instead of only on the press. Called
+ * from the bell, which mounts on every signed-in page, because registering a
+ * token is an authenticated call and the person must already be somebody.
+ *
+ * <p>Skipped when a token is already stored here, so this is one localStorage
+ * read on most loads. A token that has rotated, or one left over from a
+ * different Firebase project, is not detected — the server prunes what FCM
+ * rejects, which covers the first and not the second.
+ */
+export async function ensureBackgroundPushRegistered(): Promise<void> {
+  // Not opted in here: no permission, or the toggle is off. Nothing to do,
+  // and nothing to say — this is the ordinary state for most people.
+  if (!isNotificationsEnabled()) {
+    return;
+  }
+  // No Firebase project. Silent on purpose: banners work, this deployment
+  // simply cannot reach a closed tab, and saying so on every page load would
+  // be noise rather than news.
+  if (!isBackgroundPushConfigured()) {
+    return;
+  }
+  try {
+    if (localStorage.getItem(TOKEN_KEY)) {
+      return;
+    }
+  } catch {
+    // Private mode. Registering again is harmless — the server upserts.
+  }
+  await registerForBackgroundPush();
+}
+
 export async function enableNotifications(): Promise<boolean> {
   if (notificationSupport() !== "ready") {
     return false;
