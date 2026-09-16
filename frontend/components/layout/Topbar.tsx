@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MESSAGES, TOPBAR_COUNTS } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
+import { useActivityFeed } from "@/lib/notify/useActivityFeed";
+import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
 import { ApproveRegistrationModal } from "./ApproveRegistrationModal";
 import { NewSignInModal } from "./NewSignInModal";
 import { ApplicantAvatar } from "./ApplicantAvatar";
@@ -38,6 +39,25 @@ type MenuKey = "notifications" | "mail" | "user";
 /** Same panel container the Users & Roles ⋯ menu uses: rounded-xl border
  *  border-border bg-white shadow-lg, with hover:bg-page on each item. */
 const PANEL_CLASSES = "absolute right-0 z-20 mt-2 rounded-xl border border-border bg-white shadow-lg";
+
+const AVATAR_TONES = ["purple", "green", "orange", "pink"] as const;
+
+/**
+ * A stable avatar colour for one person.
+ *
+ * Derived from the address rather than the list position, so somebody keeps
+ * the same colour as items arrive and push them down the feed — a bubble that
+ * changes colour on every poll reads as a different person. The hash only has
+ * to be deterministic and spread four ways; it is not security-relevant.
+ */
+function toneFor(actorEmail: string | null): (typeof AVATAR_TONES)[number] {
+  if (!actorEmail) return "pink";
+  let hash = 0;
+  for (let i = 0; i < actorEmail.length; i++) {
+    hash = (hash * 31 + actorEmail.charCodeAt(i)) | 0;
+  }
+  return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length]!;
+}
 
 function CountBadge({
   count,
@@ -92,6 +112,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     onOpenApproval: (account) => setApproving(account),
     onOpenSignIn: (session) => setReviewingSignIn(session),
   });
+
+  // The mail icon, likewise, no longer renders five invented names. A
+  // super_admin sees everyone's activity here; every other role sees only
+  // their own, decided server-side (NFR-SEC-PII).
+  const activity = useActivityFeed();
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.
@@ -259,8 +284,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         <div className="relative">
           <CountBadge
-            count={TOPBAR_COUNTS.mail}
-            label="Messages"
+            count={activity.count}
+            label="Activity"
             active={openMenu === "mail"}
             onClick={() => toggleMenu("mail")}
           >
@@ -270,37 +295,39 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           {openMenu === "mail" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
               <div className="border-b border-border px-4 py-3">
-                <p className="text-sm font-semibold text-dash-ink">Messages</p>
+                {/* "Activity", not "Messages": these are recorded events, not
+                    mail from a person. The old label invited people to look
+                    for a Reply button that was never going to exist. */}
+                <p className="text-sm font-semibold text-dash-ink">Activity</p>
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
-                {MESSAGES.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => setOpenMenu(null)}
-                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
-                  >
-                    <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[m.tone]}`}
+                {activity.items.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-muted">Nothing recent.</p>
+                ) : (
+                  activity.items.map((item) => (
+                    <div
+                      key={item.id}
+                      role="menuitem"
+                      className="flex w-full items-start gap-3 px-4 py-3 text-left"
                     >
-                      {m.initials}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-dash-ink">{m.name}</span>
-                      <span className="block truncate text-xs text-muted">{m.preview}</span>
-                      <span className="mt-0.5 block text-[11px] text-muted">{m.timeAgo}</span>
-                    </span>
-                  </button>
-                ))}
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[toneFor(item.actorEmail)]}`}
+                      >
+                        {actorInitials(item)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-dash-ink">
+                          {actorName(item)}
+                        </span>
+                        <span className="block truncate text-xs text-muted">{item.summary}</span>
+                        <span className="mt-0.5 block text-[11px] text-muted">
+                          {timeAgo(item.occurredAt)}
+                        </span>
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setOpenMenu(null)}
-                className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
-              >
-                View all
-              </button>
             </div>
           )}
         </div>

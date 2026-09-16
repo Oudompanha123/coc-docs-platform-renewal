@@ -32,40 +32,16 @@ export const CURRENT_USER: CurrentUser = {
   joinedDate: "Jun 12, 2025",
 };
 
-export type NotificationItem = {
-  id: string;
-  title: string;
-  detail: string;
-  timeAgo: string;
-};
-
-export const NOTIFICATIONS: NotificationItem[] = [
-  { id: "n1", title: "New comment on Product Requirements v3", detail: "Jane Admin left a comment", timeAgo: "10m ago" },
-  { id: "n2", title: "Workspace invite accepted", detail: "Maly Kim joined Engineering", timeAgo: "1h ago" },
-  { id: "n3", title: "Document published", detail: "Onboarding Guide is now live", timeAgo: "3h ago" },
-];
-
-export type MessageItem = {
-  id: string;
-  name: string;
-  initials: string;
-  tone: Tone;
-  preview: string;
-  timeAgo: string;
-};
-
-export const MESSAGES: MessageItem[] = [
-  { id: "m1", name: "Jane Admin", initials: "JA", tone: "green", preview: "Can you review the API draft today?", timeAgo: "5m ago" },
-  { id: "m2", name: "Maly Kim", initials: "MK", tone: "purple", preview: "Thanks for the onboarding walkthrough!", timeAgo: "42m ago" },
-  { id: "m3", name: "Sok Dara", initials: "SD", tone: "orange", preview: "Uploaded the Q3 retro notes.", timeAgo: "1h ago" },
-  { id: "m4", name: "System", initials: "SY", tone: "pink", preview: "Weekly usage report is ready.", timeAgo: "4h ago" },
-  { id: "m5", name: "Jane Admin", initials: "JA", tone: "green", preview: "Meeting moved to 3 PM tomorrow.", timeAgo: "1d ago" },
-];
-
-export const TOPBAR_COUNTS = {
-  notifications: NOTIFICATIONS.length,
-  mail: MESSAGES.length,
-};
+// The topbar's invented NOTIFICATIONS, MESSAGES and TOPBAR_COUNTS used to live
+// here. Both icons now read real data and neither has a hardcoded count:
+//
+//   bell — lib/notify/useNotifications.ts, the pending-approval queue (ADR-025)
+//   mail — lib/notify/useActivityFeed.ts, GET /api/v1/notifications
+//
+// They are deleted rather than left unused on purpose. A plausible-looking
+// MESSAGES array sitting in the same file the topbar already imports from is an
+// invitation to wire it back in, and "Jane Admin" appearing in a demo is the
+// exact failure this replaced.
 
 export type StatCardData = {
   id: string;

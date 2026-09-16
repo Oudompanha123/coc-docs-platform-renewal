@@ -4,6 +4,7 @@ import { ProfileCard } from "@/components/settings/ProfileCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { NotificationsCard } from "@/components/settings/NotificationsCard";
 import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
+import { ActivityDigestCard } from "@/components/settings/ActivityDigestCard";
 import { SecurityTab } from "@/components/settings/SecurityTab";
 import { SettingsIcon } from "@/components/layout/icons";
 import { NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
@@ -38,11 +39,13 @@ export default function SettingsPage() {
 
         <div className="animate-entrance [animation-delay:70ms]">
           <SettingsCard title="Notifications" description="Choose what you get notified about">
-            <PushNotificationsCard />
             <NotificationsCard data={NOTIFICATION_PREFERENCES} />
           </SettingsCard>
         </div>
       </div>
+
+      {/* Renders nothing at all below super_admin, card and spacing included. */}
+      <ActivityDigestCard />
 
       <div className="animate-entrance mt-5 [animation-delay:140ms]">
         <SettingsCard title="Security" description="Authentication, sessions, and account controls">
