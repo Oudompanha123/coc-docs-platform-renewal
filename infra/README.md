@@ -131,6 +131,18 @@ unaffected.
 and starts normally. The bell and the live notification stream (ADR-028) work
 regardless — neither needs Firebase, which is the point of them being separate.
 
+Two details that each cost an afternoon when got wrong:
+
+- `FIREBASE_CREDENTIALS` is the downloaded service-account JSON **on one
+  line**. The `\n` sequences inside `private_key` are two characters and must
+  stay that way — an editor that turns them into real newlines makes the JSON
+  invalid, and the backend then refuses to start rather than pretending push is
+  merely off.
+- `NEXT_PUBLIC_FIREBASE_VAPID_KEY` comes from *Cloud Messaging → Web Push
+  certificates*, not from the web-app config block. It is ~87 characters and
+  starts with `B`. `measurementId` (`G-…`) is Google Analytics and is not used
+  by this application at all.
+
 **Object storage** (`S3_*`). Profile photos (ADR-026) and content-image uploads
 need it; both are simply unavailable without it and nothing else is affected.
 Either run MinIO here:
