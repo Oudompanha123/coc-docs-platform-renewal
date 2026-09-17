@@ -119,6 +119,17 @@ services:
       # every service that waits for Keycloak fails with "dependency failed to
       # start: container is unhealthy".
       KC_HEALTH_ENABLED: "true"
+
+      # The management interface defaults its path to http-relative-path, so
+      # setting /auth for the public routes silently moved health to
+      # /auth/health/ready — and the probe below, asking for /health/ready,
+      # got a 404 against a server that was perfectly ready.
+      #
+      # Pinned to / instead of teaching the probe the other path: this port is
+      # internal and never proxied, so its layout has no reason to follow the
+      # public one, and a later change to KC_HTTP_RELATIVE_PATH must not move
+      # the healthcheck again.
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
       # TLS terminates at Caddy. Keycloak speaks plain HTTP on the private
       # network and trusts X-Forwarded-* from it.
       KC_HTTP_ENABLED: "true"
