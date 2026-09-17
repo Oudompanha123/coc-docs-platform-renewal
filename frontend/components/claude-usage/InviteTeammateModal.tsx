@@ -3,24 +3,29 @@
 import { useState } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { CodeBlock } from "./CodeBlock";
-import type { TeamRole } from "@/lib/mock/claude-usage";
+import type { TeamRole } from "@/lib/admin/claudeUsage";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 export function InviteTeammateModal({
   onClose,
   onInvite,
 }: {
   onClose: () => void;
-  onInvite: (email: string, role: TeamRole) => void;
+  /** Throws on failure (a duplicate email, a network error) — the form shows it and stays open. */
+  onInvite: (email: string, role: TeamRole) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamRole>("member");
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   if (sentTo) {
     const snippet = JSON.stringify(
       {
         USER_EMAIL: sentTo,
-        INGEST_URL: "<your team's usage-reporting ingest URL>",
+        INGEST_URL: `${BACKEND_URL}/api/ingest`,
         INGEST_SECRET: "<ask your admin>",
       },
       null,
@@ -31,9 +36,8 @@ export function InviteTeammateModal({
       <Modal title="Invite added" onClose={onClose}>
         <p className="text-sm text-muted">
           <span className="font-semibold text-dash-ink">{sentTo}</span> now shows as invited on this
-          dashboard. Send them this config so their own reporting tool knows who they are — placeholders
-          need filling in with your team&apos;s real values, since Coc Docs Platform doesn&apos;t run a
-          reporting backend itself.
+          dashboard. Send them this config so their own reporting tool knows where and who to report as —
+          the ingest secret is shared team-wide and never shown here; ask whoever holds it.
         </p>
         <div className="mt-3">
           <CodeBlock label="setup config" code={snippet} />
@@ -54,12 +58,20 @@ export function InviteTeammateModal({
   return (
     <Modal title="Invite teammate" onClose={onClose}>
       <form
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           const trimmed = email.trim();
           if (!trimmed) return;
-          onInvite(trimmed, role);
-          setSentTo(trimmed);
+          setError(null);
+          setBusy(true);
+          try {
+            await onInvite(trimmed, role);
+            setSentTo(trimmed);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Couldn't add that teammate.");
+          } finally {
+            setBusy(false);
+          }
         }}
       >
         <label className="block text-xs font-semibold text-muted" htmlFor="invite-email">
@@ -93,6 +105,12 @@ export function InviteTeammateModal({
           Claude Code access or force their machine to start reporting usage — that stays their choice.
         </p>
 
+        {error && (
+          <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            {error}
+          </p>
+        )}
+
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
@@ -103,9 +121,10 @@ export function InviteTeammateModal({
           </button>
           <button
             type="submit"
-            className="rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-purple/90"
+            disabled={busy}
+            className="rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-purple/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send invite
+            {busy ? "Sending…" : "Send invite"}
           </button>
         </div>
       </form>
