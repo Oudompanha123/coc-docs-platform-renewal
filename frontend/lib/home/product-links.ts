@@ -1,27 +1,18 @@
+import { hrefFor } from "@/lib/docs/nav-routing";
 import type { NavProduct } from "@/lib/docs/nav-api";
 import type { StatCardData } from "@/lib/mock/overview";
 
-/**
- * Where a product's own real docs page lives for a signed-in Member —
- * `/docs/[productKey]` (frontend/app/docs/[productKey]/page.tsx), the one
- * product page that isn't gated to admin/super_admin.
- *
- * Jex3.0 is the one exception: its real content renderer only exists inside
- * the admin shell (`app/(shell)/jex3-0/[slug]/page.tsx`), and `/docs/jex3-0`
- * itself calls `notFound()` unconditionally — a pre-existing gap in the app,
- * not something introduced here. It's still routed the same way as every
- * other product for consistency (this page's own nav/strip/hero all read
- * from the same real product list), and is worth fixing separately.
- */
+/** Where a product's own real, tabbed docs page lives — `hrefFor`'s own
+ *  top-level `/[productKey]` route, the single source for this across the
+ *  app (nav-routing.ts). Kept as a thin re-export so this Member-page module
+ *  doesn't need every caller importing from two places. */
 export function productHref(productKey: string): string {
-  return `/docs/${productKey}`;
+  return hrefFor(productKey, "");
 }
 
-/** A specific sub-item's real docs page. An empty slug is a product's own
- *  index item (`DocsProductIndexPage`), which lives at the product's own URL
- *  rather than a `/undefined`-shaped child route. */
+/** A specific sub-item's real docs page. */
 export function productItemHref(productKey: string, slug: string): string {
-  return slug ? `/docs/${productKey}/${slug}` : productHref(productKey);
+  return hrefFor(productKey, slug);
 }
 
 /**

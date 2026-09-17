@@ -60,7 +60,11 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
         </div>
 
         <div className="mt-6">
-          <p className="text-center text-sm font-semibold text-brand-purple">{content.eyebrow}</p>
+          <p className="text-center">
+            <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+              {content.eyebrow}
+            </span>
+          </p>
           <h2 className={`mt-1 text-center text-2xl font-bold ${heading}`}>{content.sectionHeading}</h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">{content.sectionIntro}</p>
 
@@ -93,7 +97,9 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
   if (content.kind === "steps") {
     return (
       <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
-        <p className="text-sm font-semibold text-brand-purple">{content.eyebrow}</p>
+        <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+          {content.eyebrow}
+        </span>
         <h1 className={`mt-1 text-3xl font-bold ${heading}`}>{content.heading}</h1>
         <p className="mt-3 text-base text-muted">{content.intro}</p>
 
@@ -118,7 +124,9 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
   // sections
   return (
     <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
-      <p className="text-sm font-semibold text-brand-purple">{content.eyebrow}</p>
+      <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+        {content.eyebrow}
+      </span>
       <h1 className={`mt-1 text-3xl font-bold ${heading}`}>{content.heading}</h1>
       <p className="mt-3 text-base text-muted">{content.intro}</p>
 

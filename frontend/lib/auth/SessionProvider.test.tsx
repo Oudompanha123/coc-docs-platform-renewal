@@ -115,7 +115,7 @@ describe("signing out", () => {
     vi.clearAllMocks();
   });
 
-  it("ends the server-side session and then leaves for /login", async () => {
+  it("ends the server-side session and then leaves for /welcome", async () => {
     me.mockResolvedValue(SIGNED_IN);
     signOut.mockResolvedValue(undefined);
 
@@ -131,7 +131,7 @@ describe("signing out", () => {
     // would leave the app_session row live until its TTL, so anyone holding a
     // copy of the cookie would still be signed in (FR-AUTH-007).
     await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/welcome"));
   });
 
   it("ends the Keycloak session silently, so the next sign-in can choose an account", async () => {
@@ -142,6 +142,10 @@ describe("signing out", () => {
     process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
     process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
     process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID = "cocdocs-frontend";
+
+    // Keycloak answers the reachability probe — the case these two tests
+    // (silent and confirmation-page) exist for.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(undefined));
 
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
@@ -165,7 +169,7 @@ describe("signing out", () => {
     // The hint is what keeps it silent: without it Keycloak answers with a
     // "Do you want to log out?" page.
     expect(target.searchParams.get("id_token_hint")).toBe("the-id-token");
-    expect(target.searchParams.get("post_logout_redirect_uri")).toBe("http://localhost:3000/login");
+    expect(target.searchParams.get("post_logout_redirect_uri")).toBe("http://localhost:3000/welcome");
 
     delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
     delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
@@ -180,6 +184,7 @@ describe("signing out", () => {
     process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
     process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
     process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID = "cocdocs-frontend";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(undefined));
 
     const assign = vi.fn();
     Object.defineProperty(window, "location", {
@@ -202,6 +207,42 @@ describe("signing out", () => {
     const target = new URL(assign.mock.calls[0]![0] as string);
     expect(target.searchParams.get("id_token_hint")).toBeNull();
     expect(target.searchParams.get("client_id")).toBe("cocdocs-frontend");
+
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+    delete process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
+  });
+
+  it("falls back to /welcome, without a hard navigation, when Keycloak is configured but unreachable", async () => {
+    me.mockResolvedValue(SIGNED_IN);
+    signOut.mockResolvedValue(undefined);
+    rememberIdToken("the-id-token");
+
+    process.env.NEXT_PUBLIC_KEYCLOAK_URL = "http://localhost:8180";
+    process.env.NEXT_PUBLIC_KEYCLOAK_REALM = "docs_platform";
+    process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID = "cocdocs-frontend";
+    // Keycloak isn't running — same as the connection-refused a developer's
+    // own browser hits when they sign out without having started it locally.
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+      value: { origin: "http://localhost:3000", assign },
+      writable: true,
+    });
+
+    render(
+      <SessionProvider>
+        <SignOutButton />
+      </SessionProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+
+    // Never a hard navigation to a host that didn't answer — this app's own
+    // session is already ended, so the caller lands on /welcome instead of a
+    // browser connection-refused page they can't get back from.
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/welcome"));
+    expect(assign).not.toHaveBeenCalled();
 
     delete process.env.NEXT_PUBLIC_KEYCLOAK_URL;
     delete process.env.NEXT_PUBLIC_KEYCLOAK_REALM;

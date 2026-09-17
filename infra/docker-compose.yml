@@ -97,8 +97,18 @@ services:
       # and no second certificate. Keycloak has to be told, or every URL it
       # generates — redirects, the OIDC discovery document, token issuer —
       # points at the wrong place.
-      KC_HOSTNAME: https://${PUBLIC_DOMAIN}/auth
+      #
+      # The ORIGIN only. Keycloak appends http-relative-path to it itself, so
+      # a hostname of https://host/auth alongside a relative path of /auth
+      # produces https://host/auth/auth/realms/... and nothing resolves.
+      KC_HOSTNAME: https://${PUBLIC_DOMAIN}
       KC_HTTP_RELATIVE_PATH: /auth
+
+      # Health endpoints on the management port. OFF BY DEFAULT — without this
+      # /health/ready is a 404, the healthcheck below can never pass, and
+      # every service that waits for Keycloak fails with "dependency failed to
+      # start: container is unhealthy".
+      KC_HEALTH_ENABLED: "true"
       # TLS terminates at Caddy. Keycloak speaks plain HTTP on the private
       # network and trusts X-Forwarded-* from it.
       KC_HTTP_ENABLED: "true"
@@ -149,9 +159,18 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      # Keycloak 26 serves its health endpoints on the management port (9000),
-      # not the HTTP one, and the image has no curl — hence bash's /dev/tcp.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      # Health lives on the management port (9000), not the HTTP one, and the
+      # image ships no curl and no wget — so this goes through bash's /dev/tcp,
+      # and invokes bash explicitly rather than relying on CMD-SHELL, whose
+      # /bin/sh need not be bash and where /dev/tcp is not a thing.
+      test:
+        - CMD
+        - /bin/bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000;
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3;
+          grep -q '"status": "UP"' <&3
       interval: 10s
       timeout: 5s
       retries: 30

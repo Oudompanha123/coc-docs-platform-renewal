@@ -16,7 +16,7 @@ export function ActivityRow({ data }: { data: ActivityEntry }) {
   const StatusIcon = STATUS_STYLE[status].icon;
 
   return (
-    <div className="flex items-start gap-3 py-3">
+    <div className="-mx-2 flex items-start gap-3 rounded-xl px-2 py-3 transition-colors duration-150 hover:bg-page">
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${tone.bg} ${tone.fg}`}
       >

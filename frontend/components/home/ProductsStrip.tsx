@@ -11,7 +11,7 @@ import { productHref } from "@/lib/home/product-links";
  *  not a second judgment about what counts as "written". */
 export function ProductsStrip({ products, stats }: { products: NavProduct[]; stats: StatCardData[] }) {
   return (
-    <section id="products" className="border-y border-border bg-white px-6 py-10">
+    <section id="products" className="animate-entrance border-y border-border bg-white px-6 py-10">
       <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted">Your products</p>
       <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-3">
         {products.map((product) => {

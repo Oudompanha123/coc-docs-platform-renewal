@@ -26,7 +26,7 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
   }
 
   return (
-    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto px-[30px] py-0">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-[30px] py-0">
       <FormField label="Eyebrow">
         <input className={fieldInputClass} value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
       </FormField>
@@ -73,7 +73,7 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
         <div className="mt-2 space-y-3">
           {value.steps.map((step, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button
                     type="button"
@@ -98,7 +98,7 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
                   {i + 1}
                 </span>
                 <input
-                  className={fieldInputClass}
+                  className={`${fieldInputClass} min-w-0 flex-1`}
                   placeholder="Step title"
                   value={step.title}
                   onChange={(e) => updateStep(i, { title: e.target.value })}
