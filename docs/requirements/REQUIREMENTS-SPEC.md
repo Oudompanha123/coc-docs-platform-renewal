@@ -132,7 +132,20 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | FR-OPS-002 | Failed sign-ins and permission-denied events are logged | Must | Integration test |
 | FR-OPS-003 | Rejected uploads are logged with the reason | Must | Integration test |
 
-### 2.8 Excluded from This Release (`Won't`)
+### 2.8 AI Usage Monitoring (`FR-USAGE-`)
+
+> Added in v1.6 (§7.6). `FR-USAGE-001` was **Won't** for this release
+> (AMB-004) until the PM/developer directly instructed otherwise in-session,
+> ahead of that deferral — see ADR-035.
+
+| REQ-ID | Requirement | Priority | Verification Method |
+|--------|---------|---------|----------|
+| FR-USAGE-001 | Claude Code usage (tokens, estimated cost) is tracked per opted-in teammate and persisted, not held only in an in-memory mock | Should | Integration test |
+| FR-USAGE-002 | Usage is ingested via a single shared bearer secret at `POST /api/ingest`, never a per-teammate credential | Must | Security test |
+| FR-USAGE-003 | Removing a teammate from tracking hides them from active views but never deletes their recorded usage history | Must | Integration test |
+| FR-USAGE-004 | The Claude Usage dashboard is visible only to `admin` and `super_admin` | Must | Security test (negative) |
+
+### 2.9 Excluded from This Release (`Won't`)
 
 | REQ-ID | Requirement | Priority | Rationale |
 |--------|---------|---------|----------|
@@ -140,7 +153,6 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | FR-SEARCH-001 | Full-text search across documentation | **Won't** | G-10. No search exists today; does not serve the Q2 driver. |
 | FR-PUBLIC-001 | Anonymous (`guest`) reading of public pages | **Won't** | Phase 2. Keeps migration and public exposure from landing together. |
 | FR-SECTION-001 | Creating and deleting whole sections from the admin console | **Won't** | Q5. Remains a developer task; rarer than page editing. |
-| FR-USAGE-001 | Migrating ai-usage from Google Sheets into the database | **Won't** | AMB-004, superseding the Q6 answer. Does not reduce the content bottleneck. |
 
 ---
 
@@ -264,7 +276,7 @@ Detailed flows: `use-cases/UC-NNN.md`.
 | AMB-001 | Publishing state model (C-01) | A: Draft+Published, one person / B: Published only / C: Draft→Review→Publish, two roles | **A** | RESOLVED |
 | AMB-002 | Meaning of "100% translation coverage" (C-02) | A: coverage = exists / B: coverage = fresh | **A**, by definition — not put to PM per §4.8 | RESOLVED — confirm at G1 |
 | AMB-003 | Usability measure (G-01) | A: unassisted task test / B: time-boxed / C: both / D: defer | **A** | RESOLVED |
-| AMB-004 | ai-usage migration scope (C-03) | A: defer to phase 2 / B: MVP / C: remove from platform | **A** — supersedes the Q6 answer | RESOLVED |
+| AMB-004 | ai-usage migration scope (C-03) | A: defer to phase 2 / B: MVP / C: remove from platform | **A** — supersedes the Q6 answer. **Superseded in turn, 2026-09-17**: PM/developer instructed this in-session ahead of the deferral; see `FR-USAGE-001` (§2.8) and ADR-035 | RESOLVED, then reopened and re-closed as **B** |
 | AMB-005 | Performance target (G-02) | A: P95<1s / B: P95<500ms / C: admin only / D: measure baseline | **A** | RESOLVED |
 | AMB-006 | Session TTL — `lib/auth.ts:9` says 1 day, `CLAUDE.md:172` says 30 days | A: 1 day / B: 30 days / C: other | **A — 1 day.** The code is authoritative; the documentation is stale | **RESOLVED** (Skill 3, 2026-09-08) |
 
@@ -286,6 +298,31 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | 2026-09-10 | **1.3** | `FR-AUTH-002`/`FR-AUTH-003` amended: password self-registration added alongside Google/Keycloak OIDC, gated by super_admin approval (ADR-014). See §7.3 | `architect`, confirmed in-session by the developer implementing it — **formal PM sign-off recommended**, not yet recorded, unlike every prior row in this table |
 | 2026-09-16 | **1.4** | New `FR-AUTH-009`: opt-in TOTP (Google Authenticator) second factor gating `/login-password` only. See §7.4, ADR-031 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3 row above |
 | 2026-09-16 | **1.5** | `FR-AUTH-002` amended again: `/forgot-password` now covers a Google-only account too, as a path to its first password. See §7.5, ADR-029 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4 rows above |
+| 2026-09-17 | **1.6** | `FR-USAGE-001` reversed: no longer **Won't** (`AMB-004`). New §2.8 `FR-USAGE-001..004` — real persistence and a bearer-secret ingest endpoint for Claude Code usage, replacing the mock the Claude Usage dashboard shipped against. See §7.6, ADR-035 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4/1.5 rows above |
+
+### 7.6 Claude Usage Becomes Real Data, Reversing `FR-USAGE-001` — 2026-09-17
+
+The Claude Usage screen (admin + super_admin, added under Users & Roles)
+shipped against a static mock array. The PM/developer directly instructed
+that it be backed by a real table and a real API now — ahead of
+`FR-USAGE-001`'s existing **Won't** (`AMB-004`: "defer to phase 2... does not
+reduce the content bottleneck") and `PROJECT-PROPOSAL.md`'s `RISK-011`,
+neither of which this amendment claims was wrong at the time, only
+superseded by a later, more specific instruction.
+
+**What changed**: `FR-USAGE-001` moves out of §2.9 ("Excluded from This
+Release") into a new §2.8, and gains three siblings — `FR-USAGE-002`
+(single shared bearer secret, never a per-teammate credential, matching
+`NFR-SEC-CHANNEL`'s and the threat model's existing wording), `FR-USAGE-003`
+(removing a teammate never deletes their history), `FR-USAGE-004` (the
+dashboard stays `admin`+`super_admin` only). See `ADR-035` for the schema,
+the ingest design, and the alternatives it rejected — most notably a
+per-member issued token, which `NFR-SEC-CHANNEL` does not ask for and would
+have been a materially bigger credential-management surface than the shared
+secret already scoped.
+
+**Same caveat as §7.3–§7.5**: this row reflects direction given during the
+implementation session itself, not yet a recorded PM decision.
 
 ### 7.5 Forgot-Password Also Covers Google-Only Accounts — 2026-09-16
 

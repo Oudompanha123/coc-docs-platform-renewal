@@ -1,11 +1,4 @@
-import {
-  apiCostFor,
-  avatarColorFor,
-  softBudgetPctFor,
-  totalTokensFor,
-  type TeamMember,
-  type TeamRole,
-} from "@/lib/mock/claude-usage";
+import { avatarColorFor, formatLastActive, type ClaudeUsageMember, type TeamRole } from "@/lib/admin/claudeUsage";
 import { RolePill } from "./RolePill";
 import { TrackingStatusBadge } from "./TrackingStatusBadge";
 
@@ -21,15 +14,17 @@ function formatCost(n: number): string {
 
 /** Same table shell (rounded card, header tint, row hover, divide-y) as
  *  users-roles/AccountsTable.tsx — different columns for this page's
- *  per-user token/cost/soft-budget data. */
+ *  per-user token/cost/soft-budget data. Every figure here (totals, cost,
+ *  budgetPct) is read straight off the API's period rollup, not recomputed
+ *  client-side — the scaling that budgetPct depends on lives server-side. */
 export function UsageTable({
   members,
   onRoleChange,
   onRemove,
 }: {
-  members: TeamMember[];
-  onRoleChange: (member: TeamMember, role: TeamRole) => void;
-  onRemove: (member: TeamMember) => void;
+  members: ClaudeUsageMember[];
+  onRoleChange: (member: ClaudeUsageMember, role: TeamRole) => void;
+  onRemove: (member: ClaudeUsageMember) => void;
 }) {
   return (
     <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-border">
@@ -50,9 +45,7 @@ export function UsageTable({
         </thead>
         <tbody className="divide-y divide-border">
           {members.map((member, index) => {
-            const total = totalTokensFor(member);
-            const cost = apiCostFor(member);
-            const pct = softBudgetPctFor(member);
+            const pct = member.budgetPct;
             const overBudget = pct >= 100;
             const nearBudget = pct >= 80 && !overBudget;
 
@@ -64,7 +57,7 @@ export function UsageTable({
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white shadow-sm"
                       style={{ backgroundColor: avatarColorFor(index) }}
                     >
-                      {member.name
+                      {member.displayName
                         .split(" ")
                         .map((part) => part[0])
                         .join("")
@@ -72,7 +65,7 @@ export function UsageTable({
                         .toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-dash-ink">{member.name}</p>
+                      <p className="truncate font-semibold text-dash-ink">{member.displayName}</p>
                       <p className="truncate text-xs text-muted">{member.email}</p>
                     </div>
                   </div>
@@ -84,8 +77,8 @@ export function UsageTable({
                   <p className="text-dash-ink">{formatTokens(member.inputTokens)} in</p>
                   <p className="text-xs text-muted">{formatTokens(member.outputTokens)} out</p>
                 </td>
-                <td className="px-4 py-4 font-semibold text-dash-ink">{formatTokens(total)}</td>
-                <td className="px-4 py-4 text-dash-ink">{formatCost(cost)}</td>
+                <td className="px-4 py-4 font-semibold text-dash-ink">{formatTokens(member.totalTokens)}</td>
+                <td className="px-4 py-4 text-dash-ink">{formatCost(member.costUsd)}</td>
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-20 overflow-hidden rounded-full bg-page">
@@ -105,13 +98,13 @@ export function UsageTable({
                     </span>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-xs text-muted">{member.lastActive}</td>
+                <td className="px-4 py-4 text-xs text-muted">{formatLastActive(member.lastActiveAt)}</td>
                 <td className="px-4 py-4">
                   <TrackingStatusBadge status={member.status} />
                 </td>
                 <td className="px-4 py-4">
                   <RolePill
-                    role={member.role}
+                    role={member.teamRole}
                     disabled={member.status === "removed"}
                     onChange={(role) => onRoleChange(member, role)}
                   />
