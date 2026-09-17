@@ -40,6 +40,20 @@ describe("visibleNavSections", () => {
     expect(labelsFor(null)).not.toContain("Users & Roles");
   });
 
+  it("shows Claude Usage to an admin and a super admin", () => {
+    expect(labelsFor("admin")).toContain("Claude Usage");
+    expect(labelsFor("super_admin")).toContain("Claude Usage");
+  });
+
+  it("hides Claude Usage from an ordinary user and a guest", () => {
+    expect(labelsFor("user")).not.toContain("Claude Usage");
+    expect(labelsFor("guest")).not.toContain("Claude Usage");
+  });
+
+  it("hides Claude Usage while the session is still loading", () => {
+    expect(labelsFor(null)).not.toContain("Claude Usage");
+  });
+
   it("drops the ADMINISTRATION heading rather than rendering it empty", () => {
     const headings = visibleNavSections("user", FIXTURE_PRODUCTS).map((section) => section.label);
     expect(headings).not.toContain("ADMINISTRATION");
@@ -47,8 +61,8 @@ describe("visibleNavSections", () => {
 
     const adminSection = (role: Role) =>
       visibleNavSections(role, FIXTURE_PRODUCTS).find((section) => section.label === "ADMINISTRATION");
-    expect(adminSection("super_admin")?.items.map((i) => i.label)).toEqual(["Users & Roles"]);
-    expect(adminSection("admin")).toBeUndefined();
+    expect(adminSection("super_admin")?.items.map((i) => i.label)).toEqual(["Users & Roles", "Claude Usage"]);
+    expect(adminSection("admin")?.items.map((i) => i.label)).toEqual(["Claude Usage"]);
   });
 
   it("builds the PRODUCTS section from the live nav structure, not a hardcoded list", () => {

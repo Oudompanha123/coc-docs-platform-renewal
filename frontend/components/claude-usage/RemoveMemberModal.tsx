@@ -1,21 +1,21 @@
 "use client";
 
 import { Modal } from "@/components/users-roles/Modal";
-import type { TeamMember } from "@/lib/mock/claude-usage";
+import type { ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 
 export function RemoveMemberModal({
   member,
   onClose,
   onConfirm,
 }: {
-  member: TeamMember;
+  member: ClaudeUsageMember;
   onClose: () => void;
-  onConfirm: (member: TeamMember) => void;
+  onConfirm: (member: ClaudeUsageMember) => void;
 }) {
   return (
     <Modal title="Remove from usage tracking?" onClose={onClose}>
       <p className="text-sm text-muted">
-        <span className="font-semibold text-dash-ink">{member.name}</span> will stop appearing in
+        <span className="font-semibold text-dash-ink">{member.displayName}</span> will stop appearing in
         this dashboard&apos;s per-user usage and charts.
       </p>
       <p className="mt-3 rounded-xl bg-page px-3 py-2 text-xs text-muted">

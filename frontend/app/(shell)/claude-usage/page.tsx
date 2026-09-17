@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   BarChartIcon,
@@ -17,18 +17,18 @@ import { UsageChart } from "@/components/claude-usage/UsageChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { UsageTable } from "@/components/claude-usage/UsageTable";
 import {
-  apiCostFor,
-  DAILY_USAGE,
-  softBudgetPctFor,
-  TEAM_MEMBERS,
-  totalTokensFor,
-  type TeamMember,
+  fetchDashboard,
+  inviteMember,
+  removeMember,
+  updateMemberBudget,
+  updateMemberRole,
+  type ClaudeUsageDashboard,
+  type ClaudeUsageMember,
+  type Period,
   type TeamRole,
-} from "@/lib/mock/claude-usage";
+} from "@/lib/admin/claudeUsage";
 
-type RangeUnit = "day" | "week" | "month";
-
-const RANGE_LABEL: Record<RangeUnit, string> = {
+const RANGE_LABEL: Record<Period, string> = {
   day: "Today",
   week: "This week",
   month: "This month",
@@ -40,70 +40,108 @@ function formatTokensFull(n: number): string {
   return String(n);
 }
 
+/** "Today"/"This week"/"This month" for the current period; the actual date range once it's a past one. */
+function rangeLabel(period: Period, offset: number, from: string, to: string): string {
+  if (offset === 0) return RANGE_LABEL[period];
+  const fromDate = new Date(`${from}T00:00:00`);
+  const toDate = new Date(`${to}T00:00:00`);
+  if (period === "day") {
+    return fromDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
+  if (period === "month") {
+    return fromDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+  const fromLabel = fromDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const toLabel = toDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `${fromLabel} – ${toLabel}`;
+}
+
 /**
- * Claude Code Usage — mock-only monitoring page, same convention as every
- * other page in this frontend (no real fetch calls). Content/structure is
- * modeled on a separate internal usage-dashboard tool, but styled with Coc
- * Docs Platform's own design system (white cards, indigo/blue accents, the
- * same table/pill/modal patterns as Users & Roles) rather than that tool's
- * visual style.
+ * Claude Code Usage — backed by ClaudeUsageService (ADR-035): real roster and
+ * usage rows, ingested at `POST /api/ingest`. Content/structure is modeled on
+ * a separate internal usage-dashboard tool, but styled with Coc Docs
+ * Platform's own design system (white cards, indigo/blue accents, the same
+ * table/pill/modal patterns as Users & Roles) rather than that tool's visual
+ * style.
  *
  * Cooperative/opt-in framing throughout: removing someone or inviting them
  * only changes this dashboard's tracking list, never their actual Claude
  * Code account or machine — see the footer note and both modals.
  */
 export default function ClaudeUsagePage() {
-  const [members, setMembers] = useState<TeamMember[]>(TEAM_MEMBERS);
-  const [range, setRange] = useState<RangeUnit>("week");
+  const [period, setPeriod] = useState<Period>("week");
+  const [offset, setOffset] = useState(0);
+  const [dashboard, setDashboard] = useState<ClaudeUsageDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<ClaudeUsageMember | null>(null);
 
-  const reporting = useMemo(() => members.filter((m) => m.status !== "removed"), [members]);
+  const reload = useCallback(async () => {
+    try {
+      setDashboard(await fetchDashboard(period, offset));
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Couldn't load Claude usage.");
+    } finally {
+      setLoading(false);
+    }
+  }, [period, offset]);
 
-  const totals = useMemo(() => {
-    const totalTokens = reporting.reduce((sum, m) => sum + totalTokensFor(m), 0);
-    const totalCost = reporting.reduce((sum, m) => sum + apiCostFor(m), 0);
-    const activeCount = members.filter((m) => m.status === "active").length;
-    const nearLimitCount = members.filter((m) => m.status !== "removed" && softBudgetPctFor(m) >= 80).length;
-    return { totalTokens, totalCost, activeCount, nearLimitCount };
-  }, [members, reporting]);
+  useEffect(() => {
+    setLoading(true);
+    void reload();
+  }, [reload]);
 
-  function handleRoleChange(member: TeamMember, role: TeamRole) {
-    setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, role } : m)));
+  function handlePeriodChange(next: Period) {
+    setPeriod(next);
+    setOffset(0);
   }
 
-  function handleBudgetOverrideChange(member: TeamMember, tokens: number | undefined) {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === member.id ? { ...m, budgetOverrideTokens: tokens } : m)),
-    );
+  async function withActionError(action: () => Promise<void>) {
+    setActionError(null);
+    try {
+      await action();
+      await reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "That change could not be saved.");
+    }
   }
 
-  function handleRemove(member: TeamMember) {
+  async function handleInvite(email: string, teamRole: TeamRole) {
+    // Left to throw: InviteTeammateModal shows the error itself and stays open.
+    await inviteMember(email, teamRole);
+    await reload();
+  }
+
+  function handleRoleChange(member: ClaudeUsageMember, teamRole: TeamRole) {
+    void withActionError(() => updateMemberRole(member.id, teamRole).then(() => undefined));
+  }
+
+  function handleBudgetOverrideChange(member: ClaudeUsageMember, tokens: number | null) {
+    void withActionError(() => updateMemberBudget(member.id, tokens).then(() => undefined));
+  }
+
+  function handleRemove(member: ClaudeUsageMember) {
     setRemoveTarget(member);
   }
 
-  function handleConfirmRemove(member: TeamMember) {
-    setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: "removed" } : m)));
+  function handleConfirmRemove(member: ClaudeUsageMember) {
     setRemoveTarget(null);
+    void withActionError(() => removeMember(member.id).then(() => undefined));
   }
 
-  function handleInvite(email: string, role: TeamRole) {
-    const name = email.split("@")[0] ?? email;
-    setMembers((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        name,
-        email,
-        role,
-        status: "invited",
-        modelsUsed: [],
-        lastActive: "Never",
-        inputTokens: 0,
-        outputTokens: 0,
-      },
-    ]);
-  }
+  const members = dashboard?.members ?? [];
+  const totals = dashboard?.totals ?? {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    totalTokens: 0,
+    costUsd: 0,
+  };
 
   return (
     <AppShell
@@ -116,17 +154,18 @@ export default function ClaudeUsagePage() {
           <button
             type="button"
             aria-label="Previous period"
+            onClick={() => setOffset((o) => Math.max(-60, o - 1))}
             className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
           >
             <ChevronLeftIcon className="h-4 w-4" />
           </button>
-          {(["day", "week", "month"] as RangeUnit[]).map((unit) => (
+          {(["day", "week", "month"] as Period[]).map((unit) => (
             <button
               key={unit}
               type="button"
-              onClick={() => setRange(unit)}
+              onClick={() => handlePeriodChange(unit)}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
-                range === unit ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow" : "text-muted hover:text-dash-ink"
+                period === unit ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow" : "text-muted hover:text-dash-ink"
               }`}
             >
               {unit}
@@ -135,11 +174,15 @@ export default function ClaudeUsagePage() {
           <button
             type="button"
             aria-label="Next period"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
+            disabled={offset >= 0}
+            onClick={() => setOffset((o) => Math.min(0, o + 1))}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronRightIcon className="h-4 w-4" />
           </button>
-          <span className="ml-2 pr-2 text-sm text-muted">{RANGE_LABEL[range]}</span>
+          <span className="ml-2 pr-2 text-sm text-muted">
+            {dashboard ? rangeLabel(period, offset, dashboard.from, dashboard.to) : RANGE_LABEL[period]}
+          </span>
         </div>
 
         <button
@@ -162,51 +205,71 @@ export default function ClaudeUsagePage() {
         </p>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <UsageStatCard
-          icon={BarChartIcon}
-          label="Total Tokens"
-          value={formatTokensFull(totals.totalTokens)}
-          tone="purple"
-          note={RANGE_LABEL[range]}
-        />
-        <UsageStatCard
-          icon={CoinsIcon}
-          label="API-Equivalent Cost"
-          value={`$${totals.totalCost.toFixed(2)}`}
-          tone="blue"
-          note="Estimated, blended rate"
-        />
-        <UsageStatCard
-          icon={UsersIcon}
-          label="Active Users"
-          value={String(totals.activeCount)}
-          tone="green"
-          note={`of ${members.length} tracked`}
-        />
-        <UsageStatCard
-          icon={WarningIcon}
-          label="Near Limit"
-          value={String(totals.nearLimitCount)}
-          tone="orange"
-          note="≥ 80% of soft budget"
-        />
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-bold text-dash-ink">Daily tokens by user</h2>
-        <p className="text-xs text-muted">Stacked by teammate, current active reporters only</p>
-        <div className="mt-5">
-          <UsageChart data={DAILY_USAGE} members={members} />
+      {loadError && (
+        <div role="alert" className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {loadError}
         </div>
-      </div>
+      )}
 
-      <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
-        <UsageTable members={members} onRoleChange={handleRoleChange} onRemove={handleRemove} />
-      </div>
+      {actionError && (
+        <div role="alert" className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {actionError}
+        </div>
+      )}
 
-      <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
+      {loading ? (
+        <p className="mt-4 rounded-xl border border-border bg-white px-4 py-8 text-center text-sm text-muted">
+          Loading Claude usage…
+        </p>
+      ) : (
+        <>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <UsageStatCard
+              icon={BarChartIcon}
+              label="Total Tokens"
+              value={formatTokensFull(totals.totalTokens)}
+              tone="purple"
+              note={dashboard ? rangeLabel(period, offset, dashboard.from, dashboard.to) : RANGE_LABEL[period]}
+            />
+            <UsageStatCard
+              icon={CoinsIcon}
+              label="API-Equivalent Cost"
+              value={`$${totals.costUsd.toFixed(2)}`}
+              tone="blue"
+              note="Estimated, blended rate"
+            />
+            <UsageStatCard
+              icon={UsersIcon}
+              label="Active Users"
+              value={String(dashboard?.activeUsers ?? 0)}
+              tone="green"
+              note={`of ${members.length} tracked`}
+            />
+            <UsageStatCard
+              icon={WarningIcon}
+              label="Near Limit"
+              value={String(dashboard?.nearLimit ?? 0)}
+              tone="orange"
+              note="≥ 80% of soft budget"
+            />
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-bold text-dash-ink">Daily tokens by user</h2>
+            <p className="text-xs text-muted">Stacked by teammate, current active reporters only</p>
+            <div className="mt-5">
+              <UsageChart data={dashboard?.daily ?? []} members={members} />
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
+            <UsageTable members={members} onRoleChange={handleRoleChange} onRemove={handleRemove} />
+          </div>
+
+          <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
+        </>
+      )}
 
       {inviteOpen && <InviteTeammateModal onClose={() => setInviteOpen(false)} onInvite={handleInvite} />}
 
