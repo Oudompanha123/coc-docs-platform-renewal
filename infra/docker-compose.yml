@@ -124,37 +124,14 @@ services:
       # data directory, so the file in the repository stays the single source
       # and nobody ends up editing a deployed copy.
       - ../keycloak:/opt/keycloak/realm-src:ro
-    # WHY A SHELL WRAPPER RATHER THAN JUST --import-realm
-    #
-    # Two substitutions Keycloak will not do for itself:
-    #
-    #   1. The realm file carries ${env.GOOGLE_CLIENT_SECRET}. Keycloak does
-    #      NOT resolve that on import — verified on 2026-09-15 by importing a
-    #      realm with the placeholder in a non-secret field and reading it
-    #      back: the literal string is what gets stored. Google then rejects
-    #      the sign-in with invalid_client, several confusing minutes later.
-    #
-    #   2. Its redirect URIs and web origins say http://localhost:3000, which
-    #      is right for a developer machine and wrong here. Left alone,
-    #      Keycloak refuses the redirect back to the real site.
-    #
-    # --import-realm only imports a realm that does not already exist, so this
-    # is safe to re-run; to take the file's version again, delete the realm in
-    # the admin console first.
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        mkdir -p /opt/keycloak/data/import
-        sed -e "s|\$${env.GOOGLE_CLIENT_SECRET}|$${GOOGLE_CLIENT_SECRET}|g" \
-            -e "s|http://localhost:3000|https://$${PUBLIC_DOMAIN}|g" \
-            /opt/keycloak/realm-src/docs_platform-realm.json \
-            > /opt/keycloak/data/import/docs_platform-realm.json
-        if grep -q 'env.GOOGLE_CLIENT_SECRET' /opt/keycloak/data/import/docs_platform-realm.json; then
-          echo "FATAL: the Google client secret was not substituted into the realm file." >&2
-          echo "Keycloak would import the placeholder and Google would reject every sign-in." >&2
-          exit 1
-        fi
-        exec /opt/keycloak/bin/kc.sh start --import-realm
+      # The entrypoint script. Mounted rather than inline for the reason its
+      # own header gives: three layers of escaping had to be right at once and
+      # one was not, which crashed the container with "bad substitution".
+      - ./keycloak/entrypoint.sh:/opt/keycloak/bin/coc-entrypoint.sh:ro
+    # The realm needs two substitutions Keycloak will not do for itself — see
+    # keycloak/entrypoint.sh, which also explains why this is a mounted file
+    # rather than an inline command:.
+    entrypoint: ["/bin/bash", "/opt/keycloak/bin/coc-entrypoint.sh"]
     depends_on:
       postgres:
         condition: service_healthy
