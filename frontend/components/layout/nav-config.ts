@@ -73,6 +73,10 @@ const STATIC_SECTIONS: NavSection[] = [
       // content; granting roles is a different kind of authority. Listing
       // "admin" here showed them a link to a page that 403s on every request.
       { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
+      // admin and super_admin: unlike Users & Roles, this page is a
+      // team-wide usage/cost monitor, not an account-authority tool, so it
+      // sits at the same floor as everything else an admin manages.
+      { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
     ],
   },
 ];

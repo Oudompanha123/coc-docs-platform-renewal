@@ -108,13 +108,21 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const initials = user?.displayName ? initialsOf(user.displayName) : "?";
 
   return (
-    <Modal onClose={onClose}>
+    <Modal
+      onClose={onClose}
+      className="w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-white py-5 shadow-xl"
+    >
       {/* Avatar centered at top. Uploading here stores the photo ourselves
           (S3-compatible object storage, ADR-026) and, from that point on,
           takes precedence over the identity provider's picture — signing in
           with Google no longer overwrites it. Remove it to go back to that
-          provider picture (or initials, absent one). */}
-      <div className="sticky top-0 z-10 -mx-5 -mt-5 flex flex-col items-center border-b border-border bg-white px-5 pb-4 pt-5">
+          provider picture (or initials, absent one).
+
+          The outer Modal now carries no horizontal padding (py-5 only), so
+          this header re-adds its own inset directly (px-5) instead of
+          canceling the parent's via -mx-5 — only -mt-5 still has a top
+          inset to cancel, for the header to bleed to the very top edge. */}
+      <div className="-mt-5 flex flex-col items-center border-b border-border bg-white px-5 pb-4 pt-5">
         <label
           className={`group flex flex-col items-center ${avatarBusy ? "cursor-wait" : "cursor-pointer"}`}
         >
@@ -159,107 +167,118 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
         <h2 className="mt-2 text-base font-bold text-dash-ink">{user?.displayName ?? "Profile"}</h2>
       </div>
 
-      {/* Read-only details */}
-      <dl className="space-y-3 border-b border-border pb-4 text-sm">
-        <div className="flex items-start justify-between gap-4">
-          <dt className="text-muted">Email</dt>
-          <dd className="min-w-0 break-all text-right font-medium text-dash-ink">
-            {user?.email ?? "—"}
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted">Current role</dt>
-          <dd>{user?.role ? <RoleBadge role={user.role.toLowerCase() as AccountRole} /> : "—"}</dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted">Status</dt>
-          <dd>
-            <StatusBadge status="active" />
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted">Last sign-in</dt>
-          <dd className="font-medium text-dash-ink">{formatWhen(user?.lastSignInAt ?? null)}</dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted">Created</dt>
-          <dd className="font-medium text-dash-ink">{formatWhen(user?.createdAt ?? null)}</dd>
-        </div>
-      </dl>
+      {/* The avatar header above and the Close/Save row below are both
+          fixed parts of the modal — only this part (the read-only details
+          and the editable fields) scrolls, so a long profile (change-
+          password form open, an error banner, ...) doesn't push the photo,
+          name, or the action buttons out of view. */}
+      <div className="no-scrollbar-arrows max-h-[60vh] overflow-y-auto px-5 pt-5">
+        {/* Read-only details */}
+        <dl className="space-y-3 border-b border-border pb-4 text-sm">
+          <div className="flex items-start justify-between gap-4">
+            <dt className="text-muted">Email</dt>
+            <dd className="min-w-0 break-all text-right font-medium text-dash-ink">
+              {user?.email ?? "—"}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-muted">Current role</dt>
+            <dd>{user?.role ? <RoleBadge role={user.role.toLowerCase() as AccountRole} /> : "—"}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-muted">Status</dt>
+            <dd>
+              <StatusBadge status="active" />
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-muted">Last sign-in</dt>
+            <dd className="font-medium text-dash-ink">{formatWhen(user?.lastSignInAt ?? null)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-muted">Created</dt>
+            <dd className="font-medium text-dash-ink">{formatWhen(user?.createdAt ?? null)}</dd>
+          </div>
+        </dl>
 
-      {/* Editable display name */}
-      <div className="mt-4 space-y-4">
-        <div>
-          <label
-            htmlFor="profile-display-name"
-            className="mb-1.5 block text-sm font-semibold text-ink"
-          >
-            Display name
-          </label>
-          <input
-            id="profile-display-name"
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-          />
-          <p className="mt-1 text-xs text-muted">
-            Google sign-in overwrites this with the provider&apos;s name, so a correction here
-            lasts until your next sign-in.
-          </p>
-        </div>
+        {/* Editable display name */}
+        <div className="mt-4 space-y-4">
+          <div>
+            <label
+              htmlFor="profile-display-name"
+              className="mb-1.5 block text-sm font-semibold text-ink"
+            >
+              Display name
+            </label>
+            <input
+              id="profile-display-name"
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="w-full rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            />
+            <p className="mt-1 text-xs text-muted">
+              Google sign-in overwrites this with the provider&apos;s name, so a correction here
+              lasts until your next sign-in.
+            </p>
+          </div>
 
-        {error && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+              {error}
+            </p>
+          )}
 
-        {/* Change password (ADR-022) — "Set a password" instead for a
-            Google-only account, which has none to change yet (ADR-030). */}
-        <div className="rounded-xl border border-border px-3 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <LockIcon className="h-4 w-4 shrink-0 text-muted" />
-              <div>
-                <p className="text-sm font-semibold text-dash-ink">Password</p>
-                <p className="text-xs text-muted">
-                  {passwordNotice ??
-                    (user?.hasPassword
-                      ? "Keep your account secure with a strong password."
-                      : "You signed in with Google. Add a password to also sign in with your email.")}
-                </p>
+          {/* Change password (ADR-022) — "Set a password" instead for a
+              Google-only account, which has none to change yet (ADR-030). */}
+          <div className="rounded-xl border border-border px-3 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <LockIcon className="h-4 w-4 shrink-0 text-muted" />
+                <div>
+                  <p className="text-sm font-semibold text-dash-ink">Password</p>
+                  <p className="text-xs text-muted">
+                    {passwordNotice ??
+                      (user?.hasPassword
+                        ? "Keep your account secure with a strong password."
+                        : "You signed in with Google. Add a password to also sign in with your email.")}
+                  </p>
+                </div>
               </div>
+              {!changingPassword && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChangingPassword(true);
+                    setPasswordNotice(null);
+                  }}
+                  className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                >
+                  {user?.hasPassword ? "Change password" : "Set password"}
+                </button>
+              )}
             </div>
-            {!changingPassword && (
-              <button
-                type="button"
-                onClick={() => {
-                  setChangingPassword(true);
-                  setPasswordNotice(null);
-                }}
-                className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-              >
-                {user?.hasPassword ? "Change password" : "Set password"}
-              </button>
+            {changingPassword && (
+              <div className="mt-3 border-t border-border pt-3">
+                <ChangePasswordForm
+                  hasPassword={user?.hasPassword ?? false}
+                  onSuccess={(message) => {
+                    setChangingPassword(false);
+                    setPasswordNotice(message);
+                  }}
+                  onCancel={() => setChangingPassword(false)}
+                />
+              </div>
             )}
           </div>
-          {changingPassword && (
-            <div className="mt-3 border-t border-border pt-3">
-              <ChangePasswordForm
-                hasPassword={user?.hasPassword ?? false}
-                onSuccess={(message) => {
-                  setChangingPassword(false);
-                  setPasswordNotice(message);
-                }}
-                onCancel={() => setChangingPassword(false)}
-              />
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end gap-2">
+      {/* Outside the scroll region on purpose — Close/Save stay in view
+          regardless of how tall the scrollable content above gets (e.g. the
+          change-password form open, an error banner, ...), instead of
+          scrolling out of reach. */}
+      <div className="mt-5 flex justify-end gap-2 px-5">
         <button
           type="button"
           onClick={onClose}

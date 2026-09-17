@@ -140,18 +140,30 @@ export function AccountDetailModal({
           <label htmlFor="detail-role" className="mb-1.5 block text-sm font-semibold text-ink">
             Role
           </label>
-          <select
-            id="detail-role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as AccountRole)}
-            className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-          >
-            {ROLE_CHOICES.map((choice) => (
-              <option key={choice.value} value={choice.value}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id="detail-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as AccountRole)}
+              className="w-full appearance-none rounded-xl border border-border bg-white px-3 py-2 pr-9 text-sm font-medium text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            >
+              {ROLE_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+            <svg
+              viewBox="0 0 24 24"
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden="true"
+            >
+              <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
           <p className="mt-1 text-xs text-muted">
             {ROLE_CHOICES.find((c) => c.value === role)?.hint}
           </p>

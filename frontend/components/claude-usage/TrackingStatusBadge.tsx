@@ -1,4 +1,4 @@
-import type { TrackingStatus } from "@/lib/mock/claude-usage";
+import type { TrackingStatus } from "@/lib/admin/claudeUsage";
 
 /** Same dot+pill shape as users-roles/StatusBadge.tsx, extended with a third,
  *  neutral "Invited" state (pending, not yet reporting). */

@@ -1,4 +1,4 @@
-import type { TeamRole } from "@/lib/mock/claude-usage";
+import type { TeamRole } from "@/lib/admin/claudeUsage";
 
 /** A native <select> styled as a colored pill — same "custom appearance,
  *  real functionality" approach as users-roles/FilterBar.tsx's dropdowns,

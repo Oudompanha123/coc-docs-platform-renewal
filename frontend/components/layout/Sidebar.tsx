@@ -204,10 +204,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <div className="space-y-3 border-t border-white/10 pt-4">
         {/* Opens in a new tab rather than navigating away: this is the same
-            admin session looking at the public side of the same product,
-            not leaving the admin app. */}
+            admin session previewing the Member landing page (ADR-033), not
+            leaving the admin app. /home admits admin/super_admin as a
+            read-only preview (RequireMemberSession) precisely so this link
+            works rather than bouncing back to /overview. */}
         <Link
-          href="/welcome"
+          href="/home"
           target="_blank"
           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
         >

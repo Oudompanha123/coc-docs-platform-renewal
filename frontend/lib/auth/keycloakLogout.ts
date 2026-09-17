@@ -57,3 +57,35 @@ export function keycloakLogoutUrl(idTokenHint: string | null, returnTo: string):
 
   return logout.toString();
 }
+
+/**
+ * Whether {@code origin} answers at all, before committing to a full-page
+ * navigation there.
+ *
+ * <p>{@link keycloakLogoutUrl}'s caller has to redirect the whole page — a
+ * fetch or an iframe can't reach Keycloak's own cookies, only a top-level
+ * navigation can (see the class doc). That means an unreachable Keycloak
+ * (not running locally, a network blip, a misconfigured URL) strands the
+ * caller on the browser's own connection-refused page for a host they never
+ * meant to visit directly, with no way back into this app except retyping
+ * the address bar. A cheap reachability probe first avoids that: this app's
+ * own sign-out already always succeeds by the time this runs, so the worst
+ * case of skipping the Keycloak round-trip is a stale SSO session left
+ * behind — the same tradeoff the "no hint" path above already accepts,
+ * just caught one step earlier instead of as a blank browser error page.
+ *
+ * <p>{@code mode: "no-cors"} deliberately: this only needs to know whether
+ * *something* answered, not read the response (which a cross-origin
+ * Keycloak wouldn't allow anyway). A network-level failure — connection
+ * refused, DNS failure, timeout — still rejects the fetch even in no-cors
+ * mode; only a same-origin-policy block turns into an opaque response, and
+ * that means a real server is there to have blocked it.
+ */
+export async function isKeycloakReachable(origin: string, timeoutMs = 1500): Promise<boolean> {
+  try {
+    await fetch(origin, { mode: "no-cors", signal: AbortSignal.timeout(timeoutMs) });
+    return true;
+  } catch {
+    return false;
+  }
+}

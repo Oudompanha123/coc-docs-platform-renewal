@@ -147,10 +147,8 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
         </form>
       )}
 
-      {!rows && <p className="mt-6 text-sm text-muted">Loading…</p>}
-
       {rows && (
-        <div className="mt-6 rounded-2xl border border-border bg-white shadow-sm">
+        <div className="animate-entrance mt-6 rounded-2xl border border-border bg-white shadow-sm">
           <div className="divide-y divide-border">
             {rows.map((row) => (
               <div key={row.id} className="flex items-center justify-between gap-4 px-5 py-3">

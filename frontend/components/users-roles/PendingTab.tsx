@@ -50,7 +50,7 @@ export function PendingTab({
   }
 
   if (loading) {
-    return <p className="p-8 text-center text-sm text-muted">Loading applications…</p>;
+    return null;
   }
 
   if (error) {
@@ -65,7 +65,7 @@ export function PendingTab({
 
   if (pending.length === 0) {
     return (
-      <div className="p-8 text-center">
+      <div className="animate-entrance p-8 text-center">
         <p className="text-sm font-semibold text-dash-ink">Nobody is waiting</p>
         <p className="mt-1 text-sm text-muted">
           Anyone who signs in with Google for the first time appears here until you let them in.
@@ -75,7 +75,7 @@ export function PendingTab({
   }
 
   return (
-    <div className="space-y-3 p-6">
+    <div className="animate-entrance space-y-3 p-6">
       <p className="text-sm text-muted">
         Oldest first. Approving grants the role you pick; refusing keeps the record, so the trail
         still answers who applied and who decided.
@@ -99,21 +99,33 @@ export function PendingTab({
               <label className="sr-only" htmlFor={`role-${account.id}`}>
                 Role for {account.email}
               </label>
-              <select
-                id={`role-${account.id}`}
-                value={role}
-                disabled={working}
-                onChange={(e) =>
-                  setRoles((prev) => ({ ...prev, [account.id]: e.target.value as AccountRole }))
-                }
-                className="rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-              >
-                {ROLE_CHOICES.map((choice) => (
-                  <option key={choice.value} value={choice.value}>
-                    {choice.label} — {choice.hint}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id={`role-${account.id}`}
+                  value={role}
+                  disabled={working}
+                  onChange={(e) =>
+                    setRoles((prev) => ({ ...prev, [account.id]: e.target.value as AccountRole }))
+                  }
+                  className="appearance-none rounded-xl border border-border bg-white px-3 py-2 pr-9 text-sm font-medium text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+                >
+                  {ROLE_CHOICES.map((choice) => (
+                    <option key={choice.value} value={choice.value}>
+                      {choice.label} — {choice.hint}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  viewBox="0 0 24 24"
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
 
               <button
                 type="button"

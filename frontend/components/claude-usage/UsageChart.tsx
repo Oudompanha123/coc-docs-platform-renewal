@@ -1,4 +1,4 @@
-import { avatarColorFor, type DailyUsagePoint, type TeamMember } from "@/lib/mock/claude-usage";
+import { avatarColorFor, type ClaudeUsageDailyPoint, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 
 const CHART_HEIGHT_PX = 160;
 
@@ -8,11 +8,20 @@ function formatTokensShort(n: number): string {
   return String(n);
 }
 
+/** Short label for one point on the x-axis. A weekday name only reads well
+ *  for a 7-point week; a day or month view can be 1 or up to 31 points, so
+ *  every period uses the same "Sep 17" short-date form instead. */
+function formatDayLabel(isoDate: string): string {
+  const parsed = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+  return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 /** Pure CSS/HTML stacked bar chart — no charting dependency. Bar and segment
  *  heights are computed in px (not %) since these bars sit inside a flex
  *  column whose height is content-driven, where percentage heights would be
  *  ambiguous; explicit px keeps the math (and verification) unambiguous. */
-export function UsageChart({ data, members }: { data: DailyUsagePoint[]; members: TeamMember[] }) {
+export function UsageChart({ data, members }: { data: ClaudeUsageDailyPoint[]; members: ClaudeUsageMember[] }) {
   const reportingMembers = members.filter((m) => data.some((point) => (point.byMember[m.id] ?? 0) > 0));
   const dayTotals = data.map((point) =>
     reportingMembers.reduce((sum, m) => sum + (point.byMember[m.id] ?? 0), 0),
@@ -25,15 +34,16 @@ export function UsageChart({ data, members }: { data: DailyUsagePoint[]; members
         {data.map((point, dayIndex) => {
           const dayTotal = dayTotals[dayIndex] ?? 0;
           const barHeightPx = (dayTotal / maxTotal) * CHART_HEIGHT_PX;
+          const label = formatDayLabel(point.date);
 
           return (
-            <div key={point.day} className="flex flex-1 flex-col items-center gap-2">
+            <div key={point.date} className="flex flex-1 flex-col items-center gap-2">
               <div className="flex flex-col justify-end" style={{ height: CHART_HEIGHT_PX }}>
                 <div
                   className="flex w-8 flex-col-reverse overflow-hidden rounded-t-md sm:w-10"
                   style={{ height: barHeightPx }}
                   role="img"
-                  aria-label={`${point.day}: ${formatTokensShort(dayTotal)} tokens`}
+                  aria-label={`${label}: ${formatTokensShort(dayTotal)} tokens`}
                 >
                   {reportingMembers.map((member, memberIndex) => {
                     const value = point.byMember[member.id] ?? 0;
@@ -43,13 +53,13 @@ export function UsageChart({ data, members }: { data: DailyUsagePoint[]; members
                       <div
                         key={member.id}
                         style={{ height: segmentHeightPx, backgroundColor: avatarColorFor(memberIndex) }}
-                        title={`${member.name}: ${formatTokensShort(value)} tokens`}
+                        title={`${member.displayName}: ${formatTokensShort(value)} tokens`}
                       />
                     );
                   })}
                 </div>
               </div>
-              <span className="text-xs font-medium text-muted">{point.day}</span>
+              <span className="text-xs font-medium text-muted">{label}</span>
             </div>
           );
         })}
@@ -63,7 +73,7 @@ export function UsageChart({ data, members }: { data: DailyUsagePoint[]; members
               style={{ backgroundColor: avatarColorFor(index) }}
               aria-hidden="true"
             />
-            {member.name}
+            {member.displayName}
           </div>
         ))}
       </div>
