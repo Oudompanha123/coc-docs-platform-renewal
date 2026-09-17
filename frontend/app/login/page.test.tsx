@@ -92,7 +92,7 @@ describe("LoginPage password form", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
@@ -115,7 +115,7 @@ describe("LoginPage password form", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "reader@example.com");
+    await user.type(screen.getByLabelText("Email"), "reader@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
@@ -133,7 +133,7 @@ describe("LoginPage password form", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "invited@example.com");
+    await user.type(screen.getByLabelText("Email"), "invited@example.com");
     await user.type(screen.getByLabelText("Password"), "TempPassword123!");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
@@ -147,7 +147,7 @@ describe("LoginPage password form", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "pending@example.com");
+    await user.type(screen.getByLabelText("Email"), "pending@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
@@ -257,7 +257,7 @@ describe("LoginPage redirect state", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
@@ -271,7 +271,7 @@ describe("LoginPage redirect state", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "wrong-password");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
@@ -298,7 +298,7 @@ describe("LoginPage email prefill from an emailed link", () => {
   it("leaves the email field empty and unfocused when the link carries no email", async () => {
     render(<LoginPage />);
 
-    expect(await screen.findByLabelText("Email, Phone or Name")).toHaveValue("");
+    expect(await screen.findByLabelText("Email")).toHaveValue("");
     expect(screen.getByLabelText("Password")).not.toHaveFocus();
   });
 });
@@ -315,7 +315,7 @@ describe("LoginPage TOTP second factor", () => {
   });
 
   async function submitPassword(user: ReturnType<typeof userEvent.setup>) {
-    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
   }
@@ -329,7 +329,7 @@ describe("LoginPage TOTP second factor", () => {
 
     expect(await screen.findByLabelText("Authentication Code")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Email, Phone or Name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
   });
 
   it("verifies the code and redirects on success", async () => {
@@ -378,7 +378,7 @@ describe("LoginPage TOTP second factor", () => {
 
     await user.click(await screen.findByRole("button", { name: "Back to login" }));
 
-    expect(screen.getByLabelText("Email, Phone or Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(verifyMfaLogin).not.toHaveBeenCalled();
   });
 });
