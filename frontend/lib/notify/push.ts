@@ -289,15 +289,51 @@ export async function enableNotifications(): Promise<boolean> {
 }
 
 /**
- * Turns banners off here, and stops background push.
+ * Stops this browser receiving push, without changing what the person asked
+ * for.
  *
- * <p>Also called on sign-out: without it, the next person to use a shared
- * browser would keep receiving the previous person's notifications until FCM
- * happened to rotate the token.
+ * <p><b>Called on sign-out, and this is the whole reason it is separate from
+ * {@link disableNotifications}.</b> A device token is registered against an
+ * account, so leaving it behind would deliver the previous person's
+ * notifications to whoever signs in next on a shared browser — until FCM
+ * happened to rotate it, which it may never do. That token must go.
+ *
+ * <p>The preference must not. "Do I want banners in this browser" is a
+ * property of the browser and the person, not of a session, and the browser
+ * permission that backs it already survives sign-out — it is granted per
+ * origin, not per login. Clearing our flag as well made the toggle disagree
+ * with the browser and turned itself off every time somebody signed out and
+ * back in, which is exactly how it was reported.
+ *
+ * <p>Signing in again re-registers, because {@link ensureBackgroundPushRegistered}
+ * finds the preference on and no token stored — and the new token belongs to
+ * whoever just signed in.
+ */
+export async function unregisterThisDevice(): Promise<void> {
+  await forgetToken();
+}
+
+/**
+ * Turns banners off here, at the person's request.
+ *
+ * <p>Clears the preference as well as the token, which is what distinguishes
+ * it from {@link unregisterThisDevice}: this is somebody saying they do not
+ * want them, and it should survive their next sign-in exactly as turning it on
+ * does.
  */
 export async function disableNotifications(): Promise<void> {
   setFlag(false);
+  await forgetToken();
+}
 
+/**
+ * Drops this browser's device token, here and on the server.
+ *
+ * <p>Best effort on the server side: the row also goes when FCM reports the
+ * token dead, and on the scheduled purge. Dropping it locally is what matters
+ * for re-registration, and that cannot fail in a way worth reporting.
+ */
+async function forgetToken(): Promise<void> {
   let token: string | null = null;
   try {
     token = localStorage.getItem(TOKEN_KEY);
@@ -313,8 +349,7 @@ export async function disableNotifications(): Promise<void> {
       credentials: "include",
     });
   } catch {
-    // Best effort: the row also goes when FCM reports the token dead, and on
-    // the scheduled purge.
+    // Best effort, as above.
   }
 }
 
