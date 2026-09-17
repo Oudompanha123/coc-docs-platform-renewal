@@ -26,6 +26,7 @@ import {
   type PendingAccount,
   type RoleDetail,
 } from "@/lib/admin/accounts";
+import { accountStatus, downloadUsersXlsx } from "@/lib/admin/export-users";
 import { type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
 import { me } from "@/lib/auth/api";
 
@@ -43,13 +44,11 @@ function toRow(account: AdminAccount): ManagedAccount {
     name: account.displayName,
     email: account.email,
     role: account.role === "guest" ? "user" : account.role,
-    // Pending is a login state, not the backend's own `active` flag: an
-    // invite creates the account already active (revision of ADR-017) so a
-    // role can be waiting for someone before they ever sign in. Until they
-    // do — mustChangePassword still true, still on the temporary password —
-    // showing "Active" reads as if they have already logged in, when nobody
-    // has used the account yet.
-    status: !account.active ? "deactivated" : account.mustChangePassword ? "pending" : "active",
+    // The rule itself lives in lib/admin/export-users, so this table and the
+    // spreadsheet it exports cannot come to disagree about who is "Pending".
+    // It is a login state rather than the backend's own `active` flag — see
+    // accountStatus for why.
+    status: accountStatus(account),
     lastLogin: formatLastLogin(account.lastSignInAt),
     ipAddress: "—",
     avatarUrl: account.avatarUrl,
@@ -86,7 +85,10 @@ type PageTab = "users" | "pending" | "roles";
  *
  * Search, role and status filtering stay client-side over the loaded list,
  * which is right while the team is small enough to fit one page. Export is
- * still a UI stub — no export capability exists yet.
+ * client-side for the same reason and one more: it writes the records this
+ * page already holds, so it discloses nothing the screen does not and adds no
+ * route to guard. The cost is that a copy of the account list leaves no trace
+ * in `audit_log` — see lib/admin/export-users.
  */
 export default function UsersRolesPage() {
   const [tab, setTab] = useState<PageTab>("users");
@@ -216,6 +218,21 @@ export default function UsersRolesPage() {
     () => filtered.slice((page - 1) * pageSize, page * pageSize),
     [filtered, page, pageSize],
   );
+
+  /**
+   * What Export writes: every row the filters currently match, across all
+   * pages — not `visible`, which is one page of ten.
+   *
+   * Filtered rather than the whole table because the button sits beside the
+   * search and filter controls, and a file that ignored them would be a
+   * surprise the moment anyone searched first. The API records are recovered
+   * from `filtered` by id: the export needs real timestamps, and `accounts`
+   * has already flattened those to "Today, 2:03 PM".
+   */
+  const exportable = useMemo(() => {
+    const ids = new Set(filtered.map((row) => row.id));
+    return records.filter((record) => ids.has(record.id));
+  }, [filtered, records]);
 
   const detail = detailId ? (records.find((r) => r.id === detailId) ?? null) : null;
 
@@ -417,7 +434,14 @@ export default function UsersRolesPage() {
               <div className="flex shrink-0 gap-3">
                 <button
                   type="button"
-                  className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+                  onClick={() => downloadUsersXlsx(exportable)}
+                  disabled={exportable.length === 0}
+                  title={
+                    exportable.length === 0
+                      ? "Nothing to export — no accounts match the current filters"
+                      : `Download ${exportable.length} account${exportable.length === 1 ? "" : "s"} as an Excel file`
+                  }
+                  className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                     <path d="M12 15V3M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
