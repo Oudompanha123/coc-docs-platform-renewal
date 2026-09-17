@@ -67,7 +67,7 @@ This is not pedantry. Spring Boot 3.4 predates Java 25 and does not list it as s
 **3. Copy the environment template.** `backend/.env.example` documents every variable the backend reads, with a safe local default for each:
 
 ```bash
-cp backend/.env.example backend/..env.local
+cp backend/.env.example backend/.env.local
 ```
 
 `.env.local` is gitignored; `.env.example` is not, and must never hold a real credential. If you add a variable to `application.yml`, add it to the template in the same commit — `scripts/check-env-documented.sh` fails the L2 audit otherwise.
@@ -128,16 +128,39 @@ Reference requirement IDs in the body where relevant — `// req: FR-AUTH-001` c
 | Testing rules | `docs/design/TEST-PLAN.md` |
 
 If a decision looks wrong, say so. Every ADR records the alternatives it rejected and why — if the reasoning does not hold, that is worth knowing while it is still a document rather than a hundred migrated pages.
+
+## Running it from IntelliJ
+
+Two run configurations are checked in under `.run/`, so they appear in the run dropdown as soon as you open the project — no setup.
+
+| Configuration | What it does |
+| --- | --- |
+| **Frontend (dev)** | `npm run dev` in `frontend/` — the Next.js dev server on http://localhost:3000 |
+| **Frontend (check)** | `npm run check` — typecheck, lint and tests, the same three CI runs |
+
+They need Node configured once per machine: **Settings → Languages & Frameworks → Node.js**, pointing at your Node 24 install. The configurations say `project`, so they follow whatever you set there.
+
+No EnvFile plugin, unlike the backend configuration — Next.js reads `frontend/.env.local` by itself.
+
+**To add one by hand** (or to build a variant): Run → Edit Configurations → **+** → **npm** → set *package.json* to `frontend/package.json`, *Command* to `run`, *Scripts* to `dev`. Tick **Store as project file** so it lands in `.run/` and everyone gets it; leave it unticked and it exists only on your machine, which is how this project has already lost time on database schemas and the Keycloak realm.
+
 ## One Keycloak each, one realm file
 
 Keycloak in dev mode runs on a local H2 file, so your Keycloak is **yours alone** — its own realm, clients and identity provider. Nothing you configure in it reaches anybody else.
 
 Start it from the realm in this repository rather than building one by hand:
 
+Git Bash:
+
 ```bash
-export GOOGLE_CLIENT_SECRET='...'      # Git Bash
+export GOOGLE_CLIENT_SECRET='...'
 scripts/keycloak-dev.sh
-$env:GOOGLE_CLIENT_SECRET = '...'      # PowerShell
+```
+
+PowerShell:
+
+```powershell
+$env:GOOGLE_CLIENT_SECRET = '...'
 bash scripts/keycloak-dev.sh
 ```
 
@@ -228,7 +251,7 @@ From IntelliJ, use the **`Backend (dev)`** run configuration. It loads the file 
 From a shell:
 
 ```bash
-set -a; . ./backend/..env.local; set +a
+set -a; . ./backend/.env.local; set +a
 ./backend/mvnw -f backend/pom.xml spring-boot:run
 ```
 
@@ -252,10 +275,14 @@ Correcting one field by hand and not the others only moves you to the next messa
 
 Your database ran a different file at that version — usually because you had a branch checked out that added its own. Flyway stores one row per version and refuses to start when it does not match what is on disk.
 
+**The other cause is editing a migration that has already run — including its comments.** Flyway checksums the whole file, so correcting a typo, a stale ADR number or a wording choice in an applied migration stops the application booting for everyone whose database ran the old bytes. On 2026-09-16 an ADR renumbering rewrote a comment in applied migrations and broke startup, twice, on two different branches.
+
+**A migration is immutable the moment it is applied anywhere.** If something in it is wrong, the fix goes in a new migration, or — for a comment that cannot hurt anybody — nowhere, with the correction recorded in the ADR it points at. `V15__totp_mfa.sql` cites ADR-028 for what is now ADR-031 for exactly this reason, and ADR-031 says so at the top. A wrong reference in an applied file costs one confused reader; editing it costs every developer a repair.
+
 **On your own local database, rebuild rather than repair.** `flyway repair` rewrites the bookkeeping and leaves the schema alone, so a database that ran the *other* migration keeps the wrong tables and fails later, somewhere less obvious:
 
 ```bash
-set -a; . ./backend/..env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/db-reset-dev.sh
 ```
 
@@ -264,11 +291,25 @@ It refuses any host that is not localhost, refuses a schema that does not name i
 **On the shared dev database you cannot do that**, and `db-reset-dev.sh` will refuse — deliberately. Dropping it destroys everyone's accounts, sessions and the audit trail. There, repair is the right tool, but only once you have checked the thing repair cannot check for you: that the schema the *other* file left behind is the schema this file describes. Compare the real table against the migration — columns, types, defaults, indexes (including partial ones), check constraints, foreign keys — and if anything differs, stop and raise it rather than repairing over it.
 
 ```bash
-set -a; . ./backend/..env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/flyway-repair-dev.sh
 ```
 
 **Never edit a migration that is already on `dev`.** Add a new version. The L2 audit fails a PR that edits one, or that adds a second file at an existing version — that check exists because this exact collision cost a day, and then cost another one when the half-corrected bookkeeping it left behind surfaced weeks later.
+
+### `Detected applied migration not resolved locally: 17`
+
+The database has run a version this checkout has never heard of — somebody applied their migration before pushing the file.
+
+`application.yml` already sets `ignore-migration-patterns: "*:missing"` and it does not cover this, which is what makes the setting look broken. Flyway has two categories and one message: an applied version **below** your highest local one is `missing`, one **above** it is `future`. V17 against a checkout that stops at V16 is `future`.
+
+Uncomment this in your own `backend/.env.local` while you wait for that file:
+
+```properties
+spring.flyway.ignore-migration-patterns=*:missing,*:future
+```
+
+Then take it out again — it also stops a genuinely deleted migration being caught. Two things fix it properly: whoever applied V17 pushes it, and, if you are sharing a schema with them, you take a `DB_SCHEMA` of your own. A schema nobody else writes to cannot get ahead of your checkout, which is the whole point of the per-developer rule.
 
 ## Seeing what the backend is doing
 

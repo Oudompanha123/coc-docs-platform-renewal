@@ -1,29 +1,43 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+// The mocked class below (vi.mock("@/lib/auth/api", ...)) -- imported so
+// these tests can construct real instances of what handleSubmit's catch
+// block actually checks with `instanceof` (ADR-031).
+import { MfaRequiredError } from "@/lib/auth/api";
 import LoginPage from "./page";
 
-const { loginWithPassword, loginWithIdToken, requestNonce, signInWithGoogleViaKeycloak, push, searchParams } =
-  vi.hoisted(() => ({
-    loginWithPassword: vi.fn(),
-    loginWithIdToken: vi.fn(),
-    requestNonce: vi.fn(),
-    signInWithGoogleViaKeycloak: vi.fn(),
-    push: vi.fn(),
-    // A box, not a plain URLSearchParams: the mock factory below closes over
-    // this reference once, so tests mutate `.current` to change what
-    // useSearchParams() returns on the next render rather than re-mocking.
-    searchParams: { current: new URLSearchParams() },
-  }));
+const {
+  loginWithPassword,
+  loginWithIdToken,
+  requestNonce,
+  verifyMfaLogin,
+  signInWithGoogleViaKeycloak,
+  push,
+  searchParams,
+} = vi.hoisted(() => ({
+  loginWithPassword: vi.fn(),
+  loginWithIdToken: vi.fn(),
+  requestNonce: vi.fn(),
+  verifyMfaLogin: vi.fn(),
+  signInWithGoogleViaKeycloak: vi.fn(),
+  push: vi.fn(),
+  // A box, not a plain URLSearchParams: the mock factory below closes over
+  // this reference once, so tests mutate `.current` to change what
+  // useSearchParams() returns on the next render rather than re-mocking.
+  searchParams: { current: new URLSearchParams() },
+}));
 
-// RegistrationPendingError is part of this module's contract now: the page
-// tests `err instanceof RegistrationPendingError`, so a mock without it makes
-// the catch block throw rather than the assertion fail.
+// RegistrationPendingError and MfaRequiredError (ADR-031) are part of this
+// module's contract now: the page tests `err instanceof X`, so a mock
+// without either makes the catch block throw rather than the assertion fail.
 vi.mock("@/lib/auth/api", () => ({
   loginWithPassword,
   loginWithIdToken,
   requestNonce,
+  verifyMfaLogin,
   RegistrationPendingError: class RegistrationPendingError extends Error {},
+  MfaRequiredError: class MfaRequiredError extends Error {},
 }));
 
 // isGoogleSignInConfigured is read at module load from NEXT_PUBLIC_KEYCLOAK_*,
@@ -73,7 +87,7 @@ describe("LoginPage password form", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "USER",
+      role: "admin",
     });
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -87,12 +101,33 @@ describe("LoginPage password form", () => {
     expect(push).toHaveBeenCalledWith("/overview");
   });
 
+  it("sends a plain \"user\" role to its own Member landing page, not the admin app", async () => {
+    // The admin app (sidebar, Overview, per-product content management,
+    // Users & Roles, Settings) is admin/super_admin only — a "user" account
+    // gets its own real landing page (ADR-033) instead, same destination
+    // RequireMemberSession expects for a plain user.
+    loginWithPassword.mockResolvedValue({
+      id: "1",
+      email: "reader@example.com",
+      displayName: "Reader Example",
+      role: "user",
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "reader@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/home"));
+  });
+
   it("sends a caller still on a temporary password to /create-password instead of /overview", async () => {
     loginWithPassword.mockResolvedValue({
       id: "1",
       email: "invited@example.com",
       displayName: "Invited Person",
-      role: "USER",
+      role: "user",
       mustChangePassword: true,
     });
     const user = userEvent.setup();
@@ -135,7 +170,7 @@ describe("LoginPage Google sign-in", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "USER",
+      role: "admin",
     });
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -216,7 +251,7 @@ describe("LoginPage redirect state", () => {
       id: "1",
       email: "person@example.com",
       displayName: "Person Example",
-      role: "user",
+      role: "admin",
       mustChangePassword: false,
     });
     const user = userEvent.setup();
@@ -265,5 +300,85 @@ describe("LoginPage email prefill from an emailed link", () => {
 
     expect(await screen.findByLabelText("Email, Phone or Name")).toHaveValue("");
     expect(screen.getByLabelText("Password")).not.toHaveFocus();
+  });
+});
+
+/**
+ * ADR-031. A correct password for an account with confirmed TOTP throws
+ * {@link MfaRequiredError} rather than resolving — not a refusal, so it must
+ * not show the red error banner {@link loginWithPassword}'s other rejections
+ * do; it switches to the OTP step instead.
+ */
+describe("LoginPage TOTP second factor", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function submitPassword(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByLabelText("Email, Phone or Name"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+  }
+
+  it("switches to the OTP step instead of showing an error banner", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await submitPassword(user);
+
+    expect(await screen.findByLabelText("Authentication Code")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Email, Phone or Name")).not.toBeInTheDocument();
+  });
+
+  it("verifies the code and redirects on success", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    verifyMfaLogin.mockResolvedValue({
+      id: "1",
+      email: "person@example.com",
+      displayName: "Person Example",
+      role: "admin",
+      mustChangePassword: false,
+    });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    await user.type(await screen.findByLabelText("Authentication Code"), "123456");
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledWith("123456"));
+    expect(await screen.findByText("Login successful. Welcome, Person Example!")).toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("shows an error and stays on the OTP step when the code is wrong", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    verifyMfaLogin.mockRejectedValue(new Error("That code is incorrect. Please check the time on your device and try again."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    await user.type(await screen.findByLabelText("Authentication Code"), "000000");
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+
+    expect(
+      await screen.findByText("That code is incorrect. Please check the time on your device and try again."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Authentication Code")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("returns to the credentials step via Back to login", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    await user.click(await screen.findByRole("button", { name: "Back to login" }));
+
+    expect(screen.getByLabelText("Email, Phone or Name")).toBeInTheDocument();
+    expect(verifyMfaLogin).not.toHaveBeenCalled();
   });
 });

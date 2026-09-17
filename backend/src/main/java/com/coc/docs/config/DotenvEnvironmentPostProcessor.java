@@ -10,10 +10,12 @@ import java.util.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 
 /**
- * Loads {@code backend/.env.local} (gitignored — see {@code backend/env.example})
+ * Loads {@code backend/.env.local} (gitignored — see {@code backend/.env.example})
  * as a property source, so {@code DB_HOST}/{@code DB_PORT}/{@code DB_NAME}/
  * {@code DB_USER}/{@code DB_PASSWORD} — referenced as {@code ${...}} in
  * application.yml, with no hard-coded fallback — are available regardless of
@@ -39,11 +41,11 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
      *
      * <p>{@code backend/.env.local} is this repository's convention — it is what
      * {@code CONTRIBUTING.md} tells a new developer to create, what
-     * {@code backend/env.example} is copied to, and what
+     * {@code backend/.env.example} is copied to, and what
      * {@code scripts/check-env-documented.sh} checks against. It is therefore
      * the file that actually exists on people's machines.
      *
-     * <p>{@code ..env.local} at the repo root is kept as a second name because
+     * <p>{@code .env.local} at the repo root is kept as a second name because
      * this class originally looked only there. Anyone who created one on that
      * basis keeps working; nobody has to move a file holding a password.
      *
@@ -51,7 +53,7 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
      * file to keep in step with the first, and the copy nobody updates is the
      * one the next person reads.
      */
-    private static final String[] FILE_NAMES = {"backend/.env.local", ".env.local", "..env.local"};
+    private static final String[] FILE_NAMES = {"backend/.env.local", ".env.local"};
 
     /**
      * Searched relative to the JVM's working directory, which differs by
@@ -61,6 +63,32 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
      * or {@code backend/} depending on the environment.
      */
     private static final String[] CANDIDATE_DIRS = {".", "..", "../..", "../../.."};
+
+    /**
+     * The property-source name, and the reason it ends the way it does.
+     *
+     * <p>A {@code .env} file is written in environment-variable spelling —
+     * {@code APP_HRMS_ENABLED}, not {@code app.hrms.enabled}. Spring only
+     * translates between those two spellings for a
+     * {@link SystemEnvironmentPropertySource} whose name is
+     * {@code systemEnvironment} or ends with {@code -systemEnvironment}. Every
+     * other property source is matched literally, character for character.
+     *
+     * <p>That distinction stayed invisible for as long as this file held only
+     * {@code DB_*}, because {@code application.yml} names those variables in
+     * placeholders — an exact match, which resolves from any source at all.
+     * The first setting bound by prefix instead, {@code @ConfigurationProperties}
+     * on {@code app.hrms}, therefore saw nothing: the file was correct, this
+     * class had read it, and the binder was looking up a key spelled another
+     * way. A feature configured that way reports itself as switched off, which
+     * sends whoever configured it back to re-checking the file that was never
+     * the problem.
+     *
+     * <p>With this name the file behaves like the environment variables it
+     * stands in for, both spellings included, for every binding style.
+     */
+    private static final String SOURCE_NAME =
+            "dotenvLocal-" + StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME;
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
@@ -72,13 +100,25 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
         if (values.isEmpty()) {
             return;
         }
-        environment.getPropertySources().addLast(new MapPropertySource("dotenvLocal", values));
+        environment.getPropertySources().addLast(propertySource(values));
+    }
+
+    /**
+     * The values above as a property source.
+     *
+     * <p>Package-private and separate from {@link #postProcessEnvironment}
+     * only so that a test can bind through the real thing. The name and the
+     * type are both load-bearing and neither is self-evident from the call
+     * site, which is how the binding broke silently once already.
+     */
+    static PropertySource<?> propertySource(Map<String, Object> values) {
+        return new SystemEnvironmentPropertySource(SOURCE_NAME, values);
     }
 
     /**
      * Directory outer, name inner: from whichever directory the JVM started
      * in, the repository's documented file wins over the fallback name. The
-     * other order would let a stale root {@code ..env.local} shadow the
+     * other order would let a stale root {@code .env.local} shadow the
      * {@code backend/.env.local} someone is actually editing.
      */
     private static Path findEnvFile() {

@@ -9,7 +9,7 @@
 import { BACKEND_URL } from "@/lib/auth/api";
 
 export type NavItem = { slug: string; label: string };
-export type NavProduct = { key: string; label: string; icon: string; items: NavItem[] };
+export type NavProduct = { key: string; label: string; icon: string; minRole: string; items: NavItem[] };
 
 export class NavApiError extends Error {}
 
@@ -29,12 +29,17 @@ function slugSegment(slug: string): string {
  * so the sidebar and docs pages never go blank just because the API is
  * down. Not imported from jexmcp-nav.ts: that file is no longer part of the
  * live path at all, this is a standalone last-resort snapshot.
+ *
+ * Exported so the landing page's hero preview (DashboardPreview.tsx) can
+ * show a real product's real sub-item titles instead of inventing its own
+ * copy of them — the same reasoning as this constant's own fallback role.
  */
-const FALLBACK_NAV: NavProduct[] = [
+export const FALLBACK_NAV: NavProduct[] = [
   {
     key: "jex3-0",
     label: "Jex3.0",
     icon: "layers",
+    minRole: "user",
     items: [
       { slug: "overview", label: "Overview" },
       { slug: "get-started", label: "Get started" },
@@ -54,6 +59,7 @@ const FALLBACK_NAV: NavProduct[] = [
     key: "jex2-0",
     label: "Jex2.0",
     icon: "folder",
+    minRole: "user",
     items: [
       { slug: "", label: "Overview" },
       { slug: "get-started", label: "Get started" },
@@ -66,6 +72,7 @@ const FALLBACK_NAV: NavProduct[] = [
     key: "coach",
     label: "Coach",
     icon: "person",
+    minRole: "user",
     items: [
       { slug: "", label: "Overview" },
       { slug: "quick-start", label: "Quick start" },
@@ -83,6 +90,7 @@ const FALLBACK_NAV: NavProduct[] = [
     key: "team",
     label: "Team",
     icon: "pulse",
+    minRole: "admin",
     items: [
       { slug: "", label: "Overview" },
       { slug: "roadmap", label: "Roadmap" },
@@ -97,6 +105,7 @@ const FALLBACK_NAV: NavProduct[] = [
     key: "usage",
     label: "Usage",
     icon: "barChart",
+    minRole: "admin",
     items: [
       { slug: "", label: "Dashboard" },
       { slug: "setup-guide", label: "Setup guide" },
@@ -146,7 +155,7 @@ async function adminRequest(path: string, method: string, body?: unknown): Promi
 
 export async function createProduct(key: string, label: string, icon: string): Promise<NavProduct> {
   const response = await adminRequest("/products", "POST", { key, label, icon });
-  const created = (await response.json()) as { key: string; label: string; icon: string };
+  const created = (await response.json()) as { key: string; label: string; icon: string; minRole: string };
   return { ...created, items: [] };
 }
 

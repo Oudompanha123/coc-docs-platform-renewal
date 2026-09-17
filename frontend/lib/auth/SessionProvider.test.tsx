@@ -21,7 +21,7 @@ const SIGNED_IN = {
   id: "1",
   email: "jane@example.com",
   displayName: "Jane Admin",
-  role: "ADMIN",
+  role: "admin",
   authenticated: true,
 };
 

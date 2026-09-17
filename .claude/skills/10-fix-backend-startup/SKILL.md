@@ -40,7 +40,7 @@ bean that could not be built, which is never the problem.
 ## 2. Run the diagnosis
 
 ```bash
-set -a; . ./backend/..env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/diagnose-backend-startup.sh
 ```
 
@@ -79,7 +79,7 @@ is, and getting that wrong is expensive in one direction only.
 Rebuild. Do not repair.
 
 ```bash
-set -a; . ./backend/..env.local; set +a
+set -a; . ./backend/.env.local; set +a
 scripts/db-reset-dev.sh
 ```
 
@@ -123,7 +123,7 @@ eventually repairs over a schema that genuinely diverged.
 Never report success from a fixed config alone. Start it:
 
 ```bash
-set -a; . ./backend/..env.local; set +a
+set -a; . ./backend/.env.local; set +a
 ./backend/mvnw -f backend/pom.xml spring-boot:run
 ```
 

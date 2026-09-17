@@ -25,7 +25,7 @@ function pendingAccount() {
     id: "1",
     email: "invited@example.com",
     displayName: "Invited Person",
-    role: "USER",
+    role: "user",
     createdAt: "2026-09-01T00:00:00Z",
     lastSignInAt: null,
     avatarUrl: null,

@@ -1,6 +1,7 @@
 package com.coc.docs.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -82,6 +83,17 @@ class SecurityRulesTest {
     // NavController/AdminNavController are in this slice too, same reasoning.
     @MockitoBean NavService navService;
 
+    // AdminNotificationController needs it to construct. Mocked for the same
+    // reason as the rest: this test is about who may reach the route, not about
+    // what the digest does — that is ActivityDigestServiceTest's job.
+    @MockitoBean com.coc.docs.notify.ActivityDigestService activityDigestService;
+
+    // AdminAuditController is in this slice too, same reasoning.
+    @MockitoBean com.coc.docs.audit.AuditRepository auditRepository;
+
+    // AdminTaskController is in this slice too, same reasoning (ADR-033).
+    @MockitoBean com.coc.docs.tasks.TaskService taskService;
+
     // AuthController needs it to construct (ADR-018); mocked for the same
     // reason as sessionService above — this test is about which routes the
     // filter chain admits, not what password reset actually does.
@@ -98,10 +110,24 @@ class SecurityRulesTest {
     // reason as passwordResetService above.
     @MockitoBean com.coc.docs.auth.RegistrationOtpService registrationOtpService;
 
+    // AuthController needs it to construct (ADR-031); mocked for the same
+    // reason as registrationOtpService above.
+    @MockitoBean com.coc.docs.auth.TotpService totpService;
+
     // DeviceTokenController is in this slice, so its dependency has to be too
     // (ADR-025). Mocked rather than real: this test is about which routes the
     // filter chain admits, not about what registering a device does.
     @MockitoBean com.coc.docs.notify.DeviceTokenRepository deviceTokenRepository;
+
+    // Same reason as above: NotificationFeedController is in this slice. What
+    // the feed contains is NotificationFeedServiceTest's job; what this test
+    // cares about is that GET /api/v1/notifications is admitted at the `user`
+    // floor while POST /api/v1/admin/notifications/digest stays super_admin.
+    @MockitoBean com.coc.docs.notify.NotificationFeedService notificationFeedService;
+
+    // Same reasoning: this class asserts who may reach the inbox routes, not
+    // what they return. NotificationPersistenceTest owns the rows.
+    @MockitoBean com.coc.docs.notify.NotificationInboxService notificationInboxService;
 
     @TestConfiguration
     static class Beans {
@@ -135,6 +161,18 @@ class SecurityRulesTest {
         @Bean
         SessionAuthenticationFilter sessionAuthenticationFilter(SessionService sessions) {
             return new SessionAuthenticationFilter(sessions);
+        }
+
+        /**
+         * Real, because it is a map of open connections and nothing else.
+         *
+         * <p>Present only so that {@code NotificationStreamController} can be
+         * built — this class is about which roles reach which paths, and the
+         * stream endpoint is one of those paths.
+         */
+        @Bean
+        com.coc.docs.notify.NotificationStream notificationStream() {
+            return new com.coc.docs.notify.NotificationStream();
         }
     }
 
@@ -302,6 +340,31 @@ class SecurityRulesTest {
     }
 
     @Nested
+    @DisplayName("content images")
+    class ContentImagesPath {
+
+        @Test
+        void refuses_a_user() throws Exception {
+            mvc.perform(multipart("/api/v1/admin/content-images")
+                            .file("file", new byte[0])
+                            .with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void admits_an_admin() throws Exception {
+            // 400, not 403: no ContentImageStorage bean exists in this slice
+            // (no object-storage credentials configured for the test), so
+            // the request reaches the controller and is refused for that
+            // business reason, not blocked at the security layer.
+            mvc.perform(multipart("/api/v1/admin/content-images")
+                            .file("file", new byte[0])
+                            .with(as(AppRole.ADMIN)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
     @DisplayName("nav structure")
     class NavStructurePath {
 
@@ -329,8 +392,8 @@ class SecurityRulesTest {
             // which would NPE on a null product before the response status
             // (what this test actually checks) is ever decided.
             Mockito.when(navService.createProduct(
-                            ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
-                    .thenReturn(new NavProduct("x", "X", "layers", 1, List.of()));
+                            ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any()))
+                    .thenReturn(new NavProduct("x", "X", "layers", 1, "user", List.of()));
 
             mvc.perform(post("/api/v1/admin/nav/products")
                             .with(as(AppRole.ADMIN))
@@ -347,8 +410,9 @@ class SecurityRulesTest {
         @Test
         void refuses_an_admin() throws Exception {
             // FR-AUTH-008 in one assertion: an admin publishes content, and
-            // granting roles is a different kind of authority. This is the one
-            // route inside /admin/** that an admin cannot reach.
+            // granting roles is a different kind of authority. One of the few
+            // routes inside /admin/** that an admin cannot reach — see also
+            // /admin/roles/** and /admin/notifications/**.
             mvc.perform(get("/api/v1/admin/accounts").with(as(AppRole.ADMIN)))
                     .andExpect(status().isForbidden());
         }
@@ -368,6 +432,105 @@ class SecurityRulesTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"role\":\"super_admin\"}"))
                     .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("notifications")
+    class Notifications {
+
+        @Test
+        void refuses_an_admin() throws Exception {
+            // Above the admin floor deliberately: the mail this sends carries
+            // page titles and the names of the people who edited them, and it
+            // puts mail in other people's inboxes. Neither is editorial work.
+            // // req: FR-AUTH-008, NFR-SEC-PII
+            mvc.perform(post("/api/v1/admin/notifications/digest").with(as(AppRole.ADMIN)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void refuses_a_plain_user() throws Exception {
+            mvc.perform(post("/api/v1/admin/notifications/digest").with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void refuses_a_caller_with_no_session() throws Exception {
+            mvc.perform(post("/api/v1/admin/notifications/digest")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void admits_a_super_admin() throws Exception {
+            java.time.LocalDate day = java.time.LocalDate.of(2026, 9, 14);
+            org.mockito.Mockito.when(activityDigestService.yesterday()).thenReturn(day);
+            org.mockito.Mockito.when(activityDigestService.sendDigestFor(
+                            org.mockito.ArgumentMatchers.eq(day),
+                            org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(new com.coc.docs.notify.ActivityDigestService.DigestResult(
+                            day, com.coc.docs.notify.ActivityDigestService.Outcome.SENT, 3, 2, 4));
+
+            mvc.perform(post("/api/v1/admin/notifications/digest").with(as(AppRole.SUPER_ADMIN)))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("audit trail")
+    class AuditTrail {
+
+        @Test
+        void refuses_an_admin() throws Exception {
+            // Same reasoning as AccountManagement above: every row names
+            // another account's email (NFR-SEC-PII), so this is the same
+            // class of exposure as /api/v1/admin/accounts/**, not an
+            // ordinary editorial read an admin can reach.
+            mvc.perform(get("/api/v1/admin/audit/recent").with(as(AppRole.ADMIN)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void admits_a_super_admin() throws Exception {
+            org.mockito.Mockito.when(auditRepository.recent(org.mockito.ArgumentMatchers.anyInt()))
+                    .thenReturn(List.of());
+
+            mvc.perform(get("/api/v1/admin/audit/recent").with(as(AppRole.SUPER_ADMIN)))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("tasks")
+    class TasksPath {
+
+        @Test
+        void the_read_side_admits_a_plain_user() throws Exception {
+            // Open to any signed-in role: a task's title carries no other
+            // account's PII, and the Member landing page's "Your Tasks" list
+            // (ADR-033) reads this as a plain `user`.
+            org.mockito.Mockito.when(taskService.listOpen(org.mockito.ArgumentMatchers.anyInt()))
+                    .thenReturn(List.of());
+
+            mvc.perform(get("/api/v1/admin/tasks").with(as(AppRole.USER)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void the_write_side_refuses_a_plain_user() throws Exception {
+            mvc.perform(post("/api/v1/admin/tasks")
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"title\":\"x\"}"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void admits_an_admin() throws Exception {
+            org.mockito.Mockito.when(taskService.listOpen(org.mockito.ArgumentMatchers.anyInt()))
+                    .thenReturn(List.of());
+
+            mvc.perform(get("/api/v1/admin/tasks").with(as(AppRole.ADMIN)))
+                    .andExpect(status().isOk());
         }
     }
 
@@ -436,6 +599,78 @@ class SecurityRulesTest {
                             .cookie(new jakarta.servlet.http.Cookie(
                                     SessionService.COOKIE_NAME, "made-up-token")))
                     .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    @DisplayName("the notification stream")
+    class NotificationStreamRoute {
+
+        @Test
+        void is_reachable_by_any_signed_in_account() throws Exception {
+            // The rule this pins: a live stream is a long-lived response, but
+            // the authorisation question is an ordinary one asked once, before
+            // it opens. On 2026-09-16 this route answered Access Denied to a
+            // signed-in caller and the cause was worth being able to bisect
+            // here rather than in a browser.
+            mvc.perform(get("/api/v1/notifications/stream").with(as(AppRole.USER)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void is_reachable_by_an_admin_too() throws Exception {
+            mvc.perform(get("/api/v1/notifications/stream").with(as(AppRole.ADMIN)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void is_refused_without_a_session() throws Exception {
+            // It carries one account's own events, so there is no anonymous
+            // form of this request that could mean anything.
+            mvc.perform(get("/api/v1/notifications/stream")).andExpect(status().isUnauthorized());
+        }
+
+        // The async dispatch — the second pass that actually delivers this
+        // response — is deliberately not tested here. MockMvc reinstalls the
+        // test's SecurityContext on every dispatch, so it is authenticated on
+        // both passes whatever the filters do, and a case written here would
+        // pass with the bug present. Verified by reintroducing it.
+        // NotificationStreamAuthIntegrationTest covers it over real HTTP.
+    }
+
+    @Nested
+    @DisplayName("the notification inbox")
+    class NotificationInbox {
+
+        @ParameterizedTest
+        @ValueSource(strings = {"USER", "ADMIN", "SUPER_ADMIN"})
+        void is_reachable_by_every_signed_in_role(String role) throws Exception {
+            // Every role receives notifications — a new-device sign-in alert
+            // goes to whoever was signed in to, whatever else they may do here
+            // (ADR-034). A floor above `user` would leave the people most
+            // likely to be targeted unable to read their own alerts.
+            mvc.perform(get("/api/v1/notifications/inbox").with(as(AppRole.valueOf(role))))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void is_refused_without_a_session() throws Exception {
+            // The rows are scoped to the resolved caller, so an anonymous form
+            // of this request could not mean anything.
+            mvc.perform(get("/api/v1/notifications/inbox")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void marking_read_is_refused_without_a_session() throws Exception {
+            mvc.perform(post("/api/v1/notifications/inbox/"
+                            + java.util.UUID.randomUUID() + "/read"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void marking_all_read_needs_a_session_and_nothing_more() throws Exception {
+            mvc.perform(post("/api/v1/notifications/inbox/read-all").with(as(AppRole.USER)))
+                    .andExpect(status().isNoContent());
         }
     }
 }

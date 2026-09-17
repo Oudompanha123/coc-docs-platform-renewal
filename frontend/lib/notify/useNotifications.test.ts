@@ -1,259 +1,319 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { listPending, useSession, isNotificationsEnabled } = vi.hoisted(() => ({
+const {
+  listPending,
+  listSessions,
+  revokeSession,
+  useSession,
+  isNotificationsEnabled,
+  ensureBackgroundPushRegistered,
+  subscribeToNotifications,
+  fetchInbox,
+  markNotificationRead,
+  markAllNotificationsRead,
+} = vi.hoisted(() => ({
   listPending: vi.fn(),
+  listSessions: vi.fn(),
+  revokeSession: vi.fn(),
   useSession: vi.fn(),
   isNotificationsEnabled: vi.fn(),
+  ensureBackgroundPushRegistered: vi.fn(),
+  subscribeToNotifications: vi.fn(),
+  fetchInbox: vi.fn(),
+  markNotificationRead: vi.fn(),
+  markAllNotificationsRead: vi.fn(),
 }));
 
 vi.mock("@/lib/admin/accounts", () => ({ listPending }));
+vi.mock("@/lib/auth/api", async () => {
+  // The real module, with only the two calls replaced. The error classes have
+  // to be the real ones: the hook does `instanceof SessionExpiredError`, and a
+  // stubbed module would give the test a different class that never matches.
+  const actual = await vi.importActual<typeof import("@/lib/auth/api")>("@/lib/auth/api");
+  return { ...actual, listSessions, revokeSession };
+});
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
-vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled }));
+vi.mock("@/lib/notify/push", () => ({ isNotificationsEnabled, ensureBackgroundPushRegistered }));
+vi.mock("@/lib/notify/stream", () => ({ subscribeToNotifications }));
+vi.mock("@/lib/notify/inbox-api", () => ({
+  fetchInbox,
+  markNotificationRead,
+  markAllNotificationsRead,
+}));
 
 import { useNotifications } from "./useNotifications";
+
+const refreshSession = vi.fn();
 
 function signedInAs(role: string | null) {
   useSession.mockReturnValue({
     status: role ? "authenticated" : "anonymous",
     user: role ? { id: "1", role } : null,
+    refresh: refreshSession,
   });
 }
 
-const dana = {
-  id: "a",
-  email: "dana@example.com",
-  displayName: "Dana Lee",
-  role: "GUEST",
-  status: "PENDING",
-};
-const sam = { id: "b", email: "sam@example.com", displayName: "Sam Ray", role: "GUEST", status: "PENDING" };
+/** One stored notification, as the server sends it. */
+function stored(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "n1",
+    type: "auth.new-device",
+    targetId: "session-1",
+    payload: { body: "Firefox on Windows" },
+    createdAt: "2026-09-17T08:00:00Z",
+    readAt: null,
+    ...overrides,
+  };
+}
+
+function inbox(items: ReturnType<typeof stored>[]) {
+  return { items, unreadCount: items.filter((i) => i.readAt === null).length };
+}
 
 describe("useNotifications", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     isNotificationsEnabled.mockReturnValue(true);
+    ensureBackgroundPushRegistered.mockResolvedValue(undefined);
+    subscribeToNotifications.mockReturnValue(() => {});
+    fetchInbox.mockResolvedValue(inbox([]));
+    listPending.mockResolvedValue([]);
+    listSessions.mockResolvedValue([]);
+    markNotificationRead.mockResolvedValue(undefined);
+    markAllNotificationsRead.mockResolvedValue(undefined);
   });
 
-  it("lists who is actually waiting, not a fixed array", async () => {
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
-
-    const { result } = renderHook(() => useNotifications());
-
-    await waitFor(() => expect(result.current.items).toHaveLength(2));
-    expect(result.current.items[0]?.detail).toContain("dana@example.com");
-    // Everything is unread until somebody looks at it.
-    expect(result.current.unreadCount).toBe(2);
-  });
-
-  it("drops the badge when an item is read, and keeps the item in the list", async () => {
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
-
-    const { result } = renderHook(() => useNotifications());
-    await waitFor(() => expect(result.current.unreadCount).toBe(2));
-
-    act(() => result.current.markRead("a"));
-
-    // Read is not the same as handled: they are still waiting for approval, so
-    // the item stays. Only the count changes.
-    await waitFor(() => expect(result.current.unreadCount).toBe(1));
-    expect(result.current.items).toHaveLength(2);
-    expect(result.current.items.find((i) => i.id === "a")?.read).toBe(true);
-  });
-
-  it("marks everything read at once", async () => {
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
-
-    const { result } = renderHook(() => useNotifications());
-    await waitFor(() => expect(result.current.unreadCount).toBe(2));
-
-    act(() => result.current.markAllRead());
-
-    await waitFor(() => expect(result.current.unreadCount).toBe(0));
-    expect(result.current.items).toHaveLength(2);
-  });
-
-  it("remembers what was read across a remount", async () => {
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
-
-    const first = renderHook(() => useNotifications());
-    await waitFor(() => expect(first.result.current.unreadCount).toBe(2));
-    act(() => first.result.current.markRead("a"));
-    await waitFor(() => expect(first.result.current.unreadCount).toBe(1));
-    first.unmount();
-
-    const second = renderHook(() => useNotifications());
-
-    // Otherwise every page navigation would re-bold everything and the badge
-    // would be noise.
-    await waitFor(() => expect(second.result.current.unreadCount).toBe(1));
-  });
-
-  /**
-   * Read marks are stored by id, so without this they would accumulate for
-   * people who were approved months ago and never come back.
-   */
-  it("forgets read marks for people who have left the queue", async () => {
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
-
-    const { result } = renderHook(() => useNotifications());
-    await waitFor(() => expect(result.current.unreadCount).toBe(2));
-    act(() => result.current.markAllRead());
-    await waitFor(() => expect(result.current.unreadCount).toBe(0));
-
-    // Dana is approved and leaves the queue.
-    listPending.mockResolvedValue([sam]);
-    await act(async () => {
-      await result.current.refresh();
-    });
-
-    await waitFor(() => expect(result.current.items).toHaveLength(1));
-    expect(JSON.parse(localStorage.getItem("coc_read_notifications") ?? "[]")).toEqual(["b"]);
-  });
-
-  it("shows nothing, and asks nothing, for a non-approver", async () => {
+  it("shows what the server stored, rendered from the type and its facts", async () => {
     signedInAs("user");
+    fetchInbox.mockResolvedValue(inbox([stored()]));
 
     const { result } = renderHook(() => useNotifications());
 
-    await waitFor(() => expect(result.current.unreadCount).toBe(0));
-    // The queue sits behind a super_admin floor, so asking as anyone else is a
-    // guaranteed 403 on every page load.
-    expect(listPending).not.toHaveBeenCalled();
-  });
-
-  it("asks nothing while the session is still loading", async () => {
-    useSession.mockReturnValue({ status: "loading", user: null });
-
-    const { result } = renderHook(() => useNotifications());
-
-    await waitFor(() => expect(result.current.unreadCount).toBe(0));
-    expect(listPending).not.toHaveBeenCalled();
-  });
-
-  it("empties rather than throwing when the queue cannot be read", async () => {
-    signedInAs("super_admin");
-    listPending.mockRejectedValue(new Error("network down"));
-
-    const { result } = renderHook(() => useNotifications());
-
-    // This drives the topbar, which is on every page: an error thrown here
-    // takes the whole page down, and an empty bell does not.
-    await waitFor(() => expect(result.current.items).toHaveLength(0));
-  });
-
-  it("does not raise a browser alert for people already in the queue at sign-in", async () => {
-    const notificationSpy = vi.fn();
-    vi.stubGlobal("Notification", notificationSpy);
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
-
-    const { result } = renderHook(() => useNotifications());
-    await waitFor(() => expect(result.current.items).toHaveLength(2));
-
-    // A banner per waiting applicant on every page load would teach people to
-    // ignore the banners.
-    expect(notificationSpy).not.toHaveBeenCalled();
-  });
-
-  it("raises a browser alert for somebody who arrives while you are watching", async () => {
-    const notificationSpy = vi.fn();
-    vi.stubGlobal("Notification", notificationSpy);
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana]);
-
-    const { result } = renderHook(() => useNotifications());
     await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.items[0]?.title).toBe("New sign-in");
+    // Rendered here, not stored: improving this sentence applies to every
+    // notification already sent (ADR-034 decision 2).
+    expect(result.current.items[0]?.detail).toContain("Firefox on Windows");
+    expect(result.current.unreadCount).toBe(1);
+  });
 
-    listPending.mockResolvedValue([dana, sam]);
-    await act(async () => {
-      await result.current.refresh();
+  it("survives the session it describes — the whole point of storing it", async () => {
+    // Before ADR-034 this list was a filter over live sessions, so an alert
+    // vanished when its session was revoked or expired. The PM found it that
+    // way: "I see notify but next time I don't see notify at list".
+    signedInAs("user");
+    listSessions.mockResolvedValue([]);
+    fetchInbox.mockResolvedValue(inbox([stored()]));
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+  });
+
+  it("renders an unknown type from its body rather than a blank row", async () => {
+    // A build older than a type, or one after a type was retired. Every sender
+    // writes `body` so there is always something true to show.
+    signedInAs("user");
+    fetchInbox.mockResolvedValue(
+      inbox([stored({ type: "something.new", payload: { body: "A thing happened" } })]),
+    );
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.items[0]?.detail).toBe("A thing happened");
+  });
+
+  it("marks read on the server, not in this browser", async () => {
+    signedInAs("user");
+    fetchInbox.mockResolvedValue(inbox([stored()]));
+    const { result } = renderHook(() => useNotifications());
+    await waitFor(() => expect(result.current.unreadCount).toBe(1));
+
+    act(() => result.current.markRead("n1"));
+
+    // Optimistic locally so the dot disappears at once, and persisted so it is
+    // still read on another device — which localStorage could never do.
+    expect(result.current.unreadCount).toBe(0);
+    expect(result.current.items[0]?.read).toBe(true);
+    expect(markNotificationRead).toHaveBeenCalledWith("n1");
+  });
+
+  it("marks everything read in one call", async () => {
+    signedInAs("user");
+    fetchInbox.mockResolvedValue(inbox([stored(), stored({ id: "n2", targetId: "s2" })]));
+    const { result } = renderHook(() => useNotifications());
+    await waitFor(() => expect(result.current.unreadCount).toBe(2));
+
+    act(() => result.current.markAllRead());
+
+    expect(result.current.unreadCount).toBe(0);
+    expect(markAllNotificationsRead).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the badge counting everything unread, not only what is listed", async () => {
+    signedInAs("user");
+    // The server caps the list; the count is of the whole table.
+    fetchInbox.mockResolvedValue({ items: [stored()], unreadCount: 47 });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => expect(result.current.unreadCount).toBe(47));
+    expect(result.current.items).toHaveLength(1);
+  });
+
+  describe("opening one", () => {
+    it("fetches the session a sign-in alert is about, on the click", async () => {
+      const onOpenSignIn = vi.fn();
+      const session = { id: "session-1", device: "Firefox on Windows" };
+      listSessions.mockResolvedValue([session]);
+      signedInAs("user");
+      fetchInbox.mockResolvedValue(inbox([stored()]));
+
+      const { result } = renderHook(() => useNotifications({ onOpenSignIn }));
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+      // Not polled. The notification is the record; the session list is the
+      // current state, and only acting needs both.
+      expect(listSessions).not.toHaveBeenCalled();
+      await act(async () => {
+        await result.current.open(result.current.items[0]!);
+      });
+
+      expect(onOpenSignIn).toHaveBeenCalledWith(session);
     });
 
-    await waitFor(() => expect(notificationSpy).toHaveBeenCalledTimes(1));
-    expect(notificationSpy.mock.calls[0]?.[0]).toBe("New registration");
-  });
+    it("fetches the applicant a registration is about", async () => {
+      const onOpenApproval = vi.fn();
+      const applicant = { id: "acc-1", displayName: "Dana Lee" };
+      listPending.mockResolvedValue([applicant]);
+      signedInAs("super_admin");
+      fetchInbox.mockResolvedValue(
+        inbox([stored({ type: "registration.pending", targetId: "acc-1" })]),
+      );
 
-  it("raises no alert when notifications are switched off in Settings", async () => {
-    const notificationSpy = vi.fn();
-    vi.stubGlobal("Notification", notificationSpy);
-    isNotificationsEnabled.mockReturnValue(false);
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana]);
+      const { result } = renderHook(() => useNotifications({ onOpenApproval }));
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+      await act(async () => {
+        await result.current.open(result.current.items[0]!);
+      });
 
-    const { result } = renderHook(() => useNotifications());
-    await waitFor(() => expect(result.current.items).toHaveLength(1));
-
-    listPending.mockResolvedValue([dana, sam]);
-    await act(async () => {
-      await result.current.refresh();
+      expect(onOpenApproval).toHaveBeenCalledWith(applicant);
     });
 
-    // Permission at the browser level is not consent here: somebody who turned
-    // this off in Settings must stop being interrupted.
-    await waitFor(() => expect(result.current.items).toHaveLength(2));
-    expect(notificationSpy).not.toHaveBeenCalled();
-  });
+    it("opens nothing when the thing is already dealt with, and keeps the notification", async () => {
+      const onOpenSignIn = vi.fn();
+      // Session already ended, or the applicant approved by somebody else
+      // between the notification and the click.
+      listSessions.mockResolvedValue([]);
+      signedInAs("user");
+      fetchInbox.mockResolvedValue(inbox([stored()]));
 
-  it("opens the approval dialog when the banner is clicked", async () => {
-    const notificationSpy = vi.fn();
-    vi.stubGlobal("Notification", notificationSpy);
-    const onOpenApproval = vi.fn();
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana]);
+      const { result } = renderHook(() => useNotifications({ onOpenSignIn }));
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+      await act(async () => {
+        await result.current.open(result.current.items[0]!);
+      });
 
-    const { result } = renderHook(() => useNotifications({ onOpenApproval }));
-    await waitFor(() => expect(result.current.items).toHaveLength(1));
-
-    listPending.mockResolvedValue([dana, sam]);
-    await act(async () => {
-      await result.current.refresh();
+      expect(onOpenSignIn).not.toHaveBeenCalled();
+      // The record of what happened is not the same thing as what is still
+      // actionable, which is why one outliving the other is correct.
+      expect(result.current.items).toHaveLength(1);
     });
-    await waitFor(() => expect(notificationSpy).toHaveBeenCalledTimes(1));
 
-    // A banner that does nothing when clicked is worse than none: it says
-    // something needs doing and then makes the reader go and find it.
-    const banner = notificationSpy.mock.instances[0] as { onclick?: () => void; close?: () => void };
-    banner.close = vi.fn();
-    act(() => banner.onclick?.());
+    it("costs the dialog and not the bell when the lookup fails", async () => {
+      const onOpenSignIn = vi.fn();
+      listSessions.mockRejectedValue(new Error("backend down"));
+      signedInAs("user");
+      fetchInbox.mockResolvedValue(inbox([stored()]));
 
-    expect(onOpenApproval).toHaveBeenCalledTimes(1);
-    expect(onOpenApproval.mock.calls[0]?.[0]).toMatchObject({ id: "b" });
+      const { result } = renderHook(() => useNotifications({ onOpenSignIn }));
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+      await act(async () => {
+        await result.current.open(result.current.items[0]!);
+      });
+
+      expect(onOpenSignIn).not.toHaveBeenCalled();
+      expect(result.current.items).toHaveLength(1);
+    });
   });
 
-  it("opens the approval dialog for an ?approve= deep link, then clears it", async () => {
-    const onOpenApproval = vi.fn();
-    window.history.replaceState({}, "", "/users-roles?tab=pending&approve=a");
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana, sam]);
+  describe("session and connection", () => {
+    it("re-reads the session when the inbox says it has ended", async () => {
+      const { SessionExpiredError } = await import("@/lib/auth/api");
+      signedInAs("user");
+      fetchInbox.mockRejectedValue(new SessionExpiredError("ended"));
 
-    renderHook(() => useNotifications({ onOpenApproval }));
+      renderHook(() => useNotifications());
 
-    // This is how a notification clicked while the app was closed arrives.
-    await waitFor(() => expect(onOpenApproval).toHaveBeenCalledTimes(1));
-    expect(onOpenApproval.mock.calls[0]?.[0]).toMatchObject({ id: "a" });
-    // Cleared, so a refresh does not reopen the dialog.
-    expect(window.location.search).not.toContain("approve=");
-  });
+      // A tab whose session was revoked underneath it used to show an empty
+      // bell, which is indistinguishable from having nothing to report.
+      await waitFor(() => expect(refreshSession).toHaveBeenCalled());
+    });
 
-  it("does nothing for a deep link to somebody already approved", async () => {
-    const onOpenApproval = vi.fn();
-    window.history.replaceState({}, "", "/users-roles?approve=gone");
-    signedInAs("super_admin");
-    listPending.mockResolvedValue([dana]);
+    it("leaves nobody signed out for an ordinary failure", async () => {
+      const { AuthApiError } = await import("@/lib/auth/api");
+      signedInAs("user");
+      fetchInbox.mockRejectedValue(new AuthApiError("backend down"));
 
-    const { result } = renderHook(() => useNotifications({ onOpenApproval }));
-    await waitFor(() => expect(result.current.items).toHaveLength(1));
+      renderHook(() => useNotifications());
 
-    // Approved by a colleague between the notification and the click. The
-    // queue on screen is already the answer; a dialog about nobody is not.
-    expect(onOpenApproval).not.toHaveBeenCalled();
-    expect(window.location.search).not.toContain("approve=");
+      await waitFor(() => expect(fetchInbox).toHaveBeenCalled());
+      expect(refreshSession).not.toHaveBeenCalled();
+    });
+
+    it("asks nothing of a visitor who is not signed in", async () => {
+      signedInAs(null);
+
+      const { result } = renderHook(() => useNotifications());
+
+      await waitFor(() => expect(result.current.items).toHaveLength(0));
+      expect(fetchInbox).not.toHaveBeenCalled();
+      expect(subscribeToNotifications).not.toHaveBeenCalled();
+      expect(ensureBackgroundPushRegistered).not.toHaveBeenCalled();
+    });
+
+    it("re-reads the moment the stream says something changed", async () => {
+      let fire: () => void = () => {};
+      subscribeToNotifications.mockImplementation((onEvent: () => void) => {
+        fire = onEvent;
+        return () => {};
+      });
+      signedInAs("user");
+
+      const { result } = renderHook(() => useNotifications());
+      await waitFor(() => expect(fetchInbox).toHaveBeenCalledTimes(1));
+
+      fetchInbox.mockResolvedValue(inbox([stored()]));
+      await act(async () => {
+        fire();
+      });
+
+      // No timer advanced, no reload.
+      await waitFor(() => expect(result.current.items).toHaveLength(1));
+    });
+
+    it("closes the connection when the bell goes away", async () => {
+      const close = vi.fn();
+      subscribeToNotifications.mockReturnValue(close);
+      signedInAs("user");
+
+      const { unmount } = renderHook(() => useNotifications());
+      await waitFor(() => expect(subscribeToNotifications).toHaveBeenCalled());
+
+      unmount();
+
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    it("registers this browser for push on load", async () => {
+      signedInAs("user");
+
+      renderHook(() => useNotifications());
+
+      await waitFor(() => expect(ensureBackgroundPushRegistered).toHaveBeenCalled());
+    });
   });
 });

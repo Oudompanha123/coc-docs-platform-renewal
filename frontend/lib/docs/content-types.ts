@@ -5,12 +5,21 @@
 
 export type FeatureCardData = {
   icon: IconKey;
+  /** An admin-uploaded image, shown instead of `icon` when present — the
+   *  icon key is kept either way so removing the image falls back to a
+   *  real choice rather than a blank tile. */
+  imageUrl?: string;
   title: string;
   description: string;
 };
 
 export type HeroContent = {
   kind: "hero";
+  /** "centered" (default, omitted for existing content) stacks the hero
+   *  banner and the feature grid as today. "split" additionally shows a
+   *  compact preview of the feature cards' icons/images beside the hero
+   *  text — the same feature-card data, not a new field. */
+  layout?: "centered" | "split";
   heading: string;
   tagline: string;
   subline: string;

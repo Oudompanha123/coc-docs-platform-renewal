@@ -2,76 +2,118 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listPending, type PendingAccount } from "@/lib/admin/accounts";
+import { listSessions, SessionExpiredError, type SessionSummary } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
-import { isNotificationsEnabled } from "@/lib/notify/push";
+import {
+  fetchInbox,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type InboxNotification,
+} from "@/lib/notify/inbox-api";
+import { ensureBackgroundPushRegistered, isNotificationsEnabled } from "@/lib/notify/push";
+import { subscribeToNotifications } from "@/lib/notify/stream";
 
 /**
- * What the bell in the topbar shows, and which of it has been looked at.
+ * What the bell shows, and which of it has been read.
  *
- * <p>It used to render a hardcoded array from `lib/mock/overview` — three
- * invented items that never changed. This is the one real thing the system
- * currently has to say: who is waiting for approval (ADR-017), which is also
- * exactly what the push notification (ADR-025) deep-links to.
+ * <p><b>Stored, not derived.</b> This used to build its list from live state —
+ * the pending queue and the session list — which meant a new-device sign-in
+ * alert was a filter over sessions that still existed. It vanished when that
+ * session was revoked or expired, so the case the alert exists for (somebody
+ * signed in, did something, and left) was the case that left nothing behind.
+ * The PM found it exactly that way: "I see notify but next time I don't see
+ * notify at list". Rows now, per ADR-034.
  *
- * <p><b>The list is derived, the read marks are stored.</b> Items come from the
- * queue on every read, so they cannot drift from the truth — approve somebody
- * and they leave the list because they left the queue, not because anything
- * here remembered to remove them. Read state is the one thing the queue cannot
- * answer, so it is kept separately.
+ * <p><b>Read state is the server's.</b> It was `localStorage`, so reading an
+ * alert on a laptop left it unread on a phone and clearing site data lost
+ * every mark. `read_at` belongs to the person.
  *
- * <p><b>Read marks are per-browser.</b> localStorage, not the server. Reading a
- * notification on your laptop leaves it unread on your phone. That is a real
- * limitation and the honest fix is a server-side notification table — worth
- * building when the second notification type arrives and there is something to
- * share the design with, not for one type that already has a queue behind it
- * (ADR-025, "Alternatives Considered").
+ * <p><b>The live sources are consulted only to act.</b> Opening a registration
+ * needs the applicant, and ending a session needs the session — both fetched
+ * on the click rather than polled, so the list costs one request and the queue
+ * stays the authority on who is actually still waiting.
  *
- * <p><b>Polling, at a deliberately unhurried interval.</b> The badge should not
- * need a page reload to be right. Sixty seconds is chosen against the thing it
- * competes with: FCM, which is immediate. This is the floor for somebody who
- * has not enabled push, not the mechanism.
+ * <p><b>Live, with polling underneath.</b> An open stream (ADR-028) says when
+ * to re-read. The sixty-second poll stays as the floor: a stream can be cut by
+ * a proxy or a frozen tab without telling either end, and a minute late is a
+ * poor experience where never is a bug.
  */
 
-const READ_KEY = "coc_read_notifications";
 const POLL_INTERVAL_MS = 60_000;
 
 export type NotificationItem = {
   id: string;
+  /** `NotificationType.key()` — what to render and where a click leads. */
+  type: string;
   title: string;
   detail: string;
   read: boolean;
-  /** The applicant, for the approval popup. */
-  account: PendingAccount;
+  createdAt: string;
+  targetId: string | null;
+  iconUrl: string | null;
+  /** The applicant's name, when this is about one — for the avatar's initials. */
+  subjectName: string | null;
 };
 
 export type Notifications = {
   items: NotificationItem[];
-  /** Badge count — unread only. Zero renders no badge. */
+  /** Badge count. Every unread, not only what is listed. */
   unreadCount: number;
   markRead: (id: string) => void;
   markAllRead: () => void;
-  /** Re-reads the queue. Called after approving, so the item leaves at once. */
+  /** Re-reads the inbox. */
   refresh: () => Promise<void>;
+  /** Resolves what an item is about and hands it to the right dialog. */
+  open: (item: NotificationItem) => Promise<void>;
 };
 
-function readIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(READ_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    return new Set();
+/**
+ * The sentence, built from the type and the facts.
+ *
+ * <p>No wording is stored (ADR-034 decision 2), so improving one of these
+ * applies to every notification already sent rather than only to new ones.
+ *
+ * <p>An unrecognised type falls back to `payload.body`, which every sender
+ * writes: a build older than a type, or one after a type was retired, shows
+ * something true rather than a blank row.
+ */
+function render(n: InboxNotification): { title: string; detail: string } {
+  const body = typeof n.payload.body === "string" ? n.payload.body : "";
+  switch (n.type) {
+    case "registration.pending":
+      return {
+        title: "New registration",
+        detail: body || "Someone is waiting for approval",
+      };
+    case "auth.new-device":
+      return {
+        title: "New sign-in",
+        detail: body ? `${body} · ${formatWhen(n.createdAt)}` : "From a device you have not used",
+      };
+    default:
+      return { title: "Notification", detail: body || "Something happened" };
   }
 }
 
-function storeReadIds(ids: Set<string>) {
-  try {
-    // Only ids still in the queue are kept, so this cannot grow without bound
-    // as people are approved and their notifications disappear.
-    localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
-  } catch {
-    // Private mode. Everything shows as unread, which is wrong but harmless —
-    // the queue itself is unaffected.
-  }
+/** A readable timestamp, or something honest when the value will not parse. */
+function formatWhen(iso: string): string {
+  const when = new Date(iso);
+  return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
+}
+
+function toItem(n: InboxNotification): NotificationItem {
+  const { title, detail } = render(n);
+  return {
+    id: n.id,
+    type: n.type,
+    title,
+    detail,
+    read: n.readAt !== null,
+    createdAt: n.createdAt,
+    targetId: n.targetId,
+    iconUrl: typeof n.payload.iconUrl === "string" ? n.payload.iconUrl : null,
+    subjectName: typeof n.payload.subjectName === "string" ? n.payload.subjectName : null,
+  };
 }
 
 /**
@@ -79,11 +121,7 @@ function storeReadIds(ids: Set<string>) {
  *
  * <p>The banner icon for somebody with no provider picture. The alternative
  * was the app favicon, which is the Next.js logo and says nothing about who
- * the notification is about — the same reason the in-app list shows initials
- * rather than a stand-in face.
- *
- * <p>Returns undefined when canvas is unavailable, and the banner then simply
- * has no icon, which is better than a wrong one.
+ * the notification is about.
  */
 function initialsIcon(name: string): string | undefined {
   try {
@@ -123,14 +161,17 @@ function initialsIcon(name: string): string | undefined {
 }
 
 /**
- * Raises a browser notification for an applicant nobody has seen yet.
+ * Raises a browser banner, and makes clicking it do something.
  *
  * <p>The fallback for a deployment with no Firebase project, and for a tab
- * that is open — FCM's background handler covers neither. Requires the same
- * permission the Settings toggle asks for, and does nothing without it, so it
- * can never be the thing that prompts.
+ * that is open — FCM background handling covers neither. Requires the same
+ * permission the Settings toggle asks for, and does nothing without it.
+ *
+ * <p>`tag` collapses repeats: five registrations replace one another rather
+ * than stacking five identical banners. Each type gets its own, because a
+ * sign-in alert must never be the banner a registration quietly replaces.
  */
-function alertBrowser(account: PendingAccount, onClick: (account: PendingAccount) => void) {
+function alertBrowser(item: NotificationItem, onClick: () => void) {
   try {
     // Both halves: permission at the browser level, and the person having
     // turned this on in Settings. Permission alone would alert somebody who
@@ -138,14 +179,10 @@ function alertBrowser(account: PendingAccount, onClick: (account: PendingAccount
     if (!isNotificationsEnabled()) {
       return;
     }
-    // tag collapses repeats: five registrations replace one another rather
-    // than stacking five banners saying the same thing.
-    const banner = new Notification("New registration", {
-      body: `${account.displayName} is waiting for approval`,
-      // Their own picture when Google gave one; initials otherwise. Never the
-      // app logo, which tells the reader nothing about who this is.
-      icon: account.avatarUrl ?? initialsIcon(account.displayName),
-      tag: "registration.pending",
+    const banner = new Notification(item.title, {
+      body: item.detail,
+      icon: item.iconUrl ?? (item.subjectName ? initialsIcon(item.subjectName) : undefined),
+      tag: item.type,
     });
 
     // A banner that does nothing when clicked is worse than none: it says
@@ -153,7 +190,7 @@ function alertBrowser(account: PendingAccount, onClick: (account: PendingAccount
     banner.onclick = () => {
       window.focus();
       banner.close();
-      onClick(account);
+      onClick();
     };
   } catch {
     // Some browsers throw on the constructor rather than returning; a banner
@@ -161,126 +198,163 @@ function alertBrowser(account: PendingAccount, onClick: (account: PendingAccount
   }
 }
 
-export function useNotifications(options: {
-  /**
-   * Called when a browser banner is clicked, and when the app is opened by a
-   * notification deep link. The bell answers it by opening the approval
-   * dialog, so the reader acts from where they already are.
-   */
-  onOpenApproval?: (account: PendingAccount) => void;
-} = {}): Notifications {
-  // A ref so the polling effect does not restart every render just because the
-  // caller passed a new closure.
+export function useNotifications(
+  options: {
+    /** Called when a registration notification is opened. */
+    onOpenApproval?: (account: PendingAccount) => void;
+    /** Called when a new-device sign-in notification is opened. */
+    onOpenSignIn?: (session: SessionSummary) => void;
+  } = {},
+): Notifications {
+  // Refs so the polling effect does not restart every render just because the
+  // caller passed new closures.
   const onOpenApproval = useRef(options.onOpenApproval);
   onOpenApproval.current = options.onOpenApproval;
+  const onOpenSignIn = useRef(options.onOpenSignIn);
+  onOpenSignIn.current = options.onOpenSignIn;
 
-  const { status, user } = useSession();
-  const [pending, setPending] = useState<PendingAccount[]>([]);
-  const [read, setRead] = useState<Set<string>>(new Set());
+  const { status, refresh: refreshSession } = useSession();
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Ids already announced by this tab, so polling does not re-alert on every
   // pass. A ref, not state: changing it must not re-render.
   const announced = useRef<Set<string> | null>(null);
 
-  const isApprover = status === "authenticated" && user?.role === "super_admin";
+  const signedIn = status === "authenticated";
 
-  useEffect(() => {
-    setRead(readIds());
+  /**
+   * Finds what an item is about and opens the dialog for it.
+   *
+   * <p>Fetched on the click rather than polled. The notification is the
+   * record; the queue and the session list are the current state, and only
+   * acting needs both. It also means the ordinary case — a bell nobody opens —
+   * costs one request instead of three.
+   */
+  const open = useCallback(async (item: NotificationItem) => {
+    if (!item.targetId) return;
+    try {
+      if (item.type === "auth.new-device") {
+        const session = (await listSessions()).find((s) => s.id === item.targetId);
+        // Absent means it has already been dealt with — the session ended, or
+        // somebody signed out. The notification stays; there is simply nothing
+        // left to act on, and saying so is the honest outcome.
+        if (session) onOpenSignIn.current?.(session);
+        return;
+      }
+      if (item.type === "registration.pending") {
+        const account = (await listPending()).find((a) => a.id === item.targetId);
+        // Approved by somebody else between the notification and the click.
+        if (account) onOpenApproval.current?.(account);
+      }
+    } catch {
+      // A failed lookup costs the dialog, not the notification. The bell is
+      // still right about what happened.
+    }
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!isApprover) {
-      setPending([]);
+    if (!signedIn) {
+      setItems([]);
+      setUnreadCount(0);
       return;
     }
     try {
-      const queue = await listPending();
-      setPending(queue);
+      const inbox = await fetchInbox();
+      const next = inbox.items.map(toItem);
+      setItems(next);
+      setUnreadCount(inbox.unreadCount);
 
       // First pass after sign-in seeds the set without alerting: everything
-      // already in the queue is old news, and a banner per waiting applicant
-      // on every page load would teach people to ignore the banners.
+      // already here is old news, and a banner per item on every page load
+      // would teach people to ignore the banners.
       if (announced.current === null) {
-        announced.current = new Set(queue.map((a) => a.id));
+        announced.current = new Set(next.map((n) => n.id));
       } else {
-        for (const account of queue) {
-          if (!announced.current.has(account.id)) {
-            announced.current.add(account.id);
-            alertBrowser(account, (clicked) => onOpenApproval.current?.(clicked));
-          }
+        for (const item of next) {
+          if (announced.current.has(item.id) || item.read) continue;
+          announced.current.add(item.id);
+          alertBrowser(item, () => void open(item));
         }
       }
-
-      // Forget read marks for people no longer in the queue.
-      setRead((prev) => {
-        const live = new Set(queue.map((a) => a.id));
-        const kept = new Set([...prev].filter((id) => live.has(id)));
-        if (kept.size !== prev.size) storeReadIds(kept);
-        return kept.size === prev.size ? prev : kept;
-      });
-    } catch {
-      // This drives the topbar, which is on every page. An empty bell is wrong
-      // but harmless; a thrown error in a layout component takes the page down.
-      setPending([]);
+    } catch (error) {
+      if (error instanceof SessionExpiredError) {
+        // Not "could not load" but "you are not signed in any more". Showing
+        // an empty bell for it is how a tab that had been signed out for an
+        // hour went on looking normal. The provider is the authority on
+        // session state and RequireSession knows what to do when it turns
+        // anonymous.
+        void refreshSession();
+      }
+      // Anything else: the bell keeps what it had. This drives the topbar on
+      // every page, and a thrown error in a layout component takes the page
+      // down.
+      setItems([]);
+      setUnreadCount(0);
     }
-  }, [isApprover]);
+  }, [signedIn, refreshSession, open]);
 
   useEffect(() => {
     void refresh();
-    if (!isApprover) return;
+    if (!signedIn) return;
+
+    // Register this browser for push if it should be and is not.
+    void ensureBackgroundPushRegistered();
+
+    // The live connection: the server says something changed and this re-reads
+    // at once. This is what makes the bell change while somebody is watching
+    // it, with no Firebase project and no granted permission.
+    const stopStream = subscribeToNotifications(() => void refresh());
+
+    // The floor under it. A stream can be cut by a proxy that strips
+    // buffering, a corporate middlebox, or a tab the OS froze — none of which
+    // announce themselves.
     const timer = setInterval(() => void refresh(), POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [refresh, isApprover]);
+
+    return () => {
+      stopStream();
+      clearInterval(timer);
+    };
+  }, [refresh, signedIn]);
 
   const markRead = useCallback((id: string) => {
-    setRead((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev).add(id);
-      storeReadIds(next);
-      return next;
-    });
+    // Optimistic: the row is already read from the reader's point of view, and
+    // making them watch a round trip to see a dot disappear would be worse
+    // than being briefly wrong. The next poll corrects it either way.
+    setItems((prev) =>
+      prev.map((item) => (item.id === id && !item.read ? { ...item, read: true } : item)),
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+    void markNotificationRead(id);
   }, []);
 
   const markAllRead = useCallback(() => {
-    setRead(() => {
-      const next = new Set(pending.map((a) => a.id));
-      storeReadIds(next);
-      return next;
-    });
-  }, [pending]);
+    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+    setUnreadCount(0);
+    void markAllNotificationsRead();
+  }, []);
 
   // A notification clicked while the app was closed lands here, as
-  // ?approve=<id> on whatever page the service worker opened. Acted on once
-  // the queue has loaded, so the dialog has somebody to show; the parameter is
-  // then removed so a refresh does not reopen it.
+  // ?approve=<id> or ?session=<id> on whatever page the service worker
+  // opened. Acted on once the inbox has loaded; the parameter is then removed
+  // so a refresh does not reopen it.
   useEffect(() => {
-    if (typeof window === "undefined" || pending.length === 0) return;
-    const url = new URL(window.location.href);
-    const wanted = url.searchParams.get("approve");
-    if (!wanted) return;
+    if (typeof window === "undefined" || items.length === 0) return;
 
-    const account = pending.find((a) => a.id === wanted);
+    const url = new URL(window.location.href);
+    const wantedSession = url.searchParams.get("session");
+    const wantedAccount = url.searchParams.get("approve");
+    if (!wantedSession && !wantedAccount) return;
+
+    const wanted = wantedSession ?? wantedAccount;
+    const item = items.find((n) => n.targetId === wanted);
+
+    url.searchParams.delete("session");
     url.searchParams.delete("approve");
     window.history.replaceState({}, "", url.toString());
-    // Absent means already approved by somebody else between the notification
-    // and the click. Silently doing nothing is right: the queue on screen is
-    // already the answer.
-    if (account) onOpenApproval.current?.(account);
-  }, [pending]);
 
-  const items: NotificationItem[] = pending.map((account) => ({
-    id: account.id,
-    title: "New registration",
-    detail: `${account.displayName} (${account.email}) is waiting for approval`,
-    read: read.has(account.id),
-    account,
-  }));
+    if (item) void open(item);
+  }, [items, open]);
 
-  return {
-    items,
-    unreadCount: items.filter((item) => !item.read).length,
-    markRead,
-    markAllRead,
-    refresh,
-  };
+  return { items, unreadCount, markRead, markAllRead, refresh, open };
 }
