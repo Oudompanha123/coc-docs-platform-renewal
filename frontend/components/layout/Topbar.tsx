@@ -226,15 +226,18 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         // decided not to act makes the badge mean "unread or
                         // ignored", which is not a number anyone can act on.
                         notifications.markRead(n.id);
-                        if (n.kind === "sign-in") setReviewingSignIn(n.session);
-                        else setApproving(n.account);
+                        // The hook resolves what this is about and opens the
+                        // right dialog. It is one fetch, made on the click,
+                        // because the notification is the record and the queue
+                        // is the current state — only acting needs both.
+                        void notifications.open(n);
                         setOpenMenu(null);
                       }}
                       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                         n.read ? "" : "bg-brand-purple/5"
                       }`}
                     >
-                      {n.kind === "sign-in" ? (
+                      {n.type === "auth.new-device" ? (
                         // A shield, not a face. This notification is about a
                         // browser, and the account owner's own picture beside
                         // it would read as "we know who this was" — which is
@@ -244,8 +247,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         </span>
                       ) : (
                         <ApplicantAvatar
-                          name={n.account.displayName}
-                          avatarUrl={n.account.avatarUrl}
+                          name={n.subjectName ?? n.title}
+                          avatarUrl={n.iconUrl}
                           className="mt-0.5 h-8 w-8 text-[11px]"
                         />
                       )}
@@ -269,7 +272,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   ))
                 )}
               </div>
-              {notifications.items.some((n) => n.kind === "registration") && (
+              {notifications.items.some((n) => n.type === "registration.pending") && (
                 <Link
                   href="/users-roles?tab=pending"
                   onClick={() => setOpenMenu(null)}
