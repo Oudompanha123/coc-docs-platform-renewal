@@ -1,0 +1,379 @@
+# Coc Docs Platform — every service, one EC2 instance.
+#
+#   cd infra && cp .env.example .env && nano .env && docker compose up -d --build
+#
+# WHAT IS EXPOSED
+# Only Caddy binds a host port. Postgres, Keycloak, the backend, the frontend
+# and MinIO talk to each other on the private compose network and are
+# unreachable from the internet — so the EC2 security group needs 80, 443 and
+# 22, and nothing else. A database reachable from the internet is the single
+# most common way a deployment like this is lost.
+#
+# WHERE VALUES COME FROM
+# Every one, from .env. Nothing is configured by editing this file.
+#
+# The one asymmetry worth knowing: NEXT_PUBLIC_* are compiled into the browser
+# bundle rather than read at startup (see infra/frontend.Dockerfile), so
+# changing one means `docker compose build frontend`, not a restart. Every
+# other value takes effect on `docker compose up -d`.
+#
+# // req: ADR-012 (two services), CONST-TECH-08 (S3 API only)
+
+name: coc-docs-platform
+
+services:
+  # ---------------------------------------------------------------------
+  # TLS and routing
+  # ---------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?set PUBLIC_DOMAIN in .env}
+    volumes:
+      # The official image substitutes ${PUBLIC_DOMAIN} into anything in
+      # templates/ at start, so the config is never edited to deploy.
+      - ./nginx/templates:/etc/nginx/templates:ro
+      # Runs before the substitution (hence 05) and writes a temporary
+      # self-signed certificate if none exists, because nginx will not start
+      # without one and certbot cannot obtain one until nginx is serving.
+      - ./nginx/docker-entrypoint.d/05-ensure-certificate.sh:/docker-entrypoint.d/05-ensure-certificate.sh:ro
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+      # Reloads every 12h to pick up a renewed certificate. A .d script and
+      # not a `command:` override — see the script for why that distinction
+      # is load-bearing.
+      - ./nginx/docker-entrypoint.d/99-reload-for-renewed-certificates.sh:/docker-entrypoint.d/99-reload-for-renewed-certificates.sh:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------
+  # Database — the application and Keycloak, separate databases
+  # ---------------------------------------------------------------------
+  postgres:
+    # Pinned to the version the test suite runs against (PostgresTestBase).
+    # Deploying a major version nothing has been tested on is a gamble taken
+    # for no gain.
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
+      POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Creates Keycloak's database on first start. Runs only when the data
+      # directory is empty, which is exactly once.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Named user and database, not defaults: pg_isready answers "accepting
+      # connections" for the postmaster long before a specific database is
+      # restored and ready, and the backend then fails its first migration.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  # ---------------------------------------------------------------------
+  # Identity broker
+  # ---------------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+
+      # Served under /auth on the one domain, so there is no second DNS record
+      # and no second certificate. Keycloak has to be told, or every URL it
+      # generates — redirects, the OIDC discovery document, token issuer —
+      # points at the wrong place.
+      KC_HOSTNAME: https://${PUBLIC_DOMAIN}/auth
+      KC_HTTP_RELATIVE_PATH: /auth
+      # TLS terminates at Caddy. Keycloak speaks plain HTTP on the private
+      # network and trusts X-Forwarded-* from it.
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?set KEYCLOAK_ADMIN_USER in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
+
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET in .env}
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN}
+    volumes:
+      # Read-only. The substituted copy is written into the container's own
+      # data directory, so the file in the repository stays the single source
+      # and nobody ends up editing a deployed copy.
+      - ../keycloak:/opt/keycloak/realm-src:ro
+    # WHY A SHELL WRAPPER RATHER THAN JUST --import-realm
+    #
+    # Two substitutions Keycloak will not do for itself:
+    #
+    #   1. The realm file carries ${env.GOOGLE_CLIENT_SECRET}. Keycloak does
+    #      NOT resolve that on import — verified on 2026-09-15 by importing a
+    #      realm with the placeholder in a non-secret field and reading it
+    #      back: the literal string is what gets stored. Google then rejects
+    #      the sign-in with invalid_client, several confusing minutes later.
+    #
+    #   2. Its redirect URIs and web origins say http://localhost:3000, which
+    #      is right for a developer machine and wrong here. Left alone,
+    #      Keycloak refuses the redirect back to the real site.
+    #
+    # --import-realm only imports a realm that does not already exist, so this
+    # is safe to re-run; to take the file's version again, delete the realm in
+    # the admin console first.
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        mkdir -p /opt/keycloak/data/import
+        sed -e "s|\$${env.GOOGLE_CLIENT_SECRET}|$${GOOGLE_CLIENT_SECRET}|g" \
+            -e "s|http://localhost:3000|https://$${PUBLIC_DOMAIN}|g" \
+            /opt/keycloak/realm-src/docs_platform-realm.json \
+            > /opt/keycloak/data/import/docs_platform-realm.json
+        if grep -q 'env.GOOGLE_CLIENT_SECRET' /opt/keycloak/data/import/docs_platform-realm.json; then
+          echo "FATAL: the Google client secret was not substituted into the realm file." >&2
+          echo "Keycloak would import the placeholder and Google would reject every sign-in." >&2
+          exit 1
+        fi
+        exec /opt/keycloak/bin/kc.sh start --import-realm
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Keycloak 26 serves its health endpoints on the management port (9000),
+      # not the HTTP one, and the image has no curl — hence bash's /dev/tcp.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      # Generous: the first start builds the Quarkus augmentation and runs
+      # Keycloak's own migrations, which on a small instance is minutes.
+      start_period: 180s
+
+  # ---------------------------------------------------------------------
+  # Backend — owns persistence, authorisation and validation (ADR-012)
+  # ---------------------------------------------------------------------
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # One schema, unlike development where each person has their own
+      # (CONTRIBUTING). A dedicated database has nobody to share with.
+      DB_SCHEMA: ${DB_SCHEMA:-public}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+
+      PORT: 8080
+      # The browser origin, for CORS and cookie scope — not the container.
+      FRONTEND_ORIGIN: https://${PUBLIC_DOMAIN}
+      # The one setting that must differ from a developer machine. False here
+      # would put the session cookie on the wire in clear text.
+      COOKIE_SECURE: "true"
+      SESSION_TTL: ${SESSION_TTL:-P1D}
+
+      # Keycloak by its public URL, not http://keycloak:8080. The issuer in a
+      # token is compared against this string, and Keycloak mints tokens
+      # naming the public one — a match on the container name would fail
+      # every verification.
+      KEYCLOAK_ISSUER_URI: https://${PUBLIC_DOMAIN}/auth/realms/${KEYCLOAK_REALM:-docs_platform}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_CLIENT_ID:-cocdocs-frontend}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+
+      # Optional. Absent, each degrades to a documented state rather than
+      # failing to start: no mail (reset links are logged), no push (the bell
+      # and the live stream still work), no storage (uploads unavailable).
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS:-}
+
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      # The liveness endpoint, which carries no version and no dependency
+      # status and so discloses nothing (SecurityConfig).
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      # Flyway runs every migration on first start against an empty database.
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          # The JVM sizes its heap from this (MaxRAMPercentage in the
+          # Dockerfile), so this is the only number to change.
+          memory: ${BACKEND_MEMORY:-768m}
+
+  # ---------------------------------------------------------------------
+  # Frontend — presentation only (ADR-012)
+  # ---------------------------------------------------------------------
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/frontend.Dockerfile
+      # Compiled into the browser bundle. Changing any of these needs
+      # `docker compose build frontend`, not a restart — see the Dockerfile.
+      args:
+        NEXT_PUBLIC_BACKEND_URL: https://${PUBLIC_DOMAIN}
+        NEXT_PUBLIC_KEYCLOAK_URL: https://${PUBLIC_DOMAIN}/auth
+        NEXT_PUBLIC_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-docs_platform}
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-cocdocs-frontend}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+        NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${NEXT_PUBLIC_FIREBASE_VAPID_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEMORY:-384m}
+
+  # ---------------------------------------------------------------------
+  # Object storage — profile photos (ADR-026) and content images
+  # ---------------------------------------------------------------------
+  #
+  # Both features take their storage through an ObjectProvider and are simply
+  # unavailable without it, so this is genuinely optional. It is here because
+  # two shipped features have been waiting on it.
+  #
+  # MinIO speaks the S3 API, which is all CONST-TECH-08 permits the code to
+  # use — so moving to real S3 later is a change to S3_ENDPOINT and the keys
+  # in .env, and nothing in the application.
+  #
+  # Start it with:  docker compose --profile storage up -d
+  minio:
+    image: minio/minio:latest
+    profiles: ["storage"]
+    restart: unless-stopped
+    environment:
+      # Plain interpolation, not the ${VAR:?message} form used for the
+      # required values above. Compose resolves every service before it
+      # filters by profile, so a required variable here would fail `docker
+      # compose up` for everyone who is NOT using storage — which is the
+      # opposite of optional. MinIO refuses to start on empty credentials and
+      # says so plainly, which is the right place for that error.
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Creates the bucket and exits. A one-shot container rather than a manual
+  # step, so a rebuilt instance needs no console visit to work.
+  minio-init:
+    image: minio/mc:latest
+    profiles: ["storage"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      S3_BUCKET: ${S3_BUCKET:-coc-docs}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mc alias set local http://minio:9000 "$${S3_ACCESS_KEY_ID}" "$${S3_SECRET_ACCESS_KEY}"
+        mc mb --ignore-existing "local/$${S3_BUCKET}"
+        # Public read, because these are profile photos and content images
+        # rendered by <img> — the browser fetches them with no credentials.
+        # ADR-026 says this outright: a photo URL is effectively public to
+        # anyone who has it. Nothing private belongs in this bucket.
+        mc anonymous set download "local/$${S3_BUCKET}"
+        echo "bucket $${S3_BUCKET} ready"
+
+  # ---------------------------------------------------------------------
+  # Certificates
+  # ---------------------------------------------------------------------
+  #
+  # Obtains one on first run and renews it thereafter. Not a long-running
+  # service: it wakes every 12 hours, asks certbot to renew, and sleeps.
+  # certbot itself decides whether anything is due — it renews at 30 days
+  # remaining and exits quietly otherwise, so this is a no-op almost every
+  # time it runs.
+  #
+  # The webroot method rather than nginx's own plugin: certbot never needs to
+  # read or write nginx's configuration, so the two share nothing but a
+  # directory and there is no way for a renewal to leave the proxy unable to
+  # start.
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_webroot:/var/www/certbot
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      # Set to 1 to issue against Let's Encrypt's staging environment, whose
+      # certificates browsers do not trust but which has no meaningful rate
+      # limit. Worth using while getting DNS and the security group right:
+      # five failed attempts against production locks the domain out for a
+      # week.
+      CERTBOT_STAGING: ${CERTBOT_STAGING:-0}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        STAGING=""
+        [ "$$CERTBOT_STAGING" = "1" ] && STAGING="--staging"
+        # First run: obtain. --keep-until-expiring makes this safe to repeat,
+        # so a restarted container does not re-issue and burn the rate limit.
+        certbot certonly --webroot -w /var/www/certbot \
+          -d "$$PUBLIC_DOMAIN" \
+          --email "$$ACME_EMAIL" \
+          --agree-tos --no-eff-email \
+          --keep-until-expiring --non-interactive $$STAGING \
+          || echo "certbot: could not obtain a certificate yet — check DNS and that port 80 is open; retrying in 12h"
+        # Then renew on a loop for the life of the container.
+        while :; do
+          sleep 12h
+          certbot renew --webroot -w /var/www/certbot --non-interactive $$STAGING || true
+        done
+    depends_on:
+      nginx:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  # Certificates and private keys. Losing this means re-issuing on the next
+  # start, and Let's Encrypt rate-limits that — five per domain per week.
+  certbot_certs:
+  certbot_webroot:
+  minio_data:
