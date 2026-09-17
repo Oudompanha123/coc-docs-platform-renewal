@@ -27,23 +27,25 @@ export function TasksPanel({ tasks }: { tasks: Task[] | null }) {
         <h2 className="text-base font-bold text-dash-ink">Your Tasks</h2>
       </div>
       <div className={`mt-1 divide-y divide-border pl-5 pr-[20px] ${RECENT_PANEL_LIST_HEIGHT}`}>
-        {tasks === null ? (
-          <p className="py-6 text-center text-sm text-muted">Loading…</p>
-        ) : tasks.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">No open tasks right now.</p>
-        ) : (
-          tasks.map((task) => {
-            const due = formatDue(task.dueDate);
-            return (
-              <div key={task.id} className="flex items-center gap-3 py-3">
-                <CheckCircleIcon className="h-5 w-5 shrink-0 text-muted" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-dash-ink">{task.title}</p>
-                  {due && <p className="truncate text-xs text-muted">{due}</p>}
-                </div>
-              </div>
-            );
-          })
+        {tasks !== null && (
+          <div className="animate-entrance">
+            {tasks.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted">No open tasks right now.</p>
+            ) : (
+              tasks.map((task) => {
+                const due = formatDue(task.dueDate);
+                return (
+                  <div key={task.id} className="flex items-center gap-3 py-3">
+                    <CheckCircleIcon className="h-5 w-5 shrink-0 text-muted" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-dash-ink">{task.title}</p>
+                      {due && <p className="truncate text-xs text-muted">{due}</p>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
     </div>

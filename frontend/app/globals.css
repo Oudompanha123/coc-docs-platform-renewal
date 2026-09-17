@@ -190,6 +190,44 @@ body {
   color: var(--foreground);
 }
 
+/* Thin scrollbars everywhere by default — not just the handful of places
+   that used to opt in via .no-scrollbar-arrows. `html` rather than `*` so it
+   sets once and every scrollable descendant inherits it (scrollbar-color is
+   an inherited property), instead of one rule per element. A more specific
+   selector (e.g. .no-scrollbar below) still wins where a page wants
+   something else. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* The up/down (or left/right) arrow buttons at each end of a WebKit
+   scrollbar — `scrollbar-width: thin` above has no equivalent of these to
+   begin with, so leaving them in only on Chrome/Safari would make this
+   look like two different scrollbar styles depending on browser. */
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:start,
+*::-webkit-scrollbar-button:end {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* Tailwind v4 resolves @theme color tokens to a static literal at build
    time (confirmed by inspecting the compiled output — e.g.
    `.bg-page { background-color: rgb(238,240,248) }`, not `var(...)`), so
@@ -247,25 +285,71 @@ button:not(:disabled) {
   }
 }
 
-/* Put this at the very end of globals.css so it wins on source order too */
-.no-scrollbar-arrows::-webkit-scrollbar {
-  width: 3px !important;
+/* The product docs page's tab-content swap — quicker and subtler than
+   `.animate-entrance` above (that one's 380ms is tuned for a page's one-time
+   entrance; a per-click content swap needs to read as immediate, not as a
+   second thing loading in). Same fade-slide-up keyframe, shorter distance. */
+@keyframes tab-content-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.no-scrollbar-arrows::-webkit-scrollbar-button,
-.no-scrollbar-arrows::-webkit-scrollbar-button:single-button,
-.no-scrollbar-arrows::-webkit-scrollbar-button:start,
-.no-scrollbar-arrows::-webkit-scrollbar-button:end {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+.animate-tab-content {
+  animation-name: tab-content-fade;
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
 }
 
-.no-scrollbar-arrows::-webkit-scrollbar-thumb {
-  background: #666 !important;
-  border-radius: 3px;
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-content {
+    animation: none;
+  }
 }
 
-.no-scrollbar-arrows::-webkit-scrollbar-track {
-  background: transparent !important;
+/* Blanket reduced-motion safety net — the two @media blocks above only cover
+   the two keyframe-based entrance animations by name. Every hover/press
+   micro-interaction added across the app (card lifts, row tints, etc.) is
+   plain Tailwind `transition-*`/`hover:-translate-y-*` utilities with no
+   animation name of their own to target individually, so this catches all
+   of them (and any future one) in one place instead of one override per
+   component. Near-zero rather than 0s: some libraries key off a duration of
+   exactly 0 to skip transition-end logic entirely, which this avoids while
+   still reading as instant to a person. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* .no-scrollbar-arrows no longer needs its own ::-webkit-scrollbar rules —
+   the global *::-webkit-scrollbar rules above (thin, #ccc, transparent
+   track, same values this used to set on its own with #666/3px/!important)
+   now cover it, and every other scrollable element, consistently. The class
+   itself is kept (still sets scrollbar-width/scrollbar-color, now redundant
+   with `html`'s but harmless) rather than edited out of the places already
+   using it. */
+
+/* Fully hides the scrollbar (not just the arrow buttons `no-scrollbar-arrows`
+   above removes) while wheel/drag/touch scrolling still works — the product
+   docs page's horizontal tab bar, which has its own right-edge fade + chevron
+   as the "more to scroll" hint instead of a visible track. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

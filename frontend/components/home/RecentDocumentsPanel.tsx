@@ -12,12 +12,14 @@ export function RecentDocumentsPanel({ docs }: { docs: ContentDocRow[] | null })
         <h2 className="text-base font-bold text-dash-ink">Recent Documents</h2>
       </div>
       <div className={`mt-1 divide-y divide-border pl-5 pr-[20px] ${RECENT_PANEL_LIST_HEIGHT}`}>
-        {docs === null ? (
-          <p className="py-6 text-center text-sm text-muted">Loading…</p>
-        ) : docs.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">Nothing here yet.</p>
-        ) : (
-          docs.map((doc) => <DocumentRow key={doc.id} data={doc} />)
+        {docs !== null && (
+          <div className="animate-entrance">
+            {docs.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted">Nothing here yet.</p>
+            ) : (
+              docs.map((doc) => <DocumentRow key={doc.id} data={doc} />)
+            )}
+          </div>
         )}
       </div>
     </div>

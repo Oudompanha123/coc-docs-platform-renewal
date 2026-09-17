@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { me, signOut as signOutRequest, type MeResponse } from "./api";
 import { takeIdToken } from "./idTokenMemory";
 import { unregisterThisDevice } from "@/lib/notify/push";
-import { keycloakLogoutUrl } from "./keycloakLogout";
+import { isKeycloakReachable, keycloakLogoutUrl } from "./keycloakLogout";
 
 /**
  * Who is signed in, asked once per page rather than once per component.
@@ -26,7 +26,7 @@ export type SessionStatus = "loading" | "authenticated" | "anonymous";
 type SessionValue = {
   status: SessionStatus;
   user: MeResponse | null;
-  /** Ends the server-side session, then sends the caller to /login. */
+  /** Ends the server-side session, then sends the caller to /welcome. */
   signOut: () => Promise<void>;
   /** Re-asks the server. For after a sign-in, or a role change taking effect. */
   refresh: () => Promise<void>;
@@ -91,15 +91,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // access to them depends on SameSite rules that differ between browsers
     // and break silently — leaving someone signed in while being told they
     // are not.
-    const logoutUrl = keycloakLogoutUrl(takeIdToken(), `${window.location.origin}/login`);
-    if (logoutUrl) {
+    const logoutUrl = keycloakLogoutUrl(takeIdToken(), `${window.location.origin}/welcome`);
+    if (logoutUrl && (await isKeycloakReachable(new URL(logoutUrl).origin))) {
       window.location.assign(logoutUrl);
       return;
     }
 
-    // Only reached when Keycloak is not configured at all — there is then no
-    // second session to end.
-    router.replace("/login");
+    // Reached when Keycloak is not configured at all, or is configured but
+    // didn't answer (not running locally, network down, ...). Either way,
+    // this app's own session is already gone — send the caller to /welcome
+    // rather than a hard-navigating them into a connection-refused page for
+    // a host they never meant to visit directly and have no way back from.
+    router.replace("/welcome");
   }, [router]);
 
   return (

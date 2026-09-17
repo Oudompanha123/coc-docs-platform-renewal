@@ -37,6 +37,24 @@ export async function fetchDocContent(id: string): Promise<DocContent | undefine
   return SEED_CONTENT[id];
 }
 
+/** The real `updated_at` for a saved row — the product docs page's "About
+ *  this document" panel. A separate endpoint from {@link fetchDocContent}
+ *  (`.../meta`), not a field folded into it: that response is read straight
+ *  back as `DocContent` and re-sent verbatim on save, so a stray timestamp
+ *  merged into it would round-trip into the stored body. Returns `undefined`
+ *  for unsaved/unreachable, same resilience as `fetchDocContent`. */
+export async function fetchDocContentMeta(id: string): Promise<{ updatedAt: string } | undefined> {
+  const { productKey, slug } = parseContentId(id);
+
+  try {
+    const response = await fetch(`${urlFor(productKey, slug)}/meta`, { credentials: "include" });
+    if (response.ok) return (await response.json()) as { updatedAt: string };
+  } catch {
+    // Backend unreachable — resolve to undefined, same as no saved row.
+  }
+  return undefined;
+}
+
 /**
  * Whether an admin has actually saved content for this registry id — a real
  * backend row, distinct from {@link fetchDocContent}'s "saved, else seed,
