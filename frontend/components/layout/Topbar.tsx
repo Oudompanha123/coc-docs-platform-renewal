@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MESSAGES, TOPBAR_COUNTS } from "@/lib/mock/overview";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
+import { useActivityFeed } from "@/lib/notify/useActivityFeed";
+import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
 import { ApproveRegistrationModal } from "./ApproveRegistrationModal";
+import { NewSignInModal } from "./NewSignInModal";
 import { ApplicantAvatar } from "./ApplicantAvatar";
 import type { PendingAccount } from "@/lib/admin/accounts";
+import type { SessionSummary } from "@/lib/auth/api";
 import { UserAvatar } from "./UserAvatar";
+import { ShieldIcon } from "@/components/auth/icons";
 import {
   BellIcon,
   ChevronDownIcon,
@@ -24,16 +28,10 @@ import {
 } from "./icons";
 import Link from "next/link";
 import { ProfileModal } from "./ProfileModal";
+import { useShell } from "@/lib/layout/ShellContext";
 
 type TopbarProps = {
-  title: string;
-  subtitle: string;
   onMenuClick: () => void;
-  /** A pre-rendered element, not a component reference — Overview and
-   *  Settings are Server Components, and passing a bare function down into
-   *  this Client Component isn't serializable across that boundary. Each
-   *  page renders its own `<XIcon className="..." />` instead. */
-  titleIcon?: React.ReactNode;
 };
 
 type MenuKey = "notifications" | "mail" | "user";
@@ -41,6 +39,25 @@ type MenuKey = "notifications" | "mail" | "user";
 /** Same panel container the Users & Roles ⋯ menu uses: rounded-xl border
  *  border-border bg-white shadow-lg, with hover:bg-page on each item. */
 const PANEL_CLASSES = "absolute right-0 z-20 mt-2 rounded-xl border border-border bg-white shadow-lg";
+
+const AVATAR_TONES = ["purple", "green", "orange", "pink"] as const;
+
+/**
+ * A stable avatar colour for one person.
+ *
+ * Derived from the address rather than the list position, so somebody keeps
+ * the same colour as items arrive and push them down the feed — a bubble that
+ * changes colour on every poll reads as a different person. The hash only has
+ * to be deterministic and spread four ways; it is not security-relevant.
+ */
+function toneFor(actorEmail: string | null): (typeof AVATAR_TONES)[number] {
+  if (!actorEmail) return "pink";
+  let hash = 0;
+  for (let i = 0; i < actorEmail.length; i++) {
+    hash = (hash * 31 + actorEmail.charCodeAt(i)) | 0;
+  }
+  return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length]!;
+}
 
 function CountBadge({
   count,
@@ -74,7 +91,8 @@ function CountBadge({
   );
 }
 
-export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps) {
+export function Topbar({ onMenuClick }: TopbarProps) {
+  const { header: { title, subtitle, titleIcon } } = useShell();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -84,18 +102,29 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
   // has no route guard of its own yet.
   const user = useCurrentUser();
   const { signOut } = useSession();
-  // The bell no longer renders three invented items that never changed — it
-  // shows who is actually waiting for approval, which is also what the push
-  // notification deep-links to (ADR-025). Empty for anyone but a super admin.
+  // The bell no longer renders three invented items that never changed. It
+  // carries two real things: who is waiting for approval, which only a super
+  // admin sees (ADR-025), and whether this account was signed in to from a
+  // device it has not been used on, which only its owner sees (ADR-027).
   const notifications = useNotifications({
     // A clicked banner, or an app opened by one, lands in the same dialog as
     // clicking the item in the bell. The reader acts from wherever they are.
     onOpenApproval: (account) => setApproving(account),
+    onOpenSignIn: (session) => setReviewingSignIn(session),
   });
+
+  // The mail icon, likewise, no longer renders five invented names. A
+  // super_admin sees everyone's activity here; every other role sees only
+  // their own, decided server-side (NFR-SEC-PII).
+  const activity = useActivityFeed();
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.
   const [approving, setApproving] = useState<PendingAccount | null>(null);
+  // The unfamiliar session whose alert was clicked, shown with the detail and
+  // the button that ends it. Same reasoning: the answer to "was that you?"
+  // belongs where the question was asked.
+  const [reviewingSignIn, setReviewingSignIn] = useState<SessionSummary | null>(null);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Topbar renders on every admin page (via AppShell), so this is what
@@ -192,23 +221,34 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                       type="button"
                       role="menuitem"
                       onClick={() => {
-                        // Read on open, not on approve: the person has seen it
+                        // Read on open, not on acting: the person has seen it
                         // either way, and leaving it bold after they looked and
                         // decided not to act makes the badge mean "unread or
                         // ignored", which is not a number anyone can act on.
                         notifications.markRead(n.id);
-                        setApproving(n.account);
+                        if (n.kind === "sign-in") setReviewingSignIn(n.session);
+                        else setApproving(n.account);
                         setOpenMenu(null);
                       }}
                       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                         n.read ? "" : "bg-brand-purple/5"
                       }`}
                     >
-                      <ApplicantAvatar
-                        name={n.account.displayName}
-                        avatarUrl={n.account.avatarUrl}
-                        className="mt-0.5 h-8 w-8 text-[11px]"
-                      />
+                      {n.kind === "sign-in" ? (
+                        // A shield, not a face. This notification is about a
+                        // browser, and the account owner's own picture beside
+                        // it would read as "we know who this was" — which is
+                        // the one thing nobody knows yet.
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+                          <ShieldIcon className="h-4 w-4" />
+                        </span>
+                      ) : (
+                        <ApplicantAvatar
+                          name={n.account.displayName}
+                          avatarUrl={n.account.avatarUrl}
+                          className="mt-0.5 h-8 w-8 text-[11px]"
+                        />
+                      )}
                       <span className="min-w-0 flex-1">
                         <span
                           className={`block truncate text-sm text-dash-ink ${
@@ -229,7 +269,7 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
                   ))
                 )}
               </div>
-              {notifications.items.length > 0 && (
+              {notifications.items.some((n) => n.kind === "registration") && (
                 <Link
                   href="/users-roles?tab=pending"
                   onClick={() => setOpenMenu(null)}
@@ -244,8 +284,8 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
 
         <div className="relative">
           <CountBadge
-            count={TOPBAR_COUNTS.mail}
-            label="Messages"
+            count={activity.count}
+            label="Activity"
             active={openMenu === "mail"}
             onClick={() => toggleMenu("mail")}
           >
@@ -255,37 +295,39 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
           {openMenu === "mail" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
               <div className="border-b border-border px-4 py-3">
-                <p className="text-sm font-semibold text-dash-ink">Messages</p>
+                {/* "Activity", not "Messages": these are recorded events, not
+                    mail from a person. The old label invited people to look
+                    for a Reply button that was never going to exist. */}
+                <p className="text-sm font-semibold text-dash-ink">Activity</p>
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
-                {MESSAGES.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => setOpenMenu(null)}
-                    className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
-                  >
-                    <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[m.tone]}`}
+                {activity.items.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-muted">Nothing recent.</p>
+                ) : (
+                  activity.items.map((item) => (
+                    <div
+                      key={item.id}
+                      role="menuitem"
+                      className="flex w-full items-start gap-3 px-4 py-3 text-left"
                     >
-                      {m.initials}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-dash-ink">{m.name}</span>
-                      <span className="block truncate text-xs text-muted">{m.preview}</span>
-                      <span className="mt-0.5 block text-[11px] text-muted">{m.timeAgo}</span>
-                    </span>
-                  </button>
-                ))}
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[toneFor(item.actorEmail)]}`}
+                      >
+                        {actorInitials(item)}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-dash-ink">
+                          {actorName(item)}
+                        </span>
+                        <span className="block truncate text-xs text-muted">{item.summary}</span>
+                        <span className="mt-0.5 block text-[11px] text-muted">
+                          {timeAgo(item.occurredAt)}
+                        </span>
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setOpenMenu(null)}
-                className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
-              >
-                View all
-              </button>
             </div>
           )}
         </div>
@@ -372,6 +414,14 @@ export function Topbar({ title, subtitle, onMenuClick, titleIcon }: TopbarProps)
         account={approving}
         onClose={() => setApproving(null)}
         onApproved={() => void notifications.refresh()}
+      />
+    )}
+
+    {reviewingSignIn && (
+      <NewSignInModal
+        session={reviewingSignIn}
+        onClose={() => setReviewingSignIn(null)}
+        onEnded={() => void notifications.refresh()}
       />
     )}
     </div>

@@ -135,10 +135,17 @@ export function signInWithGoogleViaKeycloak(options: { nonce: string }): Promise
 
         settled = true;
         cleanup();
-        popup.close();
         if (data.type === "coc-keycloak-auth-success") {
+          // Deliberately not closed here. The callback page has one more hop
+          // to make — through Keycloak, to end the session this sign-in just
+          // created — and closing the window now cancels that navigation and
+          // leaves the session behind, which is the whole thing it exists to
+          // prevent. It closes itself when Keycloak returns, and on a timer if
+          // Keycloak never does.
           resolve(data.idToken);
         } else {
+          // Nothing was issued, so there is no session to end.
+          popup.close();
           reject(new Error(data.message));
         }
       }

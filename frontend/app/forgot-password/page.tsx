@@ -9,20 +9,24 @@ import { AuthApiError, forgotPassword } from "@/lib/auth/api";
 
 /**
  * Forgot Password — POST /api/v1/auth/forgot-password (ADR-018, revised by
- * ADR-019).
+ * ADR-019 and ADR-029).
  *
  * Shows the same success message on a 200 for every case except one: an
  * account that only ever signed in via Google and a genuinely emailed reset
  * link are still indistinguishable from here on purpose (ADR-018 decision
- * 3, the same anti-enumeration principle the login form follows). An
- * address with no account at all is no longer folded into that — the
- * backend now answers with a 404, `forgotPassword()` throws its exact
- * message ("No account found with this email address."), and the existing
- * catch block below shows it as an error, same as any other rejection
- * (ADR-019 — a deliberate, explicit product decision to accept the
- * enumeration risk on this one endpoint; see the ADR for what that costs).
+ * 3, the same anti-enumeration principle the login form follows) — and,
+ * since ADR-029, both cases really do get emailed a link now (a Google-only
+ * account uses it to set its first password rather than reset an existing
+ * one; the backend decides which and this page shows whatever message it
+ * sends back either way). An address with no account at all is no longer
+ * folded into that — the backend now answers with a 404, `forgotPassword()`
+ * throws its exact message ("No account found with this email address."),
+ * and the existing catch block below shows it as an error, same as any
+ * other rejection (ADR-019 — a deliberate, explicit product decision to
+ * accept the enumeration risk on this one endpoint; see the ADR for what
+ * that costs).
  *
- * // req: FR-AUTH-002, ADR-014, ADR-018, ADR-019
+ * // req: FR-AUTH-002, ADR-014, ADR-018, ADR-019, ADR-029
  */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");

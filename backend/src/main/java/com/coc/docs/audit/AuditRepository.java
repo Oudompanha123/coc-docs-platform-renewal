@@ -19,16 +19,16 @@ import org.springframework.stereotype.Repository;
  *
  * <p>Every row carries {@code actor_email}, denormalised so the trail stays
  * readable after an account is deactivated — which makes this table personal
- * data under NFR-SEC-PII. It satisfies that requirement today by being
- * unreachable: the read methods below exist, but no controller calls them, so
- * there is no route through which an audit row can leave the service.
+ * data under NFR-SEC-PII. {@code recent()} is now reachable, through {@code
+ * AdminAuditController} (Overview's "Recent Activity" panel) — gated at the
+ * {@code super_admin} floor in {@code SecurityConfig}, the same floor {@code
+ * /api/v1/admin/accounts/**} carries, for the same reason: both surface
+ * another account's identity, not the caller's own.
  *
- * <p>That is a property of the current wiring, not a guarantee. <b>A controller
- * added over these reads must sit behind the {@code super_admin} floor</b>
- * ({@code /api/v1/admin/accounts/**} in {@code SecurityConfig}), alongside the
- * other route that returns other people's identities. The default-deny terminal
- * rule makes forgetting safe rather than open, but it would place an audit route
- * at {@code super_admin} by accident rather than by decision.
+ * <p><b>Any further controller added over these reads must sit at that same
+ * {@code super_admin} floor.</b> The default-deny terminal rule makes
+ * forgetting safe rather than open, but it would place a new audit route at
+ * {@code super_admin} by accident rather than by decision.
  *
  * <p>// req: FR-OPS-001, NFR-OPS-AUDIT, NFR-SEC-PII, ADR-006
  */
@@ -81,6 +81,34 @@ public class AuditRepository {
                         limit ?
                         """)
                 .param(limit)
+                .query(this::map)
+                .list();
+    }
+
+    /**
+     * The most recent entries this one account was the actor of.
+     *
+     * <p>The counterpart to {@link #recent(int)}, which is unscoped: this is
+     * what a caller who may only see their own history gets. The filter is on
+     * {@code actor_id}, not {@code actor_email} — an email can be reassigned to
+     * a new account, and a feed that followed the address rather than the
+     * account would show one person another person's history.
+     *
+     * <p>Rows whose {@code actor_id} is null (system-initiated, or an account
+     * since deleted) belong to nobody and so are returned to nobody here.
+     *
+     * <p>// req: FR-OPS-001, NFR-SEC-PII
+     */
+    public List<AuditEntry> recentForActor(UUID actorId, int limit) {
+        return jdbc.sql("""
+                        select id, actor_id, actor_email, action, target_type, target_id,
+                               detail::text as detail, occurred_at
+                        from audit_log
+                        where actor_id = ?
+                        order by occurred_at desc, id desc
+                        limit ?
+                        """)
+                .params(actorId, limit)
                 .query(this::map)
                 .list();
     }

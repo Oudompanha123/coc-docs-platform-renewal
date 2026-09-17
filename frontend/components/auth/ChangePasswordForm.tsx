@@ -13,19 +13,33 @@ type Errors = Partial<Record<"currentPassword" | "newPassword" | "confirmPasswor
  * and {@code SecurityTab}, whose "Change password" buttons were both dead
  * until this existed.
  *
- * Always sends {@code currentPassword}: this form is the voluntary path,
- * never the forced first-login completion (that one is `/create-password`,
- * which collects the temporary password instead and calls {@link
- * changePassword} with that as {@code currentPassword} — see ADR-024). The
- * backend verifies it against the stored hash and refuses a mismatch
- * plainly — see {@code SessionService.changeOwnPassword}.
+ * Never used for the forced first-login completion (that one is
+ * `/create-password`, which collects the temporary password itself and
+ * calls {@link changePassword} with that as {@code currentPassword} — see
+ * ADR-024). Within this voluntary form there are still two callers,
+ * distinguished by {@code hasPassword}:
  *
- * // req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-020, ADR-022, ADR-024
+ * - An account with a password already (the common case): the "Current
+ *   Password" field is rendered and required, and sent as
+ *   {@code currentPassword}.
+ * - A Google-only account (ADR-030): the field is omitted entirely — not
+ *   merely left optional — since there is no current password to prove,
+ *   and {@code changePassword} is called with no {@code currentPassword} at
+ *   all.
+ *
+ * Either way the backend is the one that actually verifies (or skips
+ * verifying) the value against the stored hash — see
+ * {@code SessionService.changeOwnPassword}.
+ *
+ * // req: FR-AUTH-002, FR-AUTH-007, ADR-017, ADR-020, ADR-022, ADR-024, ADR-030
  */
 export function ChangePasswordForm({
+  hasPassword,
   onSuccess,
   onCancel,
 }: {
+  /** False for a Google-only account (ADR-030) — see the class javadoc above. */
+  hasPassword: boolean;
   onSuccess: (message: string) => void;
   onCancel: () => void;
 }) {
@@ -38,7 +52,7 @@ export function ChangePasswordForm({
 
   function validate() {
     const next: Errors = {};
-    if (!currentPassword) next.currentPassword = "Enter your current password.";
+    if (hasPassword && !currentPassword) next.currentPassword = "Enter your current password.";
     if (!newPassword) next.newPassword = "Create a new password.";
     else if (newPassword.length < 8) next.newPassword = "Password must be at least 8 characters.";
     if (!confirmPassword) next.confirmPassword = "Confirm your new password.";
@@ -56,7 +70,11 @@ export function ChangePasswordForm({
     setIsSubmitting(true);
     setFormError(null);
     try {
-      const message = await changePassword(newPassword, confirmPassword, currentPassword);
+      const message = await changePassword(
+        newPassword,
+        confirmPassword,
+        hasPassword ? currentPassword : undefined,
+      );
       onSuccess(message);
     } catch (err) {
       setFormError(err instanceof AuthApiError ? err.message : "Couldn't change your password. Please try again.");
@@ -67,15 +85,17 @@ export function ChangePasswordForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3" noValidate>
-      <PasswordField
-        label="Current Password"
-        value={currentPassword}
-        onChange={setCurrentPassword}
-        placeholder="Enter your current password"
-        icon={<LockIcon className="h-4 w-4" />}
-        autoComplete="current-password"
-        error={errors.currentPassword}
-      />
+      {hasPassword && (
+        <PasswordField
+          label="Current Password"
+          value={currentPassword}
+          onChange={setCurrentPassword}
+          placeholder="Enter your current password"
+          icon={<LockIcon className="h-4 w-4" />}
+          autoComplete="current-password"
+          error={errors.currentPassword}
+        />
+      )}
       <PasswordField
         label="New Password"
         value={newPassword}
