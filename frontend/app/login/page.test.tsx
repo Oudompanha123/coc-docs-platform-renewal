@@ -101,11 +101,11 @@ describe("LoginPage password form", () => {
     expect(push).toHaveBeenCalledWith("/overview");
   });
 
-  it("sends a plain \"user\" role to the public landing page, not the admin app", async () => {
+  it("sends a plain \"user\" role to its own Member landing page, not the admin app", async () => {
     // The admin app (sidebar, Overview, per-product content management,
-    // Users & Roles, Settings) is admin/super_admin only now — a "user"
-    // account reads the public /docs/* pages instead, same destination
-    // RequireSession sends them to if they try an admin URL directly.
+    // Users & Roles, Settings) is admin/super_admin only — a "user" account
+    // gets its own real landing page (ADR-033) instead, same destination
+    // RequireMemberSession expects for a plain user.
     loginWithPassword.mockResolvedValue({
       id: "1",
       email: "reader@example.com",
@@ -119,7 +119,7 @@ describe("LoginPage password form", () => {
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/welcome"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/home"));
   });
 
   it("sends a caller still on a temporary password to /create-password instead of /overview", async () => {
