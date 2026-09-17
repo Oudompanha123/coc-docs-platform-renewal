@@ -1,0 +1,46 @@
+# Build contexts are the repository root (infra/*.Dockerfile), so everything
+# not needed to build is excluded here — it keeps images small, builds fast,
+# and, most importantly, keeps secrets out of the build context entirely.
+
+# Secrets. These must never reach a build context: anything copied in is
+# recoverable from the image layers afterwards, even if a later stage deletes
+# it.
+**/.env
+**/.env.local
+**/*env.local
+**/*.pem
+**/*.key
+**/*.jks
+**/*.p12
+infra/.env
+
+# Build output and caches
+**/node_modules
+**/.next
+**/target
+**/out
+**/dist
+
+# Version control and IDE
+.git
+.gitignore
+.idea
+.run
+**/*.iml
+
+# Everything that is not the product: the harness, docs, reviews, tests that
+# run in CI rather than in a deployment build.
+.claude
+.github
+docs
+reviews
+templates
+hooks
+scripts
+security
+qodana.yaml
+
+# Local noise
+**/logs
+**/*.log
+**/.DS_Store

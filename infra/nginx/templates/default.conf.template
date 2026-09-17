@@ -1,0 +1,127 @@
+# Coc Docs Platform — TLS and routing.
+#
+# ${PUBLIC_DOMAIN} is substituted by the official image's
+# 20-envsubst-on-templates.sh at container start, so this file is never edited
+# to deploy — the value comes from .env like everything else.
+
+# ---------------------------------------------------------------------------
+# Port 80 — the ACME challenge, and a redirect for everything else
+# ---------------------------------------------------------------------------
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${PUBLIC_DOMAIN};
+
+    # Let's Encrypt writes its challenge here and reads it back over plain
+    # HTTP. This location must stay un-redirected, or renewal fails in ninety
+    # days' time with nobody watching.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Port 443 — the application
+# ---------------------------------------------------------------------------
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${PUBLIC_DOMAIN};
+
+    # Written by certbot. Until it has run, 05-ensure-certificate.sh puts a
+    # self-signed pair at the same paths so nginx can start at all — see that
+    # script for why that ordering is forced.
+    ssl_certificate     /etc/letsencrypt/live/${PUBLIC_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${PUBLIC_DOMAIN}/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Profile photos are capped at 2 MB (ADR-026) and content images are in the
+    # same range. 10 MB leaves room without letting a request body become a way
+    # to exhaust the instance.
+    client_max_body_size 10M;
+
+    # Deliberately no HSTS. It is a promise that cannot be withdrawn for as
+    # long as the max-age, and it should be a decision somebody makes rather
+    # than a default they inherit.
+
+    # --- Keycloak ----------------------------------------------------------
+    # Under /auth on the same domain, so there is one DNS record and one
+    # certificate. Keycloak is told the same thing (KC_HTTP_RELATIVE_PATH), or
+    # every URL it generates points somewhere that does not exist.
+    location /auth/ {
+        proxy_pass http://keycloak:8080;
+        proxy_http_version 1.1;
+
+        # Keycloak builds redirect URLs, the OIDC discovery document and the
+        # token issuer from these. Get them wrong and it issues tokens naming
+        # http://keycloak:8080, which no browser can reach and which fail
+        # verification.
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Port  443;
+    }
+
+    # --- Backend -----------------------------------------------------------
+    location /api/ {
+        proxy_pass http://backend:8080;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SERVER-SENT EVENTS (ADR-028).
+        #
+        # The notification stream is an HTTP response held open for thirty
+        # minutes. Three nginx defaults each break it on their own:
+        #
+        #   proxy_buffering on    — nginx accumulates the response and forwards
+        #                           nothing until it closes. Every notification
+        #                           arrives half an hour late, or never.
+        #   proxy_read_timeout 60s — the connection is cut after a minute of
+        #                           silence. The 20-second heartbeat keeps it
+        #                           alive, but only just, and a stalled tick
+        #                           kills it.
+        #   gzip on               — buffers to compress, same result as the
+        #                           first.
+        #
+        # ADR-028's follow-up list names "confirm SSE is not buffered by
+        # whatever sits in front of the backend" as a required check. This is
+        # that check, answered.
+        proxy_buffering off;
+        gzip off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        # Nagle would hold small frames back waiting for company. An SSE
+        # comment is exactly such a frame.
+        tcp_nodelay on;
+    }
+
+    # --- Frontend ----------------------------------------------------------
+    location / {
+        proxy_pass http://frontend:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Next.js serves hashed immutable assets and its own cache headers;
+        # buffering them is what nginx is good at, so it stays on here.
+    }
+}
