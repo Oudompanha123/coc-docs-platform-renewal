@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { LayersIcon } from "@/components/layout/icons";
+import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
 /**
@@ -14,6 +16,7 @@ import type { NavProduct } from "@/lib/docs/nav-api";
 export function NavDropdown({ product, isDark }: { product: NavProduct; isDark: boolean }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const Icon = PRODUCT_ICONS[product.icon] ?? LayersIcon;
 
   useEffect(() => {
     if (!open) return;
@@ -38,10 +41,11 @@ export function NavDropdown({ product, isDark }: { product: NavProduct; isDark: 
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex h-[72px] items-center border-b-2 transition-all hover:font-bold ${
+        className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:font-bold ${
           open ? "border-brand-purple font-bold" : "border-transparent hover:border-brand-purple"
         } ${isDark ? "hover:text-[#f2effa]" : "hover:text-ink"}`}
       >
+        <Icon className="h-4 w-4" />
         {product.label}
       </button>
 

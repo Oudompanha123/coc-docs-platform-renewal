@@ -23,12 +23,16 @@ import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutco
 /** Where a signed-in account lands. A temporary password buys entry to
  *  exactly one place regardless of role (see the comment at each call
  *  site); otherwise the admin app (sidebar, Overview, PRODUCTS pages,
- *  Users & Roles, Settings) is admin/super_admin only — a plain "user"
- *  account goes to the public landing page instead, same destination
- *  RequireSession sends them to if they try an admin URL directly. */
+ *  Users & Roles, Settings) is admin/super_admin only, and a plain "user"
+ *  account gets its own real landing page (ADR-033's Member home) instead
+ *  — same destination RequireMemberSession sends an admin/super_admin
+ *  back from if they land on it directly. A signed-out or `guest` caller
+ *  never reaches this function at all (there is no successful login to
+ *  return an account from), so /welcome stays the public marketing page. */
 function postLoginDestination(account: AuthenticatedAccount): string {
   if (account.mustChangePassword) return "/create-password";
-  return account.role === "admin" || account.role === "super_admin" ? "/overview" : "/welcome";
+  if (account.role === "admin" || account.role === "super_admin") return "/overview";
+  return account.role === "user" ? "/home" : "/welcome";
 }
 
 /**
@@ -265,13 +269,12 @@ function LoginForm() {
         {feedback && (
           <div
             role="alert"
-            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
-              feedback.type === "success"
-                ? "border-green-200 bg-green-50 text-green-800"
-                : feedback.type === "pending"
-                  ? "border-amber-200 bg-amber-50 text-amber-900"
-                  : "border-red-200 bg-red-50 text-red-700"
-            }`}
+            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${feedback.type === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : feedback.type === "pending"
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-red-200 bg-red-50 text-red-700"
+              }`}
           >
             {feedback.message}
           </div>
