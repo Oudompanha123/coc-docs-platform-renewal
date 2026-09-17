@@ -478,18 +478,16 @@ export default function UsersRolesPage() {
             )}
 
             <div className="px-6 pb-6">
-              {loading ? (
-                <p className="rounded-xl border border-border px-4 py-8 text-center text-sm text-muted">
-                  Loading accounts…
-                </p>
-              ) : (
-                <AccountsTable
-                  accounts={visible}
-                  onDeactivate={setDeactivateTarget}
-                  onReactivate={handleReactivate}
-                  onDelete={setDeleteTarget}
-                  onOpen={(account) => setDetailId(account.id)}
-                />
+              {!loading && (
+                <div className="animate-entrance">
+                  <AccountsTable
+                    accounts={visible}
+                    onDeactivate={setDeactivateTarget}
+                    onReactivate={handleReactivate}
+                    onDelete={setDeleteTarget}
+                    onOpen={(account) => setDetailId(account.id)}
+                  />
+                </div>
               )}
             </div>
             <Pagination

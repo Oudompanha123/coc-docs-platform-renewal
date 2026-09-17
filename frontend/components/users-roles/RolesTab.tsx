@@ -34,7 +34,7 @@ export function RolesTab({
   error: string | null;
 }) {
   if (loading) {
-    return <p className="p-8 text-center text-sm text-muted">Loading roles…</p>;
+    return null;
   }
 
   if (error) {
@@ -48,7 +48,7 @@ export function RolesTab({
   }
 
   return (
-    <div className="space-y-4 p-6">
+    <div className="animate-entrance space-y-4 p-6">
       <p className="text-sm text-muted">
         Roles are fixed and their permissions are set by migration — there is no custom-role builder.
         Each role grants everything the one below it does.

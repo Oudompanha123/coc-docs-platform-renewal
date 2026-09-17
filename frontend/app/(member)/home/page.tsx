@@ -9,6 +9,7 @@ import { RecentDocumentsPanel } from "@/components/home/RecentDocumentsPanel";
 import { TasksPanel } from "@/components/home/TasksPanel";
 import { ProductsStrip } from "@/components/home/ProductsStrip";
 import { HomeFooter } from "@/components/home/HomeFooter";
+import { ScrollReveal } from "@/components/welcome/ScrollReveal";
 import { ProfileModal } from "@/components/layout/ProfileModal";
 import { NotificationsModal } from "@/components/home/NotificationsModal";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -62,7 +63,7 @@ export default function MemberHomePage() {
 
       <main>
         <section className="px-6 pb-16 pt-16 sm:pt-20">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="animate-entrance mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
               {stats === null
                 ? "Loading your workspace…"
@@ -84,55 +85,61 @@ export default function MemberHomePage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href={attention ? productHref(attention.key) : "#products"}
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
                 {attention ? `Continue with ${attention.label}` : "Browse your products"}
               </Link>
               <Link
                 href="#products"
-                className="inline-flex items-center justify-center rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-page"
+                className="inline-flex items-center justify-center rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-page active:scale-[0.97]"
               >
                 Browse all products
               </Link>
             </div>
           </div>
 
-          <div className="relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl">
+          <div className="animate-entrance relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl [animation-delay:120ms]">
             <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
             </div>
             <div className="bg-page p-4 sm:p-6">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {(products ?? []).map((product) => {
-                  const stat = stats?.find((s) => s.id === product.key);
-                  return stat ? <ProductGlanceCard key={product.key} product={product} stat={stat} /> : null;
-                })}
-              </div>
+              {products && stats && (
+                <div className="animate-entrance">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                    {products.map((product) => {
+                      const stat = stats.find((s) => s.id === product.key);
+                      return stat ? <ProductGlanceCard key={product.key} product={product} stat={stat} /> : null;
+                    })}
+                  </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <RecentDocumentsPanel docs={recentDocs} />
-                <TasksPanel tasks={tasks} />
-              </div>
+                  <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <RecentDocumentsPanel docs={recentDocs} />
+                    <TasksPanel tasks={tasks} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
 
-        <ProductsStrip products={products ?? []} stats={stats ?? []} />
+        {products && stats && <ProductsStrip products={products} stats={stats} />}
 
         <section className="mx-auto max-w-5xl px-6 py-20">
-          <h2 className="text-center text-3xl font-bold text-ink">Everything you need, in one place.</h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
-            Your documents, your open tasks, and how the team is using the workspace.
-          </p>
+          <ScrollReveal>
+            <h2 className="text-center text-3xl font-bold text-ink">Everything you need, in one place.</h2>
+            <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
+              Your documents, your open tasks, and how the team is using the workspace.
+            </p>
+          </ScrollReveal>
 
-          <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <ScrollReveal delayMs={80} className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <RecentDocumentsPanel docs={recentDocs} />
             <TasksPanel tasks={tasks} />
             <Link
               href={productHref("usage")}
-              className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+              className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
             >
               <div>
                 <h3 className="text-base font-semibold text-ink">Usage & reports</h3>
@@ -140,11 +147,11 @@ export default function MemberHomePage() {
               </div>
               <span className="mt-4 text-sm font-semibold text-brand-purple">Open Usage →</span>
             </Link>
-          </div>
+          </ScrollReveal>
         </section>
 
         <section className="px-6 pb-20">
-          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: the photo is bright enough that white text needs a dark
                 layer under it to stay legible, same "decorative absolute div
                 painted before the relative-positioned copy" pattern /welcome's
@@ -160,7 +167,7 @@ export default function MemberHomePage() {
                 </p>
                 <Link
                   href={attention ? productHref(attention.key) : "#products"}
-                  className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
                   New Document
                 </Link>
@@ -175,18 +182,20 @@ export default function MemberHomePage() {
                 </p>
                 <button
                   type="button"
-                  className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
                   <ShieldIcon className="h-4 w-4 text-white/80" />
                   Ask an Admin for edit access
                 </button>
               </>
             )}
-          </div>
+          </ScrollReveal>
         </section>
       </main>
 
-      <HomeFooter onOpenProfile={() => setShowProfile(true)} onOpenNotifications={() => setShowNotifications(true)} />
+      <ScrollReveal>
+        <HomeFooter onOpenProfile={() => setShowProfile(true)} onOpenNotifications={() => setShowNotifications(true)} />
+      </ScrollReveal>
 
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       {showNotifications && <NotificationsModal onClose={() => setShowNotifications(false)} />}

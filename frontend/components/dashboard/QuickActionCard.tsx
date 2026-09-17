@@ -16,7 +16,7 @@ export function QuickActionCard({ data }: { data: QuickActionData }) {
   return (
     <button
       type="button"
-      className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-white p-4 text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+      className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-white p-4 text-left shadow-sm transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple active:scale-[0.98]"
     >
       {/* Same brand gradient as the primary "New Document" button, faded in via
           opacity on hover — background-image itself can't be transitioned, but
