@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { me, signOut as signOutRequest, type MeResponse } from "./api";
 import { takeIdToken } from "./idTokenMemory";
-import { disableNotifications } from "@/lib/notify/push";
+import { unregisterThisDevice } from "@/lib/notify/push";
 import { keycloakLogoutUrl } from "./keycloakLogout";
 
 /**
@@ -64,10 +64,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const doSignOut = useCallback(async () => {
     // Before the session goes, while the cookie still authenticates the call.
-    // Without this a shared browser keeps delivering the previous person's
-    // notifications to whoever signs in next, until FCM happens to rotate the
-    // token — which it may never do.
-    await disableNotifications();
+    //
+    // The token only, never the preference. A device token belongs to an
+    // account, so leaving it would deliver the previous person's notifications
+    // to whoever signs in next on a shared browser. Whether somebody wants
+    // banners in this browser is not a property of a session, and clearing it
+    // here turned the Settings toggle off on every sign-out.
+    await unregisterThisDevice();
     await signOutRequest();
     setUser(null);
     setStatus("anonymous");

@@ -4,87 +4,116 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listPending, type PendingAccount } from "@/lib/admin/accounts";
 import { listSessions, SessionExpiredError, type SessionSummary } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
+import {
+  fetchInbox,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type InboxNotification,
+} from "@/lib/notify/inbox-api";
 import { ensureBackgroundPushRegistered, isNotificationsEnabled } from "@/lib/notify/push";
 import { subscribeToNotifications } from "@/lib/notify/stream";
 
 /**
- * What the bell in the topbar shows, and which of it has been looked at.
+ * What the bell shows, and which of it has been read.
  *
- * <p>It used to render a hardcoded array from `lib/mock/overview` — three
- * invented items that never changed. It now carries the two things the system
- * has to say: who is waiting for approval (ADR-017), and whether anybody
- * signed in to your account from a device you have not used (ADR-027).
+ * <p><b>Stored, not derived.</b> This used to build its list from live state —
+ * the pending queue and the session list — which meant a new-device sign-in
+ * alert was a filter over sessions that still existed. It vanished when that
+ * session was revoked or expired, so the case the alert exists for (somebody
+ * signed in, did something, and left) was the case that left nothing behind.
+ * The PM found it exactly that way: "I see notify but next time I don't see
+ * notify at list". Rows now, per ADR-034.
  *
- * <p><b>The two have different audiences, and that is the point.</b> Approvals
- * go to a super admin, because only they can act on one. A sign-in alert goes
- * to the account it happened to and to nobody else — no administrator either,
- * because who signed in where is not something this product should let one
- * person read about another.
+ * <p><b>Read state is the server's.</b> It was `localStorage`, so reading an
+ * alert on a laptop left it unread on a phone and clearing site data lost
+ * every mark. `read_at` belongs to the person.
  *
- * <p><b>The list is derived, the read marks are stored.</b> Items come from the
- * queue and the session list on every read, so they cannot drift from the
- * truth — approve somebody and they leave the list because they left the
- * queue; end a session and its alert goes with it. Read state is the one thing
- * neither source can answer, so it is kept separately.
+ * <p><b>The live sources are consulted only to act.</b> Opening a registration
+ * needs the applicant, and ending a session needs the session — both fetched
+ * on the click rather than polled, so the list costs one request and the queue
+ * stays the authority on who is actually still waiting.
  *
- * <p><b>Read marks are per-browser.</b> localStorage, not the server. Reading a
- * notification on your laptop leaves it unread on your phone. That is a real
- * limitation and the honest fix is a server-side notification table — see the
- * follow-up in ADR-027, where it is now the second notification type's problem
- * as well.
- *
- * <p><b>Live, with polling underneath.</b> An open stream (ADR-028) tells this
- * to re-read the moment something changes, which is what makes the bell
- * correct while somebody is watching it. The sixty-second poll stays as the
- * floor: a stream can be cut by a proxy or a frozen tab without telling
- * either end, and a minute late is a poor experience where never is a bug.
+ * <p><b>Live, with polling underneath.</b> An open stream (ADR-028) says when
+ * to re-read. The sixty-second poll stays as the floor: a stream can be cut by
+ * a proxy or a frozen tab without telling either end, and a minute late is a
+ * poor experience where never is a bug.
  */
 
-const READ_KEY = "coc_read_notifications";
 const POLL_INTERVAL_MS = 60_000;
 
-/** Shared by both kinds; `kind` says which of the two payloads is present. */
-type NotificationBase = {
+export type NotificationItem = {
   id: string;
+  /** `NotificationType.key()` — what to render and where a click leads. */
+  type: string;
   title: string;
   detail: string;
   read: boolean;
+  createdAt: string;
+  targetId: string | null;
+  iconUrl: string | null;
+  /** The applicant's name, when this is about one — for the avatar's initials. */
+  subjectName: string | null;
 };
-
-export type NotificationItem = NotificationBase &
-  (
-    | { kind: "registration"; account: PendingAccount; session?: undefined }
-    | { kind: "sign-in"; session: SessionSummary; account?: undefined }
-  );
 
 export type Notifications = {
   items: NotificationItem[];
-  /** Badge count — unread only. Zero renders no badge. */
+  /** Badge count. Every unread, not only what is listed. */
   unreadCount: number;
   markRead: (id: string) => void;
   markAllRead: () => void;
-  /** Re-reads both sources. Called after approving or ending a session. */
+  /** Re-reads the inbox. */
   refresh: () => Promise<void>;
+  /** Resolves what an item is about and hands it to the right dialog. */
+  open: (item: NotificationItem) => Promise<void>;
 };
 
-function readIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(READ_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    return new Set();
+/**
+ * The sentence, built from the type and the facts.
+ *
+ * <p>No wording is stored (ADR-034 decision 2), so improving one of these
+ * applies to every notification already sent rather than only to new ones.
+ *
+ * <p>An unrecognised type falls back to `payload.body`, which every sender
+ * writes: a build older than a type, or one after a type was retired, shows
+ * something true rather than a blank row.
+ */
+function render(n: InboxNotification): { title: string; detail: string } {
+  const body = typeof n.payload.body === "string" ? n.payload.body : "";
+  switch (n.type) {
+    case "registration.pending":
+      return {
+        title: "New registration",
+        detail: body || "Someone is waiting for approval",
+      };
+    case "auth.new-device":
+      return {
+        title: "New sign-in",
+        detail: body ? `${body} · ${formatWhen(n.createdAt)}` : "From a device you have not used",
+      };
+    default:
+      return { title: "Notification", detail: body || "Something happened" };
   }
 }
 
-function storeReadIds(ids: Set<string>) {
-  try {
-    // Only ids still live are kept, so this cannot grow without bound as
-    // people are approved and sessions end.
-    localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
-  } catch {
-    // Private mode. Everything shows as unread, which is wrong but harmless —
-    // neither source is affected.
-  }
+/** A readable timestamp, or something honest when the value will not parse. */
+function formatWhen(iso: string): string {
+  const when = new Date(iso);
+  return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
+}
+
+function toItem(n: InboxNotification): NotificationItem {
+  const { title, detail } = render(n);
+  return {
+    id: n.id,
+    type: n.type,
+    title,
+    detail,
+    read: n.readAt !== null,
+    createdAt: n.createdAt,
+    targetId: n.targetId,
+    iconUrl: typeof n.payload.iconUrl === "string" ? n.payload.iconUrl : null,
+    subjectName: typeof n.payload.subjectName === "string" ? n.payload.subjectName : null,
+  };
 }
 
 /**
@@ -92,11 +121,7 @@ function storeReadIds(ids: Set<string>) {
  *
  * <p>The banner icon for somebody with no provider picture. The alternative
  * was the app favicon, which is the Next.js logo and says nothing about who
- * the notification is about — the same reason the in-app list shows initials
- * rather than a stand-in face.
- *
- * <p>Returns undefined when canvas is unavailable, and the banner then simply
- * has no icon, which is better than a wrong one.
+ * the notification is about.
  */
 function initialsIcon(name: string): string | undefined {
   try {
@@ -136,22 +161,17 @@ function initialsIcon(name: string): string | undefined {
 }
 
 /**
- * Raises a browser notification, and makes clicking it do something.
+ * Raises a browser banner, and makes clicking it do something.
  *
  * <p>The fallback for a deployment with no Firebase project, and for a tab
  * that is open — FCM background handling covers neither. Requires the same
- * permission the Settings toggle asks for, and does nothing without it, so it
- * can never be the thing that prompts.
+ * permission the Settings toggle asks for, and does nothing without it.
  *
  * <p>`tag` collapses repeats: five registrations replace one another rather
- * than stacking five banners saying the same thing. The two kinds use
- * different tags, because a sign-in alert must never be the banner a
- * registration quietly replaces.
+ * than stacking five identical banners. Each type gets its own, because a
+ * sign-in alert must never be the banner a registration quietly replaces.
  */
-function alertBrowser(
-  options: { title: string; body: string; icon?: string; tag: string },
-  onClick: () => void,
-) {
+function alertBrowser(item: NotificationItem, onClick: () => void) {
   try {
     // Both halves: permission at the browser level, and the person having
     // turned this on in Settings. Permission alone would alert somebody who
@@ -159,10 +179,10 @@ function alertBrowser(
     if (!isNotificationsEnabled()) {
       return;
     }
-    const banner = new Notification(options.title, {
-      body: options.body,
-      icon: options.icon,
-      tag: options.tag,
+    const banner = new Notification(item.title, {
+      body: item.detail,
+      icon: item.iconUrl ?? (item.subjectName ? initialsIcon(item.subjectName) : undefined),
+      tag: item.type,
     });
 
     // A banner that does nothing when clicked is worse than none: it says
@@ -178,21 +198,11 @@ function alertBrowser(
   }
 }
 
-/** A readable timestamp, or something honest when the value will not parse. */
-function formatWhen(iso: string): string {
-  const when = new Date(iso);
-  return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
-}
-
 export function useNotifications(
   options: {
-    /**
-     * Called when a registration banner is clicked, and when the app is opened
-     * by one. The bell answers it by opening the approval dialog, so the
-     * reader acts from where they already are.
-     */
+    /** Called when a registration notification is opened. */
     onOpenApproval?: (account: PendingAccount) => void;
-    /** The same, for a sign-in alert: opens the dialog that can end it. */
+    /** Called when a new-device sign-in notification is opened. */
     onOpenSignIn?: (session: SessionSummary) => void;
   } = {},
 ): Notifications {
@@ -203,130 +213,102 @@ export function useNotifications(
   const onOpenSignIn = useRef(options.onOpenSignIn);
   onOpenSignIn.current = options.onOpenSignIn;
 
-  const { status, user, refresh: refreshSession } = useSession();
-  const [pending, setPending] = useState<PendingAccount[]>([]);
-  const [signIns, setSignIns] = useState<SessionSummary[]>([]);
-  const [read, setRead] = useState<Set<string>>(new Set());
+  const { status, refresh: refreshSession } = useSession();
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Ids already announced by this tab, so polling does not re-alert on every
   // pass. A ref, not state: changing it must not re-render.
   const announced = useRef<Set<string> | null>(null);
 
   const signedIn = status === "authenticated";
-  const isApprover = signedIn && user?.role === "super_admin";
 
-  useEffect(() => {
-    setRead(readIds());
+  /**
+   * Finds what an item is about and opens the dialog for it.
+   *
+   * <p>Fetched on the click rather than polled. The notification is the
+   * record; the queue and the session list are the current state, and only
+   * acting needs both. It also means the ordinary case — a bell nobody opens —
+   * costs one request instead of three.
+   */
+  const open = useCallback(async (item: NotificationItem) => {
+    if (!item.targetId) return;
+    try {
+      if (item.type === "auth.new-device") {
+        const session = (await listSessions()).find((s) => s.id === item.targetId);
+        // Absent means it has already been dealt with — the session ended, or
+        // somebody signed out. The notification stays; there is simply nothing
+        // left to act on, and saying so is the honest outcome.
+        if (session) onOpenSignIn.current?.(session);
+        return;
+      }
+      if (item.type === "registration.pending") {
+        const account = (await listPending()).find((a) => a.id === item.targetId);
+        // Approved by somebody else between the notification and the click.
+        if (account) onOpenApproval.current?.(account);
+      }
+    } catch {
+      // A failed lookup costs the dialog, not the notification. The bell is
+      // still right about what happened.
+    }
   }, []);
 
   const refresh = useCallback(async () => {
     if (!signedIn) {
-      setPending([]);
-      setSignIns([]);
+      setItems([]);
+      setUnreadCount(0);
       return;
     }
+    try {
+      const inbox = await fetchInbox();
+      const next = inbox.items.map(toItem);
+      setItems(next);
+      setUnreadCount(inbox.unreadCount);
 
-    // Independent sources, fetched together and settled separately: a failing
-    // approval queue must not cost a super admin their sign-in alerts, which
-    // are the more serious of the two.
-    const [queueResult, sessionResult] = await Promise.allSettled([
-      isApprover ? listPending() : Promise.resolve<PendingAccount[]>([]),
-      listSessions(),
-    ]);
-    // A 401 here is not "could not load" — it is "you are not signed in any
-    // more", and showing an empty bell for it is how a tab that had been
-    // signed out for an hour went on looking normal. Signing in again in the
-    // same browser revokes the session it replaces, so an older tab is exactly
-    // where this happens.
-    //
-    // Answered by re-reading /auth/me rather than redirecting from here: the
-    // provider is the one authority on session state, and RequireSession
-    // already knows what to do when it turns anonymous.
-    if (
-      sessionResult.status === "rejected" &&
-      sessionResult.reason instanceof SessionExpiredError
-    ) {
-      void refreshSession();
-      setPending([]);
-      setSignIns([]);
-      return;
-    }
-
-    const queue = queueResult.status === "fulfilled" ? queueResult.value : [];
-    // Only sessions the server flagged as unfamiliar, and never the one being
-    // used to read this: a new sign-in is not news to the device that made it.
-    const alerts =
-      sessionResult.status === "fulfilled"
-        ? sessionResult.value.filter((s) => s.newDevice && !s.current)
-        : [];
-
-    setPending(queue);
-    setSignIns(alerts);
-
-    const liveIds = new Set([...queue.map((a) => a.id), ...alerts.map((s) => s.id)]);
-
-    // First pass after sign-in seeds the set without alerting: everything
-    // already here is old news, and a banner per waiting applicant on every
-    // page load would teach people to ignore the banners.
-    if (announced.current === null) {
-      announced.current = new Set(liveIds);
-    } else {
-      for (const session of alerts) {
-        if (announced.current.has(session.id)) continue;
-        announced.current.add(session.id);
-        alertBrowser(
-          {
-            title: "New sign-in",
-            body: `${session.device} · ${formatWhen(session.issuedAt)}`,
-            tag: "auth.new-device",
-          },
-          () => onOpenSignIn.current?.(session),
-        );
+      // First pass after sign-in seeds the set without alerting: everything
+      // already here is old news, and a banner per item on every page load
+      // would teach people to ignore the banners.
+      if (announced.current === null) {
+        announced.current = new Set(next.map((n) => n.id));
+      } else {
+        for (const item of next) {
+          if (announced.current.has(item.id) || item.read) continue;
+          announced.current.add(item.id);
+          alertBrowser(item, () => void open(item));
+        }
       }
-      for (const account of queue) {
-        if (announced.current.has(account.id)) continue;
-        announced.current.add(account.id);
-        alertBrowser(
-          {
-            title: "New registration",
-            body: `${account.displayName} is waiting for approval`,
-            // Their own picture when Google gave one; initials otherwise.
-            // Never the app logo, which tells the reader nothing about who
-            // this is.
-            icon: account.avatarUrl ?? initialsIcon(account.displayName),
-            tag: "registration.pending",
-          },
-          () => onOpenApproval.current?.(account),
-        );
+    } catch (error) {
+      if (error instanceof SessionExpiredError) {
+        // Not "could not load" but "you are not signed in any more". Showing
+        // an empty bell for it is how a tab that had been signed out for an
+        // hour went on looking normal. The provider is the authority on
+        // session state and RequireSession knows what to do when it turns
+        // anonymous.
+        void refreshSession();
       }
+      // Anything else: the bell keeps what it had. This drives the topbar on
+      // every page, and a thrown error in a layout component takes the page
+      // down.
+      setItems([]);
+      setUnreadCount(0);
     }
-
-    // Forget read marks for anything no longer live.
-    setRead((prev) => {
-      const kept = new Set([...prev].filter((id) => liveIds.has(id)));
-      if (kept.size !== prev.size) storeReadIds(kept);
-      return kept.size === prev.size ? prev : kept;
-    });
-  }, [signedIn, isApprover, refreshSession]);
+  }, [signedIn, refreshSession, open]);
 
   useEffect(() => {
     void refresh();
     if (!signedIn) return;
 
-    // Register this browser for push if it should be and is not — see
-    // ensureBackgroundPushRegistered. Fire and forget: the bell works whether
-    // or not it succeeds, and it says so in the console when it does not.
+    // Register this browser for push if it should be and is not.
     void ensureBackgroundPushRegistered();
 
     // The live connection: the server says something changed and this re-reads
     // at once. This is what makes the bell change while somebody is watching
-    // it, on every machine, with no Firebase project and no granted permission.
+    // it, with no Firebase project and no granted permission.
     const stopStream = subscribeToNotifications(() => void refresh());
 
-    // The poll stays, at a deliberately unhurried interval, as the floor under
-    // it. A stream can be cut by a proxy that strips buffering, a corporate
-    // middlebox, or a browser tab the OS froze — none of which announce
-    // themselves. A minute late is a poor experience; never is a bug.
+    // The floor under it. A stream can be cut by a proxy that strips
+    // buffering, a corporate middlebox, or a tab the OS froze — none of which
+    // announce themselves.
     const timer = setInterval(() => void refresh(), POLL_INTERVAL_MS);
 
     return () => {
@@ -336,81 +318,43 @@ export function useNotifications(
   }, [refresh, signedIn]);
 
   const markRead = useCallback((id: string) => {
-    setRead((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev).add(id);
-      storeReadIds(next);
-      return next;
-    });
+    // Optimistic: the row is already read from the reader's point of view, and
+    // making them watch a round trip to see a dot disappear would be worse
+    // than being briefly wrong. The next poll corrects it either way.
+    setItems((prev) =>
+      prev.map((item) => (item.id === id && !item.read ? { ...item, read: true } : item)),
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+    void markNotificationRead(id);
   }, []);
 
   const markAllRead = useCallback(() => {
-    setRead(() => {
-      const next = new Set([...pending.map((a) => a.id), ...signIns.map((s) => s.id)]);
-      storeReadIds(next);
-      return next;
-    });
-  }, [pending, signIns]);
+    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+    setUnreadCount(0);
+    void markAllNotificationsRead();
+  }, []);
 
   // A notification clicked while the app was closed lands here, as
-  // ?approve=<id> or ?session=<id> on whatever page the service worker opened.
-  // Acted on once the lists have loaded, so the dialog has something to show;
-  // the parameter is then removed so a refresh does not reopen it.
+  // ?approve=<id> or ?session=<id> on whatever page the service worker
+  // opened. Acted on once the inbox has loaded; the parameter is then removed
+  // so a refresh does not reopen it.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (pending.length === 0 && signIns.length === 0) return;
+    if (typeof window === "undefined" || items.length === 0) return;
 
     const url = new URL(window.location.href);
     const wantedSession = url.searchParams.get("session");
     const wantedAccount = url.searchParams.get("approve");
     if (!wantedSession && !wantedAccount) return;
 
-    const session = wantedSession ? signIns.find((s) => s.id === wantedSession) : undefined;
-    const account = wantedAccount ? pending.find((a) => a.id === wantedAccount) : undefined;
+    const wanted = wantedSession ?? wantedAccount;
+    const item = items.find((n) => n.targetId === wanted);
 
     url.searchParams.delete("session");
     url.searchParams.delete("approve");
     window.history.replaceState({}, "", url.toString());
 
-    // Absent means it was dealt with between the notification and the click —
-    // approved by somebody else, or a session already ended. Silently doing
-    // nothing is right: what is on screen is already the answer.
-    if (session) onOpenSignIn.current?.(session);
-    else if (account) onOpenApproval.current?.(account);
-  }, [pending, signIns]);
+    if (item) void open(item);
+  }, [items, open]);
 
-  const items: NotificationItem[] = [
-    // Sign-in alerts first, and not by date: one of these is the only item in
-    // the bell that might mean somebody else is in the account.
-    ...signIns.map(
-      (session): NotificationItem => ({
-        kind: "sign-in",
-        id: session.id,
-        title: "New sign-in",
-        detail: `${session.device} · ${session.ipAddress ?? "unknown address"} · ${formatWhen(
-          session.issuedAt,
-        )}`,
-        read: read.has(session.id),
-        session,
-      }),
-    ),
-    ...pending.map(
-      (account): NotificationItem => ({
-        kind: "registration",
-        id: account.id,
-        title: "New registration",
-        detail: `${account.displayName} (${account.email}) is waiting for approval`,
-        read: read.has(account.id),
-        account,
-      }),
-    ),
-  ];
-
-  return {
-    items,
-    unreadCount: items.filter((item) => !item.read).length,
-    markRead,
-    markAllRead,
-    refresh,
-  };
+  return { items, unreadCount, markRead, markAllRead, refresh, open };
 }

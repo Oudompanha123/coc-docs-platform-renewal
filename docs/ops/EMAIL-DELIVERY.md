@@ -59,22 +59,28 @@ Route 3 is overkill here. It needs Workspace admin consent for the
    MAIL_PASSWORD=<the 16-character app password>
    ```
 
-4. Set the From address to that same account:
+4. Set the From address to that same account. **Note the different shape** —
+   this one is a dotted property name, not a SHOUTY_CASE variable:
 
    ```text
-   APP_MAIL_FROM=Coc Docs Platform <someone@wecambodia.com>
+   app.mail.from=Coc Docs Platform <someone@wecambodia.com>
    ```
 
    It MUST be the authenticated account or one of its verified aliases. See
    "The From address" below — this is the step people skip.
 
-   Note the different shape of this one. The four above are spelled the way
-   the `${MAIL_HOST}` references in the yml spell them. There is no
-   `MAIL_FROM`: `app.mail.from` has no yml reference at all, only a `@Value`
-   default in Java. `APP_MAIL_FROM` reaches it through Spring Boot's relaxed
-   environment binding, which maps an upper-snake-case variable onto the
-   dotted property of the same name — and since environment variables outrank
-   `application.yml`, it wins whatever the yml does or does not say.
+   `APP_MAIL_FROM` works too. The four above are spelled the way the
+   `${MAIL_HOST}` references in the yml spell them — an exact, literal match
+   that resolves from any property source. `app.mail.from` has no yml reference
+   at all, so reaching it from an uppercase name needs Spring to translate
+   between the two spellings, which it does only for a
+   `SystemEnvironmentPropertySource`.
+
+   `DotenvEnvironmentPostProcessor` registers `backend/.env.local` under a name
+   ending in `-systemEnvironment` precisely to earn that translation. Before
+   2026-09-17 it did not, and an `APP_MAIL_FROM` line in that file was silently
+   never read while the same line exported in a shell worked — so if you are
+   reading an older checkout, use the dotted form.
 
 5. Start the backend and read the one line `MailConfigurationReport` logs at
    startup. It reports what actually took effect, which is the point of it:
@@ -176,12 +182,12 @@ deployment mailing a shared address — set the variable, comma-separated for
 more than one:
 
 ```text
-APP_NOTIFICATIONS_RECIPIENTS=someone@gmail.com,ops@wecambodia.com
+app.notifications.recipients=someone@gmail.com,ops@wecambodia.com
 ```
 
-Same relaxed-binding mechanism as `APP_MAIL_FROM` above, and it replaces the
-admin list rather than adding to it: nobody else receives the digest while it
-is set.
+`APP_NOTIFICATIONS_RECIPIENTS` works equally — see the note on spellings in
+route 1. It replaces the admin list rather than adding to it: nobody else
+receives the digest while it is set.
 
 Recipients go in **Bcc**, with the `From` address as the visible `To` — see
 the class comment on `NotificationMailService`. So a digest that arrives

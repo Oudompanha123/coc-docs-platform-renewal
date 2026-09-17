@@ -67,7 +67,7 @@ swapping the implementation is not a rewrite.
 
 ### 2. Record that a report arrived. Never what it said
 
-`hrms_notification` (V19) holds a subject line, a parsed date, and an arrival
+`hrms_notification` (V21) holds a subject line, a parsed date, and an arrival
 time. The body is never fetched — `HrmsImapMailbox` asks for envelopes only and
 nothing in the codebase calls `getContent()`.
 
@@ -212,6 +212,6 @@ and
 own numbering notes already record for this branch — and no decision in this
 document changed.
 
-`V19__hrms_notification.sql` is untouched by the renumbering: it never cited
+`V21__hrms_notification.sql` is untouched by the renumbering: it never cited
 the number, and an applied migration is immutable regardless (see ADR-031's
 note on the Flyway checksum mismatch the last renumbering caused).

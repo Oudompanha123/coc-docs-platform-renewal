@@ -10,7 +10,6 @@ import { FALLBACK_NAV } from "@/lib/docs/nav-api";
 import type { Tone } from "@/lib/mock/overview";
 import {
   BarChartIcon,
-  DocumentIcon,
   FolderIcon,
   LayersIcon,
   MoonIcon,
@@ -165,17 +164,17 @@ export default function WelcomePage() {
           isDark ? "bg-[#0d0b1a]" : "bg-white"
         } ${scrolled ? (isDark ? "border-[#332e4d]" : "border-border") : "border-transparent"}`}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-0">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-              <DocumentIcon className="h-4 w-4" />
-            </div>
-            <span className={`text-sm font-semibold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
-              Coc Docs Platform
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+            <img
+              src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
+              alt="Coc Docs Platform"
+              className="h-[55px] w-auto rounded-lg"
+            />
           </div>
 
-          <nav className={`hidden items-center gap-7 text-base font-medium md:flex ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+          <nav className={`hidden items-center gap-7 text-[18px] font-medium md:flex ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
             <a
               href={HOME_LINK.href}
               className={`flex h-[72px] items-center border-b-2 border-transparent transition-all hover:border-brand-purple hover:font-bold ${
@@ -189,7 +188,7 @@ export default function WelcomePage() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-[25px]">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setTheme(isDark ? "light" : "dark")}
@@ -327,13 +326,12 @@ export default function WelcomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-sidebar px-6 py-14 text-center sm:px-16">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-purple/25 blur-3xl"
-            />
+          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+            {/* Scrim: same "photo background needs a dark layer under white
+                text" treatment as the Member home page's own CTA band. */}
+            <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
             <h2 className="relative text-2xl font-bold text-white sm:text-3xl">Bring your docs into one workspace.</h2>
-            <p className="relative mt-3 text-sm text-sidebar-muted sm:text-base">Start free — no credit card required.</p>
+            <p className="relative mt-3 text-sm text-white sm:text-base">Start free — no credit card required.</p>
             <Link
               href="/register"
               className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
@@ -348,12 +346,12 @@ export default function WelcomePage() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-                <DocumentIcon className="h-4 w-4" />
-              </div>
-              <span className={`text-sm font-semibold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
-                Coc Docs Platform
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+              <img
+                src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
+                alt="Coc Docs Platform"
+                className="h-[55px] w-auto rounded-md"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">

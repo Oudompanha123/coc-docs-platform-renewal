@@ -198,6 +198,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/notifications/stream")
                         .hasRole(AppRole.USER.name())
 
+                        // The caller's own notifications, and marking them read.
+                        // Any signed-in account, because every role receives
+                        // some of them — a new-device sign-in alert goes to
+                        // whoever was signed in to, whatever they may do here
+                        // (ADR-034). The rows are scoped to the resolved caller
+                        // in the query itself, so there is nothing to point at
+                        // anybody else.
+                        .requestMatchers("/api/v1/notifications/inbox/**")
+                        .hasRole(AppRole.USER.name())
+
                         // The topbar's activity feed. Read-only, and a `user`
                         // floor rather than anything higher because every role
                         // is entitled to their own history.
@@ -274,6 +284,15 @@ public class SecurityConfig {
                         // accounts endpoints above, not an ordinary editorial read.
                         .requestMatchers("/api/v1/admin/audit/**")
                         .hasRole(AppRole.SUPER_ADMIN.name())
+
+                        // A task's title carries no other account's PII, unlike the
+                        // two prefixes above — so the read side is open to any
+                        // signed-in role, for the Member landing page's "Your
+                        // Tasks" list (ADR-033). Creating/completing a task stays
+                        // admin+ only, falling through to the generic /admin/**
+                        // rule below since this matcher is GET-only.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/tasks")
+                        .hasRole(AppRole.USER.name())
 
                         // --- editorial writes and admin reads ----------------
                         .requestMatchers("/api/v1/admin/**").hasRole(AppRole.ADMIN.name())
