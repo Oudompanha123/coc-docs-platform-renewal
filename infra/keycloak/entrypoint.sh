@@ -48,7 +48,13 @@ if grep -q 'env.GOOGLE_CLIENT_SECRET' "${DEST}"; then
     exit 1
 fi
 
-echo "realm prepared for https://${PUBLIC_DOMAIN}"
+# Says which Keycloak the realm was exported from, beside the one importing it.
+# A mismatch fails as "Unrecognized field <something>" naming a setting nobody
+# chose — true, and no help at all in working out that the versions differ.
+# This makes the next one obvious from the log.
+REALM_VERSION="$(grep -o '"keycloakVersion"[^,]*' "${SRC}" | head -1 | cut -d'"' -f4)"
+
+echo "realm prepared for https://${PUBLIC_DOMAIN} (exported from Keycloak ${REALM_VERSION:-unknown})"
 
 # --import-realm only imports a realm that does not already exist, so this is
 # safe to re-run. To take the file's version again, delete the realm in the

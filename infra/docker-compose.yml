@@ -85,7 +85,17 @@ services:
   # Identity broker
   # ---------------------------------------------------------------------
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    # MUST match the "keycloakVersion" inside keycloak/docs_platform-realm.json,
+    # and therefore what developers run locally. A realm exported from a newer
+    # Keycloak fails to import into an older one, field by field:
+    #
+    #   Unrecognized field "maxSecondaryAuthFailures" (RealmRepresentation),
+    #   not marked as ignorable
+    #
+    # — which names a setting nobody chose and says nothing about versions.
+    # Pinned as one value so the realm, the developers and this deployment
+    # cannot drift apart silently.
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.7.3}
     restart: unless-stopped
     environment:
       KC_DB: postgres
