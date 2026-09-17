@@ -106,10 +106,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     <div className="flex h-full flex-col bg-sidebar px-4 py-5">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-sm font-bold text-white">
-            CD
-          </div>
-          <span className="text-sm font-semibold text-white">Coc Docs Platform</span>
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="h-8 w-auto rounded-lg" />
         </div>
         <button
           type="button"
