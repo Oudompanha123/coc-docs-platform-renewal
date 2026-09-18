@@ -46,9 +46,7 @@ function postLoginDestination(account: AuthenticatedAccount): string {
  *
  * The password form (ADR-014, revision of ADR-008/FR-AUTH-002/FR-AUTH-003):
  * POST /api/v1/auth/login-password. Only succeeds for a self-registered account
- * a super_admin has approved — see app/register/page.tsx. The field is
- * labelled "Email, Phone or Name" to match the approved mockup, but only an
- * email actually authenticates; the backend has no phone/name lookup.
+ * a super_admin has approved — see app/register/page.tsx.
  *
  * Both paths end at the same session cookie and share one feedback banner
  * below, since only one of them is ever the most recent attempt. Both also
@@ -365,10 +363,10 @@ function LoginForm() {
       ) : (
         <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
           <FormField
-            label="Email, Phone or Name"
+            label="Email"
             value={identifier}
             onChange={setIdentifier}
-            placeholder="Email, phone or full name"
+            placeholder="name@company.com"
             icon={<PersonIcon className="h-4 w-4" />}
             autoComplete="username"
             error={errors.identifier}

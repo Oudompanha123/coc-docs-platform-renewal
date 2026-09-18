@@ -9,6 +9,7 @@ import {
   HomeIcon,
   LayersIcon,
   PersonIcon,
+  PlugIcon,
   PulseIcon,
   SettingsIcon,
   UsersIcon,
@@ -77,6 +78,13 @@ const STATIC_SECTIONS: NavSection[] = [
       // team-wide usage/cost monitor, not an account-authority tool, so it
       // sits at the same floor as everything else an admin manages.
       { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
+      // super_admin only, same floor as Users & Roles: every action on this
+      // page (connect/test/rotate/disconnect) stores, rotates or discards a
+      // signing secret, or makes a live outbound call to an admin-supplied
+      // URL (ADR-037) — the backend enforces this at super_admin regardless,
+      // but showing the link to a plain admin would land them on a page
+      // where nothing is clickable except a read-only list.
+      { label: "Integrations", href: "/integrations", icon: PlugIcon, roles: ["super_admin"] },
     ],
   },
 ];

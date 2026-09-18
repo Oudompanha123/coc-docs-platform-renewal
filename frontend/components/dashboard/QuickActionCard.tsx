@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BarChartIcon, PlugIcon, PlusIcon, UserPlusIcon } from "@/components/layout/icons";
 import type { QuickActionData } from "@/lib/mock/overview";
 import { TONE_STYLES } from "./tone";
@@ -9,13 +10,19 @@ const QUICK_ACTION_ICONS = {
   barChart: BarChartIcon,
 } as const;
 
-export function QuickActionCard({ data }: { data: QuickActionData }) {
+/**
+ * Real navigation, not a decorative card — {@code href} is required so this
+ * always goes somewhere real once wired up on the Overview page (each of the
+ * four now has a genuine destination: the product needing the most
+ * attention, `/users-roles`, `/claude-usage`, `/integrations`).
+ */
+export function QuickActionCard({ data, href }: { data: QuickActionData; href: string }) {
   const Icon = QUICK_ACTION_ICONS[data.icon];
   const tone = TONE_STYLES[data.tone];
 
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-white p-4 text-left shadow-sm transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple active:scale-[0.98]"
     >
       {/* Same brand gradient as the primary "New Document" button, faded in via
@@ -32,6 +39,6 @@ export function QuickActionCard({ data }: { data: QuickActionData }) {
         <p className="truncate text-sm font-semibold text-dash-ink">{data.title}</p>
         <p className="truncate text-xs text-muted">{data.subtitle}</p>
       </div>
-    </button>
+    </Link>
   );
 }
