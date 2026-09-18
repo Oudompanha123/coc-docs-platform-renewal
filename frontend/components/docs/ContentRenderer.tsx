@@ -112,7 +112,24 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
         <div className="mt-4">
           {content.steps.map((step, i) => (
             <DocStep key={`${step.title}-${i}`} number={i + 1} title={step.title}>
-              {step.body && <p>{step.body}</p>}
+              {step.body && (
+                <div className="space-y-2">
+                  {step.body.split("\n\n").map((para, pi) => {
+                    const lines = para.split("\n");
+                    const isList = lines.every((l) => l.startsWith("• "));
+                    if (isList) {
+                      return (
+                        <ul key={pi} className="list-disc space-y-1 pl-5">
+                          {lines.map((l, li) => (
+                            <li key={li}>{l.slice(2)}</li>
+                          ))}
+                        </ul>
+                      );
+                    }
+                    return <p key={pi}>{para}</p>;
+                  })}
+                </div>
+              )}
               {step.command && <DocsCodeBlock code={step.command} output={step.output} />}
             </DocStep>
           ))}
