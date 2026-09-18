@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { NavDropdown } from "@/components/welcome/NavDropdown";
+import { ScrollReveal } from "@/components/welcome/ScrollReveal";
 import { GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { TONE_STYLES } from "@/components/dashboard/tone";
 import { FALLBACK_NAV } from "@/lib/docs/nav-api";
@@ -231,7 +232,7 @@ export default function WelcomePage() {
             </>
           )}
 
-          <div className="relative mx-auto max-w-3xl text-center">
+          <div className="animate-entrance relative mx-auto max-w-3xl text-center">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
                 isDark ? "bg-brand-purple/15 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
@@ -257,13 +258,13 @@ export default function WelcomePage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
                 Get started free
               </Link>
               <Link
                 href="/login"
-                className={`inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition-colors ${
+                className={`inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
                   isDark
                     ? "border-[#332e4d] bg-[#1e1a30] text-[#f2effa] hover:bg-[#2a2545]"
                     : "border-border bg-white text-ink shadow-sm hover:bg-page"
@@ -274,59 +275,66 @@ export default function WelcomePage() {
             </div>
           </div>
 
-          <div className="relative mx-auto mt-16 max-w-4xl">
+          <div className="animate-entrance relative mx-auto mt-16 max-w-4xl [animation-delay:120ms]">
             <DashboardPreview theme={theme} />
           </div>
         </section>
 
         <section className={`border-y px-6 py-10 ${isDark ? "border-[#332e4d] bg-[#0d0b1a]" : "border-border bg-white"}`}>
-          <p className={`text-center text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
-            Trusted by teams at
-          </p>
-          <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3">
-            {TRUSTED_BY.map((name) => (
-              <span key={name} className={`text-lg font-bold ${isDark ? "text-[#a79fc9]/40" : "text-muted/50"}`}>
-                {name}
-              </span>
-            ))}
-          </div>
+          <ScrollReveal>
+            <p className={`text-center text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+              Trusted by teams at
+            </p>
+            <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3">
+              {TRUSTED_BY.map((name) => (
+                <span key={name} className={`text-lg font-bold ${isDark ? "text-[#a79fc9]/40" : "text-muted/50"}`}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          </ScrollReveal>
         </section>
 
         <section id="features" className="mx-auto max-w-5xl px-6 py-20">
-          <h2 className={`text-center text-3xl font-bold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
-            Every product, one coverage view.
-          </h2>
-          <p className={`mx-auto mt-3 max-w-xl text-center text-base ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
-            Coc Docs Platform keeps every product&apos;s documentation in one place, so gaps get noticed before
-            someone hits them.
-          </p>
+          <ScrollReveal>
+            <h2 className={`text-center text-3xl font-bold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
+              Every product, one coverage view.
+            </h2>
+            <p className={`mx-auto mt-3 max-w-xl text-center text-base ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+              Coc Docs Platform keeps every product&apos;s documentation in one place, so gaps get noticed before
+              someone hits them.
+            </p>
+          </ScrollReveal>
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((feature) => {
+            {FEATURES.map((feature, i) => {
               const Icon = feature.icon;
               const tone = TONE_STYLES[feature.tone];
               return (
-                <div
-                  key={feature.title}
-                  className={`rounded-2xl border p-5 ${
-                    isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white shadow-sm"
-                  }`}
-                >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone.bg} ${tone.fg}`}>
-                    <Icon className="h-5 w-5" />
+                <ScrollReveal key={feature.title} delayMs={i * 60}>
+                  <div
+                    className={`rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-1 ${
+                      isDark
+                        ? "border-[#332e4d] bg-[#1e1a30] hover:border-brand-purple/40"
+                        : "border-border bg-white shadow-sm hover:shadow-md"
+                    }`}
+                  >
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone.bg} ${tone.fg}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className={`mt-3 text-base font-semibold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
+                      {feature.title}
+                    </h3>
+                    <p className={`mt-1 text-sm ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{feature.description}</p>
                   </div>
-                  <h3 className={`mt-3 text-base font-semibold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
-                    {feature.title}
-                  </h3>
-                  <p className={`mt-1 text-sm ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{feature.description}</p>
-                </div>
+                </ScrollReveal>
               );
             })}
           </div>
         </section>
 
         <section className="px-6 pb-20">
-          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: same "photo background needs a dark layer under white
                 text" treatment as the Member home page's own CTA band. */}
             <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
@@ -334,16 +342,16 @@ export default function WelcomePage() {
             <p className="relative mt-3 text-sm text-white sm:text-base">Start free — no credit card required.</p>
             <Link
               href="/register"
-              className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
             >
               Get started free
             </Link>
-          </div>
+          </ScrollReveal>
         </section>
       </main>
 
       <footer className={`border-t py-12 ${isDark ? "border-[#332e4d]" : "border-border"}`}>
-        <div className="mx-auto max-w-6xl px-6">
+        <ScrollReveal className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
@@ -395,7 +403,7 @@ export default function WelcomePage() {
               ))}
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </footer>
     </div>
   );

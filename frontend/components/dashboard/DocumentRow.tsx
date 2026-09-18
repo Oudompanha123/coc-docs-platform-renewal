@@ -10,7 +10,7 @@ export function DocumentRow({ data }: { data: ContentDocRow }) {
   const avatar = AVATAR_GRADIENTS[data.tone];
 
   return (
-    <div className="flex items-center gap-3 py-3">
+    <div className="-mx-2 flex items-center gap-3 rounded-xl px-2 py-3 transition-colors duration-150 hover:bg-page">
       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-semibold text-white ${avatar}`}>
         {data.initials}
       </div>

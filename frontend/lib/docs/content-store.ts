@@ -34,7 +34,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     tagline: "JEX Studio automation for Claude Code.",
     subline: "One install. Every workspace.",
     ctaLabel: "Get started",
-    ctaHref: "/jex3-0/get-started",
+    ctaHref: "/docs/jex3-0/get-started",
     eyebrow: "Overview",
     sectionHeading: "Your whole JEX workflow. In one plugin.",
     sectionIntro:
@@ -368,6 +368,71 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       },
     ],
   },
+  [contentId("jex3-0", "from-scratch")]: {
+    kind: "steps",
+    eyebrow: "From scratch",
+    heading: "Setting up a project that's never used jexmcp before.",
+    intro:
+      "Same install, a new workspace. Here's the full walkthrough for a project called NEWPROJ — swap in your own prefix.",
+    calloutTone: "warning",
+    calloutText:
+      "Always open Claude Code at the workspace root — the folder containing NEWPROJ_ETC (or whatever your prefix is). That's how the plugin knows which project it's working on.",
+    steps: [
+      {
+        title: "Check out the workspace from SVN",
+        body: "No .claude folder needed — the plugin carries everything with it. A fresh checkout looks like this:",
+        command:
+          "NEWPROJ\\\n├── NEWPROJ\\            web app — JSP action & view\n├── NEWPROJ_CONFIG\\\n├── NEWPROJ_ETC\\        service XML — this dir tells the plugin the prefix\n├── NEWPROJ_JEXSETTING\\\n└── NEWPROJ_STATIC\\     static JS / CSS",
+      },
+      {
+        title: "Open Claude Code at the workspace root",
+        body: "",
+        command: 'cd "C:\\Projects Workspace\\NEWPROJ"\nclaude',
+      },
+      {
+        title: "Initialize the project",
+        body: "Asks for your prefixes and packages, then generates CLAUDE.md, creates .claude\\tmp and .claude\\state, and checks your credentials.",
+        command: "/jexmcp3.0:init",
+      },
+      {
+        title: "Verify everything works",
+        body: "See the Verify tab for what a full pass looks like.",
+        command: "/jexmcp3.0:doctor",
+      },
+      {
+        title: "Start working",
+        body: "See the How to use tab for the full command reference.",
+      },
+    ],
+  },
+  [contentId("jex3-0", "verify")]: {
+    kind: "steps",
+    eyebrow: "Verify",
+    heading: "Two checks worth knowing.",
+    intro:
+      "One right after install, one anytime something feels off — both point at the same command underneath.",
+    steps: [
+      {
+        title: "Right after install — are the MCP servers connected?",
+        body: "Run this after restarting Claude Code. If either line is missing or says failed, run /jexmcp3.0:doctor next — it finds the cause and prints the exact fix.",
+        command: "/mcp",
+        output:
+          "jex (plugin: jexmcp3.0)   ✔ connected    ← 14 jex_* tools (API automation)\njexstudio30-mcp           ✔ connected    ← jexstudio_* tools (interactive)",
+      },
+      {
+        title: "Anytime — a full health check",
+        body: "Checks dependencies, workspace layout, SVN, and your JexStudio login, in that order. First move for any problem.",
+        command: "/jexmcp3.0:doctor",
+        output:
+          "[OK  ] plugin dependencies — sdk + zod loadable\n[OK  ] workspace layout — found: PLUGIN, PLUGIN_ETC, PLUGIN_DOC, PLUGIN_STATIC\n[OK  ] svn CLI — version 1.14.5\n[OK  ] svn working copies — no conflicts\n[OK  ] jex_auth.json — found\n[OK  ] JexStudio session — login OK, saved\n\njexmcp doctor: all checks passed.",
+      },
+      {
+        title: "Where you stand — version & sync",
+        body: "Shows the installed plugin version, git sync vs GitHub (behind / ahead / up-to-date), and the current project's settings.",
+        command: "/jexmcp3.0:status",
+      },
+    ],
+  },
   [contentId("jex2-0", "")]: {
     kind: "hero",
     heading: "jex2.0",
@@ -542,5 +607,288 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
           "Retired with the zip. Installation is claude plugin install jex2.0@cocweb now, and sharing = inviting a teammate to the GitHub repo — no more zip passing.",
       },
     ],
+  },
+  [contentId("coach", "")]: {
+    kind: "hero",
+    heading: "Coach",
+    tagline: "Workflow coaching for your AI agents.",
+    subline: "Define once. Coach every run.",
+    ctaLabel: "Get started",
+    ctaHref: "/docs/coach/quick-start",
+    eyebrow: "Overview",
+    sectionHeading: "Every agent, coached the same way.",
+    sectionIntro:
+      "Coach wraps your agents with consistent skills, guardrails, and templates — so every run follows the same playbook, whether it's the first one or the thousandth.",
+    features: [
+      {
+        icon: "layers",
+        title: "Skills, reusable",
+        description:
+          "Package a capability once as a skill, then attach it to any agent that needs it. No copy-pasted prompt logic between agents.",
+      },
+      {
+        icon: "pulse",
+        title: "Guided workflows",
+        description: "Coach sequences multi-step agent workflows and hands off context between steps automatically.",
+      },
+      {
+        icon: "shield",
+        title: "Security & gates",
+        description: "Sensitive or destructive steps pause for approval before Coach lets an agent proceed.",
+      },
+      {
+        icon: "sparkles",
+        title: "Template-driven setup",
+        description: "Start new agents from a template instead of from scratch, with skills and gates already wired in.",
+      },
+    ],
+  },
+  [contentId("coach", "quick-start")]: {
+    kind: "steps",
+    eyebrow: "Quick start",
+    heading: "Get your first agent coached.",
+    intro: "Six steps from install to a tracked run.",
+    steps: [
+      { title: "Install Coach", body: "Install Coach into your workspace so it can see your existing agents." },
+      { title: "Register your first agent", body: "Point Coach at the agent's config or definition file." },
+      {
+        title: "Attach a skill",
+        body: "Pick a skill from the skill library so the agent has at least one coached capability.",
+      },
+      {
+        title: "Add a security gate",
+        body: "Add a gate on any step that writes, deletes, or calls an external service.",
+      },
+      {
+        title: "Run the agent through Coach",
+        body: "Run it through Coach instead of directly, so its steps and gates are tracked.",
+      },
+      { title: "Check the run log", body: "Confirm each step, skill call, and gate passed as expected." },
+    ],
+  },
+  [contentId("coach", "how-to-use")]: {
+    kind: "sections",
+    eyebrow: "How to use",
+    heading: "Running and reading a coached agent.",
+    intro: "The five things you'll do most often once an agent is registered.",
+    sections: [
+      {
+        title: "Starting a run",
+        note: "Trigger an agent through Coach's runner rather than calling it directly — this is what gives you skills, gates, and logging.",
+      },
+      {
+        title: "Choosing skills",
+        note: "Pick from the skill library per agent; skills can be shared across multiple agents.",
+      },
+      {
+        title: "Handling gates",
+        note: "When a run hits a security gate, Coach pauses and notifies the assigned approver; approve or reject from the run's detail view.",
+      },
+      {
+        title: "Reading output",
+        note: "Each run keeps a step-by-step trace — which skill ran, what it returned, and which gates fired — so you can debug a failed run without re-running it blind.",
+      },
+      {
+        title: "Updating an agent",
+        note: "Edit its config, re-attach skills as needed, and Coach revalidates the workflow before the next run.",
+      },
+    ],
+  },
+  [contentId("coach", "workflow")]: {
+    kind: "sections",
+    eyebrow: "Workflow",
+    heading: "Steps, declared — not hardcoded.",
+    intro:
+      "A Coach workflow is an ordered sequence of steps, where each step is either a skill call, a gate check, or a handoff to another agent. Workflows are defined declaratively — not hardcoded in the agent's own logic — so the same agent can be re-sequenced without touching its underlying code. This also means workflows can be reviewed and approved independently of the agent implementation.",
+    sections: [],
+  },
+  [contentId("coach", "structure")]: {
+    kind: "sections",
+    eyebrow: "Structure",
+    heading: "Where everything lives.",
+    intro: "A typical Coach project is organized around five directories.",
+    sections: [
+      { title: "agents/", note: "One definition per agent — name, entry point, attached skills, workflow reference." },
+      { title: "skills/", note: "Reusable skill definitions agents can attach to." },
+      { title: "templates/", note: "Starter agent configs with recommended skills/gates pre-attached." },
+      { title: "gates/", note: "Security/approval gate definitions, referenced by workflows." },
+      { title: "workflows/", note: "The ordered step sequences that tie agents, skills, and gates together." },
+    ],
+  },
+  [contentId("coach", "skills")]: {
+    kind: "sections",
+    eyebrow: "Skills",
+    heading: "One capability, attach it anywhere.",
+    intro:
+      "A skill is a single reusable capability — a defined input/output contract plus the logic behind it — that any registered agent can attach. Skills are versioned independently of the agents that use them, so improving a skill (e.g. a better search skill) benefits every agent that already has it attached, without needing to touch each agent individually.",
+    sections: [],
+  },
+  [contentId("coach", "agents")]: {
+    kind: "sections",
+    eyebrow: "Agents",
+    heading: "What Coach knows about an agent.",
+    intro:
+      "An agent in Coach is a named, registered entity with: an entry point (what actually runs), a list of attached skills, a workflow defining its step order, and any gates that apply to its steps. Coach doesn't dictate what an agent's underlying logic does — it wraps that logic with consistent skills, structure, and oversight.",
+    sections: [],
+  },
+  [contentId("coach", "templates")]: {
+    kind: "sections",
+    eyebrow: "Templates",
+    heading: "Start from a good default.",
+    intro:
+      'Templates are starter agent configurations for common patterns (e.g. "research agent," "support agent," "data-processing agent"), each pre-wired with a sensible set of skills and gates. Starting a new agent from a template means you inherit good defaults instead of assembling skills and gates from zero.',
+    sections: [],
+  },
+  [contentId("coach", "security-gates")]: {
+    kind: "sections",
+    eyebrow: "Security & gates",
+    heading: "A checkpoint before anything sensitive.",
+    intro:
+      "A gate is a checkpoint inserted into a workflow before a sensitive step (e.g. sending data externally, deleting records, spending budget). When a run reaches a gate, Coach pauses execution and requires explicit approval before continuing. Gates are attached at the workflow level, so the same gate can protect the same kind of step across every agent that uses it — you define the gate once, not per agent.",
+    sections: [],
+  },
+  [contentId("team", "")]: {
+    kind: "hero",
+    heading: "Team",
+    tagline: "One workspace for how your team actually works.",
+    subline: "Shared tools. Shared visibility. No status meetings required.",
+    ctaLabel: "Get started",
+    ctaHref: "/docs/team/roadmap",
+    eyebrow: "Overview",
+    sectionHeading: "Everyone's work, in one place.",
+    sectionIntro:
+      "Team brings your group's workspace, tools, and progress together — so anyone can see what's planned, what's in motion, and how it's going without asking around.",
+    features: [
+      {
+        icon: "layers",
+        title: "Shared workspace",
+        description: "One place for the team's files, links, and active work, instead of scattered across chats and folders.",
+      },
+      {
+        icon: "tag",
+        title: "Roadmap visibility",
+        description: "See what's planned and its status without a separate planning tool.",
+      },
+      {
+        icon: "sparkles",
+        title: "Connected tools",
+        description: "Link the tools your team already uses so nothing lives in a silo.",
+      },
+      {
+        icon: "pulse",
+        title: "Metrics at a glance",
+        description: "Track team activity and progress without asking for a status update.",
+      },
+    ],
+  },
+  [contentId("team", "roadmap")]: {
+    kind: "sections",
+    eyebrow: "Roadmap",
+    heading: "What's planned, in motion, and shipped.",
+    intro:
+      "The Roadmap gives the team a shared view of what's planned, in progress, and shipped. Items move through stages (e.g. Planned → In progress → Done) so anyone can check status without a separate meeting. Roadmap items can link out to the actual work — a doc, a ticket, a demo — for more detail.",
+    sections: [],
+  },
+  [contentId("team", "tools")]: {
+    kind: "sections",
+    eyebrow: "Tools",
+    heading: "What's already connected.",
+    intro:
+      "Tools lists the external services and integrations connected to this team's workspace — the things the team already uses, linked in rather than duplicated. Connecting a tool here makes it visible and accessible from the team's workspace instead of requiring people to remember separate logins and links.",
+    sections: [],
+  },
+  [contentId("team", "workspace")]: {
+    kind: "sections",
+    eyebrow: "Workspace",
+    heading: "The team's shared home base.",
+    intro:
+      "The Workspace is the team's shared home base: files, links, and active work in one place. Anyone on the team can see what's there and what's currently being worked on, instead of information being scattered across individual chats or personal folders.",
+    sections: [],
+  },
+  [contentId("team", "agents")]: {
+    kind: "sections",
+    eyebrow: "Agents",
+    heading: "What's automated versus manual.",
+    intro:
+      "Agents lists any automated helpers the team relies on — for example, ones that post updates, summarize activity, or handle routine tasks on the team's behalf. This section documents what each agent does and where it's configured, so the team knows what's automated versus manual.",
+    sections: [],
+  },
+  [contentId("team", "metrics")]: {
+    kind: "sections",
+    eyebrow: "Metrics",
+    heading: "How things are going, at a glance.",
+    intro:
+      "Metrics tracks team activity and progress over time — for example, work completed, tool usage, or roadmap items shipped per period. The goal is to give the team (and anyone checking in) a quick read on how things are going without asking for a manual status update.",
+    sections: [],
+  },
+  [contentId("usage", "")]: {
+    kind: "hero",
+    heading: "Usage",
+    tagline: "See how the platform is actually being used.",
+    subline: "Activity, coverage, and trends — all in one dashboard.",
+    ctaLabel: "Get started",
+    ctaHref: "/docs/usage/setup-guide",
+    eyebrow: "Overview",
+    sectionHeading: "One dashboard for every product.",
+    sectionIntro:
+      "Usage pulls activity and coverage data from every product into a single dashboard, so you can see what's happening across the whole platform without checking each product separately.",
+    features: [
+      {
+        icon: "layers",
+        title: "Cross-product view",
+        description: "See activity and coverage for Jex3.0, Jex2.0, Coach, Team, and Usage itself from one screen.",
+      },
+      {
+        icon: "pulse",
+        title: "Trends over time",
+        description: "Track how documentation coverage and activity change week over week, not just a snapshot.",
+      },
+      {
+        icon: "sparkles",
+        title: "No manual reporting",
+        description: "Numbers update automatically as products are used — no one has to compile a status report by hand.",
+      },
+      {
+        icon: "tag",
+        title: "Drill down by product",
+        description: "Jump from the overall dashboard into a single product's detail when something needs a closer look.",
+      },
+    ],
+  },
+  [contentId("usage", "setup-guide")]: {
+    kind: "steps",
+    eyebrow: "Setup guide",
+    heading: "Get the dashboard reporting real numbers.",
+    intro: "Five steps from connecting data to trusting what you see.",
+    steps: [
+      {
+        title: "Confirm data sources",
+        body: "Make sure each product (Jex3.0, Jex2.0, Coach, Team) is reporting activity into Usage.",
+      },
+      {
+        title: "Set your reporting period",
+        body: "Choose the default time window the dashboard shows (e.g. last 7 or 30 days).",
+      },
+      {
+        title: "Pick the metrics that matter",
+        body: "Select which numbers appear on the dashboard by default (coverage %, active users, documents written, etc.).",
+      },
+      {
+        title: "Share access",
+        body: "Decide who on the team can view the dashboard, and who (if anyone) can export reports.",
+      },
+      {
+        title: "Verify the numbers",
+        body: "Cross-check the dashboard against one product's own numbers (e.g. Jex3.0's written/not-written count) to confirm the data lines up.",
+      },
+    ],
+  },
+  [contentId("usage", "configuration")]: {
+    kind: "sections",
+    eyebrow: "Configuration",
+    heading: "The settings behind the dashboard.",
+    intro:
+      "Configuration covers the settings behind the Usage dashboard: which products feed it data, how often numbers refresh, which metrics are shown by default, and who has access to view or export reports. Changes here affect what everyone sees on the dashboard, so treat this section as admin-level setup rather than day-to-day use.",
+    sections: [],
   },
 };

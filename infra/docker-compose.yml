@@ -85,7 +85,17 @@ services:
   # Identity broker
   # ---------------------------------------------------------------------
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    # MUST match the "keycloakVersion" inside keycloak/docs_platform-realm.json,
+    # and therefore what developers run locally. A realm exported from a newer
+    # Keycloak fails to import into an older one, field by field:
+    #
+    #   Unrecognized field "maxSecondaryAuthFailures" (RealmRepresentation),
+    #   not marked as ignorable
+    #
+    # — which names a setting nobody chose and says nothing about versions.
+    # Pinned as one value so the realm, the developers and this deployment
+    # cannot drift apart silently.
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.7.3}
     restart: unless-stopped
     environment:
       KC_DB: postgres
@@ -97,8 +107,29 @@ services:
       # and no second certificate. Keycloak has to be told, or every URL it
       # generates — redirects, the OIDC discovery document, token issuer —
       # points at the wrong place.
-      KC_HOSTNAME: https://${PUBLIC_DOMAIN}/auth
+      #
+      # The ORIGIN only. Keycloak appends http-relative-path to it itself, so
+      # a hostname of https://host/auth alongside a relative path of /auth
+      # produces https://host/auth/auth/realms/... and nothing resolves.
+      KC_HOSTNAME: https://${PUBLIC_DOMAIN}
       KC_HTTP_RELATIVE_PATH: /auth
+
+      # Health endpoints on the management port. OFF BY DEFAULT — without this
+      # /health/ready is a 404, the healthcheck below can never pass, and
+      # every service that waits for Keycloak fails with "dependency failed to
+      # start: container is unhealthy".
+      KC_HEALTH_ENABLED: "true"
+
+      # The management interface defaults its path to http-relative-path, so
+      # setting /auth for the public routes silently moved health to
+      # /auth/health/ready — and the probe below, asking for /health/ready,
+      # got a 404 against a server that was perfectly ready.
+      #
+      # Pinned to / instead of teaching the probe the other path: this port is
+      # internal and never proxied, so its layout has no reason to follow the
+      # public one, and a later change to KC_HTTP_RELATIVE_PATH must not move
+      # the healthcheck again.
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
       # TLS terminates at Caddy. Keycloak speaks plain HTTP on the private
       # network and trusts X-Forwarded-* from it.
       KC_HTTP_ENABLED: "true"
@@ -114,44 +145,37 @@ services:
       # data directory, so the file in the repository stays the single source
       # and nobody ends up editing a deployed copy.
       - ../keycloak:/opt/keycloak/realm-src:ro
-    # WHY A SHELL WRAPPER RATHER THAN JUST --import-realm
-    #
-    # Two substitutions Keycloak will not do for itself:
-    #
-    #   1. The realm file carries ${env.GOOGLE_CLIENT_SECRET}. Keycloak does
-    #      NOT resolve that on import — verified on 2026-09-15 by importing a
-    #      realm with the placeholder in a non-secret field and reading it
-    #      back: the literal string is what gets stored. Google then rejects
-    #      the sign-in with invalid_client, several confusing minutes later.
-    #
-    #   2. Its redirect URIs and web origins say http://localhost:3000, which
-    #      is right for a developer machine and wrong here. Left alone,
-    #      Keycloak refuses the redirect back to the real site.
-    #
-    # --import-realm only imports a realm that does not already exist, so this
-    # is safe to re-run; to take the file's version again, delete the realm in
-    # the admin console first.
-    entrypoint: ["/bin/bash", "-c"]
-    command:
-      - |
-        mkdir -p /opt/keycloak/data/import
-        sed -e "s|\$${env.GOOGLE_CLIENT_SECRET}|$${GOOGLE_CLIENT_SECRET}|g" \
-            -e "s|http://localhost:3000|https://$${PUBLIC_DOMAIN}|g" \
-            /opt/keycloak/realm-src/docs_platform-realm.json \
-            > /opt/keycloak/data/import/docs_platform-realm.json
-        if grep -q 'env.GOOGLE_CLIENT_SECRET' /opt/keycloak/data/import/docs_platform-realm.json; then
-          echo "FATAL: the Google client secret was not substituted into the realm file." >&2
-          echo "Keycloak would import the placeholder and Google would reject every sign-in." >&2
-          exit 1
-        fi
-        exec /opt/keycloak/bin/kc.sh start --import-realm
+      # The entrypoint script. Mounted rather than inline for the reason its
+      # own header gives: three layers of escaping had to be right at once and
+      # one was not, which crashed the container with "bad substitution".
+      - ./keycloak/entrypoint.sh:/opt/keycloak/bin/coc-entrypoint.sh:ro
+    # The realm needs two substitutions Keycloak will not do for itself — see
+    # keycloak/entrypoint.sh, which also explains why this is a mounted file
+    # rather than an inline command:.
+    entrypoint: ["/bin/bash", "/opt/keycloak/bin/coc-entrypoint.sh"]
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      # Keycloak 26 serves its health endpoints on the management port (9000),
-      # not the HTTP one, and the image has no curl — hence bash's /dev/tcp.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      # Health lives on the management port (9000), not the HTTP one, and the
+      # image ships no curl and no wget — so this goes through bash's /dev/tcp,
+      # and invokes bash explicitly rather than relying on CMD-SHELL, whose
+      # /bin/sh need not be bash and where /dev/tcp is not a thing.
+      #
+      # THE STATUS LINE, NOT THE BODY. This matched '"status": "UP"' in the
+      # JSON, which is a bet on SmallRye emitting a space after the colon — and
+      # it does not. The result was eight minutes of a healthy Keycloak being
+      # polled by a check that could never pass, then every dependent service
+      # refusing to start. /health/ready answers 200 when ready and 503 when
+      # not; that is the contract, and it has no formatting to get wrong.
+      test:
+        - CMD
+        - /bin/bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000;
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3;
+          head -n1 <&3 | grep -q ' 200 '
       interval: 10s
       timeout: 5s
       retries: 30

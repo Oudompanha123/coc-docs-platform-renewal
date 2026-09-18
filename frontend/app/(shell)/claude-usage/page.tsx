@@ -236,7 +236,7 @@ export default function ClaudeUsagePage() {
               label="API-Equivalent Cost"
               value={`$${totals.costUsd.toFixed(2)}`}
               tone="blue"
-              note="Estimated, blended rate"
+              note="Estimated, per-model rate"
             />
             <UsageStatCard
               icon={UsersIcon}

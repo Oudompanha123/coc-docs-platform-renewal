@@ -49,7 +49,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
   }
 
   return (
-    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto px-[30px] py-0">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-[30px] py-0">
       <FormField label="Layout">
         <div className="flex gap-2">
           {(["centered", "split"] as const).map((layout) => (
@@ -119,7 +119,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
         <div className="mt-2 space-y-3">
           {value.features.map((feature, i) => (
             <div key={i} className="rounded-xl border border-border p-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button
                     type="button"
@@ -152,7 +152,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                   ))}
                 </select>
                 <input
-                  className={fieldInputClass}
+                  className={`${fieldInputClass} min-w-0 flex-1`}
                   placeholder="Title"
                   value={feature.title}
                   onChange={(e) => updateFeature(i, { title: e.target.value })}
