@@ -40,7 +40,7 @@ export function RolesTab({
   if (error) {
     return (
       <div className="p-6">
-        <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </p>
       </div>
@@ -58,7 +58,7 @@ export function RolesTab({
         const areas = [...new Set(role.permissions.map(areaOf))].sort();
 
         return (
-          <div key={role.key} className="rounded-xl border border-border p-4">
+          <div key={role.key} className="rounded-[10px] border border-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <RoleBadge role={role.key === "guest" ? "user" : role.key} />

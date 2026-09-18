@@ -99,27 +99,39 @@ export default function MemberHomePage() {
             </div>
           </div>
 
-          <div className="animate-entrance relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl [animation-delay:120ms]">
+          <div className="animate-entrance relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-[10px] border border-border bg-white shadow-2xl [animation-delay:120ms]">
             <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
             </div>
+            {/* No entrance animation on this pane itself — it's a flat
+                bg-page rectangle with no border/shadow of its own, so a
+                slide+fade here has no visible edge to move and reads as
+                nothing happening. The frame above and the two content
+                groups below carry the visible motion instead. */}
             <div className="bg-page p-4 sm:p-6">
               {products && stats && (
-                <div className="animate-entrance">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <>
+                  {/* Staggered per-section entrance, not one flat block —
+                      same fade-slide-up technique and cadence as the
+                      overview page's own multi-group sequence. Delays start
+                      at 500ms (the enclosing browser-frame's own 120ms delay
+                      + its 380ms duration), so these actually slide in after
+                      the frame appears rather than finishing invisibly
+                      inside it before it's even visible. */}
+                  <div className="animate-entrance grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 [animation-delay:500ms]">
                     {products.map((product) => {
                       const stat = stats.find((s) => s.id === product.key);
                       return stat ? <ProductGlanceCard key={product.key} product={product} stat={stat} /> : null;
                     })}
                   </div>
 
-                  <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <div className="animate-entrance mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 [animation-delay:570ms]">
                     <RecentDocumentsPanel docs={recentDocs} />
                     <TasksPanel tasks={tasks} />
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -143,12 +155,12 @@ export default function MemberHomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto w-[1024px] overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: the photo is bright enough that white text needs a dark
                 layer under it to stay legible, same "decorative absolute div
                 painted before the relative-positioned copy" pattern /welcome's
                 own CTA band already uses for its blur circle. */}
-            <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
+            <div aria-hidden="true" className="absolute top-0 right-0 bottom-0 left-0 bg-black/60" />
             {canManage ? (
               <>
                 <h2 className="relative text-2xl font-bold text-white sm:text-3xl">

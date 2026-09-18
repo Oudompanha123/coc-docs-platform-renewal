@@ -166,7 +166,7 @@ export default function RegisterPage() {
         </div>
 
         {codeError && (
-          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {codeError}
           </div>
         )}
@@ -217,7 +217,7 @@ export default function RegisterPage() {
           <Stepper steps={STEPS} currentIndex={2} />
         </div>
 
-        <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="alert">
+        <div className="mt-6 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="alert">
           {doneMessage}
         </div>
         <Link
@@ -249,7 +249,7 @@ export default function RegisterPage() {
       {feedback && (
         <div
           role="alert"
-          className={`mx-8 mt-4 rounded-xl border px-4 py-3 text-sm md:mx-14 ${
+          className={`mx-8 mt-4 rounded-[10px] border px-4 py-3 text-sm md:mx-14 ${
             feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-red-200 bg-red-50 text-red-700"

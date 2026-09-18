@@ -351,7 +351,7 @@ export default function UsersRolesPage() {
       pageSubtitle="Manage who has access to Coc Docs Platform and what they can do"
       titleIcon={<UsersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
-      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
         <div role="tablist" className="flex gap-6 border-b border-border px-6 pt-5">
           <button
             type="button"
@@ -466,13 +466,13 @@ export default function UsersRolesPage() {
             </div>
 
             {addedMessage && (
-              <div className="mx-6 mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="mx-6 mb-4 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 {addedMessage}
               </div>
             )}
 
             {error && (
-              <div className="mx-6 mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              <div className="mx-6 mb-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
                 {error}
               </div>
             )}

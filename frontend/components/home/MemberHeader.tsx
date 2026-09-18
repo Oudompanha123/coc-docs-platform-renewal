@@ -14,6 +14,7 @@ import {
   SettingsIcon,
 } from "@/components/layout/icons";
 import { ProductNavDropdown } from "@/components/home/ProductNavDropdown";
+import { Spinner } from "@/components/layout/Spinner";
 import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
@@ -77,7 +78,7 @@ export function MemberHeader({
   const clusterRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useCurrentUser();
-  const { signOut } = useSession();
+  const { signOut, isSigningOut } = useSession();
   const notifications = useNotifications();
   const activity = useActivityFeed();
 
@@ -254,14 +255,13 @@ export function MemberHeader({
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => {
-                      setOpenMenu(null);
-                      void signOut();
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10"
+                    disabled={isSigningOut}
+                    aria-busy={isSigningOut}
+                    onClick={() => void signOut()}
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <LogOutIcon className="h-4 w-4" />
-                    Log out
+                    {isSigningOut ? <Spinner /> : <LogOutIcon className="h-4 w-4" />}
+                    {isSigningOut ? "Logging out…" : "Log out"}
                   </button>
                 </div>
               </div>

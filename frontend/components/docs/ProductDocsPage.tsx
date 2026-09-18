@@ -48,7 +48,7 @@ export function ProductDocsPage() {
   return (
     <>
       <div className="relative mt-6">
-        <div key={activeItem.slug} className="animate-tab-content relative rounded-[24px]">
+        <div key={activeItem.slug} className="animate-tab-content relative rounded-[10px]">
           {content ? (
             <ContentRenderer content={content} variant="docs" />
           ) : (

@@ -49,10 +49,10 @@ export function NavDropdown({ product, isDark }: { product: NavProduct; isDark: 
         {product.label}
       </button>
 
-      {open && (
+      {open && product.items.length > 0 && (
         <div
           role="menu"
-          className={`absolute left-0 top-[72px] z-30 w-56 rounded-xl border py-2 shadow-lg ${
+          className={`absolute left-0 top-[72px] z-30 w-56 rounded-[10px] border py-2 shadow-lg ${
             isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
           }`}
         >

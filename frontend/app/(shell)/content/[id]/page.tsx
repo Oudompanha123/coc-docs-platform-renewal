@@ -166,7 +166,7 @@ export default function ContentEditPage() {
       {draft && (
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="relative min-h-0">
-            <div className="flex flex-col rounded-2xl border border-border bg-white py-5 px-0 shadow-sm lg:absolute lg:inset-0">
+            <div className="flex flex-col rounded-[10px] border border-border bg-white py-5 px-0 shadow-sm lg:absolute lg:inset-0">
             <div className="mb-4 shrink-0 px-5">
               <span className="text-xs font-semibold text-muted">Content type</span>
               <div className="mt-1.5 flex gap-2">
@@ -195,7 +195,7 @@ export default function ContentEditPage() {
 
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Live preview</p>
-            <div className="rounded-2xl bg-page">
+            <div className="min-h-[calc(100vh-225px)] overflow-y-auto rounded-[10px] bg-page">
               <ContentRenderer content={draft} variant={entry.productKey === "jex3-0" ? "admin" : "docs"} />
             </div>
           </div>

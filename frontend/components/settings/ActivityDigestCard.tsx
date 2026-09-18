@@ -76,7 +76,7 @@ export function ActivityDigestCard() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex-1">
               <label htmlFor="digest-day" className="block text-xs font-semibold text-dash-ink">
                 Day to report on
@@ -86,7 +86,7 @@ export function ActivityDigestCard() {
                 type="date"
                 value={day}
                 onChange={(e) => setDay(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+                className="mt-1 w-full border border-border bg-white px-3 py-2 text-sm text-dash-ink"
               />
               <p className="mt-1 text-xs text-muted">
                 Leave empty for yesterday, the day the automatic send covers.
@@ -110,7 +110,7 @@ export function ActivityDigestCard() {
           */}
           <div aria-live="polite">
             {error && (
-              <p className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              <p className="flex items-start gap-2 rounded-[10px] bg-red-50 px-3 py-2 text-xs text-red-700">
                 <WarningIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 {error}
               </p>

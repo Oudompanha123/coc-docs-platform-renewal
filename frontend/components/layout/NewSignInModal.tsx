@@ -66,7 +66,7 @@ export function NewSignInModal({
         </p>
       </div>
 
-      <dl className="mt-5 divide-y divide-border rounded-xl border border-border">
+      <dl className="mt-5 divide-y divide-border rounded-[10px] border border-border">
         <div className="flex items-start justify-between gap-4 px-4 py-3">
           <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Device</dt>
           <dd className="text-right text-sm font-semibold text-dash-ink">{session.device}</dd>

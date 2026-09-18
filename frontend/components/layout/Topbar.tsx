@@ -28,6 +28,7 @@ import {
 } from "./icons";
 import Link from "next/link";
 import { ProfileModal } from "./ProfileModal";
+import { Spinner } from "./Spinner";
 import { useShell } from "@/lib/layout/ShellContext";
 
 type TopbarProps = {
@@ -107,7 +108,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // until that resolves or for a visitor with no session, since this shell
   // has no route guard of its own yet.
   const user = useCurrentUser();
-  const { signOut } = useSession();
+  const { signOut, isSigningOut } = useSession();
   // The bell no longer renders three invented items that never changed. It
   // carries two real things: who is waiting for approval, which only a super
   // admin sees (ADR-025), and whether this account was signed in to from a
@@ -458,14 +459,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => {
-                    setOpenMenu(null);
-                    void signOut();
-                  }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10"
+                  disabled={isSigningOut}
+                  aria-busy={isSigningOut}
+                  onClick={() => void signOut()}
+                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <LogOutIcon className="h-4 w-4" />
-                  Sign out
+                  {isSigningOut ? <Spinner /> : <LogOutIcon className="h-4 w-4" />}
+                  {isSigningOut ? "Signing out…" : "Sign out"}
                 </button>
               </div>
             </div>
