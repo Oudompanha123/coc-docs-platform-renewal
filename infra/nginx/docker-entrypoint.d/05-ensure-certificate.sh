@@ -36,6 +36,24 @@ mkdir -p "${CERT_DIR}"
 # 1 day, deliberately. Long enough for certbot to do its work on this boot,
 # short enough that finding one still in place later is unmistakably a fault
 # rather than something that has quietly been serving traffic for a year.
+
+# nginx:alpine links against the OpenSSL library but does not always ship the
+# openssl COMMAND — it comes from a separate package. Under `set -e` a missing
+# binary killed this script, which killed the entrypoint, so nginx never
+# started and port 80 answered "connection refused" — which then failed the
+# ACME challenge, which is what sent us looking at DNS and security groups
+# rather than at nginx.
+if ! command -v openssl >/dev/null 2>&1; then
+    echo "05-ensure-certificate: openssl not present, installing it"
+    # The entrypoint still runs as root at this point. Best effort: if there is
+    # no network yet, say so and let nginx fail with its own message rather
+    # than this script's.
+    apk add --no-cache openssl >/dev/null 2>&1 || {
+        echo "05-ensure-certificate: could not install openssl — nginx cannot start without a certificate" >&2
+        exit 1
+    }
+fi
+
 openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
     -keyout "${CERT_DIR}/privkey.pem" \
     -out    "${CERT_DIR}/fullchain.pem" \
