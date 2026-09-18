@@ -40,6 +40,12 @@ services:
       # Runs before the substitution (hence 05) and writes a temporary
       # self-signed certificate if none exists, because nginx will not start
       # without one and certbot cannot obtain one until nginx is serving.
+      #
+      # BOTH SCRIPTS MUST BE MODE 755 IN GIT. The official entrypoint skips a
+      # non-executable file with "Ignoring ..., not executable" and carries on
+      # — no error, no exit code — so the only symptom is nginx failing to load
+      # a certificate that was never written. core.filemode=false on Windows
+      # means a local chmod is not recorded; `git update-index --chmod=+x` is.
       - ./nginx/docker-entrypoint.d/05-ensure-certificate.sh:/docker-entrypoint.d/05-ensure-certificate.sh:ro
       - certbot_certs:/etc/letsencrypt
       - certbot_webroot:/var/www/certbot
