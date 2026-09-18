@@ -157,6 +157,48 @@ or point at real S3 with `S3_ENDPOINT=https://s3.<region>.amazonaws.com`. The
 application uses nothing but the S3 API and path-style addressing
 (`CONST-TECH-08`), so moving between them is `.env` and nothing else.
 
+## Connecting a database tool
+
+Postgres is published on the instance's **loopback only** (`127.0.0.1:5432`), so
+nothing outside the instance can reach it. Reach it through the SSH access you
+already have:
+
+```bash
+# on your own machine, leave it running
+ssh -N -L 5433:localhost:5432 cocdocs@<instance-ip>
+```
+
+Then point DataGrip, DBeaver, pgAdmin or IntelliJ at:
+
+| | |
+|---|---|
+| Host | `localhost` |
+| Port | `5433` |
+| Database | `DB_NAME` from `.env` |
+| User / password | `DB_USER` / `DB_PASSWORD` from `.env` |
+| Schema | `DB_SCHEMA` (default `public`) |
+
+`5433` locally rather than `5432` so it does not collide with a Postgres you
+may already be running.
+
+**Do not publish 5432 on all interfaces to save the tunnel.** Docker writes its
+own iptables rules when it publishes a port, which bypasses what the security
+group is trying to express — so `5432:5432` exposes the database to the
+internet even with the group closed. That is the most common way a deployment
+like this is lost.
+
+No tunnel needed for a quick look:
+
+```bash
+docker compose exec postgres psql -U "$DB_USER" -d "$DB_NAME"
+```
+
+Keycloak's database is separate, in the same server:
+
+```bash
+docker compose exec postgres psql -U "$DB_USER" -d keycloak
+```
+
 ## Operating it
 
 ```bash
