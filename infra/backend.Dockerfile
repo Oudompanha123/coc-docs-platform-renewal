@@ -41,6 +41,21 @@ RUN addgroup -S app && adduser -S -G app app
 
 WORKDIR /app
 COPY --from=build /src/target/*.jar app.jar
+
+# The log directory, owned by the user that will write to it.
+#
+# WORKDIR and COPY create /app as root; switching to `app` below then leaves
+# the process unable to create anything in its own working directory. Logback
+# is configured with a rolling FILE appender (logback-spring.xml) and treats
+# that as fatal, so the container died before Spring had started:
+#
+#   Failed to create parent directories for [/app/logs/backend.log]
+#   java.io.FileNotFoundException: logs/backend.log
+#
+# Bounded by the rolling policy at 200MB total, which matters on an instance
+# whose disk has already filled once.
+RUN mkdir -p /app/logs && chown -R app:app /app
+
 USER app
 
 EXPOSE 8080
