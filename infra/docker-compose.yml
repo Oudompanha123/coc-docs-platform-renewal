@@ -146,6 +146,26 @@ services:
       # start: container is unhealthy".
       KC_HEALTH_ENABLED: "true"
 
+      # One Keycloak, so no cluster to discover.
+      #
+      # The default is a clustered Infinispan cache that finds its peers
+      # through the database (JGroups JDBC_PING). On a single instance that
+      # buys nothing and costs a restart: the previous container leaves its row
+      # behind, and the new one spends startup trying to JOIN a container that
+      # no longer exists —
+      #
+      #   JOIN(...) sent to ce5ea08773b6-13114 timed out (after 2000 ms), on try 6
+      #   Reporting health down status: Keycloak Initialized: DOWN
+      #
+      # — never finishing, so the admin console never answers. `local` removes
+      # JGroups entirely: no discovery, no stale members, and a much faster
+      # boot.
+      #
+      # This is the same single-instance assumption ADR-028 records for the
+      # notification stream. Running a second Keycloak would mean revisiting
+      # both.
+      KC_CACHE: local
+
       # The management interface defaults its path to http-relative-path, so
       # setting /auth for the public routes silently moved health to
       # /auth/health/ready — and the probe below, asking for /health/ready,
