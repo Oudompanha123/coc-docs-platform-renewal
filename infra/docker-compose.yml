@@ -316,6 +316,10 @@ services:
       # `docker compose build frontend`, not a restart — see the Dockerfile.
       args:
         NEXT_PUBLIC_BACKEND_URL: https://${PUBLIC_DOMAIN}
+        # Derived from PUBLIC_DOMAIN rather than read as its own variable:
+        # the site URL is the public domain, and a second knob holding the
+        # same value is one that can be left behind when the domain changes.
+        NEXT_PUBLIC_SITE_URL: https://${PUBLIC_DOMAIN}
         NEXT_PUBLIC_KEYCLOAK_URL: https://${PUBLIC_DOMAIN}/auth
         NEXT_PUBLIC_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-docs_platform}
         NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-cocdocs-frontend}
