@@ -85,7 +85,7 @@ function ResetPasswordForm() {
       <p className="mt-2 text-sm text-muted">Enter your new password below</p>
 
       {!token && (
-        <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           This reset link is missing its token. Request a new one from{" "}
           <Link href="/forgot-password" className="font-semibold underline">
             Forgot Password
@@ -97,7 +97,7 @@ function ResetPasswordForm() {
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+          className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${
             feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-red-200 bg-red-50 text-red-700"

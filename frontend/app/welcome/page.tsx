@@ -313,7 +313,7 @@ export default function WelcomePage() {
               return (
                 <ScrollReveal key={feature.title} delayMs={i * 60}>
                   <div
-                    className={`rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-1 ${
+                    className={`rounded-[10px] border p-5 transition-all duration-200 hover:-translate-y-1 ${
                       isDark
                         ? "border-[#332e4d] bg-[#1e1a30] hover:border-brand-purple/40"
                         : "border-border bg-white shadow-sm hover:shadow-md"
@@ -334,7 +334,7 @@ export default function WelcomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: same "photo background needs a dark layer under white
                 text" treatment as the Member home page's own CTA band. */}
             <div aria-hidden="true" className="absolute inset-0 bg-black/60" />

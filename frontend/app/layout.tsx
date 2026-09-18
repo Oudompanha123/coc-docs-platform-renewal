@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
+import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,6 +34,9 @@ const pretendard = localFont({
 export const metadata: Metadata = {
   title: "Coc Docs Platform",
   description: "Internal documentation platform for Coc Docs Platform.",
+  // Overrides the default create-next-app favicon.ico (Next.js's own icon)
+  // with the app's real logo.
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({
@@ -62,6 +66,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans antialiased" suppressHydrationWarning>
+        <TopProgressBar />
         {children}
       </body>
     </html>

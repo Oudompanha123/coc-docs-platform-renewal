@@ -126,7 +126,7 @@ export function ProductTabBar({
 
       <div className={pinned ? "fixed inset-x-0 top-5 z-20" : "relative"}>
         <div className={pinned ? "mx-auto max-w-5xl px-6" : ""}>
-          <div ref={barRef} className="rounded-2xl bg-white p-2 shadow-md">
+          <div ref={barRef} className="rounded-[10px] bg-white p-2 shadow-md">
             <div className="relative">
               <div ref={scrollerRef} className="no-scrollbar relative flex gap-2 overflow-x-auto">
                 {pill && (

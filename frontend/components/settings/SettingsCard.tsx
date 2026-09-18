@@ -14,7 +14,7 @@ export function SettingsCard({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex h-full flex-col rounded-[10px] border border-border bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-5 flex items-center gap-3">
         {Icon && (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">

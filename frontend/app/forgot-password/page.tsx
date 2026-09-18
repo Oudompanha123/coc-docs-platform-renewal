@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+          className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${
             feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-red-200 bg-red-50 text-red-700"

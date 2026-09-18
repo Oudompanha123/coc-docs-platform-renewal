@@ -32,7 +32,7 @@ export function BudgetOverridesPanel({
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+    <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
       <h2 className="text-sm font-bold text-dash-ink">Soft budget overrides</h2>
       <p className="text-xs text-muted">
         Default is {formatDefault(DEFAULT_SOFT_BUDGET_TOKENS)} tokens per person, per week. Set a number
@@ -66,7 +66,7 @@ export function BudgetOverridesPanel({
         ))}
       </div>
 
-      <div className="mt-4 flex items-start gap-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
+      <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
         <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
         <p className="text-sm text-dash-ink">
           Overrides take effect immediately across this dashboard — there is nothing else to configure or

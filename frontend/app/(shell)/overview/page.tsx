@@ -43,8 +43,8 @@ export default function OverviewPage() {
       </div>
 
       {recentDocs && (
-        <div className="animate-entrance mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[65%_35%] [animation-delay:140ms]">
-          <div className="overflow-hidden rounded-2xl border border-border bg-white py-5 shadow-sm">
+        <div className="animate-entrance mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[65fr_35fr] [animation-delay:140ms]">
+          <div className="overflow-hidden rounded-[10px] border border-border bg-white py-5 shadow-sm">
             <div>
               <div className="flex items-center justify-between pl-5 pr-[15px]">
                 <h2 className="text-base font-bold text-dash-ink">Recent Documents</h2>

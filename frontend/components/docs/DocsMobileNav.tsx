@@ -53,7 +53,8 @@ export function DocsMobileNav() {
               if (product) router.push(hrefFor(product.key, product.items[0]?.slug ?? ""));
             }}
             aria-label="Knowledge base section"
-            className="shrink-0 rounded-lg border border-border bg-page px-2.5 py-1.5 text-sm font-semibold text-ink"
+            className="shrink-0 rounded-[10px] border border-border bg-page px-2.5 py-1.5 text-sm font-semibold text-ink"
+
           >
             {(products ?? []).map((product) => (
               <option key={product.key} value={product.key}>

@@ -22,7 +22,7 @@ function formatDue(dueDate: string | null): string | null {
  */
 export function TasksPanel({ tasks }: { tasks: Task[] | null }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white py-5 shadow-sm">
+    <div className="overflow-hidden rounded-[10px] border border-border bg-white py-5 shadow-sm">
       <div className="flex items-center justify-between pl-5 pr-[15px]">
         <h2 className="text-base font-bold text-dash-ink">Your Tasks</h2>
       </div>

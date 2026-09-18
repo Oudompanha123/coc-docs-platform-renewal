@@ -37,7 +37,7 @@ export function DocsHeaderSwitcher({ active, products }: { active: NavProduct; p
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex w-full items-center justify-between rounded-lg border border-border bg-page px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-white"
+        className="flex w-full items-center justify-between rounded-[10px] border border-border bg-page px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-white"
       >
         {active.label}
         <ChevronDownIcon className={`h-4 w-4 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
@@ -46,7 +46,7 @@ export function DocsHeaderSwitcher({ active, products }: { active: NavProduct; p
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-border bg-white py-1 shadow-lg"
+          className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-[10px] border border-border bg-white py-1 shadow-lg"
         >
           {products.map((product) => {
             const isActive = product.key === active.key;

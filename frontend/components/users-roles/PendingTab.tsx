@@ -56,7 +56,7 @@ export function PendingTab({
   if (error) {
     return (
       <div className="p-6">
-        <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </p>
       </div>
@@ -88,7 +88,7 @@ export function PendingTab({
         return (
           <div
             key={account.id}
-            className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border p-4"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] border border-border p-4"
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-dash-ink">{account.displayName}</p>

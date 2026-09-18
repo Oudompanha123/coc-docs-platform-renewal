@@ -180,21 +180,21 @@ export function AccountDetailModal({
         </label>
 
         {isSelf && (roleChanged || activeChanged) && (
-          <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             This is your own account. Lowering your role or deactivating yourself takes effect on
             your next request, and you may not be able to undo it here.
           </p>
         )}
 
         {losingLastSuperAdmin && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
             This is the only active super admin. Promote someone else first, or the system locks
             itself out of account management.
           </p>
         )}
 
         {error && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
             {error}
           </p>
         )}

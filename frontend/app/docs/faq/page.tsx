@@ -46,7 +46,7 @@ export default function FaqPage() {
 
       <div className="mt-8 space-y-3">
         {FAQ_ITEMS.map((item) => (
-          <details key={item.question} className="group rounded-xl border border-border p-4">
+          <details key={item.question} className="group rounded-[10px] border border-border p-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-ink">
               {item.question}
               <span className="shrink-0 text-lg font-normal text-muted transition-transform group-open:rotate-45">

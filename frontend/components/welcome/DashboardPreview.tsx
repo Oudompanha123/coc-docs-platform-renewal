@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AVATAR_GRADIENTS, TONE_STYLES } from "@/components/dashboard/tone";
 import {
   BarChartIcon,
@@ -6,7 +9,6 @@ import {
   ChevronDownIcon,
   DocumentIcon,
   FolderIcon,
-  HomeIcon,
   LayersIcon,
   MailIcon,
   MoonIcon,
@@ -16,20 +18,51 @@ import {
   PulseIcon,
   RingIcon,
   UserPlusIcon,
-  UsersIcon,
 } from "@/components/layout/icons";
-import { NAV_BOTTOM, NAV_TOP, PRODUCT_ICONS, type NavSection } from "@/components/layout/nav-config";
-import { FALLBACK_NAV } from "@/lib/docs/nav-api";
+import { EmptyContentIllustration } from "@/components/docs/editor/EmptyContentIllustration";
+import { NAV_BOTTOM, NAV_TOP, PRODUCT_ICONS, visibleNavSections } from "@/components/layout/nav-config";
+import { FALLBACK_NAV, type NavProduct } from "@/lib/docs/nav-api";
 import { QUICK_ACTIONS, type Tone } from "@/lib/mock/overview";
 
-/** A static illustration of the sidebar's shape for this read-only preview.
- *  The PRODUCTS list itself comes straight from nav-api.ts's FALLBACK_NAV —
- *  the same fallback data the real sidebar renders when the backend is
- *  unreachable — rather than a second hardcoded copy of the product names. */
-const ADMINISTRATION_SECTION: NavSection = {
-  label: "ADMINISTRATION",
-  items: [{ label: "Users & Roles", href: "/users-roles", icon: UsersIcon }],
-};
+/** A hardcoded exception, not read from FALLBACK_NAV — "ssss" is local test
+ *  data an admin created in this dev environment's real database, not a
+ *  fixed nav entry the shared source knows about. Included here only
+ *  because it was explicitly asked for after confirming FALLBACK_NAV has no
+ *  such entry; it won't track a rename/removal of that real test product,
+ *  unlike everything else in this file. No sub-items, matching what the
+ *  real sidebar shows for it. */
+const SSSS_PRODUCT: NavProduct = { key: "ssss", label: "ssss", icon: "document", minRole: "user", items: [] };
+
+/** The PRODUCTS list this mock cycles through — FALLBACK_NAV plus the one
+ *  hardcoded exception above. */
+const MOCK_PRODUCTS: NavProduct[] = [...FALLBACK_NAV, SSSS_PRODUCT];
+
+/** The real sidebar's ADMINISTRATION section, read via the same
+ *  `visibleNavSections` the real sidebar calls — not a second hardcoded
+ *  list — so an item added/removed there shows up here on next render with
+ *  no edit needed in this file. "super_admin" because that's who
+ *  `PREVIEW_ACCOUNT` below impersonates; every item in that section is
+ *  visible to a super_admin, so nothing is filtered out that a real
+ *  super_admin wouldn't also see. */
+const ADMINISTRATION_SECTION = visibleNavSections("super_admin", FALLBACK_NAV).find(
+  (section) => section.label === "ADMINISTRATION",
+);
+
+/** The full real menu order the active pill cycles through — Overview,
+ *  then every PRODUCTS item (including the "ssss" exception above), then
+ *  every ADMINISTRATION item. The real sidebar's "+ Add product" control
+ *  is rendered separately, below, as a static (non-cycling) row in its
+ *  real position — it's a permanent affordance, not a nav destination, so
+ *  it was never meant to be one of the animated steps. */
+const SIDEBAR_ITEMS = [
+  NAV_TOP,
+  ...MOCK_PRODUCTS.map((product) => ({
+    label: product.label,
+    href: `/${product.key}`,
+    icon: PRODUCT_ICONS[product.icon] ?? LayersIcon,
+  })),
+  ...(ADMINISTRATION_SECTION?.items ?? []),
+];
 
 /** The standalone workspace-dashboard link above PRODUCTS is labelled
  *  "Overview" in the real admin sidebar (NAV_TOP) — this public page uses
@@ -39,15 +72,11 @@ const ADMINISTRATION_SECTION: NavSection = {
  *  untouched. */
 const HOME_LABEL = "Home";
 
-/** Only one product renders expanded, so the mock stays proportioned to the
- *  main content panel beside it — the full per-product sub-item lists now
- *  live in the top nav's dropdowns instead (LandingHeader-equivalent nav in
- *  app/welcome/page.tsx), not here. Sub-items are FALLBACK_NAV's real
- *  jex3-0 titles (sliced to a representative handful, same reasoning
- *  PREVIEW_DOCS below only shows a slice of "recent" docs rather than every
- *  one), rendered as plain always-visible indented text — never a tab or a
- *  click-to-expand control. */
-const EXPANDED_PRODUCT_KEY = "jex3-0";
+/** How many of a product's sub-items the content panel's document-list
+ *  step shows — capped so a product with a long item list (Jex3.0 has 12)
+ *  doesn't blow out the mock's proportions. The sidebar itself no longer
+ *  expands sub-items under the active product (removed per request); this
+ *  only bounds the content-area list. */
 const EXPANDED_ITEM_COUNT = 6;
 
 /** Illustrative per-product documentation-coverage counts — the same "written
@@ -70,7 +99,7 @@ const PREVIEW_STATS: PreviewStat[] = [
   { key: "coach", label: "Coach", value: "0 / 10", trend: "10 not written", icon: PersonIcon, tone: "orange" },
   { key: "team", label: "Team", value: "0 / 7", trend: "7 not written", icon: PulseIcon, tone: "pink" },
   { key: "usage", label: "Usage", value: "0 / 3", trend: "3 not written", icon: BarChartIcon, tone: "purple" },
-  { key: "sss", label: "SSS", value: "0 / 0", trend: "0 not written", icon: DocumentIcon, tone: "green" },
+  { key: "ssss", label: "ssss", value: "0 / 0", trend: "0 not written", icon: DocumentIcon, tone: "green" },
 ];
 
 /** The sidebar footer and header user chip show the real signed-in
@@ -103,6 +132,52 @@ const ACTIVITY_STATUS_STYLE: Record<PreviewActivityStatus, { icon: typeof CheckC
   signOut: { icon: RingIcon, className: "text-[#e0873c]" },
 };
 
+/** Illustrative accounts for the "Users & Roles" step's own content layout
+ *  — not real accounts (ADR-013), generic .example emails matching the
+ *  convention every other mock row in this file already uses. Shape
+ *  mirrors AccountsTable's real columns (Name, Email, Role, Status, Last
+ *  Login) condensed into one row each. */
+const PREVIEW_ACCOUNTS: { name: string; email: string; role: string; status: string; lastLogin: string; tone: Tone }[] = [
+  { name: "Neo Chanthy", email: "neo.chanthy@cocdocs.example", role: "Super Admin", status: "Active", lastLogin: "Today, 9:04", tone: "purple" },
+  { name: "Admin User", email: "admin@cocdocs.example", role: "Admin", status: "Active", lastLogin: "Yesterday, 17:10", tone: "orange" },
+  { name: "Sam Reader", email: "sam@cocdocs.example", role: "User", status: "Pending", lastLogin: "Never", tone: "green" },
+];
+
+/** Illustrative per-teammate token usage for the "Claude Usage" step's own
+ *  content layout — same non-live illustrative status as everything else
+ *  in this file, not any of the real names/emails the real page's own
+ *  screenshot showed. */
+const PREVIEW_USAGE_ROWS: { name: string; email: string; tokens: string; tone: Tone }[] = [
+  { name: "Neo Chanthy", email: "neo.chanthy@cocdocs.example", tokens: "1.2M", tone: "purple" },
+  { name: "Admin User", email: "admin@cocdocs.example", tokens: "480K", tone: "orange" },
+  { name: "Sam Reader", email: "sam@cocdocs.example", tokens: "95K", tone: "green" },
+];
+
+/** The condensed stat row for the "Claude Usage" step — same 4 metrics the
+ *  real page leads with, illustrative numbers. */
+const CLAUDE_USAGE_STATS: { label: string; value: string }[] = [
+  { label: "Total tokens", value: "360.6K" },
+  { label: "API cost", value: "$29.47" },
+  { label: "Active users", value: "5 of 5" },
+  { label: "Near limit", value: "0" },
+];
+
+/** The condensed "Daily tokens by user" mini bar chart's days and legend —
+ *  illustrative, not a real week's data. */
+const CLAUDE_USAGE_CHART_DAYS: { day: string; pct: number }[] = [
+  { day: "Mon", pct: 18 },
+  { day: "Tue", pct: 32 },
+  { day: "Wed", pct: 14 },
+  { day: "Thu", pct: 95 },
+  { day: "Fri", pct: 40 },
+];
+
+const CLAUDE_USAGE_LEGEND: { name: string; tone: Tone }[] = [
+  { name: "Teammate A", tone: "purple" },
+  { name: "Teammate B", tone: "green" },
+  { name: "Teammate C", tone: "orange" },
+];
+
 const QUICK_ACTION_ICONS = {
   plus: PlusIcon,
   userPlus: UserPlusIcon,
@@ -118,6 +193,40 @@ const PREVIEW_DOCS: { title: string; initials: string; tone: Tone }[] = [
   { title: "How to use", initials: "HT", tone: "orange" },
   { title: "Flow", initials: "FL", tone: "pink" },
 ];
+
+/** How long the active pill dwells on each of `SIDEBAR_ITEMS`' entries
+ *  before sliding to the next — shorter than a 2-3-item loop would need, so
+ *  a full pass around all of them doesn't feel like it's dragging, but
+ *  still long enough each stop reads as a deliberate pause rather than a
+ *  flicker. The content panel below now follows this same index rather
+ *  than cycling on its own timer, so this is the only pacing knob left. */
+const SIDEBAR_DWELL_MS = 2600;
+
+/** The content panel's header subtitle for whichever `SIDEBAR_ITEMS` index
+ *  is currently active — illustrative copy per item, not pulled from real
+ *  data (there's nothing to read: a subtitle is presentation, not a nav
+ *  data field). Products get the same "Manage X's knowledge base content"
+ *  wording the real per-product admin page uses; Administration items get
+ *  their own real page's subtitle; Overview keeps its existing copy. */
+function subtitleForNavIndex(index: number): string {
+  if (index === 0) return "Your documentation workspace at a glance";
+  const productIndex = index - 1;
+  const product = MOCK_PRODUCTS[productIndex];
+  if (product) return `Manage ${product.label}'s knowledge base content`;
+  const adminItem = ADMINISTRATION_SECTION?.items[index - 1 - MOCK_PRODUCTS.length];
+  if (adminItem?.label === "Users & Roles") return "Manage who has access to Coc Docs Platform and what they can do";
+  if (adminItem?.label === "Claude Usage") {
+    return "Track opt-in Claude Code usage and estimated API-equivalent cost across your team";
+  }
+  return "";
+}
+
+/** Which `PREVIEW_STATS` card reads as "in focus" for the active index —
+ *  only the product rows have a matching stat card; Overview and the
+ *  Administration items highlight nothing. */
+function highlightStatKeyForNavIndex(index: number): string {
+  return MOCK_PRODUCTS[index - 1]?.key ?? "";
+}
 
 /**
  * Miniature, read-only replica of the real admin sidebar + Overview page —
@@ -135,9 +244,75 @@ const PREVIEW_DOCS: { title: string; initials: string; tone: Tone }[] = [
 export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
   const isDark = theme === "dark";
 
+  const navColumnRef = useRef<HTMLDivElement>(null);
+  // Keyed by each item's index in SIDEBAR_ITEMS rather than one named ref
+  // per item — the list is built dynamically from real nav data, so its
+  // length (and which row is which index) isn't fixed at write time.
+  const navItemRefs = useRef<Map<number, HTMLSpanElement>>(new Map());
+  const [navPositions, setNavPositions] = useState<{ top: number; height: number }[]>([]);
+  const [activeNavIndex, setActiveNavIndex] = useState(0);
+
+  function setNavItemRef(index: number, el: HTMLSpanElement | null) {
+    if (el) navItemRefs.current.set(index, el);
+    else navItemRefs.current.delete(index);
+  }
+
+  useLayoutEffect(() => {
+    function measure() {
+      const positions = SIDEBAR_ITEMS.map((_, index) => {
+        const el = navItemRefs.current.get(index);
+        return el ? { top: el.offsetTop, height: el.offsetHeight } : null;
+      });
+      if (positions.some((p) => p === null)) return;
+      setNavPositions(positions as { top: number; height: number }[]);
+    }
+    measure();
+    const column = navColumnRef.current;
+    if (!column) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(column);
+    return () => observer.disconnect();
+  }, []);
+
+  // Skipped outright under reduced-motion, rather than just dropping the
+  // CSS transition on an unchanged interval — the requirement is one
+  // static state and no cycling, not a snap instead of a slide. The
+  // content panel has no interval of its own: it derives everything below
+  // from `activeNavIndex` directly, so it switches in lockstep with the
+  // sidebar pill rather than drifting on a separate timer.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => setActiveNavIndex((i) => (i + 1) % SIDEBAR_ITEMS.length), SIDEBAR_DWELL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const activeItem = SIDEBAR_ITEMS[activeNavIndex] ?? NAV_TOP;
+  const FrameIcon = activeItem.icon;
+  // The real Claude Usage page's own <h1> reads "Claude Code Usage" — one
+  // word longer than the sidebar nav label ("Claude Usage") that links to
+  // it. The sidebar row below reads `item.label` directly, so this override
+  // only affects the content header, never the nav link's own text.
+  const frameTitle =
+    activeNavIndex === 0
+      ? HOME_LABEL
+      : activeItem.label === "Claude Usage"
+        ? "Claude Code Usage"
+        : activeItem.label;
+  const frameSubtitle = subtitleForNavIndex(activeNavIndex);
+  const highlightStatKey = highlightStatKeyForNavIndex(activeNavIndex);
+
+  // Which of the three content layouts is active — the stat-card dashboard
+  // (Overview only), a product's own document list, or one of the two
+  // Administration mini-mocks. Exactly one of these three is ever defined
+  // for a given `activeNavIndex`, since SIDEBAR_ITEMS' three sections don't
+  // overlap.
+  const isOverviewStep = activeNavIndex === 0;
+  const activeProduct = MOCK_PRODUCTS[activeNavIndex - 1];
+  const activeAdminItem = ADMINISTRATION_SECTION?.items[activeNavIndex - 1 - MOCK_PRODUCTS.length];
+
   return (
     <div
-      className={`overflow-hidden rounded-2xl border shadow-2xl ${
+      className={`overflow-hidden rounded-[10px] border shadow-2xl ${
         isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
       }`}
     >
@@ -160,53 +335,81 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             <span className="truncate text-[11px] font-semibold text-white">Coc Docs Platform</span>
           </div>
 
-          <div className="mt-4 flex-1 space-y-4">
-            <span className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-2.5 py-1.5 text-[11px] font-semibold text-white">
+          <div ref={navColumnRef} className="relative mt-4 flex-1 space-y-4">
+            {navPositions[activeNavIndex] && (
+              <span
+                aria-hidden="true"
+                className="absolute right-0 left-0 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue transition-[top,height] duration-500 ease-in-out"
+                style={{ top: navPositions[activeNavIndex].top, height: navPositions[activeNavIndex].height }}
+              />
+            )}
+
+            <span
+              ref={(el) => setNavItemRef(0, el)}
+              className={`relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors duration-300 ${
+                activeNavIndex === 0 ? "text-white" : "text-sidebar-muted"
+              }`}
+            >
               <NAV_TOP.icon className="h-3.5 w-3.5" />
               {HOME_LABEL}
             </span>
 
             <div className="flex flex-col gap-1">
               <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">PRODUCTS</p>
-              {FALLBACK_NAV.map((product) => {
+              {MOCK_PRODUCTS.map((product, productIndex) => {
                 const Icon = PRODUCT_ICONS[product.icon] ?? LayersIcon;
+                // +1: index 0 in SIDEBAR_ITEMS is Home/Overview, so the
+                // first product is index 1.
+                const navIndex = 1 + productIndex;
+                const isActive = activeNavIndex === navIndex;
                 return (
-                  <div key={product.key} className="flex flex-col gap-0.5">
-                    <span className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted">
-                      <Icon className="h-3.5 w-3.5" />
-                      {product.label}
-                    </span>
-                    {product.key === EXPANDED_PRODUCT_KEY && (
-                      <div className="ml-[13px] flex flex-col gap-0.5 border-l border-white/10 pl-3">
-                        {product.items.slice(0, EXPANDED_ITEM_COUNT).map((item) => (
-                          <span
-                            key={item.slug || "index"}
-                            className="truncate rounded-lg px-2 py-1 text-[10px] font-medium text-sidebar-muted/70"
-                          >
-                            {item.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <span
+                    key={product.key}
+                    ref={(el) => setNavItemRef(navIndex, el)}
+                    className={`relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-300 ${
+                      isActive ? "text-white" : "text-sidebar-muted"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {product.label}
+                  </span>
                 );
               })}
+
+              {/* Static, non-cycling — the real "+ Add product" affordance
+                  is a permanent control, not a nav destination, so it was
+                  never one of the animated steps. */}
+              <span className="flex items-center gap-2 rounded-lg border border-dashed border-white/15 px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted">
+                <PlusIcon className="h-3.5 w-3.5" />
+                Add product
+              </span>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">
-                {ADMINISTRATION_SECTION.label}
-              </p>
-              {ADMINISTRATION_SECTION.items.map((item) => (
-                <span
-                  key={item.href}
-                  className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted"
-                >
-                  <item.icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </span>
-              ))}
-            </div>
+            {ADMINISTRATION_SECTION && (
+              <div className="flex flex-col gap-1">
+                <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">
+                  {ADMINISTRATION_SECTION.label}
+                </p>
+                {ADMINISTRATION_SECTION.items.map((item, itemIndex) => {
+                  // +1 for Home, + MOCK_PRODUCTS.length for the PRODUCTS
+                  // rows already counted above.
+                  const navIndex = 1 + MOCK_PRODUCTS.length + itemIndex;
+                  const isActive = activeNavIndex === navIndex;
+                  return (
+                    <span
+                      key={item.href}
+                      ref={(el) => setNavItemRef(navIndex, el)}
+                      className={`relative flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-300 ${
+                        isActive ? "text-white" : "text-sidebar-muted"
+                      }`}
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2 border-t border-white/10 pt-3">
@@ -229,15 +432,23 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
           </div>
         </div>
 
-        <div className={`min-w-0 flex-1 p-4 sm:p-5 ${isDark ? "bg-[#161226]" : "bg-page"}`}>
-          <div className="flex items-center justify-between gap-2">
+        <div className={`flex min-w-0 flex-1 flex-col ${isDark ? "bg-[#161226]" : "bg-page"}`}>
+          <div key={activeNavIndex} className="animate-entrance flex flex-1 flex-col">
+          {/* Distinct white header bar with a bottom border, matching the
+              real admin shell's own Topbar (components/layout/Topbar.tsx:
+              "flex items-center justify-between border-b border-border
+              bg-white px-4 py-4 ...") — previously this row just floated on
+              the same gray body background as the content below it. */}
+          <div
+            className={`flex items-center justify-between gap-2 border-b px-4 py-2.5 sm:px-5 ${
+              isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
+            }`}
+          >
             <div className="flex min-w-0 items-center gap-2">
-              <HomeIcon className="h-4 w-4 shrink-0 text-brand-purple" />
+              <FrameIcon className="h-4 w-4 shrink-0 text-brand-purple" />
               <div className="min-w-0">
-                <h3 className={`text-sm font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Overview</h3>
-                <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
-                  Your documentation workspace at a glance
-                </p>
+                <h3 className={`text-sm font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{frameTitle}</h3>
+                <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{frameSubtitle}</p>
               </div>
             </div>
 
@@ -277,13 +488,20 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-5 gap-2">
+          <div className="p-4 sm:p-5">
+
+          {isOverviewStep && (
+          <>
+          <div className="grid grid-cols-5 gap-2">
             {PREVIEW_STATS.map((stat) => {
               const Icon = stat.icon;
+              const isHighlighted = stat.key === highlightStatKey;
               return (
                 <div
                   key={stat.key}
-                  className={`rounded-xl border p-2.5 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}
+                  className={`rounded-[10px] border p-2.5 transition-all duration-300 ${
+                    isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
+                  } ${isHighlighted ? "scale-[1.04] ring-2 ring-brand-purple shadow-md" : ""}`}
                 >
                   <div className="flex items-center gap-1.5">
                     <div
@@ -317,7 +535,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               return (
                 <div
                   key={action.id}
-                  className={`flex items-center gap-1.5 rounded-xl border p-2 ${
+                  className={`flex items-center gap-1.5 rounded-[10px] border p-2 ${
                     isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
                   }`}
                 >
@@ -332,8 +550,8 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             })}
           </div>
 
-          <div className="mt-3 grid grid-cols-[65%_35%] gap-2.5">
-            <div className={`rounded-xl border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+          <div className="mt-3 grid grid-cols-[65fr_35fr] gap-2.5">
+            <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
               <div className="flex items-center justify-between">
                 <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Recent Documents</p>
                 <span className="text-[9px] font-semibold text-brand-purple">View all</span>
@@ -364,7 +582,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               </div>
             </div>
 
-            <div className={`rounded-xl border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+            <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
               <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Recent Activity</p>
               <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
                 {PREVIEW_ACTIVITY.map((activity, i) => {
@@ -391,6 +609,255 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                 })}
               </div>
             </div>
+          </div>
+          </>
+          )}
+
+          {activeProduct && (
+            <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+              <div className="flex items-center justify-between">
+                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{activeProduct.label} items</p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[9px] font-semibold text-white">
+                  <PlusIcon className="h-2.5 w-2.5" />
+                  Add Item
+                </span>
+              </div>
+              {/* Empty state matches the real per-product admin page's own
+                  empty state exactly (same illustration component, same
+                  copy from ProductContentTable.tsx) — not a generic "no
+                  items" placeholder — scaled down to fit the mock. */}
+              {activeProduct.items.length === 0 && (
+                <div className="scale-[0.55] py-1 text-center [transform-origin:top]">
+                  <EmptyContentIllustration />
+                  <h4 className={`mt-3 text-sm font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>No content found</h4>
+                  <p className={`mx-auto mt-1 max-w-[220px] text-xs ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                    Start building &quot;{activeProduct.label}&quot;&apos;s knowledge base by adding your first content
+                    item. You can create a new page, upload a document, or embed a resource.
+                  </p>
+                </div>
+              )}
+
+              <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+                {activeProduct.items.slice(0, EXPANDED_ITEM_COUNT).map((item, i, arr) => {
+                  const hasContent = i < arr.length - 1;
+                  return (
+                    <div key={item.slug || "index"} className="flex items-center justify-between gap-2 py-1.5">
+                      <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                        {item.label}
+                      </p>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                            hasContent
+                              ? isDark
+                                ? "bg-[#1f9d6b]/20 text-[#3ddb9c]"
+                                : "bg-[#e1f5ec] text-[#1f9d6b]"
+                              : isDark
+                                ? "bg-white/10 text-[#a79fc9]"
+                                : "bg-page text-muted"
+                          }`}
+                        >
+                          {hasContent ? "Has content" : "Not written"}
+                        </span>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
+                            isDark ? "border-[#332e4d] text-[#f2effa]" : "border-border text-dash-ink"
+                          }`}
+                        >
+                          {hasContent ? "Edit" : "+ Write"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeAdminItem && activeAdminItem.label === "Users & Roles" && (
+            <div className={`rounded-[10px] border ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+              {/* Tab row — Users active, matching the real page's tab bar */}
+              <div className={`flex items-center gap-4 border-b px-3 pt-2.5 ${isDark ? "border-[#332e4d]" : "border-border"}`}>
+                <span className="relative pb-2 text-[10px] font-bold text-brand-purple">
+                  Users
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+                </span>
+                <span className={`pb-2 text-[10px] font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Pending</span>
+                <span className={`pb-2 text-[10px] font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Roles</span>
+              </div>
+
+              {/* Search + Add user row */}
+              <div className="flex items-center justify-between gap-2 px-3 py-2">
+                <span
+                  className={`flex-1 truncate rounded-lg border px-2 py-1 text-[8px] ${
+                    isDark ? "border-[#332e4d] text-[#a79fc9]" : "border-border text-muted"
+                  }`}
+                >
+                  Search by name, email, or role…
+                </span>
+                <span className="shrink-0 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[8px] font-semibold text-white">
+                  + Add user
+                </span>
+              </div>
+
+              <div className={`divide-y px-3 pb-2 ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+                {PREVIEW_ACCOUNTS.map((account) => (
+                  <div key={account.email} className="flex items-center gap-2 py-1.5">
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-white ${AVATAR_GRADIENTS[account.tone]}`}
+                    >
+                      {account.name
+                        .split(" ")
+                        .map((w) => w[0])
+                        .join("")}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                        {account.name}
+                      </p>
+                      <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{account.email}</p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                        account.status === "Active"
+                          ? isDark
+                            ? "bg-[#1f9d6b]/20 text-[#3ddb9c]"
+                            : "bg-[#e1f5ec] text-[#1f9d6b]"
+                          : isDark
+                            ? "bg-[#e0873c]/20 text-[#e0873c]"
+                            : "bg-[#fdf1de] text-[#c98a2c]"
+                      }`}
+                    >
+                      {account.status}
+                    </span>
+                    <span
+                      className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:inline-block ${
+                        isDark ? "bg-brand-purple/20 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
+                      }`}
+                    >
+                      {account.role}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeAdminItem && activeAdminItem.label === "Claude Usage" && (
+            <div className="space-y-2.5">
+              {/* Period control row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                    Day
+                  </span>
+                  <span className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[9px] font-semibold text-white">
+                    Week
+                  </span>
+                  <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                    Month
+                  </span>
+                </div>
+                <span className={`text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>This week</span>
+              </div>
+
+              {/* Disclaimer — real wording, not paraphrased */}
+              <div
+                className={`rounded-lg border px-2.5 py-1.5 text-[8px] leading-relaxed ${
+                  isDark ? "border-brand-purple/30 bg-brand-purple/10 text-[#c4b5fd]" : "border-brand-purple/20 bg-brand-purple/5 text-brand-purple"
+                }`}
+              >
+                Token counts and API-equivalent cost below are <strong>soft-budget estimates</strong>, not a real invoice
+                or a hard usage limit — actual billing depends on the plan and models each person uses.
+              </div>
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-4 gap-2">
+                {CLAUDE_USAGE_STATS.map((stat) => (
+                  <div
+                    key={stat.label}
+                    className={`rounded-[10px] border p-2 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}
+                  >
+                    <p
+                      className={`truncate text-[7px] font-semibold uppercase tracking-wide ${
+                        isDark ? "text-[#a79fc9]" : "text-muted"
+                      }`}
+                    >
+                      {stat.label}
+                    </p>
+                    <p className={`mt-1 truncate text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Daily tokens by user — mini bar chart, div-based (no charting library) */}
+              <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Daily tokens by user</p>
+                <div className="mt-3 flex h-16 items-end gap-2">
+                  {CLAUDE_USAGE_CHART_DAYS.map((d) => (
+                    <div key={d.day} className="flex flex-1 flex-col items-center gap-1">
+                      <div
+                        className="w-full rounded-t bg-gradient-to-t from-brand-purple to-brand-blue"
+                        style={{ height: `${d.pct}%` }}
+                      />
+                      <span className={`text-[7px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{d.day}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2.5">
+                  {CLAUDE_USAGE_LEGEND.map((legendItem) => (
+                    <span
+                      key={legendItem.name}
+                      className={`flex items-center gap-1 text-[8px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}
+                    >
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${AVATAR_GRADIENTS[legendItem.tone]}`} />
+                      {legendItem.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Per-user usage — condensed to name/tokens/status, not every real column */}
+              <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Per-user usage</p>
+                <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+                  {PREVIEW_USAGE_ROWS.map((row) => (
+                    <div key={row.email} className="flex items-center gap-2 py-1.5">
+                      <div
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-white ${AVATAR_GRADIENTS[row.tone]}`}
+                      >
+                        {row.name
+                          .split(" ")
+                          .map((w) => w[0])
+                          .join("")}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                          {row.name}
+                        </p>
+                        <p className={`truncate text-[8px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{row.tokens} tokens · Member</p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                          isDark ? "bg-[#1f9d6b]/20 text-[#3ddb9c]" : "bg-[#e1f5ec] text-[#1f9d6b]"
+                        }`}
+                      >
+                        Active
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Soft budget overrides — summarized in one line rather than a
+                  full editable-per-person section, per this task's own
+                  "may be summarized in one line" allowance. */}
+              <p className={`text-[8px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                Soft budget overrides available per person — defaults to 1.2M tokens/week, takes effect immediately.
+              </p>
+            </div>
+          )}
+          </div>
           </div>
         </div>
       </div>

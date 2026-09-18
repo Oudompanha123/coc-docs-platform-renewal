@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { Spinner } from "@/components/layout/Spinner";
 import { productHref } from "@/lib/home/product-links";
 
 /**
@@ -18,7 +19,7 @@ export function HomeFooter({
   onOpenProfile: () => void;
   onOpenNotifications: () => void;
 }) {
-  const { signOut } = useSession();
+  const { signOut, isSigningOut } = useSession();
 
   return (
     <footer className="border-t border-border py-12">
@@ -62,8 +63,15 @@ export function HomeFooter({
                   </button>
                 </li>
                 <li>
-                  <button type="button" onClick={() => void signOut()} className="text-sm text-muted hover:text-ink">
-                    Log out
+                  <button
+                    type="button"
+                    disabled={isSigningOut}
+                    aria-busy={isSigningOut}
+                    onClick={() => void signOut()}
+                    className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink disabled:cursor-not-allowed"
+                  >
+                    {isSigningOut && <Spinner className="h-3.5 w-3.5 border-2" />}
+                    {isSigningOut ? "Logging out…" : "Log out"}
                   </button>
                 </li>
               </ul>

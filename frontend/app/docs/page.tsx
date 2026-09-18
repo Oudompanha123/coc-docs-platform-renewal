@@ -66,7 +66,7 @@ export default function DocsOverviewPage() {
             return (
               <div
                 key={feature.title}
-                className="animate-entrance rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+                className="animate-entrance rounded-[10px] border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
                 style={{ animationDelay: `${180 + i * 60}ms` }}
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">

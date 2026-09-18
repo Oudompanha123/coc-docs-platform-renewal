@@ -19,7 +19,7 @@ export function ProductGlanceCard({ product, stat }: { product: NavProduct; stat
   return (
     <Link
       href={productHref(product.key)}
-      className="block rounded-2xl border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+      className="block rounded-[10px] border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="flex items-center gap-2.5">
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white ${AVATAR_GRADIENTS[stat.tone]}`}>

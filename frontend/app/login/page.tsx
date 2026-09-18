@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { CodeField, FormField, PasswordField } from "@/components/auth/FormField";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
+import { LoadingDim } from "@/components/layout/LoadingDim";
+import { Spinner } from "@/components/layout/Spinner";
+import { useMinimumDisplay } from "@/lib/layout/useMinimumDisplay";
 import {
   loginWithIdToken,
   loginWithPassword,
@@ -256,8 +259,20 @@ function LoginForm() {
     }
   }
 
+  // Any of the four in-flight requests, or the redirect that follows a
+  // successful one — one continuous overlay across "submitting" and
+  // "leaving this page now" rather than two different visual states back
+  // to back. 400ms floor so a near-instant local validation failure still
+  // reads as "something happened" rather than a flicker.
+  const dimVisible = useMinimumDisplay(
+    isSubmitting || isVerifyingOtp || isGoogleSubmitting || isRedirecting,
+    400,
+  );
+
   if (step === "otp") {
     return (
+      <>
+      {dimVisible && <LoadingDim label="Signing in…" />}
       <AuthShell
         icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
         heading="Two-Factor Authentication"
@@ -269,7 +284,7 @@ function LoginForm() {
         {feedback && (
           <div
             role="alert"
-            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${feedback.type === "success"
+            className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : feedback.type === "pending"
                 ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -280,17 +295,13 @@ function LoginForm() {
           </div>
         )}
         {otpError && (
-          <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {otpError}
           </div>
         )}
 
         {isRedirecting ? (
           <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
-            <div
-              aria-hidden="true"
-              className="h-8 w-8 animate-spin rounded-full border-4 border-brand-purple/20 border-t-brand-purple"
-            />
             <p>Redirecting to your dashboard…</p>
           </div>
         ) : (
@@ -301,8 +312,9 @@ function LoginForm() {
               type="submit"
               disabled={isVerifyingOtp}
               aria-busy={isVerifyingOtp}
-              className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {isVerifyingOtp && <Spinner />}
               {isVerifyingOtp ? "Verifying…" : "Verify"}
             </button>
 
@@ -316,10 +328,13 @@ function LoginForm() {
           </form>
         )}
       </AuthShell>
+      </>
     );
   }
 
   return (
+    <>
+    {dimVisible && <LoadingDim label="Signing in…" />}
     <AuthShell
       icon={<DocumentIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
       heading={
@@ -343,7 +358,7 @@ function LoginForm() {
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${feedback.type === "success"
+          className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${feedback.type === "success"
             ? "border-green-200 bg-green-50 text-green-800"
             : feedback.type === "pending"
               ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -356,10 +371,6 @@ function LoginForm() {
 
       {isRedirecting ? (
         <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
-          <div
-            aria-hidden="true"
-            className="h-8 w-8 animate-spin rounded-full border-4 border-brand-purple/20 border-t-brand-purple"
-          />
           <p>Redirecting to your dashboard…</p>
         </div>
       ) : (
@@ -407,8 +418,9 @@ function LoginForm() {
             type="submit"
             disabled={isSubmitting}
             aria-busy={isSubmitting}
-            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
+            {isSubmitting && <Spinner />}
             {isSubmitting ? "Signing in…" : "Login"}
           </button>
 
@@ -427,7 +439,7 @@ function LoginForm() {
                 aria-busy={isGoogleSubmitting}
                 className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <GoogleIcon className="h-5 w-5" aria-hidden="true" />
+                {isGoogleSubmitting ? <Spinner /> : <GoogleIcon className="h-5 w-5" aria-hidden="true" />}
                 {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
               </button>
             </>
@@ -442,6 +454,7 @@ function LoginForm() {
         </Link>
       </p>
     </AuthShell>
+    </>
   );
 }
 
