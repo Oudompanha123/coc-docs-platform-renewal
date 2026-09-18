@@ -19,6 +19,7 @@ import { computeProductStats, computeRecentDocs, type ContentDocRow } from "@/li
 import type { StatCardData } from "@/lib/mock/overview";
 import { fetchOpenTasks, type Task } from "@/lib/tasks/tasks-api";
 import { mostAttentionProduct, productHref, totalNotWritten } from "@/lib/home/product-links";
+import { UsageSnapshotPanel } from "@/components/home/UsageSnapshotPanel";
 
 /**
  * The Member (`user`-role) post-login home — reuses `/welcome`'s visual
@@ -137,16 +138,7 @@ export default function MemberHomePage() {
           <ScrollReveal delayMs={80} className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3">
             <RecentDocumentsPanel docs={recentDocs} />
             <TasksPanel tasks={tasks} />
-            <Link
-              href={productHref("usage")}
-              className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
-            >
-              <div>
-                <h3 className="text-base font-semibold text-ink">Usage & reports</h3>
-                <p className="mt-1 text-sm text-muted">See how your team is using the workspace.</p>
-              </div>
-              <span className="mt-4 text-sm font-semibold text-brand-purple">Open Usage →</span>
-            </Link>
+            <UsageSnapshotPanel />
           </ScrollReveal>
         </section>
 
