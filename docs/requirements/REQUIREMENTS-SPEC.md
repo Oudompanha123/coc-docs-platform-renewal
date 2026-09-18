@@ -37,12 +37,17 @@ Elaborates the Skill 1 proposal and the 30 business requirements into Functional
 
 | Category | Must | Should | Could | Won't | Total |
 |---|---:|---:|---:|---:|---:|
-| Functional | 41 | 5 | 2 | 5 | **53** |
+| Functional | 47 | 5 | 2 | 5 | **59** |
 | Non-Functional | 19 | 2 | 0 | 0 | **21** |
 | Constraint | 10 | 0 | 0 | 0 | **10** |
-| **Total** | **70** | **7** | **2** | **5** | **84** |
+| **Total** | **76** | **7** | **2** | **5** | **90** |
 
-Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps to ≥ 1 use case (verified in the matrix). The 5 `Won't` requirements are deliberately unmapped, since they are excluded from this release.
+Use cases: **7**. Orphan requirements: **0** as of v1.6 — every in-scope FR and NFR maps to ≥ 1 use case (verified in the matrix). The 5 `Won't` requirements are deliberately unmapped, since they are excluded from this release.
+
+> **v1.7 note**: `FR-INTEG-001..006` (§2.9) are not yet mapped to a use case
+> or to `requirements-matrix.csv` — recorded as required follow-up in
+> `ADR-037`, not silently counted as covered here. The "0 orphans" claim
+> above is as of v1.6 and does not yet account for this section.
 
 ---
 
@@ -145,7 +150,22 @@ Use cases: **7**. Orphan requirements: **0** — every in-scope FR and NFR maps 
 | FR-USAGE-003 | Removing a teammate from tracking hides them from active views but never deletes their recorded usage history | Must | Integration test |
 | FR-USAGE-004 | The Claude Usage dashboard is visible only to `admin` and `super_admin` | Must | Security test (negative) |
 
-### 2.9 Excluded from This Release (`Won't`)
+### 2.9 Integrations (`FR-INTEG-`)
+
+> Added in v1.7 (§7.7), on direct PM/developer instruction — **formal PM
+> sign-off recommended, not yet recorded**, same caveat as §7.3–§7.6. See
+> ADR-037 for the design this section is paired with.
+
+| REQ-ID | Requirement | Priority | Verification Method |
+|--------|---------|---------|----------|
+| FR-INTEG-001 | A `super_admin` can connect an outgoing webhook integration (name, target URL, subscribed events); the platform generates and stores its signing secret | Must | Integration test |
+| FR-INTEG-002 | A connected integration's signing secret is shown to the admin only once, at connect or rotate, and is never retrievable afterward | Must | Security test |
+| FR-INTEG-003 | A `super_admin` can trigger a synchronous test delivery for a connected integration and see its result (status, latency, error) immediately | Must | Integration test |
+| FR-INTEG-004 | A `super_admin` can disconnect an integration; its signing secret is irrecoverably discarded but its delivery history is retained | Must | Integration test |
+| FR-INTEG-005 | An outbound integration delivery never blocks the action that triggered it, and is subject to a fixed timeout with no unbounded retry | Must | Integration test |
+| FR-INTEG-006 | The Integrations screen and its management API are visible only to `super_admin`; `admin` may view the connected-integrations list read-only | Must | Security test (negative) |
+
+### 2.10 Excluded from This Release (`Won't`)
 
 | REQ-ID | Requirement | Priority | Rationale |
 |--------|---------|---------|----------|
@@ -299,6 +319,33 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | 2026-09-16 | **1.4** | New `FR-AUTH-009`: opt-in TOTP (Google Authenticator) second factor gating `/login-password` only. See §7.4, ADR-031 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3 row above |
 | 2026-09-16 | **1.5** | `FR-AUTH-002` amended again: `/forgot-password` now covers a Google-only account too, as a path to its first password. See §7.5, ADR-029 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4 rows above |
 | 2026-09-17 | **1.6** | `FR-USAGE-001` reversed: no longer **Won't** (`AMB-004`). New §2.8 `FR-USAGE-001..004` — real persistence and a bearer-secret ingest endpoint for Claude Code usage, replacing the mock the Claude Usage dashboard shipped against. See §7.6, ADR-035 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4/1.5 rows above |
+| 2026-09-18 | **1.7** | New §2.9 `FR-INTEG-001..006` — the Overview "Connect Integration" quick action becomes a real, `super_admin`-managed outgoing-webhook feature, not a disabled card. Old §2.9 ("Excluded from This Release") renumbered to §2.10. See §7.7, ADR-037 | AI, drafted on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3–1.6 rows above |
+
+### 7.7 Integrations — a Real Outgoing-Webhook Feature, Not a Disabled Card — 2026-09-18
+
+The Overview dashboard's "Connect Integration" quick action shipped as a
+static mock card with no backing feature — the only one of the four Quick
+Actions with nothing real to link to (the other three map onto existing
+content-editing, invite, and Claude Usage features). The PM/developer
+directly instructed that this become a real, backend-supported feature
+rather than being disabled or removed.
+
+**What changed**: new §2.9, `FR-INTEG-001..006` — connecting/testing/
+disconnecting a `super_admin`-managed outgoing webhook integration, with its
+signing secret encrypted at rest and shown only once. Old §2.9 ("Excluded
+from This Release") renumbers to §2.10; no requirement in it changed. See
+`ADR-037` for the schema, the encryption approach (this system's first
+application-layer encryption-at-rest primitive), the provider choice
+(generic webhook, not a named OAuth SaaS integration), and the three
+previously-`N/A` `ADR-INDEX.md` records (`ADR-004`, `ADR-007`, `ADR-009`)
+this feature's own trigger conditions activate.
+
+**Same caveat as §7.3–§7.6**: this row reflects direction given during the
+implementation session itself, not yet a recorded PM decision. Unlike the
+draft originally recorded here, this is now implemented in the same
+session — `ADR-037`'s "Required follow-up" lists what still is not (a
+threat-model update, TEST-PLAN/matrix entries, the encryption key not
+being provisioned in this checkout, and no `page.published` trigger).
 
 ### 7.6 Claude Usage Becomes Real Data, Reversing `FR-USAGE-001` — 2026-09-17
 

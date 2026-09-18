@@ -39,6 +39,7 @@
 | [ADR-034](ADR-034-notifications-as-rows.md) | Notifications become rows, not a view of live state | **PROPOSED** | A `notification` table (V20), one row per recipient per event, with `read_at` on the server instead of `localStorage`. The bell derived everything from live sources, so a new-device alert vanished when its session was revoked or expired — the case it exists for. Type + jsonb payload stored, wording rendered at read time, so improving a sentence applies to everything already sent. Swept at 90 days; `audit_log` stays the archive. Revises ADR-025 and ADR-027 decision 7 |
 | [ADR-035](ADR-035-claude-usage-real-data.md) | Claude Usage becomes real data | **ACCEPTED** | Replaces `frontend/lib/mock/claude-usage.ts` with `claude_usage_member` + `claude_usage_daily` (V22) and a real `/api/v1/admin/claude-usage/**` API. Ingested via `POST /api/ingest`, guarded by one shared bearer secret (`app.claude-usage.ingest-secret`) — matches the shape `NFR-SEC-CHANNEL`/`TM-028` already anticipated, not a per-member token. Removing a member never deletes their usage history. Reverses `FR-USAGE-001`'s "Won't" on direct PM/developer instruction — see REQUIREMENTS-SPEC.md §7.6 |
 | [ADR-036](ADR-036-revision-of-035-per-model-pricing.md) | Real per-model pricing | **ACCEPTED** | `ClaudeUsagePricing` prices each model at its own real Anthropic API rate (Opus/Sonnet/Haiku/Fable/Mythos), not ADR-035's flat $0.006/1K blended rate. `POST /api/ingest` gains an optional `byModel` breakdown to price from; no breakdown means $0 cost, never a guessed number. Historical rows keep their old flat-rate cost — not retroactively repriced. Revises ADR-035 decision 4 |
+| [ADR-037](ADR-037-integrations.md) | Outgoing webhook integrations | **ACCEPTED** | Gives the Overview "Connect Integration" quick action a real backend: `integration` + `integration_delivery` tables, `super_admin`-gated connect/test/rotate/disconnect, AES-256-GCM signing secret at rest (this codebase's first encryption-at-rest primitive), async `AFTER_COMMIT` dispatch with explicit timeouts and no unbounded retry (`CODE-002`). Provider is a generic webhook (+ Slack payload preset), not a named OAuth SaaS integration — deliberately avoids an OAuth-client dependency or a third-party token-refresh lifecycle. New `FR-INTEG-001..006`, REQUIREMENTS-SPEC.md §7.7. **Revisits ADR-004 and ADR-007's recorded N/A triggers** — see their entries below |
 ---
 
 ## Recorded N/A — with rationale
@@ -59,6 +60,11 @@ The one machine-to-machine channel (`/api/ingest`) is covered by ADR-008 and is 
 
 **Revisit if**: an asynchronous or queued integration is introduced.
 
+**Note (ADR-037, 2026-09-18)**: this trigger has occurred for one channel —
+`ADR-037` introduces HMAC-signed outbound webhook payloads. Message
+integrity for every other channel (in particular `/api/ingest`) is
+unaffected and remains as recorded above.
+
 ### ADR-007 — Key management · **N/A**
 **Why**: The system holds no encryption keys of its own to manage. FR-AUTH-002 means **no passwords are stored**; ADR-005 uses provider-native encryption at rest, so key custody belongs to Supabase; and there is no application-layer column encryption to key.
 
@@ -68,12 +74,23 @@ What remains is *credential* management — database credentials, `INGEST_SECRET
 
 **Revisit if**: ADR-005's deferred application-layer column encryption is ever adopted — that decision would require this ADR.
 
+**Note (ADR-037, 2026-09-18)**: this trigger has now occurred — `ADR-037`
+adopts application-layer AES-256-GCM encryption for a webhook signing
+secret column. Whether this record should move from "Recorded N/A" into
+"Written" (with `ADR-037` as its content) is left for the PM to decide,
+per `CONST-PROC-01` — not changed unilaterally here.
+
 ### ADR-009 — Retry / idempotency · **N/A**
 **Why**: There are no unreliable channels to retry against and no operation whose duplicate execution causes harm. Content writes are user-initiated, synchronous, and idempotent by construction — FR-CONT-013's optimistic locking on `version_no` means a repeated save either applies once or is refused as a conflict.
 
 The one genuine idempotency case in the codebase — `/api/ingest` upserting on `(user_email, date)` — already exists, is unchanged in MVP, and is out of scope.
 
 **Revisit if**: background jobs, queues or webhook receivers are added.
+
+**Note (ADR-037, 2026-09-18)**: `ADR-037` adds the first webhook-shaped
+outbound channel (bounded timeout, no unbounded retry) but is a webhook
+*sender*, not a *receiver* — this record's trigger is only partially hit.
+Idempotency for a future inbound webhook remains open and undecided.
 
 ---
 
