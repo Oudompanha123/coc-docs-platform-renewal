@@ -1,4 +1,4 @@
-import { AuthApiError } from "@/lib/auth/api";
+import { AuthApiError, type Capability } from "@/lib/auth/api";
 
 /**
  * The account administration API — `/api/v1/admin/accounts`.
@@ -200,4 +200,28 @@ export function approveAccount(id: string, role: AccountRole): Promise<PendingAc
 /** Refuses an application. The row stays, so the trail still answers who was turned down. */
 export function rejectAccount(id: string): Promise<PendingAccount> {
   return request<PendingAccount>(`/${id}/reject`, { method: "POST" });
+}
+
+// -----------------------------------------------------------------------
+// Capabilities (ADR-037) — a second, rank-independent grant, layered on top
+// of the role above rather than replacing it. Not embedded in AdminAccount
+// or the bulk list response above (that would mean an N+1 on the backend);
+// fetched on demand for the account detail modal instead.
+// -----------------------------------------------------------------------
+
+export interface CapabilitiesResponse {
+  accountId: string;
+  capabilities: Capability[];
+}
+
+export function fetchCapabilities(id: string): Promise<CapabilitiesResponse> {
+  return request<CapabilitiesResponse>(`/${id}/capabilities`);
+}
+
+export function grantCapability(id: string, capability: Capability): Promise<CapabilitiesResponse> {
+  return request<CapabilitiesResponse>(`/${id}/capabilities/${capability}`, { method: "POST" });
+}
+
+export function revokeCapability(id: string, capability: Capability): Promise<CapabilitiesResponse> {
+  return request<CapabilitiesResponse>(`/${id}/capabilities/${capability}`, { method: "DELETE" });
 }

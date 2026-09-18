@@ -16,7 +16,7 @@ const { me, signOut } = vi.hoisted(() => ({ me: vi.fn(), signOut: vi.fn() }));
 vi.mock("./api", () => ({ me, signOut }));
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }), usePathname: () => "/overview" }));
 
 const SIGNED_IN = {
   id: "1",

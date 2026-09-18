@@ -33,6 +33,8 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
     <Link
       href={item.href}
       onClick={onClick}
+      target={item.newTab ? "_blank" : undefined}
+      rel={item.newTab ? "noopener noreferrer" : undefined}
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue ${
         active
@@ -60,7 +62,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   useEffect(() => {
     if (fetchedProducts) setProducts(fetchedProducts);
   }, [fetchedProducts]);
-  const navSections = visibleNavSections(session?.role, products ?? []);
+  const navSections = visibleNavSections(session?.role, products ?? [], session?.capabilities ?? []);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Same role floor the backend enforces on /api/v1/admin/nav/** — hiding
