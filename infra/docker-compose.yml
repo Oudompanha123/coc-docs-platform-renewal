@@ -134,10 +134,16 @@ services:
       # generates — redirects, the OIDC discovery document, token issuer —
       # points at the wrong place.
       #
-      # The ORIGIN only. Keycloak appends http-relative-path to it itself, so
-      # a hostname of https://host/auth alongside a relative path of /auth
-      # produces https://host/auth/auth/realms/... and nothing resolves.
-      KC_HOSTNAME: https://${PUBLIC_DOMAIN}
+      # INCLUDING the path. When hostname is a full URL, its path IS the
+      # context path Keycloak puts in every URL it generates — the OIDC
+      # discovery document, the broker endpoints, the redirect back from
+      # Google. It does NOT append http-relative-path for you.
+      #
+      # Set to the origin alone, Keycloak serves at /auth (because of
+      # http-relative-path below) but tells the browser to visit
+      # https://host/realms/... — which nginx hands to the frontend, and the
+      # sign-in popup shows the application's own 404.
+      KC_HOSTNAME: https://${PUBLIC_DOMAIN}/auth
       KC_HTTP_RELATIVE_PATH: /auth
 
       # Health endpoints on the management port. OFF BY DEFAULT — without this
