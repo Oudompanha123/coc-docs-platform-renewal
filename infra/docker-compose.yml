@@ -369,33 +369,19 @@ services:
     volumes:
       - certbot_certs:/etc/letsencrypt
       - certbot_webroot:/var/www/certbot
+      # Invoked as `sh <path>` rather than relying on the executable bit —
+      # core.filemode=false on Windows has already cost this deployment one
+      # round of debugging.
+      - ./certbot/entrypoint.sh:/opt/certbot-entrypoint.sh:ro
     environment:
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
-      # Set to 1 to issue against Let's Encrypt's staging environment, whose
-      # certificates browsers do not trust but which has no meaningful rate
-      # limit. Worth using while getting DNS and the security group right:
-      # five failed attempts against production locks the domain out for a
-      # week.
+      # 1 issues against Let's Encrypt's staging environment: certificates
+      # browsers do not trust, but no meaningful rate limit. Worth using while
+      # getting DNS and the security group right — five failed attempts
+      # against production locks the domain out for a week.
       CERTBOT_STAGING: ${CERTBOT_STAGING:-0}
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        STAGING=""
-        [ "$$CERTBOT_STAGING" = "1" ] && STAGING="--staging"
-        # First run: obtain. --keep-until-expiring makes this safe to repeat,
-        # so a restarted container does not re-issue and burn the rate limit.
-        certbot certonly --webroot -w /var/www/certbot \
-          -d "$$PUBLIC_DOMAIN" \
-          --email "$$ACME_EMAIL" \
-          --agree-tos --no-eff-email \
-          --keep-until-expiring --non-interactive $$STAGING \
-          || echo "certbot: could not obtain a certificate yet — check DNS and that port 80 is open; retrying in 12h"
-        # Then renew on a loop for the life of the container.
-        while :; do
-          sleep 12h
-          certbot renew --webroot -w /var/www/certbot --non-interactive $$STAGING || true
-        done
+    entrypoint: ["/bin/sh", "/opt/certbot-entrypoint.sh"]
     depends_on:
       nginx:
         condition: service_started
