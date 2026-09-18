@@ -117,6 +117,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // super_admin sees everyone's activity here; every other role sees only
   // their own, decided server-side (NFR-SEC-PII).
   const activity = useActivityFeed();
+  // The panel lists what the badge counts, and only that. Showing read lines
+  // under a badge that says zero was the complaint: the number and the list
+  // disagreed, so neither meant anything. History is not lost — the Overview
+  // page's Recent Activity panel is the place that keeps it, and it is the
+  // place with room to read it.
+  const unreadActivity = activity.items.filter((item) => !item.read);
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.
@@ -297,28 +303,47 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
           {openMenu === "mail" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
-              <div className="border-b border-border px-4 py-3">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 {/* "Activity", not "Messages": these are recorded events, not
                     mail from a person. The old label invited people to look
                     for a Reply button that was never going to exist. */}
                 <p className="text-sm font-semibold text-dash-ink">Activity</p>
+                {activity.count > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => activity.markAllRead()}
+                    className="text-xs font-semibold text-brand-purple hover:underline"
+                  >
+                    Mark all as read
+                  </button>
+                )}
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
-                {activity.items.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-xs text-muted">Nothing recent.</p>
+                {unreadActivity.length === 0 ? (
+                  // Not "Nothing recent": there may be plenty, all of it read.
+                  // This panel lists what the badge counts and nothing else, so
+                  // an empty one means caught up, not a quiet week.
+                  <p className="px-4 py-6 text-center text-xs text-muted">You&rsquo;re all caught up.</p>
                 ) : (
-                  activity.items.map((item) => (
-                    <div
+                  unreadActivity.map((item) => (
+                    <button
                       key={item.id}
+                      type="button"
                       role="menuitem"
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left"
+                      // Clicking marks it read and nothing else. There is no
+                      // dialog behind an audit row the way there is behind a
+                      // bell notification — the line already says everything
+                      // that happened. The click is the acknowledgement, which
+                      // is what makes the badge a number that can reach zero.
+                      onClick={() => activity.markRead(item.id)}
+                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
                     >
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[toneFor(item.actorEmail)]}`}
                       >
                         {actorInitials(item)}
                       </span>
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-dash-ink">
                           {actorName(item)}
                         </span>
@@ -327,7 +352,14 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                           {timeAgo(item.occurredAt)}
                         </span>
                       </span>
-                    </div>
+                      {/* Every row here is unread — a tint on all of them would
+                          carry no information. The dot stays as the affordance:
+                          it is what says a click will clear this line. */}
+                      <span
+                        aria-label="Unread"
+                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                      />
+                    </button>
                   ))
                 )}
               </div>
