@@ -21,13 +21,16 @@ import {
   rejectAccount,
   updateAccount,
   deleteAccount,
+  grantCapability,
+  revokeCapability,
+  fetchCapabilities,
   type AccountRole as AdminRole,
   type AdminAccount,
   type PendingAccount,
   type RoleDetail,
 } from "@/lib/admin/accounts";
 import { type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
-import { me } from "@/lib/auth/api";
+import { me, type Capability } from "@/lib/auth/api";
 
 /**
  * The API speaks in accounts; this table speaks in rows. One place to translate
@@ -223,9 +226,27 @@ export default function UsersRolesPage() {
     role?: AdminRole;
     active?: boolean;
     displayName?: string;
+    capabilities?: Capability[];
   }) {
     if (!detail) return;
-    const updated = await updateAccount(detail.id, changes);
+    const { capabilities: nextCapabilities, ...accountChanges } = changes;
+    let updated: AdminAccount = detail;
+    if (Object.keys(accountChanges).length > 0) {
+      updated = await updateAccount(detail.id, accountChanges);
+    }
+    // Capabilities are a separate grant mechanism from role/active (ADR-037),
+    // so they go through their own endpoints rather than updateAccount's
+    // PATCH — a single-key grant/revoke per changed capability, diffed
+    // against what the account currently holds.
+    if (nextCapabilities) {
+      const current = await fetchCapabilities(detail.id);
+      for (const capability of nextCapabilities.filter((c) => !current.capabilities.includes(c))) {
+        await grantCapability(detail.id, capability);
+      }
+      for (const capability of current.capabilities.filter((c) => !nextCapabilities.includes(c))) {
+        await revokeCapability(detail.id, capability);
+      }
+    }
     setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
     setError(null);
   }

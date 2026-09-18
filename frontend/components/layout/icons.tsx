@@ -438,3 +438,64 @@ export function RingIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** AX Renewal's nav/page glyph — two curved arrows forming a refresh loop. */
+export function RenewIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path d="M17.5 3.5v3.5H14M6.5 20.5V17H10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** The Developer capability badge/checkbox glyph — angle brackets. */
+export function CodeBracketsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M9 6.5 3.5 12 9 17.5M15 6.5 20.5 12 15 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Architecture / module-coupling diagram glyph — a small graph of nodes. */
+export function NodesIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="6" cy="7" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="18" cy="7" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="17" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 8.2 10.3 15M16 8.2 13.7 15M8.2 7h7.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** The "Reopen" action on a confirmed plan section — distinct from RenewIcon's double arrow. */
+export function ReopenIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M19.5 12A7.5 7.5 0 1 1 15 5.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M15 2.5v3.6h3.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** The Attach flow's primary action glyph. */
+export function PaperclipIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M17 8.5 9.6 15.9a3 3 0 1 1-4.2-4.2L13.6 3.5a4.5 4.5 0 0 1 6.4 6.4l-8.2 8.2a1.5 1.5 0 0 1-2.1-2.1L17.2 8.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
