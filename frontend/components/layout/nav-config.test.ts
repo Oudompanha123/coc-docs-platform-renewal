@@ -61,7 +61,11 @@ describe("visibleNavSections", () => {
 
     const adminSection = (role: Role) =>
       visibleNavSections(role, FIXTURE_PRODUCTS).find((section) => section.label === "ADMINISTRATION");
-    expect(adminSection("super_admin")?.items.map((i) => i.label)).toEqual(["Users & Roles", "Claude Usage"]);
+    expect(adminSection("super_admin")?.items.map((i) => i.label)).toEqual([
+      "Users & Roles",
+      "Claude Usage",
+      "Integrations",
+    ]);
     expect(adminSection("admin")?.items.map((i) => i.label)).toEqual(["Claude Usage"]);
   });
 
