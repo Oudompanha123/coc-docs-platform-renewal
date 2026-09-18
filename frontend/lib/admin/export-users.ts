@@ -82,6 +82,14 @@ const HEADERS = [
 const COLUMN_WIDTHS = [26, 32, 14, 24, 14, 20, 20, 22];
 
 /**
+ * Status, Last sign-in, Created, and On temporary password — the four
+ * short, fixed-vocabulary columns, centred rather than left-aligned so a
+ * "Yes"/"Never"/a date doesn't read as ragged against the bordered grid the
+ * way it would beside a long, naturally left-aligned name or email.
+ */
+const CENTERED_COLUMNS = [4, 5, 6, 7];
+
+/**
  * Parses a backend timestamp, or gives nothing.
  *
  * <p>A date the browser cannot parse becomes an empty cell rather than
@@ -100,6 +108,7 @@ export function usersSheet(accounts: AdminAccount[]): SheetData {
     sheetName: "Users & Roles",
     headers: HEADERS,
     columnWidths: COLUMN_WIDTHS,
+    centeredColumns: CENTERED_COLUMNS,
     rows: accounts.map((account) => [
       account.displayName,
       account.email,

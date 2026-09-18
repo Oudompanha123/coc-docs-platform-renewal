@@ -91,11 +91,17 @@ function CountBadge({
   );
 }
 
+type NotificationFilter = "unread" | "all";
+
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { header: { title, subtitle, titleIcon } } = useShell();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  // Which of the bell's own items are shown — a client-side filter over the
+  // same list useNotifications already holds, not a second fetch: this
+  // panel never needs more than the 30 rows the inbox already returns.
+  const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>("all");
   const clusterRef = useRef<HTMLDivElement>(null);
   // The signed-in caller's real name/role (GET /api/v1/auth/me) — "Guest"
   // until that resolves or for a visitor with no session, since this shell
@@ -112,6 +118,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     onOpenApproval: (account) => setApproving(account),
     onOpenSignIn: (session) => setReviewingSignIn(session),
   });
+  const visibleNotifications =
+    notificationFilter === "unread"
+      ? notifications.items.filter((n) => !n.read)
+      : notifications.items;
 
   // The mail icon, likewise, no longer renders five invented names. A
   // super_admin sees everyone's activity here; every other role sees only
@@ -205,23 +215,45 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
           {openMenu === "notifications" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div className="border-b border-border px-4 py-3">
                 <p className="text-sm font-semibold text-dash-ink">Notifications</p>
-                {notifications.unreadCount > 0 && (
+                <div className="mt-2.5 flex items-center gap-1.5">
+                  {(["unread", "all"] as const).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setNotificationFilter(key)}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
+                        notificationFilter === key
+                          ? "bg-brand-purple/10 text-brand-purple"
+                          : "border border-border text-muted hover:bg-page"
+                      }`}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                  {/* Not a filter, so it never shows "active" — a one-shot
+                      action grouped with the tabs because that is where the
+                      person is already looking when they want it. */}
                   <button
                     type="button"
                     onClick={() => notifications.markAllRead()}
-                    className="text-xs font-semibold text-brand-purple hover:underline"
+                    disabled={notifications.unreadCount === 0}
+                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                   >
-                    Mark all as read
+                    Read all
                   </button>
-                )}
+                </div>
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
-                {notifications.items.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-muted">Nothing needs your attention.</p>
+                {visibleNotifications.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-muted">
+                    {notificationFilter === "unread"
+                      ? "You're all caught up."
+                      : "Nothing needs your attention."}
+                  </p>
                 ) : (
-                  notifications.items.map((n) => (
+                  visibleNotifications.map((n) => (
                     <button
                       key={n.id}
                       type="button"

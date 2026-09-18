@@ -120,6 +120,11 @@ describe("usersSheet", () => {
   it("survives an empty account list", () => {
     expect(usersSheet([]).rows).toHaveLength(0);
   });
+
+  it("centres Status, Last sign-in, Created, and On temporary password", () => {
+    const sheet = usersSheet([account()]);
+    expect(sheet.centeredColumns).toEqual([STATUS, LAST_SIGN_IN, CREATED, TEMP_PASSWORD]);
+  });
 });
 
 describe("usersFileName", () => {

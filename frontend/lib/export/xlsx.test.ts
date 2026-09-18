@@ -208,9 +208,61 @@ describe("buildXlsx", () => {
     expect(whole).not.toContain("2026-09-17T08:30");
   });
 
-  it("leaves a blank cell out entirely rather than writing an empty one", () => {
-    // Row 3 is the second data row, whose second column is null.
-    expect(text(sheet())).not.toContain('r="B3"');
+  it("still writes and borders a blank cell, rather than leaving a gap in the ruled table", () => {
+    // Row 3 is the second data row, whose second column is null. Every cell
+    // now carries a border (style 0), including blank ones — see cellXml's
+    // own reasoning for why an omitted <c> would punch a hole in the grid.
+    const whole = text(sheet());
+    expect(whole).toContain('<c r="B3" s="0"/>');
+  });
+
+  it("borders every one of the five cell styles, not only the header", () => {
+    const whole = text(sheet());
+    // Each cellXf now applies the same borderId; if a future edit drops one,
+    // this catches it rather than leaving a borderless row nobody notices
+    // until they open the file. Five: default, header, date, and the
+    // centred variants of default and date.
+    const applyBorderCount = whole.match(/applyBorder="1"/g)?.length ?? 0;
+    expect(applyBorderCount).toBe(5);
+  });
+
+  it("gives the header a distinct style: bold white text, centred, on the brand gradient", () => {
+    const whole = text(sheet());
+    expect(whole).toContain('<c r="A1" s="1"');
+    expect(whole).toContain("gradientFill");
+    expect(whole).toContain("FF6D3CE0"); // brand-purple
+    expect(whole).toContain("FF4C6FF0"); // brand-blue
+    expect(whole).toContain('<alignment horizontal="center" vertical="center"/>');
+  });
+
+  it("centres a data column named in centeredColumns, leaving others left-aligned", () => {
+    const whole = text(
+      buildXlsx({
+        sheetName: "Sheet",
+        headers: ["Name", "Status"],
+        rows: [["Someone", "Active"]],
+        centeredColumns: [1],
+      }),
+    );
+
+    // Status (column B, the centred one) gets style 3 — STYLE_DEFAULT_CENTER.
+    expect(whole).toContain('<c r="B2" s="3"');
+    // Name (column A, not listed) keeps the plain left-aligned style 0.
+    expect(whole).toContain('<c r="A2" s="0"');
+  });
+
+  it("centres a blank cell in a centred date column too", () => {
+    const whole = text(
+      buildXlsx({
+        sheetName: "Sheet",
+        headers: ["Name", "Created"],
+        rows: [["Someone", null]],
+        centeredColumns: [1],
+      }),
+    );
+
+    // Blank, but still style 3 (centred default) rather than 0 (plain).
+    expect(whole).toContain('<c r="B2" s="3"/>');
   });
 
   it("survives a sheet with no rows", () => {
