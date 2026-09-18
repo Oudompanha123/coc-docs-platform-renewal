@@ -214,6 +214,88 @@ Keycloak's database is separate, in the same server:
 docker compose exec postgres psql -U "$DB_USER" -d keycloak
 ```
 
+## Changing the domain
+
+Five things hold the domain and only one of them is `.env`. Miss one and the
+symptom is usually a sign-in that fails much later, looking unrelated.
+
+**1. DNS first.** An A record for the new name pointing at the instance, and
+confirm it before touching anything:
+
+```bash
+dig +short docs.yourdomain.com      # must print the instance's public IP
+```
+
+**2. Google.** Add the new redirect URI to the OAuth client — *APIs & Services
+→ Credentials → your client → Authorised redirect URIs*:
+
+```
+https://docs.yourdomain.com/auth/realms/docs_platform/broker/google/endpoint
+```
+
+Leave the old one until the move is finished; an unused entry harms nothing.
+
+**3. `.env` and a rebuild.**
+
+```bash
+nano .env                        # PUBLIC_DOMAIN=docs.yourdomain.com
+docker compose up -d --build
+```
+
+`--build` is required, not optional: `NEXT_PUBLIC_*` are compiled into the
+browser bundle, so the frontend still points at the old domain otherwise — and
+it will look like it worked.
+
+**4. Keycloak's realm.** It was imported with the old domain in its redirect
+URIs and web origins, and `--import-realm` never overwrites an existing realm.
+Two ways:
+
+*Let it re-import* — the entrypoint substitutes the new domain automatically:
+
+```bash
+# admin console → realm docs_platform → Realm settings → Action → Delete
+docker compose restart keycloak
+```
+
+Safe: this realm holds only the client and the Google identity provider.
+Accounts live in the application's own `account` table, and a brokered Keycloak
+user is recreated on the next sign-in.
+
+*Or edit it* — admin console → realm `docs_platform` → Clients →
+`cocdocs-frontend` → *Valid redirect URIs* and *Web origins*.
+
+**5. The certificate.** certbot requests one for the new name on its next run:
+
+```bash
+docker compose logs -f certbot
+```
+
+A new domain has its own rate-limit quota, so a fresh name is never blocked by
+attempts against the old one.
+
+Then confirm what is actually being served, rather than trusting the browser:
+
+```bash
+echo | openssl s_client -connect localhost:443 -servername docs.yourdomain.com 2>/dev/null \
+  | openssl x509 -noout -issuer -dates
+```
+
+`issuer=C=US, O=Let's Encrypt` is the answer you want. Anything naming the
+domain itself is the self-signed placeholder, which means certbot has not
+succeeded yet.
+
+### A note on free subdomains
+
+`sslip.io`, `nip.io` and DuckDNS all sit in the **Dynamic DNS** category, which
+corporate and ISP web filters block by default — the category is heavily used
+for malware command-and-control, so it is blocked wholesale rather than by
+reputation. The symptom is a "Web Page Blocked" page from the filter, with TLS
+intercepted so the browser also says "Not secure". Nothing is wrong with the
+deployment, and no certificate fixes it.
+
+They are fine for a first deploy from an unfiltered network. A purchased domain
+is what makes the site reachable from an office.
+
 ## Operating it
 
 ```bash
