@@ -11,7 +11,7 @@ export function DocumentMetaPanel({
   path: string;
 }) {
   return (
-    <div className="mt-8 overflow-hidden rounded-[20px] border border-border bg-white shadow-sm">
+    <div className="mt-8 overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
       <div className="border-b border-border px-6 py-4">
         <h2 className="text-sm font-bold text-ink">About this document</h2>
       </div>

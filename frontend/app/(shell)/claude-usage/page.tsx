@@ -150,7 +150,7 @@ export default function ClaudeUsagePage() {
       titleIcon={<BarChartIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex items-center gap-1 self-start rounded-xl border border-border bg-white p-1 shadow-sm">
+        <div className="inline-flex items-center gap-1 self-start rounded-[10px] border border-border bg-white p-1 shadow-sm">
           <button
             type="button"
             aria-label="Previous period"
@@ -197,7 +197,7 @@ export default function ClaudeUsagePage() {
         </button>
       </div>
 
-      <div className="mt-4 flex items-start gap-3 rounded-2xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
+      <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
         <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
         <p className="text-sm text-dash-ink">
           Token counts and API-equivalent cost below are <span className="font-semibold">soft-budget estimates</span>,
@@ -206,19 +206,19 @@ export default function ClaudeUsagePage() {
       </div>
 
       {loadError && (
-        <div role="alert" className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {loadError}
         </div>
       )}
 
       {actionError && (
-        <div role="alert" className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {actionError}
         </div>
       )}
 
       {loading ? (
-        <p className="mt-4 rounded-xl border border-border bg-white px-4 py-8 text-center text-sm text-muted">
+        <p className="mt-4 rounded-[10px] border border-border bg-white px-4 py-8 text-center text-sm text-muted">
           Loading Claude usage…
         </p>
       ) : (
@@ -254,7 +254,7 @@ export default function ClaudeUsagePage() {
             />
           </div>
 
-          <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+          <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
             <h2 className="text-sm font-bold text-dash-ink">Daily tokens by user</h2>
             <p className="text-xs text-muted">Stacked by teammate, current active reporters only</p>
             <div className="mt-5">
@@ -262,7 +262,7 @@ export default function ClaudeUsagePage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-border bg-white p-5 shadow-sm">
+          <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
             <UsageTable members={members} onRoleChange={handleRoleChange} onRemove={handleRemove} />
           </div>

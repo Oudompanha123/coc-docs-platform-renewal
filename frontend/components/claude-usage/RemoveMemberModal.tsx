@@ -18,7 +18,7 @@ export function RemoveMemberModal({
         <span className="font-semibold text-dash-ink">{member.displayName}</span> will stop appearing in
         this dashboard&apos;s per-user usage and charts.
       </p>
-      <p className="mt-3 rounded-xl bg-page px-3 py-2 text-xs text-muted">
+      <p className="mt-3 rounded-[10px] bg-page px-3 py-2 text-xs text-muted">
         This only stops dashboard tracking. It doesn&apos;t revoke their Claude Code access, their
         account, or anything running on their own machine.
       </p>

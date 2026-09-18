@@ -27,7 +27,7 @@ export function StatCard({ data }: { data: StatCardData }) {
   const tileFill = AVATAR_GRADIENTS[data.tone];
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow">
+    <div className="rounded-[10px] border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow">
       <div className="flex items-center gap-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white ${tileFill}`}>
           <Icon className="h-5 w-5" />

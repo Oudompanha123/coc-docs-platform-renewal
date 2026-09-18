@@ -82,7 +82,7 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
       </div>
       <h2 className="mt-3 text-lg font-bold text-dash-ink">Delete Account?</h2>
 
-      <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-page px-3 py-2.5">
+      <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-border bg-page px-3 py-2.5">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-xs font-semibold text-white">
           {initialsFor(account.name)}
         </div>

@@ -59,7 +59,7 @@ export function ApproveRegistrationModal({
 
   return (
     <Modal title="New registration" onClose={onClose}>
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-page px-3 py-2.5">
+      <div className="flex items-center gap-3 rounded-[10px] border border-border bg-page px-3 py-2.5">
         <ApplicantAvatar
           name={account.displayName}
           avatarUrl={account.avatarUrl}
@@ -82,7 +82,7 @@ export function ApproveRegistrationModal({
           {ROLE_CHOICES.map((choice) => (
             <label
               key={choice.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+              className={`flex cursor-pointer items-start gap-3 rounded-[10px] border px-3 py-2.5 transition-colors ${
                 role === choice.value ? "border-brand-purple bg-brand-purple/5" : "border-border hover:bg-page"
               }`}
             >
@@ -104,7 +104,7 @@ export function ApproveRegistrationModal({
       </fieldset>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}

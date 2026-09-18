@@ -118,7 +118,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
         {uploadError && <p className="mt-2 text-xs font-semibold text-[#c94040]">{uploadError}</p>}
         <div className="mt-2 space-y-3">
           {value.features.map((feature, i) => (
-            <div key={i} className="rounded-xl border border-border p-3">
+            <div key={i} className="rounded-[10px] border border-border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button

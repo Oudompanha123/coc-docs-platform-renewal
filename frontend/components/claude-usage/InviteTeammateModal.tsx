@@ -112,13 +112,13 @@ export function InviteTeammateModal({
           </svg>
         </div>
 
-        <p className="mt-3 rounded-xl bg-page px-3 py-2 text-xs text-muted">
+        <p className="mt-3 rounded-[10px] bg-page px-3 py-2 text-xs text-muted">
           This only adds them to this dashboard&apos;s tracking list. It doesn&apos;t change their
           Claude Code access or force their machine to start reporting usage — that stays their choice.
         </p>
 
         {error && (
-          <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+          <p role="alert" className="mt-3 rounded-[10px] bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
             {error}
           </p>
         )}

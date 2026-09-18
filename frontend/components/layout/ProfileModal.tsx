@@ -110,35 +110,36 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       onClose={onClose}
-      className="w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-white py-5 shadow-xl"
+      className="relative w-full max-w-md rounded-[10px] border border-border bg-white pb-5 shadow-xl"
     >
-      {/* Avatar centered at top. Uploading here stores the photo ourselves
-          (S3-compatible object storage, ADR-026) and, from that point on,
-          takes precedence over the identity provider's picture — signing in
-          with Google no longer overwrites it. Remove it to go back to that
-          provider picture (or initials, absent one).
-
-          The outer Modal now carries no horizontal padding (py-5 only), so
-          this header re-adds its own inset directly (px-5) instead of
-          canceling the parent's via -mx-5 — only -mt-5 still has a top
-          inset to cancel, for the header to bleed to the very top edge. */}
-      <div className="-mt-5 flex flex-col items-center border-b border-border bg-white px-5 pb-4 pt-5">
+      {/* Avatar straddles the card's top edge (half above, half inside), so
+          it reads as a floating profile photo rather than boxed inside the
+          header — this needs the card itself to have no overflow-hidden/
+          auto, since clipping the card would clip the avatar's overlap too.
+          Uploading here stores the photo ourselves (S3-compatible object
+          storage, ADR-026) and, from that point on, takes precedence over
+          the identity provider's picture — signing in with Google no longer
+          overwrites it. Remove it to go back to that provider picture (or
+          initials, absent one). */}
+      <div className="relative flex flex-col items-center border-b border-border px-5 pb-4 pt-14">
         <label
           className={`group flex flex-col items-center ${avatarBusy ? "cursor-wait" : "cursor-pointer"}`}
         >
-          <div className="relative">
+          {/* Absolute, not in flow — positioned against the header above,
+              straddling its top edge regardless of the label's own layout. */}
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
             <UserAvatar
               avatarUrl={user?.avatarUrl ?? null}
               initials={initials}
               name={user?.displayName ?? ""}
-              className={`h-16 w-16 text-lg ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
+              className={`h-24 w-24 text-2xl shadow-lg ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
             />
             <span
               className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
                 avatarBusy ? "opacity-100" : "opacity-0 group-hover:opacity-100"
               }`}
             >
-              <CameraIcon className="h-6 w-6 text-white" />
+              <CameraIcon className="h-7 w-7 text-white" />
             </span>
           </div>
           <span className="mt-1.5 text-xs font-medium text-brand-purple underline-offset-2 group-hover:underline">
@@ -224,14 +225,14 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {error && (
-            <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+            <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
               {error}
             </p>
           )}
 
           {/* Change password (ADR-022) — "Set a password" instead for a
               Google-only account, which has none to change yet (ADR-030). */}
-          <div className="rounded-xl border border-border px-3 py-3">
+          <div className="rounded-[10px] border border-border px-3 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <LockIcon className="h-4 w-4 shrink-0 text-muted" />

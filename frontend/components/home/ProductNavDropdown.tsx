@@ -60,10 +60,10 @@ export function ProductNavDropdown({ product }: { product: NavProduct }) {
         {product.label}
       </Link>
 
-      {open && (
+      {open && product.items.length > 0 && (
         <div
           role="menu"
-          className="absolute left-0 top-[72px] z-30 w-56 rounded-xl border border-border bg-white py-2 shadow-lg"
+          className="absolute left-0 top-[72px] z-30 w-56 rounded-[10px] border border-border bg-white py-2 shadow-lg"
         >
           {product.items.map((item) => (
             <Link

@@ -63,7 +63,7 @@ export function SectionsForm({
         </div>
         <div className="mt-2 space-y-3">
           {value.sections.map((section, i) => (
-            <div key={i} className="rounded-xl border border-border p-3">
+            <div key={i} className="rounded-[10px] border border-border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button

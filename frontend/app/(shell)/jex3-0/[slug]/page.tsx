@@ -44,7 +44,7 @@ export default function Jex30SubPage() {
       pageSubtitle="Not written yet"
       titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-page p-16 text-center">
+      <div className="flex flex-col items-center justify-center rounded-[10px] border border-border bg-page p-16 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-muted shadow-sm">
           <TagIcon className="h-6 w-6" />
         </div>

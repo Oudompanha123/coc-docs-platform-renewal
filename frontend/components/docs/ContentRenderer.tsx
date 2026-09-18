@@ -29,9 +29,9 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
     );
 
     return (
-      <div>
+      <div className="break-words">
         <div
-          className={`rounded-2xl border border-border bg-white p-8 shadow-sm sm:p-12 ${
+          className={`rounded-[10px] border border-border bg-white p-8 shadow-sm sm:p-12 ${
             isSplit ? "text-center sm:flex sm:items-center sm:gap-10 sm:text-left" : "text-center"
           }`}
         >
@@ -72,7 +72,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
             {content.features.map((feature) => {
               const Icon = ICON_MAP[feature.icon];
               return (
-                <div key={feature.title} className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+                <div key={feature.title} className="rounded-[10px] border border-border bg-white p-5 shadow-sm">
                   <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
                     {feature.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -96,7 +96,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
 
   if (content.kind === "steps") {
     return (
-      <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
+      <div className="break-words rounded-[10px] border border-border bg-white p-6 shadow-sm sm:p-8">
         <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
           {content.eyebrow}
         </span>
@@ -140,7 +140,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
 
   // sections
   return (
-    <div className="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8">
+    <div className="break-words rounded-[10px] border border-border bg-white p-6 shadow-sm sm:p-8">
       <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
         {content.eyebrow}
       </span>
@@ -167,7 +167,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
               </div>
             )}
             {section.exampleCommand && (
-              <details className="group mt-2 rounded-xl border border-border p-4">
+              <details className="group mt-2 rounded-[10px] border border-border p-4">
                 <summary className={`flex cursor-pointer list-none items-center gap-2 text-sm font-semibold ${heading}`}>
                   <span className="text-muted transition-transform group-open:rotate-45">+</span>
                   {section.exampleLabel ?? "Show example"}

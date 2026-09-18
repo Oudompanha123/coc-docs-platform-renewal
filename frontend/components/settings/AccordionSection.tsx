@@ -21,7 +21,7 @@ type AccordionSectionProps = {
  */
 export function AccordionSection({ icon: Icon, title, description, isOpen, onToggle, children }: AccordionSectionProps) {
   return (
-    <div className="rounded-2xl border border-border bg-white shadow-sm">
+    <div className="rounded-[10px] border border-border bg-white shadow-sm">
       <button
         type="button"
         onClick={onToggle}

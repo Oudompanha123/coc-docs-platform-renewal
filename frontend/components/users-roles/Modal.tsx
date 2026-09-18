@@ -8,7 +8,7 @@ import { useEffect, type ReactNode } from "react";
  *  `title` is optional so a caller that needs a custom header (icon above
  *  the heading, e.g. DeactivateModal's warning state) can build it as part
  *  of `children` instead. */
-const DEFAULT_CLASS_NAME = "w-full max-w-md overflow-y-auto rounded-2xl border border-border bg-white p-5 shadow-xl";
+const DEFAULT_CLASS_NAME = "w-full max-w-md overflow-y-auto rounded-[10px] border border-border bg-white p-5 shadow-xl";
 
 export function Modal({
   title,

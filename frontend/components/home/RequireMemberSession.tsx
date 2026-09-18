@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
@@ -24,8 +24,19 @@ export function RequireMemberSession({ children }: { children: ReactNode }) {
   const router = useRouter();
   const canView = user?.role === "user" || user?.role === "admin" || user?.role === "super_admin";
 
+  // Was this mount ever authenticated? Distinguishes a visitor arriving
+  // anonymous fresh (send to /login, the only sane default) from a caller
+  // who just signed out from this very page (SessionProvider's doSignOut
+  // already redirected them somewhere role-aware — /welcome for a regular
+  // user — before this status update ever landed here; blindly redirecting
+  // to /login on any "anonymous" sighting raced ahead of that and won).
+  const wasAuthenticated = useRef(false);
+  if (status === "authenticated") {
+    wasAuthenticated.current = true;
+  }
+
   useEffect(() => {
-    if (status === "anonymous") {
+    if (status === "anonymous" && !wasAuthenticated.current) {
       router.replace("/login");
     } else if (status === "authenticated" && user?.mustChangePassword) {
       router.replace("/create-password");

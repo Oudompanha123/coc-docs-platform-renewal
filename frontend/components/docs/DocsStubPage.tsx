@@ -13,7 +13,7 @@ export function DocsStubPage({ header, item }: { header: { label: string }; item
       <p className="text-sm font-semibold text-brand-purple">{header.label}</p>
       <h1 className="mt-1 text-3xl font-bold text-ink">{item.label}</h1>
 
-      <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-border bg-page p-16 text-center">
+      <div className="mt-8 flex flex-col items-center justify-center rounded-[10px] border border-border bg-page p-16 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-muted shadow-sm">
           <TagIcon className="h-6 w-6" />
         </div>
