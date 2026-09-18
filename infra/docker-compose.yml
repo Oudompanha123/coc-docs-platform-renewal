@@ -72,25 +72,26 @@ services:
       POSTGRES_DB: ${DB_NAME:?set DB_NAME in .env}
       POSTGRES_USER: ${DB_USER:?set DB_USER in .env}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
-    # ONLY the instance's loopback — note the 127.0.0.1 prefix.
+    # Where Postgres is reachable from. DB_BIND_ADDRESS, default 127.0.0.1.
     #
-    # "5432:5432" would publish on every interface, and a Postgres reachable
-    # from the internet is the single most common way a deployment like this is
-    # lost — the security group would not save it, because publishing a port
-    # makes Docker write its own iptables rule that bypasses the group's intent.
+    #   127.0.0.1  the instance's loopback only. Nothing outside the instance
+    #              can reach it; a database tool connects over an SSH tunnel
+    #              (README: Connecting a database tool). The safe default.
     #
-    # Bound to loopback, nothing outside the instance can reach it, and an SSH
-    # tunnel can:
+    #   0.0.0.0    reachable from the network, so a tool connects with host,
+    #              port, database, user and password and nothing else.
+    #              ONLY SAFE WITH A SECURITY GROUP RULE ALLOWING 5432 FROM
+    #              SPECIFIC ADDRESSES — the one the AWS console calls "My IP".
+    #              Open it to 0.0.0.0/0 and the database is on the internet
+    #              behind one password, which is how deployments like this are
+    #              lost.
     #
-    #   ssh -N -L 5433:localhost:5432 <user>@<instance>
-    #
-    # then point a database tool at localhost:5433. The credentials are the
-    # DB_USER/DB_PASSWORD in .env; the schema is DB_SCHEMA.
-    #
-    # If you never use a GUI tool, this line can go: `docker compose exec
-    # postgres psql -U "$DB_USER" -d "$DB_NAME"` needs no published port at all.
+    # The security group is the control either way: it is enforced on the
+    # network interface, outside the instance, so Docker's own iptables rules
+    # cannot bypass it. (They do bypass a host firewall such as ufw, which is a
+    # different thing and often confused with this one.)
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${DB_BIND_ADDRESS:-127.0.0.1}:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Creates Keycloak's database on first start. Runs only when the data

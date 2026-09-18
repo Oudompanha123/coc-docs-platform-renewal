@@ -159,35 +159,50 @@ application uses nothing but the S3 API and path-style addressing
 
 ## Connecting a database tool
 
-Postgres is published on the instance's **loopback only** (`127.0.0.1:5432`), so
-nothing outside the instance can reach it. Reach it through the SSH access you
-already have:
+Two ways, and the difference is where the access control lives.
 
-```bash
-# on your own machine, leave it running
-ssh -N -L 5433:localhost:5432 cocdocs@<instance-ip>
+### Direct — host, port, database, user, password
+
+Set in `.env`:
+
+```
+DB_BIND_ADDRESS=0.0.0.0
 ```
 
-Then point DataGrip, DBeaver, pgAdmin or IntelliJ at:
+then `docker compose up -d postgres`. The tool needs nothing but:
 
 | | |
 |---|---|
-| Host | `localhost` |
-| Port | `5433` |
-| Database | `DB_NAME` from `.env` |
-| User / password | `DB_USER` / `DB_PASSWORD` from `.env` |
-| Schema | `DB_SCHEMA` (default `public`) |
+| Host | the instance's public IP |
+| Port | `5432` |
+| Database | `DB_NAME` |
+| User / password | `DB_USER` / `DB_PASSWORD` |
 
-`5433` locally rather than `5432` so it does not collide with a Postgres you
-may already be running.
+**This only makes sense with a security group rule for 5432 from specific
+addresses** — EC2 → Security groups → Inbound → Add rule → PostgreSQL → Source
+**My IP**. The group is enforced on the network interface, outside the
+instance, so it is a real boundary.
 
-**Do not publish 5432 on all interfaces to save the tunnel.** Docker writes its
-own iptables rules when it publishes a port, which bypasses what the security
-group is trying to express — so `5432:5432` exposes the database to the
-internet even with the group closed. That is the most common way a deployment
-like this is lost.
+What you are accepting: anyone reaching that address reaches Postgres, with the
+password as the only remaining barrier. Your IP changing (most home and office
+connections) means editing the rule. Opening it to `0.0.0.0/0` puts the database
+on the internet, and that is how deployments like this are lost.
 
-No tunnel needed for a quick look:
+### Tunnelled — nothing exposed
+
+Leave `DB_BIND_ADDRESS=127.0.0.1` (the default) and reach it over the SSH access
+you already have:
+
+```bash
+ssh -N -L 5433:localhost:5432 cocdocs@<instance-ip>
+```
+
+Then connect to `localhost:5433` with the same database, user and password.
+DataGrip, IntelliJ and DBeaver can open the tunnel themselves — data source →
+SSH/SSL tab → *Use SSH tunnel* — so after one-time setup it is the same single
+click as the direct option, with nothing published.
+
+### Neither — just look
 
 ```bash
 docker compose exec postgres psql -U "$DB_USER" -d "$DB_NAME"
