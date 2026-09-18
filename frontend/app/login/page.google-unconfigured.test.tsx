@@ -57,6 +57,6 @@ describe("LoginPage with Google sign-in unconfigured", () => {
 
     // The point of hiding one path is that the other still works.
     expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Email, Phone or Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 });
