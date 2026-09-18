@@ -51,8 +51,14 @@ describe("useActivityFeed", () => {
       const { result } = renderHook(() => useActivityFeed());
       await waitFor(() => expect(result.current.items).toHaveLength(2));
 
+      // The old count was items.length, so it could only go down by an event
+      // ageing out of the feed. Two items, both unread, is the same number —
+      // what changed is that it is now a number with a way to reach zero.
       expect(result.current.count).toBe(2);
 
+      // One click, one off the badge. Marking a row must not take its
+      // neighbours with it: the panel lists only unread, so a markRead that
+      // over-reached would empty the whole list on the first click.
       act(() => result.current.markRead("a1"));
       expect(result.current.count).toBe(1);
       expect(result.current.items.find((i) => i.id === "a1")?.read).toBe(true);
@@ -90,13 +96,33 @@ describe("useActivityFeed", () => {
     it("survive a reload", async () => {
       const first = renderHook(() => useActivityFeed());
       await waitFor(() => expect(first.result.current.items).toHaveLength(2));
-      act(() => first.result.current.markRead("a1"));
+      act(() => first.result.current.markAllRead());
       first.unmount();
 
       const second = renderHook(() => useActivityFeed());
       await waitFor(() => expect(second.result.current.items).toHaveLength(2));
 
-      expect(second.result.current.count).toBe(1);
+      expect(second.result.current.count).toBe(0);
+    });
+
+    it("survive a sign-out and a sign-in as the same person", async () => {
+      // The reported case, and the one the other two do not cover: the hook
+      // stays mounted through the anonymous gap, where accountId is briefly
+      // null. Reading storage under a null account must not be mistaken for
+      // "this person has read nothing" and written back as such.
+      const { result, rerender } = renderHook(() => useActivityFeed());
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+      act(() => result.current.markAllRead());
+
+      signedInAs(null);
+      rerender();
+      await waitFor(() => expect(result.current.items).toHaveLength(0));
+
+      signedInAs("acct-1");
+      rerender();
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+      expect(result.current.count).toBe(0);
     });
 
     it("belong to one account, not to the browser", async () => {

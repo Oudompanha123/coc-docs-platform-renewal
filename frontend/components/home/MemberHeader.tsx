@@ -80,6 +80,11 @@ export function MemberHeader({
   const { signOut } = useSession();
   const notifications = useNotifications();
   const activity = useActivityFeed();
+  // Same rule as the admin Topbar's panel: this lists what the badge counts and
+  // nothing else. A `user` never sees that header — /home is where this role
+  // lands — so a fix made only there is a fix most of the people using this
+  // product never get.
+  const unreadActivity = activity.items.filter((item) => !item.read);
 
   useEffect(() => {
     if (!openMenu) return;
@@ -162,26 +167,50 @@ export function MemberHeader({
 
             {openMenu === "mail" && (
               <div role="menu" className={PANEL_CLASSES}>
-                <div className="border-b border-border px-4 py-3">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
                   <p className="text-sm font-semibold text-ink">Activity</p>
+                  {activity.count > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => activity.markAllRead()}
+                      className="text-xs font-semibold text-brand-purple hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
                 <div className="max-h-80 overflow-y-auto py-1">
-                  {activity.items.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-xs text-muted">Nothing recent.</p>
+                  {unreadActivity.length === 0 ? (
+                    // Not "Nothing recent": there may be plenty, all of it read.
+                    <p className="px-4 py-6 text-center text-xs text-muted">You&rsquo;re all caught up.</p>
                   ) : (
-                    activity.items.map((item) => (
-                      <div key={item.id} role="menuitem" className="flex items-start gap-3 px-4 py-3">
+                    unreadActivity.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="menuitem"
+                        // Clears this line only — the badge goes down by one.
+                        // "Mark all as read" in the header clears the lot.
+                        onClick={() => activity.markRead(item.id)}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
+                      >
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS.purple}`}
                         >
                           {actorInitials(item)}
                         </span>
-                        <span className="min-w-0">
+                        <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold text-ink">{actorName(item)}</span>
                           <span className="block truncate text-xs text-muted">{item.summary}</span>
                           <span className="mt-0.5 block text-[11px] text-muted">{timeAgo(item.occurredAt)}</span>
                         </span>
-                      </div>
+                        {/* The affordance, not a status: every row here is
+                            unread. It says this line is what a click clears. */}
+                        <span
+                          aria-label="Unread"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                        />
+                      </button>
                     ))
                   )}
                 </div>

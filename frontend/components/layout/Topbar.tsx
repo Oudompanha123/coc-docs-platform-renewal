@@ -330,11 +330,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       key={item.id}
                       type="button"
                       role="menuitem"
-                      // Clicking marks it read and nothing else. There is no
-                      // dialog behind an audit row the way there is behind a
-                      // bell notification — the line already says everything
-                      // that happened. The click is the acknowledgement, which
-                      // is what makes the badge a number that can reach zero.
+                      // Clears this line and only this line — the badge goes
+                      // down by one. There is no dialog behind an audit row the
+                      // way there is behind a bell notification; the line
+                      // already says everything that happened, so the click is
+                      // the acknowledgement and nothing more. "Mark all as
+                      // read" in the header is there for clearing the lot.
                       onClick={() => activity.markRead(item.id)}
                       className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
                     >
@@ -352,9 +353,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                           {timeAgo(item.occurredAt)}
                         </span>
                       </span>
-                      {/* Every row here is unread — a tint on all of them would
-                          carry no information. The dot stays as the affordance:
-                          it is what says a click will clear this line. */}
+                      {/* Every row here is unread, so the dot marks nothing
+                          out — it is an affordance, not a status. It is what
+                          says this line is the thing a click clears. */}
                       <span
                         aria-label="Unread"
                         className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
