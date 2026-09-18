@@ -54,6 +54,35 @@ server {
     # long as the max-age, and it should be a decision somebody makes rather
     # than a default they inherit.
 
+    # --- Sign-in callback --------------------------------------------------
+    # This one path under /auth belongs to the frontend, not Keycloak.
+    #
+    # The popup that brokers Google sign-in (ADR-013) is redirected back to the
+    # Next.js page at app/auth/callback, so its URL is /auth/callback — inside
+    # the prefix the block below hands to Keycloak. Without this exception the
+    # popup lands on Keycloak, which has no such path and answers with its own
+    # "We are sorry... Page not found", and the sign-in never completes. The
+    # brokering has already succeeded by that point, which is what makes it
+    # look like a Keycloak fault rather than a routing one.
+    #
+    # An exact match (`location =`) beats a prefix match in nginx whatever the
+    # order, so this holds wherever it sits in the file. It matches the path
+    # only, leaving the ?code=&state= the callback reads untouched.
+    #
+    # One path, listed explicitly: every future frontend route under /auth
+    # needs its own line here and fails the same confusing way without one. If
+    # that list ever grows past a couple of entries, move Keycloak off /auth
+    # rather than extending this.
+    location = /auth/callback {
+        proxy_pass http://frontend:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # --- Keycloak ----------------------------------------------------------
     # Under /auth on the same domain, so there is one DNS record and one
     # certificate. Keycloak is told the same thing (KC_HTTP_RELATIVE_PATH), or
