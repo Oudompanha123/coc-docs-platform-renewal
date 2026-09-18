@@ -28,12 +28,21 @@ export interface SheetData {
   rows: CellValue[][];
   /** Column widths in characters. Missing entries fall back to a readable default. */
   columnWidths?: number[];
+  /**
+   * 0-based column indices whose data cells (not the header, which is
+   * already centred) are horizontally centred rather than left-aligned —
+   * for short, fixed-vocabulary columns like a status or a yes/no flag,
+   * where left-aligned text reads as ragged against a bordered grid.
+   */
+  centeredColumns?: number[];
 }
 
 /** Style indices, matching the order of `cellXfs` in {@link STYLES_XML}. */
 const STYLE_DEFAULT = 0;
 const STYLE_HEADER = 1;
 const STYLE_DATE = 2;
+const STYLE_DEFAULT_CENTER = 3;
+const STYLE_DATE_CENTER = 4;
 
 /**
  * Escapes text for XML content.
@@ -157,24 +166,58 @@ const WORKBOOK_RELS_XML = `${XML_DECLARATION}
 /**
  * The style table.
  *
- * <p>Three cell formats: plain, bold for the header row, and a date format.
- * Excel requires at least two fills, the second being `gray125`, and refuses
- * the file without them — an inherited quirk, not a choice made here.
+ * <p>Three cell formats — plain, the header, and a date format — each now
+ * bordered on all four sides (`borderId="1"`), so every cell in the sheet,
+ * not only the header, reads as part of a ruled table rather than loose text
+ * on a grid Excel would otherwise hide once gridlines are turned off. Excel
+ * requires at least two fills, the second being `gray125`, and refuses the
+ * file without them — an inherited quirk, not a choice made here; the
+ * header's own fill is a third.
+ *
+ * <p>The header's fill is a two-stop gradient (brand-purple to brand-blue) —
+ * the same `from-brand-purple to-brand-blue` treatment this app already uses
+ * for its primary buttons and its highest-tier badges — with a bold white
+ * font and centred text, so the header reads as designed rather than as a
+ * bolded copy of the data rows beneath it.
  *
  * <p>`numFmtId` 164 is the first id available to a document; everything below
  * it is reserved for Excel's built-in formats.
+ *
+ * <p>Two more formats, {@link STYLE_DEFAULT_CENTER} and
+ * {@link STYLE_DATE_CENTER}, mirror the first and third exactly but add
+ * `<alignment horizontal="center"/>` — for columns a caller names via
+ * {@link SheetData.centeredColumns}, e.g. a short status word or a Yes/No
+ * flag, where left-aligned text reads as ragged against a bordered grid.
  */
 const STYLES_XML = `${XML_DECLARATION}
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <numFmts count="1"><numFmt numFmtId="164" formatCode="yyyy-mm-dd hh:mm"/></numFmts>
-<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
-<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
-<borders count="1"><border/></borders>
+<fonts count="3">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+</fonts>
+<fills count="3">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><gradientFill degree="0"><stop position="0"><color rgb="FF6D3CE0"/></stop><stop position="1"><color rgb="FF4C6FF0"/></stop></gradientFill></fill>
+</fills>
+<borders count="2">
+<border/>
+<border>
+<left style="thin"><color rgb="FFD7DAE3"/></left>
+<right style="thin"><color rgb="FFD7DAE3"/></right>
+<top style="thin"><color rgb="FFD7DAE3"/></top>
+<bottom style="thin"><color rgb="FFD7DAE3"/></bottom>
+</border>
+</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="3">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
-<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<cellXfs count="5">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
@@ -186,28 +229,43 @@ function workbookXml(sheetName: string): string {
 </workbook>`;
 }
 
-/** One `<c>` element, or nothing at all for a blank. */
-function cellXml(ref: string, value: CellValue): string {
+/**
+ * One `<c>` element — styled even when blank.
+ *
+ * <p>A blank cell still carries a style rather than being omitted outright:
+ * an omitted `<c>` has no border, which would punch a gap in an otherwise
+ * fully ruled table exactly where a value happens to be missing (a `null`
+ * last-sign-in, an unparseable date). The border is the point of this style
+ * table, so every cell keeps it, empty or not.
+ *
+ * @param centered whether this column is one of {@link SheetData.centeredColumns} —
+ *     picks the centred variant of the default/date style rather than a third,
+ *     separately-tracked style constant per call site.
+ */
+function cellXml(ref: string, value: CellValue, centered: boolean): string {
+  const defaultStyle = centered ? STYLE_DEFAULT_CENTER : STYLE_DEFAULT;
+  const dateStyle = centered ? STYLE_DATE_CENTER : STYLE_DATE;
+
   if (value === null || value === undefined || value === "") {
-    return "";
+    return `<c r="${ref}" s="${defaultStyle}"/>`;
   }
   if (value instanceof Date) {
     // An invalid Date would serialise as NaN and make the whole workbook
-    // unreadable, so it degrades to an empty cell instead.
+    // unreadable, so it degrades to a blank (but still bordered) cell instead.
     if (Number.isNaN(value.getTime())) {
-      return "";
+      return `<c r="${ref}" s="${defaultStyle}"/>`;
     }
-    return `<c r="${ref}" s="${STYLE_DATE}"><v>${excelSerial(value)}</v></c>`;
+    return `<c r="${ref}" s="${dateStyle}"><v>${excelSerial(value)}</v></c>`;
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      return "";
+      return `<c r="${ref}" s="${defaultStyle}"/>`;
     }
-    return `<c r="${ref}"><v>${value}</v></c>`;
+    return `<c r="${ref}" s="${defaultStyle}"><v>${value}</v></c>`;
   }
   // xml:space="preserve" so a value with meaningful leading or trailing spaces
   // survives; without it a reader is entitled to trim it.
-  return `<c r="${ref}" s="${STYLE_DEFAULT}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+  return `<c r="${ref}" s="${defaultStyle}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
 }
 
 function sheetXml(data: SheetData): string {
@@ -224,10 +282,14 @@ function sheetXml(data: SheetData): string {
     )
     .join("");
 
+  const centeredColumns = new Set(data.centeredColumns ?? []);
+
   const bodyRows = rows
     .map((row, r) => {
       const rowNumber = r + 2; // row 1 is the header
-      const cells = row.map((value, c) => cellXml(`${columnName(c)}${rowNumber}`, value)).join("");
+      const cells = row
+        .map((value, c) => cellXml(`${columnName(c)}${rowNumber}`, value, centeredColumns.has(c)))
+        .join("");
       return `<row r="${rowNumber}">${cells}</row>`;
     })
     .join("");
@@ -239,7 +301,7 @@ function sheetXml(data: SheetData): string {
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
 <cols>${widths}</cols>
-<sheetData><row r="1">${headerCells}</row>${bodyRows}</sheetData>
+<sheetData><row r="1" ht="20" customHeight="1">${headerCells}</row>${bodyRows}</sheetData>
 <autoFilter ref="A1:${lastColumn}${rows.length + 1}"/>
 </worksheet>`;
 }
