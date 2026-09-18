@@ -38,6 +38,30 @@ if [ "${CERTBOT_STAGING:-0}" = "1" ]; then
     echo "certbot: using Let's Encrypt STAGING — browsers will not trust the result"
 fi
 
+# Wait until nginx is actually serving before touching its certificate.
+#
+# depends_on: service_started waits for the CONTAINER to start, not for its
+# entrypoint to finish — and nginx's entrypoint is where the placeholder gets
+# written (05-ensure-certificate.sh). Deleting first therefore races: certbot
+# removes the placeholder, nginx writes it back, and certbot then refuses:
+#
+#   live directory exists for <domain>
+#
+# nginx binds port 80 only after its entrypoint scripts complete, so a
+# successful connection there means the placeholder is already written and will
+# not reappear.
+python - <<'PY'
+import socket, sys, time
+for _ in range(90):
+    try:
+        socket.create_connection(("nginx", 80), 2).close()
+        sys.exit(0)
+    except OSError:
+        time.sleep(2)
+print("certbot: nginx did not start serving within 3 minutes", file=sys.stderr)
+sys.exit(1)
+PY
+
 if [ ! -f "/etc/letsencrypt/renewal/${PUBLIC_DOMAIN}.conf" ] \
    && [ -d "/etc/letsencrypt/live/${PUBLIC_DOMAIN}" ]; then
     echo "certbot: removing the self-signed placeholder so the real certificate can take its path"
