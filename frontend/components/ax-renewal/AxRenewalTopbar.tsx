@@ -2,9 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { MenuIcon } from "@/components/layout/icons";
-import { useAxRenewalProject } from "@/lib/ax-renewal/useAxRenewalProject";
+import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { useAxRenewalTabs } from "@/lib/ax-renewal/tabs";
-import type { AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
+import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { AxRenewalBreadcrumb } from "./AxRenewalBreadcrumb";
 import { AxRenewalTabBar } from "./AxRenewalTabBar";
 
@@ -20,12 +20,21 @@ type AxRenewalTopbarProps = {
  * `section=` query params the sidebar and page already read independently,
  * per `useAxRenewalProject`'s own doc comment) so it needs no prop wiring
  * through the layout — same pattern as `AxRenewalSidebar`/`AxRenewalStatusBar`.
+ *
+ * `sticky top-0` pins it to the top of the viewport while `main` scrolls
+ * beneath it — the prototype achieves the same fixed-tabs effect with a
+ * fixed-height grid shell where only `.view` scrolls, but this app's shell
+ * scrolls at the page level instead (see layout.tsx), the same choice
+ * already made for `AxRenewalSidebar`/`AxRenewalActivityBar`'s own
+ * `sticky top-0 h-screen` rails — so `sticky` is this shell's equivalent,
+ * not a deviation from it. `z-10` keeps it above the scrolling page content
+ * without climbing over the mobile sidebar drawer's own `z-40`/`z-50`.
  */
 export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projectId, detail } = useAxRenewalProject();
-  const active = (searchParams.get("section") as AxRenewalExplorerKey | null) ?? "attach";
+  const { projectId, detail } = useAxRenewalProjectContext();
+  const active = resolveActiveSection(searchParams.get("section"));
   const { tabs, closeTab } = useAxRenewalTabs(active);
 
   function openTab(section: AxRenewalExplorerKey) {
@@ -34,11 +43,12 @@ export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
 
   function handleCloseTab(key: AxRenewalExplorerKey) {
     const fallback = closeTab(key);
-    if (fallback) openTab(fallback);
+    if (fallback == null || !projectId) return;
+    router.push(`/ax-renewal?project=${projectId}&section=${fallback}`);
   }
 
   return (
-    <div className="border-b border-border bg-white">
+    <div className="sticky top-0 z-10 border-b border-border bg-white">
       <div className="flex items-center">
         <button
           type="button"

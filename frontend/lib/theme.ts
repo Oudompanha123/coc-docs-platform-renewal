@@ -15,7 +15,8 @@
 
 export type Theme = "light" | "dark" | "system";
 
-const STORAGE_KEY = "coc-docs-theme";
+export const THEME_STORAGE_KEY = "coc-docs-theme";
+const STORAGE_KEY = THEME_STORAGE_KEY;
 
 /** Reads the persisted choice; "system" (not an explicit light/dark choice) if none is stored. */
 export function getStoredTheme(): Theme {
