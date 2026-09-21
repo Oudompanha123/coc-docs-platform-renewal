@@ -38,30 +38,30 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Overview",
     sectionHeading: "Your whole JEX workflow. In one plugin.",
     sectionIntro:
-      "Scaffolding. Guardrails. Automation. Open any JEX workspace and everything is ready — no copying folders, no fixing paths.",
+      "**Scaffolding. Guardrails. Automation.** Open any **JEX workspace** and everything is ready — no copying folders, no fixing paths.",
     features: [
       {
         icon: "sparkles",
         title: "JexStudio, automated",
         description:
-          "Create, update, and clone WSVC, IDO, and packages through 14 MCP tools. Straight to the API — no browser, no clicks.",
+          "Create, update, and clone **WSVC**, **IDO**, and packages through **14 MCP tools**. Straight to the API — no browser, no clicks.",
       },
       {
         icon: "layers",
         title: "Knows your project",
         description:
-          "Auto-detects each workspace's prefix and JexStudio project. Open Claude Code at the root — it figures out the rest.",
+          "Auto-detects each workspace's **prefix** and **JexStudio project**. Open **Claude Code** at the root — it figures out the rest.",
       },
       {
         icon: "shield",
         title: "Guarded by design",
-        description: "SVN syncs before and after every change. Inputs validated. Destructive operations locked out.",
+        description: "**SVN** syncs before and after every change. Inputs validated. Destructive operations locked out.",
       },
       {
         icon: "pulse",
         title: "Fixes itself",
         description:
-          "Something wrong? doctor finds the cause and prints the fix. status tells you the version and what's new.",
+          "Something wrong? **doctor** finds the cause and prints the fix. **status** tells you the version and what's new.",
       },
     ],
   },
@@ -69,7 +69,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     kind: "steps",
     eyebrow: "Get started",
     heading: "Up and running in four steps.",
-    intro: "Steps 1–2 in a terminal, once per machine. Steps 3–4 inside a Claude Code session.",
+    intro: "Steps **1–2** in a terminal, once per machine. Steps **3–4** inside a **Claude Code** session.",
     calloutTone: "warning",
     calloutText: "Before you start — get access. Private repo: send your GitHub username to Socheat Hun and accept the invite.",
     steps: [
@@ -85,7 +85,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       },
       {
         title: "Initialize your workspace",
-        body: "Open Claude Code at the project root, then run init. It installs everything missing, sets up the project, and asks for your JexStudio login — saved per project in .claude\\jex_auth.json. Restart Claude Code when it finishes.",
+        body: "Open **Claude Code** at the project root, then run **init**. It installs everything missing, sets up the project, and asks for your **JexStudio** login — saved per project in **.claude\\jex_auth.json**. Restart Claude Code when it finishes.",
         command: "/jexmcp3.0:init",
       },
       {
@@ -101,7 +101,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "How to use",
     heading: "Just say what you want.",
     intro:
-      "You don't memorize tools. Describe the task in plain words — Claude picks the right jex tool, and the hooks keep SVN in sync around every change.",
+      "You don't memorize tools. Describe the task in plain words — Claude picks the right **jex tool**, and the **hooks** keep **SVN** in sync around every change.",
     calloutText:
       'Example: type "create a new screen for the fund account list in mydata bank" — Claude scaffolds the JSPs, registers both WSVCs, and tells you what\'s left to do. The commands below are the same procedures, invoked explicitly.',
     sections: [
@@ -154,9 +154,9 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Flow",
     heading: "Your tasks and your code, in sync.",
     intro:
-      "Since v3.5.0, jexmcp connects your dev work to flow.team — pick a task, work as usual, and Flow gets updated by itself: the task goes in-progress when you start, every SVN commit lands as a comment on it, and closing it writes the summary for you.",
+      "Since **v3.5.0**, **jexmcp** connects your dev work to **flow.team** — pick a task, work as usual, and **Flow** gets updated by itself: the task goes **in-progress** when you start, every **SVN commit** lands as a comment on it, and closing it writes the summary for you.",
     calloutText:
-      "No Flow? No problem. The Flow steps are optional and skip silently when the flow MCP server isn't connected — every jexmcp command keeps working exactly as before.",
+      "No **Flow**? No problem. The **Flow** steps are optional and skip silently when the **flow MCP server** isn't connected — every **jexmcp** command keeps working exactly as before.",
     sections: [
       {
         title: "1 · Connect the flow MCP",
@@ -443,49 +443,49 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Overview",
     sectionHeading: "Same engine. No more copying zips.",
     sectionIntro:
-      "jex2.0 automates IDO work on the internal JexStudio v2 server for any workspace with the *_BT / *_DOMAIN / *_PT layout — DUREADMIN, CHECKPAY, and every future project of that family; the ones jexmcp3.0 doesn't cover. Your project prefix can be anything — MYPROJ in these docs stands for it. It replaces the old jex_mcp_dist.zip + setup_jex_mcp.bat flow: install once from the cocweb marketplace, run /jex2.0:init in any CHECKPAY workspace, done.",
+      "• Automates IDO work on the internal **JexStudio v2** server for any workspace using the *_BT / *_DOMAIN / *_PT layout — **DUREADMIN**, **CHECKPAY**, and every future project of that family; the ones **jexmcp3.0** doesn't cover.\n• Your project prefix can be anything — **MYPROJ** in these docs stands for it.\n• Replaces the old **jex_mcp_dist.zip** + **setup_jex_mcp.bat** flow: install once from the cocweb marketplace, run **/jex2.0:init** in any **CHECKPAY** workspace, done.",
     features: [
       {
         icon: "pulse",
         title: "Three IDO tools",
         description:
-          "Create, update, and list IDOs straight against the Studio v2 API — jex_new_ido, jex_update_ido, jex_read_ido. No browser, no clicks.",
+          "Create, update, and list **IDOs** straight against the **Studio v2 API** — **jex_new_ido**, **jex_update_ido**, **jex_read_ido**. No browser, no clicks.",
       },
       {
         icon: "shield",
         title: "Guarded by design",
         description:
-          "SVN updates before and after every write, and ido_input.sql is validated before any tool runs — same guardrails the dist version had.",
+          "**SVN** updates before and after every write, and **ido_input.sql** is validated before any tool runs — same guardrails the dist version had.",
       },
       {
         icon: "sparkles",
         title: "Session that heals itself",
         description:
-          "Cookie expired? It re-logs into Studio v2 automatically with your stored credentials. You enter the password once, at init.",
+          "Cookie expired? It re-logs into **Studio v2** automatically with your stored credentials. You enter the password once, at **init**.",
       },
       {
         icon: "layers",
         title: "One install, every project",
         description:
-          "The plugin lives on your machine; each workspace keeps only its own small config + credentials in .claude/.",
+          "The plugin lives on your machine; each workspace keeps only its own small config + credentials in **.claude/**.",
       },
     ],
     closingNote:
-      "jex2.0 vs jexmcp3.0 — jex2.0 targets the *_BT / *_DOMAIN / *_ETC / *_PT workspace layout (DUREADMIN, CHECKPAY) against the internal Studio v2 server, with 3 IDO-only tools and an explicit jex_project.json written by init. jexmcp3.0 targets the PREFIX / PREFIX_ETC / PREFIX_STATIC layout (PLUGIN, LOAN, INSU…) against jexstudio.coocon.co.kr, with 14 tools (WSVC / IDO / package / clone) and project config auto-detected from *_ETC. Both can be installed side by side — each workspace simply uses the one that matches its layout.",
+      "jex2.0 vs jexmcp3.0\n• **jex2.0** targets the *_BT / *_DOMAIN / *_ETC / *_PT workspace layout (**DUREADMIN**, **CHECKPAY**) against the internal Studio v2 server — **3 IDO-only tools**, explicit jex_project.json written by init.\n• **jexmcp3.0** targets the PREFIX / PREFIX_ETC / PREFIX_STATIC layout (**PLUGIN**, **LOAN**, **INSU**…) against jexstudio.coocon.co.kr — **14 tools** (WSVC / IDO / package / clone), project config auto-detected from *_ETC.\n• Both can be installed side by side — each workspace simply uses the one that matches its layout.",
   },
   [contentId("jex2-0", "get-started")]: {
     kind: "steps",
     eyebrow: "Get started",
     heading: "Three steps. One password prompt.",
     intro:
-      "Steps 1–2 once per machine, step 3 once per workspace. If you already use jexmcp3.0, the marketplace is already added — skip step 1.",
+      "Steps **1–2** once per machine, step **3** once per workspace. If you already use **jexmcp3.0**, the marketplace is already added — skip step 1.",
     calloutTone: "warning",
     calloutText:
-      "Requirements: Node.js LTS, SVN CLI, access to the internal network (Studio v2 is not reachable from outside), and a GitHub account invited to the private repo.",
+      "Requirements: **Node.js LTS**, **SVN CLI**, access to the **internal network** (Studio v2 is not reachable from outside), and a **GitHub** account invited to the **private repo**.",
     steps: [
       {
         title: "Add the cocweb marketplace",
-        body: "Once per machine — same marketplace that serves jexmcp3.0.",
+        body: "Once per machine — same marketplace that serves **jexmcp3.0**.",
         command: "claude plugin marketplace add https://github.com/Socheat-Hun/jexmcp3.0.git",
       },
       {
@@ -496,12 +496,12 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       {
         title: "Initialize the workspace",
         body:
-          "Open Claude Code at the workspace root (the folder holding MYPROJ_BT, MYPROJ_ETC…) and run this. It installs npm dependencies, writes .claude/jex_project.json, asks your JexStudio ID/password once, and verifies the login. Then restart Claude Code so the jex2 MCP server starts.",
+          "Open **Claude Code** at the workspace root (the folder holding **MYPROJ_BT**, **MYPROJ_ETC**…) and run this. It installs **npm dependencies**, writes **.claude/jex_project.json**, asks your **JexStudio** ID/password once, and verifies the login. Then restart Claude Code so the **jex2 MCP server** starts.",
         command: "/jex2.0:init",
       },
       {
         title: "Verify",
-        body: "If not connected, run /jex2.0:init again — it reports exactly what's missing.",
+        body: "If not connected, run **/jex2.0:init** again — it reports exactly what's missing.",
         command: "/mcp",
         output: "jex2   ✔ connected",
       },
@@ -512,9 +512,9 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "How to use",
     heading: "Write the SQL file. Say what you want.",
     intro:
-      "Every IDO operation starts from one file — ido_input.sql at the workspace root — and one sentence to Claude. The plugin does the rest: validation, Studio API call, SVN sync.",
+      "Every **IDO operation** starts from one file — **ido_input.sql** at the workspace root — and one sentence to Claude. The plugin does the rest: validation, **Studio API** call, **SVN sync**.",
     calloutText:
-      "Don't commit IDO XML by hand. JexStudio generates and commits the files itself — your job ends at the tool call; the post-sync brings Studio's commit into your checkout.",
+      "Don't commit **IDO XML** by hand. **JexStudio** generates and commits the files itself — your job ends at the tool call; the **post-sync** brings Studio's commit into your checkout.",
     sections: [
       {
         title: "1 · The ido_input.sql format",
@@ -539,12 +539,12 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     kind: "sections",
     eyebrow: "Structure",
     heading: "Where everything lives.",
-    intro: "Two maps: a CHECKPAY-family workspace with its per-project files, and the plugin itself.",
+    intro: "Two maps: a **CHECKPAY**-family workspace with its per-project files, and the plugin itself.",
     sections: [
       {
         title: "Your workspace",
         note:
-          "MYPROJ = your project prefix — DUREADMIN, CHECKPAY, or any other. /jex2.0:init detects it from the folders that actually exist.",
+          "**MYPROJ** = your project prefix — **DUREADMIN**, **CHECKPAY**, or any other. **/jex2.0:init** detects it from the folders that actually exist.",
         command:
           "MYPROJ\\                     ← workspace root (open Claude Code here)\n├── MYPROJ_BT\\                 batch\n├── MYPROJ_DOMAIN\\             domain logic\n├── MYPROJ_DOMAIN_SVC\\         domain services (if present)\n├── MYPROJ_ETC\\                service XML — IDOs land here via Studio\n├── MYPROJ_PT\\                 presentation\n├── MYPROJ_PT_STATIC\\          static JS / CSS\n├── ido_input.sql                 SQL / IN / OUT — you edit this per IDO\n└── .claude\\\n    ├── jex_project.json          HOST · PORT · PRJ_ID · SVR_ID · SVN_DIRS — written by init\n    ├── jex_v2.json               { USR_ID } — your Studio login id\n    ├── jex_v2.local.json         { PWD } — never commit, never share\n    ├── jex_cookies2.txt          Studio v2 session cookie (auto-managed)\n    └── tmp\\                      jex_read_ido snapshots",
       },
@@ -618,28 +618,28 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Overview",
     sectionHeading: "Every agent, coached the same way.",
     sectionIntro:
-      "Coach wraps your agents with consistent skills, guardrails, and templates — so every run follows the same playbook, whether it's the first one or the thousandth.",
+      "Coach wraps your agents with consistent **skills**, **guardrails**, and **templates** — so every run follows the same playbook, whether it's the first one or the thousandth.",
     features: [
       {
         icon: "layers",
         title: "Skills, reusable",
         description:
-          "Package a capability once as a skill, then attach it to any agent that needs it. No copy-pasted prompt logic between agents.",
+          "Package a capability once as a **skill**, then attach it to any agent that needs it. No copy-pasted prompt logic between agents.",
       },
       {
         icon: "pulse",
         title: "Guided workflows",
-        description: "Coach sequences multi-step agent workflows and hands off context between steps automatically.",
+        description: "Coach sequences **multi-step agent workflows** and hands off context between steps automatically.",
       },
       {
         icon: "shield",
         title: "Security & gates",
-        description: "Sensitive or destructive steps pause for approval before Coach lets an agent proceed.",
+        description: "Sensitive or destructive steps pause for **approval** before Coach lets an agent proceed.",
       },
       {
         icon: "sparkles",
         title: "Template-driven setup",
-        description: "Start new agents from a template instead of from scratch, with skills and gates already wired in.",
+        description: "Start new agents from a **template** instead of from scratch, with **skills** and **gates** already wired in.",
       },
     ],
   },
@@ -699,7 +699,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Workflow",
     heading: "Steps, declared — not hardcoded.",
     intro:
-      "A Coach workflow is an ordered sequence of steps, where each step is either a skill call, a gate check, or a handoff to another agent. Workflows are defined declaratively — not hardcoded in the agent's own logic — so the same agent can be re-sequenced without touching its underlying code. This also means workflows can be reviewed and approved independently of the agent implementation.",
+      "A Coach workflow is an **ordered sequence of steps**, where each step is either a **skill call**, a **gate check**, or a **handoff** to another agent. Workflows are defined **declaratively** — not hardcoded in the agent's own logic — so the same agent can be re-sequenced without touching its underlying code. This also means workflows can be reviewed and approved independently of the agent implementation.",
     sections: [],
   },
   [contentId("coach", "structure")]: {
@@ -720,7 +720,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Skills",
     heading: "One capability, attach it anywhere.",
     intro:
-      "A skill is a single reusable capability — a defined input/output contract plus the logic behind it — that any registered agent can attach. Skills are versioned independently of the agents that use them, so improving a skill (e.g. a better search skill) benefits every agent that already has it attached, without needing to touch each agent individually.",
+      "A **skill** is a single reusable capability — a defined **input/output contract** plus the logic behind it — that any registered agent can attach. Skills are **versioned independently** of the agents that use them, so improving a skill benefits every agent that already has it attached, without needing to touch each agent individually.",
     sections: [],
   },
   [contentId("coach", "agents")]: {
@@ -728,7 +728,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Agents",
     heading: "What Coach knows about an agent.",
     intro:
-      "An agent in Coach is a named, registered entity with: an entry point (what actually runs), a list of attached skills, a workflow defining its step order, and any gates that apply to its steps. Coach doesn't dictate what an agent's underlying logic does — it wraps that logic with consistent skills, structure, and oversight.",
+      "An agent in Coach is a named, registered entity with: an **entry point** (what actually runs), a list of **attached skills**, a **workflow** defining its step order, and any **gates** that apply to its steps. Coach doesn't dictate what an agent's underlying logic does — it wraps that logic with consistent skills, structure, and oversight.",
     sections: [],
   },
   [contentId("coach", "templates")]: {
@@ -736,7 +736,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Templates",
     heading: "Start from a good default.",
     intro:
-      'Templates are starter agent configurations for common patterns (e.g. "research agent," "support agent," "data-processing agent"), each pre-wired with a sensible set of skills and gates. Starting a new agent from a template means you inherit good defaults instead of assembling skills and gates from zero.',
+      'Templates are starter agent configurations for common patterns (e.g. **"research agent"**, **"support agent"**, **"data-processing agent"**), each pre-wired with a sensible set of **skills** and **gates**. Starting a new agent from a template means you inherit good defaults instead of assembling skills and gates from zero.',
     sections: [],
   },
   [contentId("coach", "security-gates")]: {
@@ -744,7 +744,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Security & gates",
     heading: "A checkpoint before anything sensitive.",
     intro:
-      "A gate is a checkpoint inserted into a workflow before a sensitive step (e.g. sending data externally, deleting records, spending budget). When a run reaches a gate, Coach pauses execution and requires explicit approval before continuing. Gates are attached at the workflow level, so the same gate can protect the same kind of step across every agent that uses it — you define the gate once, not per agent.",
+      "A **gate** is a **checkpoint** inserted into a workflow before a **sensitive step** (e.g. sending data externally, deleting records, spending budget). When a run reaches a gate, Coach **pauses execution** and requires **explicit approval** before continuing. Gates are attached at the **workflow level**, so the same gate can protect the same kind of step across every agent that uses it — you define the gate once, not per agent.",
     sections: [],
   },
   [contentId("team", "")]: {
@@ -757,7 +757,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Overview",
     sectionHeading: "Everyone's work, in one place.",
     sectionIntro:
-      "Team brings your group's workspace, tools, and progress together — so anyone can see what's planned, what's in motion, and how it's going without asking around.",
+      "Team brings your group's **workspace**, **tools**, and **progress** together — so anyone can see what's planned, what's in motion, and how it's going without asking around.",
     features: [
       {
         icon: "layers",
@@ -786,7 +786,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Roadmap",
     heading: "What's planned, in motion, and shipped.",
     intro:
-      "The Roadmap gives the team a shared view of what's planned, in progress, and shipped. Items move through stages (e.g. Planned → In progress → Done) so anyone can check status without a separate meeting. Roadmap items can link out to the actual work — a doc, a ticket, a demo — for more detail.",
+      "The **Roadmap** gives the team a shared view of what's **planned**, **in progress**, and **shipped**. Items move through stages (e.g. **Planned → In progress → Done**) so anyone can check status without a separate meeting. Roadmap items can link out to the actual work — a doc, a ticket, a demo — for more detail.",
     sections: [],
   },
   [contentId("team", "tools")]: {
@@ -794,7 +794,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Tools",
     heading: "What's already connected.",
     intro:
-      "Tools lists the external services and integrations connected to this team's workspace — the things the team already uses, linked in rather than duplicated. Connecting a tool here makes it visible and accessible from the team's workspace instead of requiring people to remember separate logins and links.",
+      "**Tools** lists the external services and **integrations** connected to this team's workspace — the things the team already uses, linked in rather than duplicated. Connecting a tool here makes it visible and accessible from the team's workspace instead of requiring people to remember separate logins and links.",
     sections: [],
   },
   [contentId("team", "workspace")]: {
@@ -802,7 +802,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Workspace",
     heading: "The team's shared home base.",
     intro:
-      "The Workspace is the team's shared home base: files, links, and active work in one place. Anyone on the team can see what's there and what's currently being worked on, instead of information being scattered across individual chats or personal folders.",
+      "The **Workspace** is the team's shared home base: **files**, **links**, and **active work** in one place. Anyone on the team can see what's there and what's currently being worked on, instead of information being scattered across individual chats or personal folders.",
     sections: [],
   },
   [contentId("team", "agents")]: {
@@ -810,7 +810,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Agents",
     heading: "What's automated versus manual.",
     intro:
-      "Agents lists any automated helpers the team relies on — for example, ones that post updates, summarize activity, or handle routine tasks on the team's behalf. This section documents what each agent does and where it's configured, so the team knows what's automated versus manual.",
+      "**Agents** lists any **automated helpers** the team relies on — for example, ones that post updates, summarize activity, or handle routine tasks on the team's behalf. This section documents what each agent does and where it's configured, so the team knows what's **automated** versus **manual**.",
     sections: [],
   },
   [contentId("team", "metrics")]: {
@@ -818,7 +818,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Metrics",
     heading: "How things are going, at a glance.",
     intro:
-      "Metrics tracks team activity and progress over time — for example, work completed, tool usage, or roadmap items shipped per period. The goal is to give the team (and anyone checking in) a quick read on how things are going without asking for a manual status update.",
+      "**Metrics** tracks team activity and progress over time — for example, work completed, **tool usage**, or roadmap items shipped per period. The goal is to give the team (and anyone checking in) a quick read on how things are going without asking for a manual **status update**.",
     sections: [],
   },
   [contentId("usage", "")]: {
@@ -831,27 +831,27 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Overview",
     sectionHeading: "One dashboard for every product.",
     sectionIntro:
-      "Usage pulls activity and coverage data from every product into a single dashboard, so you can see what's happening across the whole platform without checking each product separately.",
+      "**Usage** pulls **activity** and **coverage data** from every product into a **single dashboard**, so you can see what's happening across the whole platform without checking each product separately.",
     features: [
       {
         icon: "layers",
         title: "Cross-product view",
-        description: "See activity and coverage for Jex3.0, Jex2.0, Coach, Team, and Usage itself from one screen.",
+        description: "See activity and coverage for **Jex3.0**, **Jex2.0**, **Coach**, **Team**, and **Usage** itself from one screen.",
       },
       {
         icon: "pulse",
         title: "Trends over time",
-        description: "Track how documentation coverage and activity change week over week, not just a snapshot.",
+        description: "Track how **documentation coverage** and activity change **week over week**, not just a snapshot.",
       },
       {
         icon: "sparkles",
         title: "No manual reporting",
-        description: "Numbers update automatically as products are used — no one has to compile a status report by hand.",
+        description: "Numbers update **automatically** as products are used — no one has to compile a **status report** by hand.",
       },
       {
         icon: "tag",
         title: "Drill down by product",
-        description: "Jump from the overall dashboard into a single product's detail when something needs a closer look.",
+        description: "Jump from the **overall dashboard** into a single product's detail when something needs a closer look.",
       },
     ],
   },
@@ -888,7 +888,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Configuration",
     heading: "The settings behind the dashboard.",
     intro:
-      "Configuration covers the settings behind the Usage dashboard: which products feed it data, how often numbers refresh, which metrics are shown by default, and who has access to view or export reports. Changes here affect what everyone sees on the dashboard, so treat this section as admin-level setup rather than day-to-day use.",
+      "**Configuration** covers the settings behind the Usage dashboard: which products **feed it data**, how often **numbers refresh**, which **metrics** are shown by default, and who has **access** to view or export reports. Changes here affect what everyone sees on the dashboard, so treat this section as **admin-level setup** rather than day-to-day use.",
     sections: [],
   },
 };

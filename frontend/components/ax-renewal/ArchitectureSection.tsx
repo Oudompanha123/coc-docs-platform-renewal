@@ -51,7 +51,7 @@ export function ArchitectureSection({
     <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
       <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
       <p className="mt-1 text-xs text-muted">
-        Describe the resulting layered design once the stack move above is decided — what talks to what, and why
+        Describe the resulting <strong>layered design</strong> once the <strong>stack move</strong> above is decided — what talks to what, and why
         it is shaped this way.
       </p>
 
