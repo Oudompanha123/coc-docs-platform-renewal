@@ -112,7 +112,7 @@ export function DatabaseSection({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+    <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Database</h3>
       <p className="mt-1 text-xs text-muted">
         Metadata about the <strong>legacy database</strong> this plan reads — no <strong>credential</strong> is stored, and this phase never opens a

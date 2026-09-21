@@ -58,6 +58,23 @@ describe("computeAttachStats", () => {
     const stats = await computeAttachStats(files);
     expect(stats.largestFile).toEqual({ name: "proj/b.txt", size: 100 });
   });
+
+  it("reads the attached folder's own name off the first file's relative path", async () => {
+    const files = [fakeFile("Sample Project Portfolio/src/index.js", ""), fakeFile("Sample Project Portfolio/package.json", "{}")];
+    const stats = await computeAttachStats(files);
+    expect(stats.rootFolderName).toBe("Sample Project Portfolio");
+  });
+
+  it("falls back to the first file's own name when loose files were picked instead of a folder", async () => {
+    const file = new File(["console.log(1)"], "app.js", { type: "text/javascript" });
+    const stats = await computeAttachStats([file]);
+    expect(stats.rootFolderName).toBe("app.js");
+  });
+
+  it("is null when nothing was picked", async () => {
+    const stats = await computeAttachStats([]);
+    expect(stats.rootFolderName).toBeNull();
+  });
 });
 
 describe("buildVerification", () => {
