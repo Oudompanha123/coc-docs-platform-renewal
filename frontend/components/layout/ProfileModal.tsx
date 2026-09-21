@@ -12,6 +12,8 @@ import { StatusBadge } from "@/components/users-roles/StatusBadge";
 import { RoleBadge } from "@/components/users-roles/RoleBadge";
 import type { AccountRole } from "@/lib/mock/users-roles";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -36,6 +38,7 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 export function ProfileModal({ onClose }: { onClose: () => void }) {
   const { user, refresh } = useSession();
+  const { t } = useLanguage();
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [saving, setSaving] = useState(false);
@@ -59,7 +62,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       await refresh();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save profile.");
+      setError(err instanceof Error ? err.message : t.profile.couldNotSave);
       setSaving(false);
     }
   }
@@ -72,11 +75,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     if (!file) return;
 
     if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-      setAvatarError("Photos must be PNG, JPEG, or WebP.");
+      setAvatarError(t.profile.wrongType);
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setAvatarError("That photo is too large — please choose one under 2 MB.");
+      setAvatarError(t.profile.tooLarge);
       return;
     }
 
@@ -86,7 +89,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       await uploadAvatar(file);
       await refresh();
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Couldn't upload that photo.");
+      setAvatarError(err instanceof Error ? err.message : t.profile.uploadFailed);
     } finally {
       setAvatarBusy(false);
     }
@@ -99,7 +102,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       await removeAvatar();
       await refresh();
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Couldn't remove that photo.");
+      setAvatarError(err instanceof Error ? err.message : t.profile.removeFailed);
     } finally {
       setAvatarBusy(false);
     }
@@ -132,7 +135,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               avatarUrl={user?.avatarUrl ?? null}
               initials={initials}
               name={user?.displayName ?? ""}
-              className={`h-24 w-24 text-2xl shadow-lg ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
+              className={`h-24 w-24 text-2xl shadow-lg ring-4 ring-brand-purple/40 ring-offset-2 ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
             />
             <span
               className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
@@ -143,7 +146,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             </span>
           </div>
           <span className="mt-1.5 text-xs font-medium text-brand-purple underline-offset-2 group-hover:underline">
-            {avatarBusy ? "Uploading…" : "Change photo"}
+            {avatarBusy ? t.profile.uploading : t.profile.changePhoto}
           </span>
           <input
             type="file"
@@ -161,7 +164,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             disabled={avatarBusy}
             className="mt-0.5 text-xs text-muted underline-offset-2 hover:text-danger hover:underline disabled:cursor-not-allowed"
           >
-            Remove photo
+            {t.profile.removePhoto}
           </button>
         )}
         {avatarError && <p className="mt-1 text-xs text-danger">{avatarError}</p>}
@@ -177,27 +180,27 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
         {/* Read-only details */}
         <dl className="space-y-3 border-b border-border pb-4 text-sm">
           <div className="flex items-start justify-between gap-4">
-            <dt className="text-muted">Email</dt>
+            <dt className="text-muted">{t.profile.email}</dt>
             <dd className="min-w-0 break-all text-right font-medium text-dash-ink">
               {user?.email ?? "—"}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Current role</dt>
+            <dt className="text-muted">{t.profile.currentRole}</dt>
             <dd>{user?.role ? <RoleBadge role={user.role.toLowerCase() as AccountRole} /> : "—"}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Status</dt>
+            <dt className="text-muted">{t.profile.status}</dt>
             <dd>
               <StatusBadge status="active" />
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Last sign-in</dt>
+            <dt className="text-muted">{t.profile.lastSignIn}</dt>
             <dd className="font-medium text-dash-ink">{formatWhen(user?.lastSignInAt ?? null)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Created</dt>
+            <dt className="text-muted">{t.profile.created}</dt>
             <dd className="font-medium text-dash-ink">{formatWhen(user?.createdAt ?? null)}</dd>
           </div>
         </dl>
@@ -209,7 +212,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               htmlFor="profile-display-name"
               className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              Display name
+              {t.profile.displayName}
             </label>
             <input
               id="profile-display-name"
@@ -219,8 +222,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
             />
             <p className="mt-1 text-xs text-muted">
-              Google sign-in overwrites this with the provider&apos;s name, so a correction here
-              lasts until your next sign-in.
+              {t.profile.displayNameHint}
             </p>
           </div>
 
@@ -237,12 +239,12 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               <div className="flex items-center gap-2.5">
                 <LockIcon className="h-4 w-4 shrink-0 text-muted" />
                 <div>
-                  <p className="text-sm font-semibold text-dash-ink">Password</p>
+                  <p className="text-sm font-semibold text-dash-ink">{t.profile.password}</p>
                   <p className="text-xs text-muted">
                     {passwordNotice ??
                       (user?.hasPassword
-                        ? "Keep your account secure with a strong password."
-                        : "You signed in with Google. Add a password to also sign in with your email.")}
+                        ? t.profile.keepSecureHint
+                        : t.profile.addPasswordHint)}
                   </p>
                 </div>
               </div>
@@ -255,7 +257,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   }}
                   className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
                 >
-                  {user?.hasPassword ? "Change password" : "Set password"}
+                  {user?.hasPassword ? t.profile.changePassword : t.profile.setPassword}
                 </button>
               )}
             </div>
@@ -272,6 +274,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </div>
+          {/* Notifications */}
+          <div className="rounded-[10px] border border-border px-3 py-3">
+            <p className="mb-2.5 text-sm font-semibold text-dash-ink">Notifications</p>
+            <PushNotificationsCard />
+          </div>
         </div>
       </div>
 
@@ -285,7 +292,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-gray-50"
         >
-          Close
+          {t.profile.close}
         </button>
         <button
           type="button"
@@ -293,7 +300,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           disabled={!dirty || saving}
           className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? t.profile.saving : t.profile.saveChanges}
         </button>
       </div>
     </Modal>

@@ -15,6 +15,8 @@ import { NotificationsModal } from "@/components/home/NotificationsModal";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { fill } from "@/lib/i18n/translations";
 import { computeProductStats, computeRecentDocs, type ContentDocRow } from "@/lib/docs/content-stats";
 import type { StatCardData } from "@/lib/mock/overview";
 import { fetchOpenTasks, type Task } from "@/lib/tasks/tasks-api";
@@ -32,6 +34,7 @@ import { UsageSnapshotPanel } from "@/components/home/UsageSnapshotPanel";
 export default function MemberHomePage() {
   const { user } = useSession();
   const currentUser = useCurrentUser();
+  const { t } = useLanguage();
   const products = useNavStructure();
   const [stats, setStats] = useState<StatCardData[] | null>(null);
   const [recentDocs, setRecentDocs] = useState<ContentDocRow[] | null>(null);
@@ -55,7 +58,7 @@ export default function MemberHomePage() {
   const notWritten = stats ? totalNotWritten(stats) : 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div data-shell="home" className="min-h-screen bg-white">
       <MemberHeader
         products={products ?? []}
         onOpenProfile={() => setShowProfile(true)}
@@ -67,20 +70,20 @@ export default function MemberHomePage() {
           <div className="animate-entrance mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
               {stats === null
-                ? "Loading your workspace…"
+                ? t.home.loading
                 : notWritten > 0
-                  ? `${notWritten} document${notWritten === 1 ? "" : "s"} still need writing since your last visit`
-                  : "Every document across your workspace is written"}
+                  ? fill(t.home.needsWriting, { n: notWritten, s: notWritten === 1 ? "" : "s" })
+                  : t.home.allWritten}
             </span>
 
             <h1 className="mt-6 text-4xl font-extrabold leading-tight text-ink sm:text-5xl">
-              Pick up where you left off, {firstName}.
+              {fill(t.home.greeting, { name: firstName })}
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base text-muted sm:text-lg">
               {attention
-                ? `${attention.label} needs the most attention right now — pick up where the team left off.`
-                : "Every product is fully documented. Browse what your team has written so far."}
+                ? fill(t.home.attentionNote, { product: attention.label })
+                : t.home.allDocumented}
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -88,13 +91,13 @@ export default function MemberHomePage() {
                 href={attention ? productHref(attention.key) : "#products"}
                 className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
-                {attention ? `Continue with ${attention.label}` : "Browse your products"}
+                {attention ? fill(t.home.continueWith, { product: attention.label }) : t.home.browseAll}
               </Link>
               <Link
                 href="#products"
                 className="inline-flex items-center justify-center rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-page active:scale-[0.97]"
               >
-                Browse all products
+                {t.home.browseAll}
               </Link>
             </div>
           </div>
@@ -141,9 +144,9 @@ export default function MemberHomePage() {
 
         <section className="mx-auto max-w-5xl px-6 py-20">
           <ScrollReveal>
-            <h2 className="text-center text-3xl font-bold text-ink">Everything you need, in one place.</h2>
+            <h2 className="text-center text-3xl font-bold text-ink">{t.home.bentoHeading}</h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
-              Your documents, your open tasks, and how the team is using the workspace.
+              {t.home.bentoSub}
             </p>
           </ScrollReveal>
 
@@ -155,7 +158,7 @@ export default function MemberHomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto w-[1024px] overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: the photo is bright enough that white text needs a dark
                 layer under it to stay legible, same "decorative absolute div
                 painted before the relative-positioned copy" pattern /welcome's
@@ -164,32 +167,32 @@ export default function MemberHomePage() {
             {canManage ? (
               <>
                 <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
-                  {notWritten} document{notWritten === 1 ? "" : "s"} still need{notWritten === 1 ? "s" : ""} writing.
+                  {fill(t.home.bannerNeedsWriting, { n: notWritten, s: notWritten === 1 ? "" : "s", sv: notWritten === 1 ? "s" : "" })}
                 </h2>
                 <p className="relative mt-3 text-sm text-sidebar-muted sm:text-base">
-                  Pick a product and fill in what&apos;s missing.
+                  {t.home.bannerFillIn}
                 </p>
                 <Link
                   href={attention ? productHref(attention.key) : "#products"}
                   className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
-                  New Document
+                  {t.home.newDocument}
                 </Link>
               </>
             ) : (
               <>
                 <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
-                  Spotted something missing or out of date?
+                  {t.home.bannerMissing}
                 </h2>
                 <p className="relative mt-3 text-sm text-white sm:text-base">
-                  Your account can read every product&apos;s documentation, but editing is limited to admins.
+                  {t.home.bannerReadOnly}
                 </p>
                 <button
                   type="button"
                   className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
                   <ShieldIcon className="h-4 w-4 text-white/80" />
-                  Ask an Admin for edit access
+                  {t.home.askAdmin}
                 </button>
               </>
             )}
