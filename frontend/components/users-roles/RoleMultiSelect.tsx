@@ -1,31 +1,27 @@
-import {
-  DISPLAY_ROLE_ORDER,
-  ROLE_HINTS,
-  ROLE_LABELS,
-  UNENFORCED_ROLES,
-  highestEnforcedRole,
-  type DisplayRole,
-} from "@/lib/mock/users-roles";
+import { ROLE_ORDER, ROLE_HINTS, ROLE_LABELS, highestEnforcedRole, type AccountRole } from "@/lib/mock/users-roles";
 
 /**
- * Checkbox list for all six roles. An account can hold more than one, but the
- * live backend only accepts a single `role` on create/update — so this also
- * shows, plainly, which one of the checked roles is the one that will
- * actually be saved (the highest-ranked among User/Admin/Super Admin), and
- * flags Developer/Lead/Reviewer as not yet enforced rather than pretending
- * they save. Extracted rather than duplicated because AddAccountModal and
- * AccountDetailModal both need the identical list, hint text and note.
+ * Checkbox list for all five roles, every one of them real and
+ * backend-enforced (ADR-039). An account can genuinely hold more than one at
+ * once (ADR-016) — the footer note says whether that's what will happen here,
+ * since account *creation* still only takes a single `role`
+ * (`collapseToHighest`) while editing an existing account sends the whole
+ * checked set. Extracted rather than duplicated because AddAccountModal and
+ * AccountDetailModal both need the identical list and hint text.
  */
 export function RoleMultiSelect({
   idPrefix,
   selected,
   onChange,
+  collapseToHighest = false,
 }: {
   idPrefix: string;
-  selected: DisplayRole[];
-  onChange: (roles: DisplayRole[]) => void;
+  selected: AccountRole[];
+  onChange: (roles: AccountRole[]) => void;
+  /** True for account creation, which still saves only the highest-ranked role checked. */
+  collapseToHighest?: boolean;
 }) {
-  function toggle(role: DisplayRole, checked: boolean) {
+  function toggle(role: AccountRole, checked: boolean) {
     if (checked) {
       onChange(selected.includes(role) ? selected : [...selected, role]);
     } else {
@@ -33,13 +29,10 @@ export function RoleMultiSelect({
     }
   }
 
-  const effective = highestEnforcedRole(selected);
-
   return (
     <div>
       <div className="space-y-2 rounded-xl border border-border p-3">
-        {DISPLAY_ROLE_ORDER.map((role) => {
-          const unenforced = UNENFORCED_ROLES.includes(role);
+        {ROLE_ORDER.map((role) => {
           const id = `${idPrefix}-${role}`;
           return (
             <label key={role} htmlFor={id} className="flex items-start gap-2.5">
@@ -52,27 +45,20 @@ export function RoleMultiSelect({
                 className="mt-0.5 h-4 w-4 rounded border-border text-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple"
               />
               <span className="min-w-0">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-sm font-medium text-dash-ink">{ROLE_LABELS[role]}</span>
-                  {unenforced && (
-                    <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                      Not enabled yet
-                    </span>
-                  )}
-                </span>
+                <span className="text-sm font-medium text-dash-ink">{ROLE_LABELS[role]}</span>
                 <span className="block text-xs text-muted">{ROLE_HINTS[role]}</span>
               </span>
             </label>
           );
         })}
       </div>
-      <p className="mt-1.5 text-xs text-muted">
-        {selected.length === 0
-          ? `No role checked — saves as ${ROLE_LABELS.user}.`
-          : `Saves as ${ROLE_LABELS[effective]}${
-              selected.length > 1 ? " (the highest of the roles checked above that the backend enforces)." : "."
-            }`}
-      </p>
+      {collapseToHighest && (
+        <p className="mt-1.5 text-xs text-muted">
+          {selected.length <= 1
+            ? `Saves as ${ROLE_LABELS[highestEnforcedRole(selected)]}.`
+            : `Saves as ${ROLE_LABELS[highestEnforcedRole(selected)]} (creating an account only takes the highest of the roles checked above).`}
+        </p>
+      )}
     </div>
   );
 }

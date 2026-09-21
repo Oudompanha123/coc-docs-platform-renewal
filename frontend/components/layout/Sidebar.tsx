@@ -62,7 +62,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   useEffect(() => {
     if (fetchedProducts) setProducts(fetchedProducts);
   }, [fetchedProducts]);
-  const navSections = visibleNavSections(session?.role, products ?? [], session?.capabilities ?? []);
+  const navSections = visibleNavSections(session?.roles, products ?? []);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Same role floor the backend enforces on /api/v1/admin/nav/** — hiding

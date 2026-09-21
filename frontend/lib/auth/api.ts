@@ -52,14 +52,7 @@ async function readErrorDetail(response: Response): Promise<string | undefined> 
  * silently missed, which is why the sidebar rendered a raw `super_admin`
  * instead of "Super Admin".
  */
-export type Role = "guest" | "user" | "admin" | "super_admin";
-
-/**
- * A capability held in addition to `role` — layered on top of it, never
- * replacing it (ADR-037). "developer" grants AX Renewal regardless of the
- * base role it sits on top of.
- */
-export type Capability = "developer";
+export type Role = "guest" | "user" | "developer" | "reviewer" | "lead" | "admin" | "super_admin";
 
 export interface AuthenticatedAccount {
   id: string;
@@ -97,11 +90,13 @@ export interface MeResponse {
    */
   hasPassword: boolean;
   /**
-   * Capabilities held in addition to `role` (ADR-037) — e.g. `["developer"]`.
-   * Empty, never null, so callers can `.includes(...)` without a guard; empty
-   * for an anonymous caller too.
+   * Every role held, not just the highest (`role` above) — an account can
+   * hold more than one (ADR-016). Empty, never null, so callers can
+   * `.includes(...)` without a guard — e.g. checking for the exact-membership
+   * `developer` role (ADR-039) the way AX Renewal's confirm action does
+   * server-side; empty for an anonymous caller too.
    */
-  capabilities: Capability[];
+  roles: Role[];
 }
 
 /**

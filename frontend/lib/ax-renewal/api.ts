@@ -4,9 +4,9 @@ import { AdminApiError, NotPermittedError } from "@/lib/admin/accounts";
  * The AX Renewal API — `/api/v1/ax-renewal` (ADR-037).
  *
  * Unlike the other admin clients in this app, this surface is NOT
- * exclusively admin: a plain `user` holding the `developer` capability can
- * reach the read side and confirm/start-implementation, enforced by the
- * backend's filter chain, not by anything in this file. `credentials:
+ * exclusively admin: a plain `user` who also holds the `developer` role
+ * (ADR-039) can reach the read side and confirm/start-implementation,
+ * enforced by the backend's filter chain, not by anything in this file. `credentials:
  * "include"` on every request — the session is an httpOnly cookie on a
  * different origin, so without it the browser sends nothing and the backend
  * sees an anonymous caller.
@@ -83,7 +83,7 @@ export interface AxRenewalConfirmation {
   section: PlanSection;
   confirmedAt: string;
   confirmedBy: string;
-  confirmedVia: "super_admin" | "developer_capability";
+  confirmedVia: "super_admin" | "developer_role";
 }
 
 export interface AxRenewalImplementationRun {

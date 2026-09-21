@@ -23,6 +23,9 @@ import { useSession } from "@/lib/auth/SessionProvider";
 const ROLE_LABELS: Record<string, string> = {
   guest: "Guest",
   user: "User",
+  developer: "Developer",
+  reviewer: "Reviewer",
+  lead: "Lead",
   admin: "Admin",
   super_admin: "Super Admin",
 };
