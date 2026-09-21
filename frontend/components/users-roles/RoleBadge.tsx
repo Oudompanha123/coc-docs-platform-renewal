@@ -5,9 +5,9 @@ import { ROLE_LABELS } from "@/lib/mock/users-roles";
  *  brand gradient — the same treatment this app already uses for its most
  *  prominent chips (NEW-style badges, primary buttons), so it reads as
  *  clearly the highest tier without inventing a new visual language.
- *  Developer/Lead/Reviewer are display-only (no backend AppRole yet — see
- *  DisplayRole's comment) and get their own solid tints, distinct from
- *  Admin's, so they don't read as if they carry Admin's real authority. */
+ *  Developer/Reviewer/Lead sit between User and Admin (ADR-039) and get
+ *  their own solid tints, distinct from Admin's, so they don't read as if
+ *  they carry Admin's real authority. */
 export function RoleBadge({ role }: { role: DisplayRole }) {
   if (role === "super_admin") {
     return (

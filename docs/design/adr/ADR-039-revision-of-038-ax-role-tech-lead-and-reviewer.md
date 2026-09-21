@@ -1,5 +1,11 @@
 # ADR-039: Revision of ADR-038 — AX Role Extended to Tech Lead, Developer, Reviewer
 
+> **Superseded in practice by [ADR-040](ADR-040-reviewer-lead-roles.md)**, written
+> for the same PM request on a branch that could not see this one. ADR-040
+> retires the capability mechanism this document extends, and it is the version
+> the merged code implements. Both are PROPOSED; which stands is the PM's call
+> (`CONST-PROC-01`).
+
 > **Status**: PROPOSED
 > **Date**: 2026-09-21
 > **Author**: `backend-developer` / `frontend-developer` (implemented per PM direction to add "AX Role" choices to the account details screen)

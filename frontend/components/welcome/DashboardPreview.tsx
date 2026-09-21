@@ -44,7 +44,7 @@ const MOCK_PRODUCTS: NavProduct[] = [...FALLBACK_NAV, SSSS_PRODUCT];
  *  `PREVIEW_ACCOUNT` below impersonates; every item in that section is
  *  visible to a super_admin, so nothing is filtered out that a real
  *  super_admin wouldn't also see. */
-const ADMINISTRATION_SECTION = visibleNavSections("super_admin", FALLBACK_NAV).find(
+const ADMINISTRATION_SECTION = visibleNavSections(["super_admin"], FALLBACK_NAV).find(
   (section) => section.label === "ADMINISTRATION",
 );
 
