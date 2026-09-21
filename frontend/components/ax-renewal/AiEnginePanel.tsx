@@ -15,7 +15,7 @@ import { SparklesIcon, WarningIcon } from "@/components/layout/icons";
 export function AiEnginePanel() {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+      <div className="rounded-[5px] border border-border bg-white p-5">
         <div className="flex items-center gap-2">
           <SparklesIcon className="h-5 w-5 text-brand-purple" />
           <h3 className="text-sm font-bold text-dash-ink">AI engine</h3>
@@ -33,7 +33,7 @@ export function AiEnginePanel() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+      <div className="rounded-[5px] border border-border bg-white p-5">
         <h3 className="text-sm font-bold text-dash-ink">What changes once a model is connected</h3>
         <ul className="mt-3 space-y-2 text-sm text-muted">
           <li>

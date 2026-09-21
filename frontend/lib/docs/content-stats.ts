@@ -1,5 +1,5 @@
 import { contentId } from "./content-store";
-import { fetchDocContent } from "./docs-content-api";
+import { fetchSavedSlugsOrThrow } from "./docs-content-api";
 import type { NavProduct } from "./nav-api";
 import type { StatCardData, Tone } from "@/lib/mock/overview";
 
@@ -20,16 +20,21 @@ function iconFor(icon: string): StatCardData["icon"] {
 }
 
 /** One stat card per product, computed live from the docs-content backend —
- *  the same "has this sub-item been written" check ProductContentTable
- *  uses. Client-only (hits the real API), so callers must only invoke this
- *  after mount, with the live product list from useNavStructure. */
+ *  one bulk `fetchSavedSlugsOrThrow` call per product (never one request per
+ *  sub-item), and a real `docs_content` row is the only thing that counts as
+ *  "written" — a slug that merely has frontend seed placeholder text is not.
+ *  Client-only (hits the real API), so callers must only invoke this after
+ *  mount, with the live product list from a nav fetch. Throws on a backend
+ *  failure rather than silently reporting every slug as unwritten — callers
+ *  are expected to catch and show a real error state. */
 export async function computeProductStats(products: NavProduct[]): Promise<StatCardData[]> {
   return Promise.all(
     products.map(async (product, i) => {
-      const results = await Promise.all(
-        product.items.map((item) => fetchDocContent(contentId(product.key, item.slug)).catch(() => undefined)),
+      const saved = await fetchSavedSlugsOrThrow(
+        product.key,
+        product.items.map((item) => item.slug),
       );
-      const written = results.filter((content) => content !== undefined).length;
+      const written = product.items.filter((item) => saved.has(item.slug)).length;
       const total = product.items.length;
       const allWritten = total > 0 && written === total;
       return {
@@ -64,22 +69,33 @@ function initialsFor(label: string): string {
  *  "Documents" card — registry order (not fabricated recency, since the
  *  store tracks no timestamps), capped to keep the card the same rough
  *  height the old 4-row mock list had rather than dumping every sub-item
- *  across every product into it. */
+ *  across every product into it. One bulk existence call per distinct
+ *  product represented in the slice, not one per row. Throws on a backend
+ *  failure — same contract as {@link computeProductStats}. */
 export async function computeRecentDocs(products: NavProduct[], limit = 6): Promise<ContentDocRow[]> {
   const flat = products.flatMap((product) => product.items.map((item) => ({ product, item })));
   const slice = flat.slice(0, limit);
-  return Promise.all(
-    slice.map(async ({ product, item }, i) => {
-      const id = contentId(product.key, item.slug);
-      const content = await fetchDocContent(id).catch(() => undefined);
-      return {
-        id,
-        label: item.label,
-        productLabel: product.label,
-        hasContent: content !== undefined,
-        initials: initialsFor(item.label),
-        tone: TONES[i % TONES.length] ?? "purple",
-      };
+
+  const slugsByProduct = new Map<string, { product: NavProduct; slugs: string[] }>();
+  for (const { product, item } of slice) {
+    const entry = slugsByProduct.get(product.key) ?? { product, slugs: [] };
+    entry.slugs.push(item.slug);
+    slugsByProduct.set(product.key, entry);
+  }
+
+  const savedByProduct = new Map<string, Set<string>>();
+  await Promise.all(
+    Array.from(slugsByProduct.values()).map(async ({ product, slugs }) => {
+      savedByProduct.set(product.key, await fetchSavedSlugsOrThrow(product.key, slugs));
     }),
   );
+
+  return slice.map(({ product, item }, i) => ({
+    id: contentId(product.key, item.slug),
+    label: item.label,
+    productLabel: product.label,
+    hasContent: savedByProduct.get(product.key)?.has(item.slug) ?? false,
+    initials: initialsFor(item.label),
+    tone: TONES[i % TONES.length] ?? "purple",
+  }));
 }

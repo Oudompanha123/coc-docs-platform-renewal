@@ -10,11 +10,12 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 /**
- * Connect → secret reveal, the same two-phase shape `InviteTeammateModal`
- * already uses for its one-time ingest-config reveal: the form disappears
- * once the call succeeds, replaced by a "copy this now" screen, because the
- * signing secret in the response is the only time this admin will ever see
- * it (ADR-037 — never returned by any later read).
+ * Connect → secret reveal, a two-phase shape: the form disappears once the
+ * call succeeds, replaced by a "copy this now" screen, because the signing
+ * secret in the response is the only time this admin will ever see it
+ * (ADR-037 — never returned by any later read). `InviteTeammateModal` used
+ * the same shape for its one-time ingest-config reveal, and was the precedent
+ * for this one until it went with the invite feature.
  */
 export function ConnectIntegrationModal({
   onClose,

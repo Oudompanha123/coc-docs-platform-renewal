@@ -74,7 +74,7 @@ export function PagesSection({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+    <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
       <p className="mt-1 text-xs text-muted">
         Map each old page to its new route. Leave the old side blank for a page that never existed before; leave

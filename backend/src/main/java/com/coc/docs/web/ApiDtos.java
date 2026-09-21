@@ -801,9 +801,6 @@ public final class ApiDtos {
         }
     }
 
-    public record InviteClaudeUsageMemberRequest(
-            @NotBlank @Email String email, String displayName, String teamRole) {}
-
     public record UpdateClaudeUsageMemberRoleRequest(@NotBlank String teamRole) {}
 
     /** The only field, so an explicit {@code null} and an absent field mean the same thing: clear the override. */
@@ -925,6 +922,13 @@ public final class ApiDtos {
      *  frontend, and folding `updatedAt` into it would round-trip back into
      *  the stored body the next time an admin saves through the editor. */
     public record DocsContentMetaResponse(Instant updatedAt) {}
+
+    /** Bulk existence check (see {@code DocsContentController#existence}) —
+     *  the slugs, out of the ones asked about, that actually have a saved
+     *  admin row. Order is whatever the query returned, not the caller's
+     *  request order; the frontend only ever tests membership, never reads
+     *  this positionally. */
+    public record DocsContentExistenceResponse(List<String> savedSlugs) {}
 
     // -----------------------------------------------------------------------
     // AX Renewal (ADR-037)
