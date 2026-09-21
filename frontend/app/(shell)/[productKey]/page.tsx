@@ -30,7 +30,7 @@ export default function ProductManagePage() {
       pageSubtitle={`Manage ${product.label}'s knowledge base content`}
       titleIcon={<Icon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
-      <ProductContentTable productKey={product.key} />
+      <ProductContentTable productKey={product.key} productLabel={product.label} />
     </AppShell>
   );
 }

@@ -24,7 +24,7 @@ export function UsageStatCard({
   }[tone];
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+    <div className="rounded-[10px] border border-border bg-white p-5 shadow-sm">
       <div className="flex items-center gap-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white ${tileFill}`}>
           <Icon className="h-5 w-5" />

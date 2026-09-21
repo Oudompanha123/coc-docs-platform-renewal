@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
-import { PlusIcon, XIcon } from "@/components/layout/icons";
+import { DocumentIcon, PlugIcon, PlusIcon, UploadIcon, XIcon } from "@/components/layout/icons";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { contentId } from "@/lib/docs/content-store";
 import { fetchDocContent } from "@/lib/docs/docs-content-api";
 import { createItem, deleteItem, fetchNavStructure } from "@/lib/docs/nav-api";
 import { hrefFor } from "@/lib/docs/nav-routing";
+import { EmptyContentIllustration } from "./EmptyContentIllustration";
 
 type Row = { id: string; slug: string; label: string; hasContent: boolean };
 
@@ -28,7 +29,7 @@ function slugify(label: string): string {
  *  hook) so it can reload the row list right after "+ Add item" creates a
  *  new sub-item, without adding a refetch capability every other consumer
  *  of that hook would have to carry too. */
-export function ProductContentTable({ productKey }: { productKey: string }) {
+export function ProductContentTable({ productKey, productLabel }: { productKey: string; productLabel: string }) {
   // Same role floor the backend enforces on /api/v1/admin/nav/** and
   // /api/v1/admin/docs-content/**: hiding Add/Delete/Edit here is
   // presentation, not the actual control — a "user" caller who reached
@@ -41,6 +42,7 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
   const [newLabel, setNewLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   async function loadRows(): Promise<Row[]> {
     const products = await fetchNavStructure();
@@ -87,6 +89,29 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
     }
   }
 
+  /** "Upload Document" — registers a new item from the chosen file's name,
+   *  the same way the inline "Add item" form registers one from typed text.
+   *  The file itself isn't parsed into content; it just gets the item onto
+   *  the list so an editor can write it up (or, later, a real import). */
+  async function handleDocumentSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const label = file.name.replace(/\.[^./]+$/, "");
+    const slug = slugify(label);
+    if (!slug) return;
+    setError(null);
+    setBusy(true);
+    try {
+      await createItem(productKey, slug, label);
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't add that item.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDeleteItem(row: Row) {
     if (!window.confirm(`Remove "${row.label}"? This only works while it has no saved content.`)) return;
     setError(null);
@@ -116,7 +141,7 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
       </div>
 
       {canManage && adding && (
-        <form onSubmit={handleAddItem} className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-white p-3 shadow-sm">
+        <form onSubmit={handleAddItem} className="mt-3 flex flex-wrap items-center gap-2 rounded-[10px] border border-border bg-white p-3 shadow-sm">
           <input
             autoFocus
             value={newLabel}
@@ -147,8 +172,68 @@ export function ProductContentTable({ productKey }: { productKey: string }) {
         </form>
       )}
 
-      {rows && (
-        <div className="animate-entrance mt-6 rounded-2xl border border-border bg-white shadow-sm">
+      {rows && rows.length === 0 && (
+        <div className="animate-entrance mx-auto mt-10 max-w-md text-center">
+          <EmptyContentIllustration />
+          <h2 className="mt-6 text-lg font-bold text-dash-ink">Knowledge base is ready.</h2>
+          <p className="mt-2 text-sm text-muted">
+            To begin creating &quot;{productLabel}&quot;&apos;s knowledge base, select a method from the list below.
+            You can create a new page, upload a document, or embed a resource.
+          </p>
+
+          {canManage && (
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                className="flex flex-col items-center gap-2 rounded-[10px] border border-border bg-white px-3 py-5 text-center shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                  <DocumentIcon className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-semibold text-dash-ink">Create Page</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => uploadInputRef.current?.click()}
+                className="flex flex-col items-center gap-2 rounded-[10px] border border-border bg-white px-3 py-5 text-center shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                  <UploadIcon className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-semibold text-dash-ink">Upload Document</span>
+              </button>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                aria-label="Upload document"
+                className="sr-only"
+                disabled={busy}
+                onChange={(e) => void handleDocumentSelected(e)}
+              />
+
+              <button
+                type="button"
+                disabled
+                title="Coming soon"
+                className="relative flex flex-col items-center gap-2 rounded-[10px] border border-border bg-[color-mix(in_oklab,var(--color-white)_0.5%,#00000017)] px-3 py-5 text-center text-muted cursor-not-allowed"
+              >
+                <span className="absolute right-2 top-2 rounded-full bg-border px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                  Soon
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-border text-muted">
+                  <PlugIcon className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-semibold text-muted">Embed Resource</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {rows && rows.length > 0 && (
+        <div className="animate-entrance mt-6 rounded-[10px] border border-border bg-white shadow-sm">
           <div className="divide-y divide-border">
             {rows.map((row) => (
               <div key={row.id} className="flex items-center justify-between gap-4 px-5 py-3">

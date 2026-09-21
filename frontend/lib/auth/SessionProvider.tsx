@@ -26,8 +26,14 @@ export type SessionStatus = "loading" | "authenticated" | "anonymous";
 type SessionValue = {
   status: SessionStatus;
   user: MeResponse | null;
-  /** Ends the server-side session, then sends the caller to /welcome. */
+  /** Ends the server-side session, then sends the caller to /login (admin,
+   *  super_admin) or /welcome (everyone else), by the role they had. */
   signOut: () => Promise<void>;
+  /** True from the moment `signOut` is called until its redirect fires —
+   *  the awaited work (revoking the device token, ending the session, an
+   *  optional Keycloak reachability check) is otherwise invisible, so a
+   *  caller (the Sign out button) can show the app's one spinner instead. */
+  isSigningOut: boolean;
   /** Re-asks the server. For after a sign-in, or a role change taking effect. */
   refresh: () => Promise<void>;
 };
@@ -38,6 +44,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [status, setStatus] = useState<SessionStatus>("loading");
   const [user, setUser] = useState<MeResponse | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -63,6 +70,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [load]);
 
   const doSignOut = useCallback(async () => {
+    setIsSigningOut(true);
+
+    // Read before the session clears below — once `user` is null, the role
+    // is gone too, and a null role must never silently fall into either
+    // branch by accident. Admin and super_admin land back on Login; anyone
+    // else (a regular User/Viewer) lands on /welcome.
+    const role = user?.role;
+    const destination = role === "admin" || role === "super_admin" ? "/login" : "/welcome";
+
     // Before the session goes, while the cookie still authenticates the call.
     //
     // The token only, never the preference. A device token belongs to an
@@ -91,7 +107,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // access to them depends on SameSite rules that differ between browsers
     // and break silently — leaving someone signed in while being told they
     // are not.
-    const logoutUrl = keycloakLogoutUrl(takeIdToken(), `${window.location.origin}/welcome`);
+    const logoutUrl = keycloakLogoutUrl(takeIdToken(), `${window.location.origin}${destination}`);
     if (logoutUrl && (await isKeycloakReachable(new URL(logoutUrl).origin))) {
       window.location.assign(logoutUrl);
       return;
@@ -99,14 +115,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     // Reached when Keycloak is not configured at all, or is configured but
     // didn't answer (not running locally, network down, ...). Either way,
-    // this app's own session is already gone — send the caller to /welcome
-    // rather than a hard-navigating them into a connection-refused page for
-    // a host they never meant to visit directly and have no way back from.
-    router.replace("/welcome");
-  }, [router]);
+    // this app's own session is already gone — send the caller to their
+    // role's destination rather than a hard-navigating them into a
+    // connection-refused page for a host they never meant to visit directly
+    // and have no way back from.
+    router.replace(destination);
+  }, [router, user]);
 
   return (
-    <SessionContext.Provider value={{ status, user, signOut: doSignOut, refresh: load }}>
+    <SessionContext.Provider value={{ status, user, signOut: doSignOut, isSigningOut, refresh: load }}>
       {children}
     </SessionContext.Provider>
   );

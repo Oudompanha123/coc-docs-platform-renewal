@@ -51,7 +51,7 @@ export function RecentActivityPanel() {
   if (!visible) return null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white py-5 shadow-sm">
+    <div className="overflow-hidden rounded-[10px] border border-border bg-white py-5 shadow-sm">
       <div>
         <div className="flex items-center justify-between pl-5 pr-[15px]">
           <h2 className="text-base font-bold text-dash-ink">Recent Activity</h2>

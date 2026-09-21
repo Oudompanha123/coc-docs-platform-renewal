@@ -9,7 +9,7 @@ import { DownloadIcon, TrashIcon, WarningIcon } from "@/components/layout/icons"
  */
 export function DangerZoneCard() {
   return (
-    <div className="rounded-2xl border border-danger/40 bg-danger/5 p-6 shadow-sm">
+    <div className="rounded-[10px] border border-danger/40 bg-danger/5 p-6 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-danger to-[#e0873c] text-white">
           <WarningIcon className="h-5 w-5" />

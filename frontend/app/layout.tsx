@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
+import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,9 +31,34 @@ const pretendard = localFont({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const SITE_NAME = "Coc Docs Platform";
+const SITE_DESCRIPTION = "Internal documentation platform for Coc Docs Platform.";
+
 export const metadata: Metadata = {
-  title: "Coc Docs Platform",
-  description: "Internal documentation platform for Coc Docs Platform.",
+  // Required for the App Router's auto-detected app/opengraph-image.png and
+  // app/twitter-image.png to become absolute URLs in a shared link's
+  // preview — without it Next falls back to a default that does not point
+  // at this deployment. NEXT_PUBLIC_SITE_URL degrades to localhost, same
+  // "absent is a supported, non-fatal state" convention every other
+  // NEXT_PUBLIC_* var in this app already follows.
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  // icons (favicon.ico / icon.png / apple-icon.png) are Next.js App Router
+  // file-convention special files under app/ — auto-wired into <head>, no
+  // entry needed here.
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
@@ -62,6 +88,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans antialiased" suppressHydrationWarning>
+        <TopProgressBar />
         {children}
       </body>
     </html>

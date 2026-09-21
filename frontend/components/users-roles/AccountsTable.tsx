@@ -42,7 +42,7 @@ export function AccountsTable({
   onOpen: (account: ManagedAccount) => void;
 }) {
   return (
-    <div className="overflow-x-auto overflow-y-hidden rounded-xl border border-border">
+    <div className="overflow-x-auto overflow-y-hidden rounded-[10px] border border-border">
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted">

@@ -30,7 +30,7 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
-      <div className="animate-entrance flex max-h-[760px] w-full max-w-[960px] flex-col overflow-hidden rounded-[28px] bg-white shadow-xl md:flex-row">
+      <div className="animate-entrance flex max-h-[760px] w-full max-w-[960px] flex-col overflow-hidden rounded-[10px] bg-white shadow-xl md:flex-row">
         <div className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-gradient-to-br from-[#ded9f8] to-[#d3e2fb] px-6 py-8 text-center md:w-[50%] md:gap-6 md:px-10 md:py-16">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:block">
             <div className="absolute -left-10 -top-10 h-44 w-44 rounded-full bg-[#c8b8f2] opacity-60 blur-2xl" />

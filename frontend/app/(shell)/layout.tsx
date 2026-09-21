@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { ShellProvider, useShell } from "@/lib/layout/ShellContext";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
+import { LogoutLoadingDim } from "@/components/layout/LogoutLoadingDim";
 import { RequireSession } from "@/components/layout/RequireSession";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -12,6 +13,7 @@ function ShellContent({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider>
+      <LogoutLoadingDim />
       <RequireSession>
         <div data-shell="admin" className="min-h-screen bg-page lg:flex">
           <Sidebar isOpen={mobileNavOpen} onClose={closeMobileNav} />

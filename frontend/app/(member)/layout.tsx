@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
+import { LogoutLoadingDim } from "@/components/layout/LogoutLoadingDim";
 import { RequireMemberSession } from "@/components/home/RequireMemberSession";
 
 /**
@@ -13,6 +14,7 @@ import { RequireMemberSession } from "@/components/home/RequireMemberSession";
 export default function MemberLayout({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
+      <LogoutLoadingDim />
       <RequireMemberSession>{children}</RequireMemberSession>
     </SessionProvider>
   );

@@ -19,7 +19,7 @@ export function CodeBlock({ label, code }: { label?: string; code: string }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl bg-sidebar">
+    <div className="overflow-hidden rounded-[10px] bg-sidebar">
       <div className="flex items-center justify-between px-4 py-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-sidebar-muted">
           {label ?? "Code"}

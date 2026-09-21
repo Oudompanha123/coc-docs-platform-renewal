@@ -8,6 +8,7 @@ import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { createProduct, deleteProduct, fetchNavStructure } from "@/lib/docs/nav-api";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
+import { openInNewTabWithLoadingDim } from "./LoadingDim";
 import { UserAvatar } from "./UserAvatar";
 import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
 import { MonitorIcon, PlusIcon, XIcon } from "./icons";
@@ -32,6 +33,8 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
     <Link
       href={item.href}
       onClick={onClick}
+      target={item.newTab ? "_blank" : undefined}
+      rel={item.newTab ? "noopener noreferrer" : undefined}
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue ${
         active
@@ -59,7 +62,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   useEffect(() => {
     if (fetchedProducts) setProducts(fetchedProducts);
   }, [fetchedProducts]);
-  const navSections = visibleNavSections(session?.role, products ?? []);
+  const navSections = visibleNavSections(session?.role, products ?? [], session?.capabilities ?? []);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Same role floor the backend enforces on /api/v1/admin/nav/** — hiding
@@ -207,10 +210,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             admin session previewing the Member landing page (ADR-033), not
             leaving the admin app. /home admits admin/super_admin as a
             read-only preview (RequireMemberSession) precisely so this link
-            works rather than bouncing back to /overview. */}
+            works rather than bouncing back to /overview.
+
+            The new tab steals focus the instant it opens, so a LoadingDim
+            rendered back here would never actually be seen — the loading
+            state has to be written directly into the new tab instead (see
+            openInNewTabWithLoadingDim). `target`/`href` stay on the <Link>
+            so a middle-click/ctrl-click (which bypasses onClick entirely)
+            still opens the right place, just without that loading state. */}
         <Link
           href="/home"
           target="_blank"
+          onClick={(e) => {
+            e.preventDefault();
+            openInNewTabWithLoadingDim("/home");
+          }}
           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
         >
           <MonitorIcon className="h-[18px] w-[18px] shrink-0" />

@@ -63,9 +63,9 @@ export type ActivityFeed = {
   items: ActivityItem[];
   /** Badge count — unread only. Zero renders no badge. */
   count: number;
-  /** Marks one item read, here and in storage. */
+  /** Marks one item read, here and in storage. Takes the badge down by one. */
   markRead: (id: string) => void;
-  /** Marks everything currently in the feed read. */
+  /** Marks everything currently in the feed read — the header's shortcut. */
   markAllRead: () => void;
   refresh: () => Promise<void>;
 };

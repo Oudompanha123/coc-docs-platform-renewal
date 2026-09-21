@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AccountRole, AdminAccount } from "@/lib/admin/accounts";
+import { fetchCapabilities } from "@/lib/admin/accounts";
+import type { Capability } from "@/lib/auth/api";
 import { Modal } from "./Modal";
 import { RoleBadge } from "./RoleBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -26,6 +28,15 @@ const ROLE_CHOICES: { value: AccountRole; label: string; hint: string }[] = [
   { value: "super_admin", label: "Super Admin", hint: "Everything Admin does, plus who may do it." },
 ];
 
+/**
+ * Capabilities are layered on top of the role above, never a replacement for
+ * it (ADR-037) — hence a checkbox list, not a second `<select>`: they are a
+ * set, built to extend past this one entry.
+ */
+const CAPABILITY_CHOICES: { value: Capability; label: string; hint: string }[] = [
+  { value: "developer", label: "Developer", hint: "Access to AX Renewal, regardless of the role above." },
+];
+
 function formatWhen(iso: string | null): string {
   if (!iso) return "Never";
   const when = new Date(iso);
@@ -44,7 +55,12 @@ export function AccountDetailModal({
   isSelf: boolean;
   isLastActiveSuperAdmin: boolean;
   onClose: () => void;
-  onSave: (changes: { role?: AccountRole; active?: boolean; displayName?: string }) => Promise<void>;
+  onSave: (changes: {
+    role?: AccountRole;
+    active?: boolean;
+    displayName?: string;
+    capabilities?: Capability[];
+  }) => Promise<void>;
 }) {
   const [displayName, setDisplayName] = useState(account.displayName);
   const [role, setRole] = useState<AccountRole>(account.role);
@@ -52,15 +68,48 @@ export function AccountDetailModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Not embedded in AdminAccount (avoiding an N+1 on the accounts list) —
+  // fetched once when this modal opens for this account instead.
+  const [initialCapabilities, setInitialCapabilities] = useState<Capability[] | null>(null);
+  const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const [capabilitiesError, setCapabilitiesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setInitialCapabilities(null);
+    setCapabilitiesError(null);
+    fetchCapabilities(account.id)
+      .then((res) => {
+        if (cancelled) return;
+        setInitialCapabilities(res.capabilities);
+        setCapabilities(res.capabilities);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setCapabilitiesError(err instanceof Error ? err.message : "Couldn't load capabilities.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [account.id]);
+
   const nameChanged = displayName.trim() !== account.displayName && displayName.trim().length > 0;
   const roleChanged = role !== account.role;
   const activeChanged = active !== account.active;
-  const dirty = nameChanged || roleChanged || activeChanged;
+  const capabilitiesChanged =
+    initialCapabilities != null &&
+    (capabilities.length !== initialCapabilities.length ||
+      capabilities.some((c) => !initialCapabilities.includes(c)));
+  const dirty = nameChanged || roleChanged || activeChanged || capabilitiesChanged;
 
   // The backend refuses this too — it is the control; this is the explanation,
   // given before the person presses a button rather than after.
   const losingLastSuperAdmin =
     isLastActiveSuperAdmin && ((roleChanged && role !== "super_admin") || (activeChanged && !active));
+
+  function toggleCapability(value: Capability, checked: boolean) {
+    setCapabilities((prev) => (checked ? [...prev, value] : prev.filter((c) => c !== value)));
+  }
 
   async function handleSave() {
     if (!dirty || losingLastSuperAdmin) return;
@@ -71,6 +120,7 @@ export function AccountDetailModal({
         ...(nameChanged ? { displayName: displayName.trim() } : {}),
         ...(roleChanged ? { role } : {}),
         ...(activeChanged ? { active } : {}),
+        ...(capabilitiesChanged ? { capabilities } : {}),
       });
       onClose();
     } catch (err) {
@@ -169,6 +219,33 @@ export function AccountDetailModal({
           </p>
         </div>
 
+        <div>
+          <p className="mb-1.5 text-sm font-semibold text-ink">Capabilities</p>
+          <p className="mb-2 text-xs text-muted">
+            Layered on top of the role above — granting one never changes the role itself.
+          </p>
+          {capabilitiesError && (
+            <p className="mb-2 text-xs text-danger">{capabilitiesError}</p>
+          )}
+          <div className="space-y-2">
+            {CAPABILITY_CHOICES.map((choice) => (
+              <label key={choice.value} className="flex items-start gap-2.5 text-sm font-medium text-dash-ink">
+                <input
+                  type="checkbox"
+                  checked={capabilities.includes(choice.value)}
+                  disabled={initialCapabilities == null}
+                  onChange={(e) => toggleCapability(choice.value, e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple"
+                />
+                <span>
+                  {choice.label}
+                  <span className="block text-xs font-normal text-muted">{choice.hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         <label className="flex items-center gap-2.5 text-sm font-medium text-dash-ink">
           <input
             type="checkbox"
@@ -180,21 +257,21 @@ export function AccountDetailModal({
         </label>
 
         {isSelf && (roleChanged || activeChanged) && (
-          <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <p className="rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
             This is your own account. Lowering your role or deactivating yourself takes effect on
             your next request, and you may not be able to undo it here.
           </p>
         )}
 
         {losingLastSuperAdmin && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
             This is the only active super admin. Promote someone else first, or the system locks
             itself out of account management.
           </p>
         )}
 
         {error && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
             {error}
           </p>
         )}
