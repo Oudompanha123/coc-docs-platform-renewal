@@ -122,17 +122,13 @@ export function fetchDashboard(period: Period, offset = 0): Promise<ClaudeUsageD
   return request<ClaudeUsageDashboard>(`?period=${period}&offset=${offset}`);
 }
 
-/**
- * Adds someone to the tracking roster, `invited` until their own machine
- * reports for the first time. Only adds them to this dashboard's tracking
- * list — never changes their actual Claude Code access.
+/*
+ * There is no addMember here on purpose. The roster is filled by people
+ * running the reporter on their own machines — `ClaudeUsageService.recordUsage`
+ * creates the row on first report — so an admin adding an address by hand only
+ * ever produced a placeholder waiting for that same event. Members with status
+ * `invited` predate this and still render; nothing new reaches that state.
  */
-export function inviteMember(email: string, teamRole: TeamRole, displayName?: string): Promise<ClaudeUsageMemberSummary> {
-  return request<ClaudeUsageMemberSummary>("/members", {
-    method: "POST",
-    body: JSON.stringify({ email, teamRole, displayName }),
-  });
-}
 
 /** Changes the dashboard-scoped role — never the account system's own role. */
 export function updateMemberRole(id: string, teamRole: TeamRole): Promise<ClaudeUsageMemberSummary> {

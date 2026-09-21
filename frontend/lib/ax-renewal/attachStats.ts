@@ -4,13 +4,35 @@
  * a secrets scan of small config files, and the largest file. Nothing here
  * is fabricated or sampled: every field is counted or read directly from the
  * `FileList` the browser handed over. Mirrors the reference prototype's
- * Attach step (CodeRenewalPlatform.html), minus its staged progress-bar
- * animation — that was cosmetic, not part of what gets persisted.
+ * Attach step (CodeRenewalPlatform.html) stage for stage, including its
+ * five-stage progress readout — unlike the prototype, the stages below
+ * report real progress on real work (there are no artificial delays).
  *
- * Pure functions only, so they're cheap to unit test without a DOM.
+ * Pure functions only (DOM-free save for the `onStage` callback's timing),
+ * so they're cheap to unit test.
  */
 
+/** Matches the reference prototype's own `ATTACH_STAGES` labels, in order. */
+export const ATTACH_STAGE_LABELS = [
+  "Reading the file list",
+  "Measuring the archive",
+  "Grouping by file type",
+  "Looking for the entry point",
+  "Running the safety checks",
+] as const;
+
+export type AttachStageIndex = 0 | 1 | 2 | 3 | 4;
+
 export interface AxRenewalAttachStats {
+  /**
+   * The attached folder's own top-level name (e.g. "my-project"), read off
+   * the first file's relative path — matches the reference prototype's
+   * `stat.root`. Null only when nothing was picked at all; when loose files
+   * were chosen instead of a folder (no relative path to read a folder name
+   * from), this ends up being the first file's own name instead — a quirk
+   * inherited as-is from the prototype's identical fallback.
+   */
+  rootFolderName: string | null;
   fileCount: number;
   totalBytes: number;
   extensions: Record<string, number>;
@@ -64,28 +86,57 @@ function yieldToUi(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-export async function computeAttachStats(files: FileList | File[]): Promise<AxRenewalAttachStats> {
+export async function computeAttachStats(
+  files: FileList | File[],
+  onStage?: (stage: AttachStageIndex, detail: string) => void,
+): Promise<AxRenewalAttachStats> {
   const list = Array.from(files);
-  const extensions: Record<string, number> = {};
-  const buildOutputDirs = new Set<string>();
+  const paths = list.map(pathOf);
+  const rootFolderName = paths.length > 0 ? paths[0]!.split("/")[0]! || "(files)" : null;
+
+  // Stage 0 — the file list itself.
+  onStage?.(0, "");
+  for (let i = 0; i < list.length; i++) {
+    if (i % 500 === 0) {
+      onStage?.(0, `${(i + 1).toLocaleString()} files`);
+      await yieldToUi();
+    }
+  }
+  onStage?.(0, `${list.length.toLocaleString()} files`);
+
+  // Stage 1 — total size and the largest single file.
+  onStage?.(1, "");
   let totalBytes = 0;
   let largestFile: { name: string; size: number } | null = null;
-
   for (let i = 0; i < list.length; i++) {
     const file = list[i]!;
-    const path = pathOf(file);
     totalBytes += file.size;
     if (!largestFile || file.size > largestFile.size) {
-      largestFile = { name: path, size: file.size };
+      largestFile = { name: paths[i]!, size: file.size };
     }
+    if (i % 800 === 0) {
+      onStage?.(1, formatBytes(totalBytes));
+      await yieldToUi();
+    }
+  }
+  onStage?.(1, formatBytes(totalBytes));
+
+  // Stage 2 — group by extension and flag any committed build output.
+  onStage?.(2, "");
+  const extensions: Record<string, number> = {};
+  const buildOutputDirs = new Set<string>();
+  for (const path of paths) {
     const match = /\.([a-z0-9]+)$/i.exec(path.toLowerCase());
     const ext = match ? match[1]! : "(none)";
     extensions[ext] = (extensions[ext] ?? 0) + 1;
     const dirMatch = /(^|\/)(dist|build|out|node_modules|vendor)\//.exec(path);
     if (dirMatch) buildOutputDirs.add(dirMatch[2]!);
-    if (i % 500 === 0) await yieldToUi();
   }
+  onStage?.(2, `${Object.keys(extensions).length} file types`);
+  await yieldToUi();
 
+  // Stage 3 — the entry point: a recognized dependency manifest and lockfile.
+  onStage?.(3, "");
   let manifestFilename: string | null = null;
   let runtime: string | null = null;
   for (const [name, rt] of MANIFESTS) {
@@ -96,10 +147,13 @@ export async function computeAttachStats(files: FileList | File[]): Promise<AxRe
       break;
     }
   }
-
   const lockfile =
     LOCKFILES.find((name) => list.some((f) => pathOf(f).split("/").pop()?.toLowerCase() === name)) ?? null;
+  onStage?.(3, manifestFilename ?? "no manifest found");
+  await yieldToUi();
 
+  // Stage 4 — a secrets scan of small config-shaped files only.
+  onStage?.(4, "");
   const secretsFound: string[] = [];
   const candidates = list.filter((f) => CONFIGISH.test(pathOf(f)) && f.size < MAX_SCANNED_FILE_BYTES).slice(0, MAX_FILES_SCANNED_FOR_SECRETS);
   for (const file of candidates) {
@@ -109,10 +163,13 @@ export async function computeAttachStats(files: FileList | File[]): Promise<AxRe
     } catch {
       // Unreadable file — skip rather than fail the whole attach over one file.
     }
+    onStage?.(4, `${candidates.length} config files checked`);
     await yieldToUi();
   }
+  onStage?.(4, `${candidates.length} config files checked`);
 
   return {
+    rootFolderName,
     fileCount: list.length,
     totalBytes,
     extensions,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/auth/SessionProvider";
-import { useAxRenewalProject } from "@/lib/ax-renewal/useAxRenewalProject";
+import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 
 /**
  * A slim summary bar across the bottom of the AX Renewal shell, mirroring the
@@ -12,7 +12,7 @@ import { useAxRenewalProject } from "@/lib/ax-renewal/useAxRenewalProject";
  */
 export function AxRenewalStatusBar() {
   const { user } = useSession();
-  const { detail } = useAxRenewalProject();
+  const { detail } = useAxRenewalProjectContext();
 
   if (!detail) {
     return (
