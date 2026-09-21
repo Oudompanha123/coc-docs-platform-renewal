@@ -3,12 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PaperclipIcon, PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
+import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
+import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
+import { AxAssistantPanel } from "@/components/ax-renewal/AxAssistantPanel";
 import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { buildVerification, computeAttachStats, formatBytes, type AxRenewalAttachStats } from "@/lib/ax-renewal/attachStats";
 import type { AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { useAxRenewalProject } from "@/lib/ax-renewal/useAxRenewalProject";
 import {
@@ -69,6 +73,10 @@ export default function AxRenewalPage() {
     router.push(`/ax-renewal?project=${nextProjectId}&section=${section}`);
   }
 
+  function openTab(section: AxRenewalExplorerKey) {
+    if (projectId) goTo(projectId, section);
+  }
+
   const picker = (
     <ProjectPicker
       projects={projects}
@@ -83,100 +91,130 @@ export default function AxRenewalPage() {
   );
 
   return (
-    <div className="space-y-5">
-      {loadError && (
-        <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
-          {loadError}
-        </p>
-      )}
+    <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
+      <div className="min-w-0 flex-1 space-y-5">
+        <div className="space-y-5">
+          {/* One picker, two placements. With no project open it sits inside
+              the landing card, which is the only thing on screen and whose
+              whole job is to get somebody to pick or create one; with a
+              project open it sits above the workspace as a switcher. Kept as
+              a const so the two placements cannot drift apart. */}
+          {!detail && <AxRenewalLanding>{picker}</AxRenewalLanding>}
 
-      {!detail && <AxRenewalLanding>{picker}</AxRenewalLanding>}
+          {detail && (
+            <p className="text-sm text-muted">
+              Plan a legacy-code migration: attach, analyze, agree a plan, and record the sign-off.
+            </p>
+          )}
+
+          {detail && picker}
+
+          {loadError && (
+            <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
+              {loadError}
+            </p>
+          )}
+
+          {detail && (
+            <>
+              {/* The Understand/Plan/Build/Workspace navigation lives in the
+                  left sidebar (see AxRenewalSidebar.tsx) — this page only
+                  renders whichever leaf is selected there. */}
+              {active === "attach" && <AttachPanel detail={detail} canEdit={canEdit} onChanged={refresh} />}
+              {active === "codebase" && <CodebasePanel detail={detail} />}
+              {active === "understand-architecture" && <UnderstandArchitecturePanel detail={detail} />}
+              {active === "findings" && <FindingsPanel detail={detail} />}
+              {active === "old-new" && <OldNewPanel detail={detail} />}
+
+              {active === "stack-move" && (
+                <StackMoveSection
+                  layers={detail.stackLayers}
+                  confirmation={detail.confirmations.stack_move}
+                  canEdit={canEdit}
+                  canConfirm={canConfirm}
+                  onSave={async (rows) => {
+                    await updateStackMove(detail.project.id, rows);
+                    await refresh();
+                  }}
+                  onConfirm={() => void confirmSection(detail.project.id, "stack_move").then(refresh)}
+                  onReopen={() => void reopenSection(detail.project.id, "stack_move").then(refresh)}
+                />
+              )}
+              {active === "plan-architecture" && (
+                <ArchitectureSection
+                  architecture={detail.architecture}
+                  confirmation={detail.confirmations.architecture}
+                  canEdit={canEdit}
+                  canConfirm={canConfirm}
+                  onSave={async (summary) => {
+                    await updateArchitecture(detail.project.id, summary || null, null);
+                    await refresh();
+                  }}
+                  onConfirm={() => void confirmSection(detail.project.id, "architecture").then(refresh)}
+                  onReopen={() => void reopenSection(detail.project.id, "architecture").then(refresh)}
+                />
+              )}
+              {active === "pages" && (
+                <PagesSection
+                  pages={detail.pageMappings}
+                  confirmation={detail.confirmations.pages}
+                  canEdit={canEdit}
+                  canConfirm={canConfirm}
+                  onSave={async (rows) => {
+                    await updatePages(detail.project.id, rows);
+                    await refresh();
+                  }}
+                  onConfirm={() => void confirmSection(detail.project.id, "pages").then(refresh)}
+                  onReopen={() => void reopenSection(detail.project.id, "pages").then(refresh)}
+                />
+              )}
+              {active === "database" && (
+                <DatabaseSection
+                  connection={detail.dbConnection}
+                  changes={detail.dbChanges}
+                  confirmation={detail.confirmations.database}
+                  canEdit={canEdit}
+                  canConfirm={canConfirm}
+                  onConnect={async (input) => {
+                    await connectDatabase(detail.project.id, input);
+                    await refresh();
+                  }}
+                  onSaveChanges={async (rows) => {
+                    await updateDatabasePlan(detail.project.id, rows);
+                    await refresh();
+                  }}
+                  onConfirm={() => void confirmSection(detail.project.id, "database").then(refresh)}
+                  onReopen={() => void reopenSection(detail.project.id, "database").then(refresh)}
+                />
+              )}
+              {active === "output" && <OutputPanel detail={detail} canEdit={canEdit} onChanged={refresh} />}
+
+              {active === "implementation" && (
+                <ImplementationPanel detail={detail} canConfirm={canConfirm} onChanged={refresh} />
+              )}
+              {active === "run-locally" && <RunLocallyPanel />}
+              {active === "ai-engine" && <AiEnginePanel />}
+              {active === "audit-trail" && user?.role === "super_admin" && (
+                <AuditTrailPanel projectId={detail.project.id} />
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       {detail && (
-        <>
-          <p className="text-sm text-muted">
-            Plan a legacy-code migration: attach, analyze, agree a plan, and record the sign-off.
-          </p>
-
-          {picker}
-
-          {/* The Understand/Plan/Build navigation lives in the left sidebar
-              (see AxRenewalSidebar.tsx) — this page only renders whichever
-              leaf is selected there. */}
-          {active === "attach" && <AttachPanel detail={detail} canEdit={canEdit} onChanged={refresh} />}
-          {active === "codebase" && <CodebasePanel detail={detail} />}
-          {active === "understand-architecture" && <UnderstandArchitecturePanel detail={detail} />}
-          {active === "findings" && <FindingsPanel detail={detail} />}
-          {active === "old-new" && <OldNewPanel detail={detail} />}
-
-          {active === "stack-move" && (
-            <StackMoveSection
-              layers={detail.stackLayers}
-              confirmation={detail.confirmations.stack_move}
-              canEdit={canEdit}
-              canConfirm={canConfirm}
-              onSave={async (rows) => {
-                await updateStackMove(detail.project.id, rows);
-                await refresh();
-              }}
-              onConfirm={() => void confirmSection(detail.project.id, "stack_move").then(refresh)}
-              onReopen={() => void reopenSection(detail.project.id, "stack_move").then(refresh)}
-            />
-          )}
-          {active === "plan-architecture" && (
-            <ArchitectureSection
-              architecture={detail.architecture}
-              confirmation={detail.confirmations.architecture}
-              canEdit={canEdit}
-              canConfirm={canConfirm}
-              onSave={async (summary) => {
-                await updateArchitecture(detail.project.id, summary || null, null);
-                await refresh();
-              }}
-              onConfirm={() => void confirmSection(detail.project.id, "architecture").then(refresh)}
-              onReopen={() => void reopenSection(detail.project.id, "architecture").then(refresh)}
-            />
-          )}
-          {active === "pages" && (
-            <PagesSection
-              pages={detail.pageMappings}
-              confirmation={detail.confirmations.pages}
-              canEdit={canEdit}
-              canConfirm={canConfirm}
-              onSave={async (rows) => {
-                await updatePages(detail.project.id, rows);
-                await refresh();
-              }}
-              onConfirm={() => void confirmSection(detail.project.id, "pages").then(refresh)}
-              onReopen={() => void reopenSection(detail.project.id, "pages").then(refresh)}
-            />
-          )}
-          {active === "database" && (
-            <DatabaseSection
-              connection={detail.dbConnection}
-              changes={detail.dbChanges}
-              confirmation={detail.confirmations.database}
-              canEdit={canEdit}
-              canConfirm={canConfirm}
-              onConnect={async (input) => {
-                await connectDatabase(detail.project.id, input);
-                await refresh();
-              }}
-              onSaveChanges={async (rows) => {
-                await updateDatabasePlan(detail.project.id, rows);
-                await refresh();
-              }}
-              onConfirm={() => void confirmSection(detail.project.id, "database").then(refresh)}
-              onReopen={() => void reopenSection(detail.project.id, "database").then(refresh)}
-            />
-          )}
-          {active === "output" && <OutputPanel detail={detail} canEdit={canEdit} onChanged={refresh} />}
-
-          {active === "implementation" && (
-            <ImplementationPanel detail={detail} canConfirm={canConfirm} onChanged={refresh} />
-          )}
-          {active === "run-locally" && <RunLocallyPanel />}
-        </>
+        <AxAssistantPanel
+          active={active}
+          detail={detail}
+          canEdit={canEdit}
+          canConfirm={canConfirm}
+          onOpenTab={openTab}
+          onConfirm={(section) => confirmSection(detail.project.id, section).then(refresh)}
+          onReopen={(section) => reopenSection(detail.project.id, section).then(refresh)}
+          onRunAnalysis={() => runAnalysis(detail.project.id).then(refresh)}
+          onStartImplementation={() => startImplementation(detail.project.id).then(refresh)}
+          onPostComment={(text) => addComment(detail.project.id, text).then(refresh)}
+        />
       )}
     </div>
   );
@@ -257,7 +295,7 @@ function ProjectPicker({
             onChange={(e) => setName(e.target.value)}
             placeholder="Project name"
             required
-            className="rounded-xl border border-border px-3 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+            className="rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
           />
           <button
             type="submit"
@@ -300,6 +338,13 @@ function AttachPanel({
 
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [scannedCount, setScannedCount] = useState(0);
+  // The browser's own facts about the picked folder, computed as soon as it's
+  // chosen — shown as a live preview before Attach is even clicked, then sent
+  // alongside the manifest so it's persisted (see attachStats.ts). Cleared
+  // once attach succeeds, since `detail.project.attachStats` (from the
+  // server) becomes the source of truth from then on.
+  const [pickedStats, setPickedStats] = useState<AxRenewalAttachStats | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -308,32 +353,43 @@ function AttachPanel({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setScannedCount(files.length);
-    const manifest = findManifest(files);
-    setPendingFile(manifest);
-    setError(
-      manifest
-        ? null
-        : `No recognized manifest (${MANIFEST_FILENAMES.join(", ")}) was found among the ${files.length} files scanned.`,
-    );
+    setPendingFile(findManifest(files));
+    setPickedStats(null);
+    setError(null);
+    setScanning(true);
+    computeAttachStats(files)
+      .then(setPickedStats)
+      .finally(() => setScanning(false));
   }
 
+  // No recognized manifest is a fact about the project (a static site has no
+  // package.json), not a reason to refuse the attach — this still records the
+  // attach, just with a null filename/content, so `canEdit`'s Run analysis
+  // is never blocked behind finding a manifest that was never going to exist.
   async function handleAttach() {
-    if (!pendingFile) return;
+    if (scannedCount === 0) return;
     setAttaching(true);
     setError(null);
     try {
-      const content = await pendingFile.text();
-      const path = pendingFile.webkitRelativePath || pendingFile.name;
-      await attachManifest(detail.project.id, path, content);
+      if (pendingFile) {
+        const content = await pendingFile.text();
+        const path = pendingFile.webkitRelativePath || pendingFile.name;
+        await attachManifest(detail.project.id, path, content, pickedStats);
+      } else {
+        await attachManifest(detail.project.id, null, null, pickedStats);
+      }
       setPendingFile(null);
       setScannedCount(0);
+      setPickedStats(null);
       await onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't attach that manifest.");
+      setError(err instanceof Error ? err.message : "Couldn't attach that project.");
     } finally {
       setAttaching(false);
     }
   }
+
+  const shownStats = pickedStats ?? detail.project.attachStats;
 
   async function handleAnalyze() {
     setAnalyzing(true);
@@ -354,7 +410,8 @@ function AttachPanel({
         <h3 className="text-sm font-bold text-dash-ink">Attach</h3>
         <p className="mt-1 text-xs text-muted">
           Choose the project&apos;s folder — nothing is uploaded except the one dependency manifest found inside it
-          (e.g. <code>package.json</code>), which is what analysis reads.
+          (e.g. <code>package.json</code>), which is what analysis reads. A project with no recognized manifest (a
+          static site, say) can still be attached; analysis will note that none was found.
         </p>
 
         {detail.project.manifestFilename ? (
@@ -365,6 +422,11 @@ function AttachPanel({
               attached {detail.project.manifestAttachedAt ? new Date(detail.project.manifestAttachedAt).toLocaleString() : ""}
             </span>
           </p>
+        ) : detail.project.manifestAttachedAt ? (
+          <p className="mt-3 text-sm text-dash-ink">
+            Attached {new Date(detail.project.manifestAttachedAt).toLocaleString()} — no dependency manifest was
+            found in this project.
+          </p>
         ) : (
           <p className="mt-3 text-sm text-muted">Nothing attached yet.</p>
         )}
@@ -372,16 +434,23 @@ function AttachPanel({
         {canEdit && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <input ref={folderInputRef} type="file" multiple onChange={handleFolderSelect} className="text-sm" />
-            {pendingFile && (
+            {scanning && <span className="text-xs text-muted">Scanning {scannedCount} files…</span>}
+            {!scanning && pendingFile && (
               <span className="text-xs text-muted">
                 Found <span className="font-medium text-dash-ink">{pendingFile.webkitRelativePath || pendingFile.name}</span>{" "}
                 among {scannedCount} files scanned.
               </span>
             )}
+            {!scanning && scannedCount > 0 && !pendingFile && (
+              <span className="text-xs text-muted">
+                No recognized manifest ({MANIFEST_FILENAMES.join(", ")}) was found among the {scannedCount} files
+                scanned — attaching will record that.
+              </span>
+            )}
             <button
               type="button"
               onClick={() => void handleAttach()}
-              disabled={attaching || !pendingFile}
+              disabled={attaching || scanning || scannedCount === 0}
               className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <PaperclipIcon className="h-4 w-4" />
@@ -390,6 +459,66 @@ function AttachPanel({
           </div>
         )}
       </div>
+
+      {shownStats && (
+        <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-dash-ink">File types found</h3>
+            <span className="text-xs text-muted">{pickedStats ? "scanned just now — not yet attached" : "from the manifest, not from parsing"}</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(shownStats.extensions)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 14)
+              .map(([ext, count]) => (
+                <span
+                  key={ext}
+                  className="rounded-md border border-border bg-page px-2.5 py-1 font-mono text-xs text-dash-ink"
+                >
+                  .{ext} <b className="font-bold">{count}</b>
+                </span>
+              ))}
+          </div>
+          {shownStats.runtime && (
+            <p className="mt-3 text-xs text-muted">
+              Looks like a <span className="font-medium text-dash-ink">{shownStats.runtime}</span> project from{" "}
+              {shownStats.manifestFilename}. Run analysis confirms or corrects that.
+            </p>
+          )}
+        </div>
+      )}
+
+      {shownStats && (
+        <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-dash-ink">Verification</h3>
+            <span className="text-xs text-muted">
+              {buildVerification(shownStats).filter((r) => r.status === "ok").length} passed ·{" "}
+              {buildVerification(shownStats).filter((r) => r.status === "warn").length} to note
+            </span>
+          </div>
+          <div className="mt-3 divide-y divide-border">
+            {buildVerification(shownStats).map((row) => (
+              <div key={row.title} className="flex items-start gap-3 py-2.5">
+                <span
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                    row.status === "ok" ? "bg-brand-purple/10 text-brand-purple" : "bg-page text-muted"
+                  }`}
+                >
+                  {row.status === "ok" ? "✓" : "!"}
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-dash-ink">{row.title}</span>
+                  <span className="block text-xs text-muted">{row.detail}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-muted">
+            {shownStats.fileCount.toLocaleString()} files, {formatBytes(shownStats.totalBytes)} on disk.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
@@ -609,7 +738,7 @@ function OutputPanel({
           value={kind}
           disabled={!canEdit}
           onChange={(e) => setKind(e.target.value as typeof kind)}
-          className="rounded-xl border border-border bg-white px-3 py-2 text-sm focus:outline-none disabled:bg-page"
+          className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink focus:outline-none disabled:bg-page"
         >
           <option value="git_repo">Git repository</option>
           <option value="filesystem_path">Filesystem path</option>
@@ -620,14 +749,14 @@ function OutputPanel({
           disabled={!canEdit}
           onChange={(e) => setTarget(e.target.value)}
           placeholder="Target (repo URL or path)"
-          className="rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-2"
+          className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-2"
         />
         <input
           value={branch}
           disabled={!canEdit}
           onChange={(e) => setBranch(e.target.value)}
           placeholder="Branch (optional)"
-          className="rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-3"
+          className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-3"
         />
       </div>
 
@@ -649,6 +778,7 @@ function OutputPanel({
   );
 }
 
+/** Comments used to have their own card here — they now live in the AxAssistantPanel column, which is the one comment thread for the whole project, not just this tab. */
 function ImplementationPanel({
   detail,
   canConfirm,
@@ -659,8 +789,6 @@ function ImplementationPanel({
   onChanged: () => Promise<void>;
 }) {
   const [starting, setStarting] = useState(false);
-  const [comment, setComment] = useState("");
-  const [postingComment, setPostingComment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const allConfirmed = (["stack_move", "architecture", "pages", "database"] as PlanSection[]).every(
@@ -678,21 +806,6 @@ function ImplementationPanel({
       setError(err instanceof Error ? err.message : "Couldn't start implementation.");
     } finally {
       setStarting(false);
-    }
-  }
-
-  async function handleComment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!comment.trim()) return;
-    setPostingComment(true);
-    try {
-      await addComment(detail.project.id, comment.trim());
-      setComment("");
-      await onChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't post that comment.");
-    } finally {
-      setPostingComment(false);
     }
   }
 
@@ -727,34 +840,6 @@ function ImplementationPanel({
         )}
 
         {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
-      </div>
-
-      <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-dash-ink">Comments</h3>
-        <ul className="mt-3 space-y-2">
-          {detail.comments.map((c) => (
-            <li key={c.id} className="rounded-xl bg-page px-3 py-2 text-sm text-dash-ink">
-              <p>{c.body}</p>
-              <p className="mt-1 text-xs text-muted">{new Date(c.createdAt).toLocaleString()}</p>
-            </li>
-          ))}
-          {detail.comments.length === 0 && <p className="text-sm text-muted">No comments yet.</p>}
-        </ul>
-        <form onSubmit={(e) => void handleComment(e)} className="mt-3 flex gap-2">
-          <input
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Add a comment"
-            className="flex-1 rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
-          />
-          <button
-            type="submit"
-            disabled={postingComment || !comment.trim()}
-            className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Post
-          </button>
-        </form>
       </div>
     </div>
   );

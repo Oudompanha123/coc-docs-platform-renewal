@@ -107,7 +107,7 @@ export function StackMoveSection({
                     disabled={!canEdit}
                     onChange={(e) => updateRow(i, "oldTarget", e.target.value)}
                     placeholder="e.g. Node 12"
-                    className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                    className="w-full rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -116,7 +116,7 @@ export function StackMoveSection({
                     disabled={!canEdit}
                     onChange={(e) => updateRow(i, "newTarget", e.target.value)}
                     placeholder="stay on current"
-                    className="w-full rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                    className="w-full rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
                   />
                 </td>
               </tr>

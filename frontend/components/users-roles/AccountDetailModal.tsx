@@ -29,12 +29,15 @@ const ROLE_CHOICES: { value: AccountRole; label: string; hint: string }[] = [
 ];
 
 /**
- * Capabilities are layered on top of the role above, never a replacement for
- * it (ADR-037) — hence a checkbox list, not a second `<select>`: they are a
- * set, built to extend past this one entry.
+ * "AX Role" choices (ADR-039) — layered on top of the role above, never a
+ * replacement for it (ADR-037), hence a checkbox list rather than a
+ * `<select>`: an account may hold more than one, e.g. Tech Lead and
+ * Developer together on the same effort.
  */
 const CAPABILITY_CHOICES: { value: Capability; label: string; hint: string }[] = [
+  { value: "tech_lead", label: "Tech Lead", hint: "Leads an AX Renewal effort." },
   { value: "developer", label: "Developer", hint: "Access to AX Renewal, regardless of the role above." },
+  { value: "reviewer", label: "Reviewer", hint: "Reviews an AX Renewal plan." },
 ];
 
 function formatWhen(iso: string | null): string {
@@ -220,9 +223,10 @@ export function AccountDetailModal({
         </div>
 
         <div>
-          <p className="mb-1.5 text-sm font-semibold text-ink">Capabilities</p>
+          <p className="mb-1.5 text-sm font-semibold text-ink">AX Role</p>
           <p className="mb-2 text-xs text-muted">
-            Layered on top of the role above — granting one never changes the role itself.
+            Layered on top of the role above — granting one never changes the role itself. More
+            than one may be held at once.
           </p>
           {capabilitiesError && (
             <p className="mb-2 text-xs text-danger">{capabilitiesError}</p>
