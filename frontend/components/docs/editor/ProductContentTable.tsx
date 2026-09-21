@@ -5,7 +5,7 @@ import Link from "next/link";
 import { DocumentIcon, PlugIcon, PlusIcon, UploadIcon, XIcon } from "@/components/layout/icons";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { contentId } from "@/lib/docs/content-store";
-import { fetchDocContent } from "@/lib/docs/docs-content-api";
+import { fetchSavedSlugs } from "@/lib/docs/docs-content-api";
 import { createItem, deleteItem, fetchNavStructure } from "@/lib/docs/nav-api";
 import { hrefFor } from "@/lib/docs/nav-routing";
 import { EmptyContentIllustration } from "./EmptyContentIllustration";
@@ -47,13 +47,16 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
   async function loadRows(): Promise<Row[]> {
     const products = await fetchNavStructure();
     const items = products.find((p) => p.key === productKey)?.items ?? [];
-    return Promise.all(
-      items.map(async (item) => {
-        const id = contentId(productKey, item.slug);
-        const content = await fetchDocContent(id).catch(() => undefined);
-        return { id, slug: item.slug, label: item.label, hasContent: content !== undefined };
-      }),
+    const saved = await fetchSavedSlugs(
+      productKey,
+      items.map((item) => item.slug),
     );
+    return items.map((item) => ({
+      id: contentId(productKey, item.slug),
+      slug: item.slug,
+      label: item.label,
+      hasContent: saved.has(item.slug),
+    }));
   }
 
   async function reload() {
