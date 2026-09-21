@@ -8,21 +8,23 @@ import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
   BellIcon,
   ChevronDownIcon,
+  LayersIcon,
   LogOutIcon,
   MailIcon,
   PersonIcon,
-  SettingsIcon,
+  ReturnIcon,
 } from "@/components/layout/icons";
-import { ProductNavDropdown } from "@/components/home/ProductNavDropdown";
+import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { productHref } from "@/lib/home/product-links";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-type MenuKey = "bell" | "mail" | "user";
+type MenuKey = "bell" | "mail" | "user" | "products";
 
 /**
  * Which half of a panel's list is showing. Mirrors the admin Topbar's, and is
@@ -65,27 +67,83 @@ function CountIcon({
   );
 }
 
+/** Products mega-dropdown — 2-col grid with large lavender icon tiles. */
+function ProductsDropdown({
+  products,
+  onClose,
+}: {
+  products: NavProduct[];
+  onClose: () => void;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <div
+      role="menu"
+      className="absolute left-0 top-[72px] z-30 w-80 rounded-2xl border border-border bg-white p-4 shadow-xl"
+    >
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted">
+        PRODUCTS
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {products.map((product) => {
+          const Icon = PRODUCT_ICONS[product.icon] ?? LayersIcon;
+          const href = productHref(product.key);
+          const active = pathname === href || pathname?.startsWith(`${href}/`);
+          return (
+            <Link
+              key={product.key}
+              href={href}
+              role="menuitem"
+              onClick={onClose}
+              className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-brand-purple/10 ${
+                active ? "bg-brand-purple/10" : ""
+              }`}
+            >
+              <span
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-brand-purple ${
+                  active ? "bg-brand-purple/20" : "bg-brand-purple/10"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
+              <span
+                className={`truncate text-[15px] font-medium ${
+                  active ? "text-brand-purple" : "text-ink"
+                }`}
+              >
+                {product.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /**
- * The signed-in Member's own header for `/home` — same product links as
- * `/welcome`'s nav, but the right side shows real account chrome (bell, mail,
- * user chip) instead of Log in/Start free, since this reader is already
- * signed in. Built independently of `/welcome`'s header rather than importing
- * it, per this task's own "independent file" decision.
+ * The signed-in Member's header for `/home`.
+ * Nav: Home | Products ▾ | AI Renewal | How to Use
+ * Right: Notifications, Activity, User chip.
  */
+// onOpenNotifications is gone from this header on purpose: notification
+// settings now live inside the Profile modal (PushNotificationsCard), so the
+// user menu here is Profile and Log out. HomeFooter still takes the prop and
+// still opens that modal -- this removal is scoped to the header.
 export function MemberHeader({
   products,
   onOpenProfile,
-  onOpenNotifications,
 }: {
   products: NavProduct[];
   onOpenProfile: () => void;
-  onOpenNotifications: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
+  const productsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useCurrentUser();
-  const { signOut, isSigningOut } = useSession();
+  const { user: sessionUser, signOut, isSigningOut } = useSession();
   const notifications = useNotifications();
   const activity = useActivityFeed();
   // Same rule as the admin Topbar's panel: this lists what the badge counts and
@@ -128,10 +186,28 @@ export function MemberHeader({
     }
   }, [openMenu]);
 
+  const canManage = sessionUser?.role === "admin" || sessionUser?.role === "super_admin";
+
+  const isProductsActive =
+    pathname?.startsWith("/docs/") || pathname?.startsWith("/admin/products");
+
+  // Close right-side cluster on outside click
   useEffect(() => {
-    if (!openMenu) return;
+    if (!openMenu || openMenu === "products") return;
     function onClick(e: MouseEvent) {
-      if (clusterRef.current && !clusterRef.current.contains(e.target as Node)) setOpenMenu(null);
+      if (clusterRef.current && !clusterRef.current.contains(e.target as Node))
+        setOpenMenu(null);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [openMenu]);
+
+  // Close products dropdown on outside click
+  useEffect(() => {
+    if (openMenu !== "products") return;
+    function onClick(e: MouseEvent) {
+      if (productsRef.current && !productsRef.current.contains(e.target as Node))
+        setOpenMenu(null);
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -141,29 +217,74 @@ export function MemberHeader({
     setOpenMenu((current) => (current === key ? null : key));
   }
 
+  const navLinkClass = (active: boolean) =>
+    `flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
+      active ? "border-brand-purple font-bold text-ink" : "border-transparent text-muted"
+    }`;
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-[55px] w-auto rounded-lg" />
-        </div>
 
-        <nav className="hidden items-center gap-7 text-[18px] font-medium text-muted md:flex">
-          <Link
-            href="/home"
-            className={`flex h-[72px] items-center border-b-2 transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
-              pathname === "/home" ? "border-brand-purple font-bold text-ink" : "border-transparent"
-            }`}
-          >
+        {/* Logo */}
+        <Link href="/home" className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-[55px] w-auto rounded-lg" />
+        </Link>
+
+        {/* Primary nav */}
+        <nav className="hidden items-center gap-7 md:flex">
+          {/* Home */}
+          <Link href="/home" className={navLinkClass(pathname === "/home")}>
             Home
           </Link>
-          {products.map((product) => (
-            <ProductNavDropdown key={product.key} product={product} />
-          ))}
+
+          {/* Products dropdown */}
+          <div ref={productsRef} className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={openMenu === "products"}
+              onClick={() => toggleMenu("products")}
+              className={`${navLinkClass(isProductsActive)} gap-1`}
+            >
+              Products
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform duration-150 ${
+                  openMenu === "products" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {openMenu === "products" && (
+              <ProductsDropdown
+                products={products.filter((p) => p.key !== "ax-renewal")}
+                onClose={() => setOpenMenu(null)}
+              />
+            )}
+          </div>
+
+          {/* AI Renewal */}
+          <Link
+            href="/ax-renewal"
+            className={navLinkClass(pathname?.startsWith("/ax-renewal") ?? false)}
+          >
+            AI Renewal
+          </Link>
+
+          {/* How to Use */}
+          <Link
+            href="/docs/get-started"
+            className={navLinkClass(pathname?.startsWith("/docs/get-started") ?? false)}
+          >
+            How to Use
+          </Link>
         </nav>
 
+        {/* Right-side chrome */}
         <div className="flex items-center gap-2" ref={clusterRef}>
+
+          {/* Notifications */}
           <div className="relative">
             <CountIcon
               count={notifications.unreadCount}
@@ -252,6 +373,7 @@ export function MemberHeader({
             )}
           </div>
 
+          {/* Activity */}
           <div className="relative">
             <CountIcon
               count={activity.count}
@@ -305,8 +427,6 @@ export function MemberHeader({
                         key={item.id}
                         type="button"
                         role="menuitem"
-                        // Clears this line only — the badge goes down by one.
-                        // "Mark all as read" in the header clears the lot.
                         onClick={() => activity.markRead(item.id)}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                           item.read ? "" : "bg-brand-purple/5"
@@ -344,6 +464,7 @@ export function MemberHeader({
             )}
           </div>
 
+          {/* User chip */}
           <div className="relative ml-1">
             <button
               type="button"
@@ -383,27 +504,23 @@ export function MemberHeader({
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => {
-                      setOpenMenu(null);
-                      onOpenProfile();
-                    }}
+                    onClick={() => { setOpenMenu(null); onOpenProfile(); }}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
                     Profile
                   </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setOpenMenu(null);
-                      onOpenNotifications();
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
-                  >
-                    <SettingsIcon className="h-4 w-4 text-muted" />
-                    Notifications
-                  </button>
+                  {canManage && (
+                    <Link
+                      href="/overview"
+                      role="menuitem"
+                      onClick={() => setOpenMenu(null)}
+                      className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
+                    >
+                      <ReturnIcon className="h-4 w-4 text-muted" />
+                      Open Dashboard
+                    </Link>
+                  )}
                 </div>
                 <div className="border-t border-border py-1">
                   <button

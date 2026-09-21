@@ -61,127 +61,127 @@
    the .bg-page rule above), so a plain --color-* override in :root doesn't
    reach classes like .bg-white or .text-dash-ink — each one needs its own
    override here. Every rule below is scoped under
-   [data-shell="admin"] specifically so login/register/welcome (which share
+   :is([data-shell="admin"],[data-shell="home"]) specifically so login/register/welcome (which share
    several of these same class names, e.g. text-muted, border-border) are
    never touched, even if a visitor's last theme choice was "dark". */
-:root[data-theme="dark"] [data-shell="admin"] {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) {
   color-scheme: dark;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-white {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-white {
   background-color: #1e1a30;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-gray-100 {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-gray-100 {
   background-color: #2a2545;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .border-border {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .border-border {
   border-color: #332e4d;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-border {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-border {
   background-color: #332e4d;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .divide-border > :not([hidden]) ~ :not([hidden]) {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .divide-border > :not([hidden]) ~ :not([hidden]) {
   border-color: #332e4d;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .border-white {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .border-white {
   border-color: #1e1a30;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .text-dash-ink {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .text-dash-ink {
   color: #f2effa;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .text-dash-ink\/70 {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .text-dash-ink\/70 {
   color: rgb(242 239 250 / 70%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .text-ink {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .text-ink {
   color: #f2effa;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .text-muted {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .text-muted {
   color: #a79fc9;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-muted {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-muted {
   background-color: #a79fc9;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .placeholder\:text-muted::placeholder {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .placeholder\:text-muted::placeholder {
   color: #756c98;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .hover\:bg-page:hover {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .hover\:bg-page:hover {
   background-color: #2a2545;
 }
 
 /* AccountsTable's header tint + row hover use a literal #f8fafc (a specific
    hex the user asked for in light mode) rather than a theme token. */
-:root[data-theme="dark"] [data-shell="admin"] .bg-\[\#f8fafc\],
-:root[data-theme="dark"] [data-shell="admin"] .hover\:bg-\[\#f8fafc\]:hover {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-\[\#f8fafc\],
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .hover\:bg-\[\#f8fafc\]:hover {
   background-color: #2a2545;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .hover\:text-dash-ink:hover {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .hover\:text-dash-ink:hover {
   color: #f2effa;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-brand-purple\/10 {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-brand-purple\/10 {
   background-color: rgb(151 122 255 / 18%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-brand-purple\/20,
-:root[data-theme="dark"] [data-shell="admin"] .hover\:bg-brand-purple\/20:hover {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-brand-purple\/20,
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .hover\:bg-brand-purple\/20:hover {
   background-color: rgb(151 122 255 / 28%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-brand-blue\/10 {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-brand-blue\/10 {
   background-color: rgb(108 148 255 / 18%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .text-danger,
-:root[data-theme="dark"] [data-shell="admin"] .border-danger {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .text-danger,
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .border-danger {
   color: #ff6f86;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .border-danger {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .border-danger {
   border-color: #ff6f86;
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .border-danger\/40 {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .border-danger\/40 {
   border-color: rgb(255 111 134 / 40%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-danger\/10,
-:root[data-theme="dark"] [data-shell="admin"] .hover\:bg-danger\/10:hover {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-danger\/10,
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .hover\:bg-danger\/10:hover {
   background-color: rgb(255 111 134 / 16%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .bg-danger\/5 {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .bg-danger\/5 {
   background-color: rgb(255 111 134 / 8%);
 }
 
 /* Flat box-shadows render as near-invisible black-on-black once the surface
    they sit on is dark, so dark mode gets its own, more visible shadow scale
    instead of Tailwind's light-mode ones. */
-:root[data-theme="dark"] [data-shell="admin"] .shadow-sm {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .shadow-sm {
   box-shadow: 0 1px 2px rgb(0 0 0 / 45%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .shadow {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .shadow {
   box-shadow: 0 4px 10px rgb(0 0 0 / 45%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .shadow-lg {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .shadow-lg {
   box-shadow: 0 10px 25px rgb(0 0 0 / 50%), 0 4px 10px rgb(0 0 0 / 40%);
 }
 
-:root[data-theme="dark"] [data-shell="admin"] .shadow-xl {
+:root[data-theme="dark"] :is([data-shell="admin"],[data-shell="home"]) .shadow-xl {
   box-shadow: 0 20px 40px rgb(0 0 0 / 55%), 0 8px 16px rgb(0 0 0 / 40%);
 }
 

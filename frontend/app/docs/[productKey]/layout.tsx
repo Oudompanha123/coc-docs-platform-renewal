@@ -62,7 +62,6 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
         <MemberHeader
           products={products ?? []}
           onOpenProfile={() => setShowProfile(true)}
-          onOpenNotifications={() => setShowNotifications(true)}
         />
       </div>
 
