@@ -217,7 +217,7 @@
       "linkOnly": false,
       "firstBrokerLoginFlowAlias": "first broker login",
       "config": {
-        "clientId": "363168316067-3cjvgssmv6q41nbv4u08j7cjvr4b3g5e.apps.googleusercontent.com",
+        "clientId": "969744162829-6inohhbrde8te9nukkl1srq4s9nopntv.apps.googleusercontent.com",
         "syncMode": "FORCE",
         "clientSecret": "${env.GOOGLE_CLIENT_SECRET}",
         "prompt": "select_account",

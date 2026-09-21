@@ -1,4 +1,4 @@
-import { AuthApiError, type Capability } from "@/lib/auth/api";
+import { AuthApiError } from "@/lib/auth/api";
 
 /**
  * The account administration API — `/api/v1/admin/accounts`.
@@ -21,7 +21,7 @@ export class AdminApiError extends AuthApiError {}
 /** Thrown when the caller is signed in but is not a super admin. */
 export class NotPermittedError extends AdminApiError {}
 
-export type AccountRole = "guest" | "user" | "admin" | "super_admin";
+export type AccountRole = "guest" | "user" | "developer" | "reviewer" | "lead" | "admin" | "super_admin";
 
 /** `/api/v1/admin/accounts`' shape. */
 export interface AdminAccount {
@@ -98,14 +98,21 @@ export function createAccount(email: string, role: AccountRole): Promise<AdminAc
 }
 
 /**
- * Changes a role, an activation state, or both.
+ * Changes a role (or the whole set of roles), an activation state, or any
+ * combination.
+ *
+ * `roles` replaces the account's entire role set — an account can hold more
+ * than one (ADR-016; "effective role" is always the highest rank held). Send
+ * `role` for the ordinary single-role case; `roles` when more than one is
+ * being granted or kept at once. The backend prefers `roles` when both are
+ * present.
  *
  * Both in one call when both change: the backend applies them in a single
  * transaction, so a request that demotes and deactivates cannot half-succeed.
  */
 export function updateAccount(
   id: string,
-  changes: { role?: AccountRole; active?: boolean; displayName?: string },
+  changes: { role?: AccountRole; roles?: AccountRole[]; active?: boolean; displayName?: string },
 ): Promise<AdminAccount> {
   return request<AdminAccount>(`/${id}`, {
     method: "PATCH",
@@ -200,28 +207,4 @@ export function approveAccount(id: string, role: AccountRole): Promise<PendingAc
 /** Refuses an application. The row stays, so the trail still answers who was turned down. */
 export function rejectAccount(id: string): Promise<PendingAccount> {
   return request<PendingAccount>(`/${id}/reject`, { method: "POST" });
-}
-
-// -----------------------------------------------------------------------
-// Capabilities (ADR-037) — a second, rank-independent grant, layered on top
-// of the role above rather than replacing it. Not embedded in AdminAccount
-// or the bulk list response above (that would mean an N+1 on the backend);
-// fetched on demand for the account detail modal instead.
-// -----------------------------------------------------------------------
-
-export interface CapabilitiesResponse {
-  accountId: string;
-  capabilities: Capability[];
-}
-
-export function fetchCapabilities(id: string): Promise<CapabilitiesResponse> {
-  return request<CapabilitiesResponse>(`/${id}/capabilities`);
-}
-
-export function grantCapability(id: string, capability: Capability): Promise<CapabilitiesResponse> {
-  return request<CapabilitiesResponse>(`/${id}/capabilities/${capability}`, { method: "POST" });
-}
-
-export function revokeCapability(id: string, capability: Capability): Promise<CapabilitiesResponse> {
-  return request<CapabilitiesResponse>(`/${id}/capabilities/${capability}`, { method: "DELETE" });
 }

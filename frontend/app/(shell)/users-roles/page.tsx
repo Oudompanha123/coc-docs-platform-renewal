@@ -21,9 +21,6 @@ import {
   rejectAccount,
   updateAccount,
   deleteAccount,
-  grantCapability,
-  revokeCapability,
-  fetchCapabilities,
   type AccountRole as AdminRole,
   type AdminAccount,
   type PendingAccount,
@@ -31,7 +28,7 @@ import {
 } from "@/lib/admin/accounts";
 import { accountStatus, downloadUsersXlsx } from "@/lib/admin/export-users";
 import { type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
-import { me, type Capability } from "@/lib/auth/api";
+import { me } from "@/lib/auth/api";
 
 /**
  * The API speaks in accounts; this table speaks in rows. One place to translate
@@ -42,11 +39,15 @@ import { me, type Capability } from "@/lib/auth/api";
  * value to fill a column would be worse than admitting the column is empty.
  */
 function toRow(account: AdminAccount): ManagedAccount {
+  const roles = Array.from(
+    new Set(account.roles.map((r): AccountRole => (r === "guest" ? "user" : r))),
+  );
   return {
     id: account.id,
     name: account.displayName,
     email: account.email,
     role: account.role === "guest" ? "user" : account.role,
+    roles: roles.length > 0 ? roles : [account.role === "guest" ? "user" : account.role],
     // The rule itself lives in lib/admin/export-users, so this table and the
     // spreadsheet it exports cannot come to disagree about who is "Pending".
     // It is a login state rather than the backend's own `active` flag — see
@@ -204,7 +205,7 @@ export default function UsersRolesPage() {
         a.name.toLowerCase().includes(q) ||
         a.email.toLowerCase().includes(q) ||
         a.role.includes(q);
-      const matchesRole = roleFilter === "all" || a.role === roleFilter;
+      const matchesRole = roleFilter === "all" || a.roles.includes(roleFilter);
       const matchesStatus = statusFilter === "all" || a.status === statusFilter;
       return matchesQuery && matchesRole && matchesStatus;
     });
@@ -239,31 +240,10 @@ export default function UsersRolesPage() {
 
   const detail = detailId ? (records.find((r) => r.id === detailId) ?? null) : null;
 
-  async function handleSaveDetail(changes: {
-    role?: AdminRole;
-    active?: boolean;
-    displayName?: string;
-    capabilities?: Capability[];
-  }) {
+  async function handleSaveDetail(changes: { roles?: AdminRole[]; active?: boolean; displayName?: string }) {
     if (!detail) return;
-    const { capabilities: nextCapabilities, ...accountChanges } = changes;
-    let updated: AdminAccount = detail;
-    if (Object.keys(accountChanges).length > 0) {
-      updated = await updateAccount(detail.id, accountChanges);
-    }
-    // Capabilities are a separate grant mechanism from role/active (ADR-037),
-    // so they go through their own endpoints rather than updateAccount's
-    // PATCH — a single-key grant/revoke per changed capability, diffed
-    // against what the account currently holds.
-    if (nextCapabilities) {
-      const current = await fetchCapabilities(detail.id);
-      for (const capability of nextCapabilities.filter((c) => !current.capabilities.includes(c))) {
-        await grantCapability(detail.id, capability);
-      }
-      for (const capability of current.capabilities.filter((c) => !nextCapabilities.includes(c))) {
-        await revokeCapability(detail.id, capability);
-      }
-    }
+    if (Object.keys(changes).length === 0) return;
+    const updated = await updateAccount(detail.id, changes);
     setRecords((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
     setError(null);
   }

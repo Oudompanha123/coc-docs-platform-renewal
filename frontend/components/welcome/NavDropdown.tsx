@@ -1,19 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LayersIcon } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-/**
- * One top-nav product link with a dropdown of its full real sub-item list
- * (`FALLBACK_NAV`, same source `DashboardPreview.tsx` reads — no second
- * hardcoded copy). Opens on hover or click, closes on outside click or
- * Escape, and is `absolute`-positioned so opening it never shifts the nav
- * bar or the content below it.
- */
-export function NavDropdown({ product, isDark }: { product: NavProduct; isDark: boolean }) {
+export function NavDropdown({
+  product,
+  isDark,
+  onRequireAuth,
+}: {
+  product: NavProduct;
+  isDark: boolean;
+  onRequireAuth: (productLabel: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const Icon = PRODUCT_ICONS[product.icon] ?? LayersIcon;
@@ -35,10 +35,10 @@ export function NavDropdown({ product, isDark }: { product: NavProduct; isDark: 
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => onRequireAuth(product.label)}
         aria-haspopup="menu"
         aria-expanded={open}
         className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:font-bold ${
@@ -57,16 +57,17 @@ export function NavDropdown({ product, isDark }: { product: NavProduct; isDark: 
           }`}
         >
           {product.items.map((item) => (
-            <Link
+            <button
               key={item.slug || "index"}
-              href="/login"
+              type="button"
               role="menuitem"
-              className={`block truncate px-4 py-2 text-sm transition-colors ${
+              onClick={() => { setOpen(false); onRequireAuth(product.label); }}
+              className={`block w-full truncate px-4 py-2 text-left text-sm transition-colors ${
                 isDark ? "text-[#a79fc9] hover:bg-white/10 hover:text-[#f2effa]" : "text-muted hover:bg-page hover:text-ink"
               }`}
             >
               {item.label}
-            </Link>
+            </button>
           ))}
         </div>
       )}

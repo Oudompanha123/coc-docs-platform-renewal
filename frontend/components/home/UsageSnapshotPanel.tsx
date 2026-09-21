@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchDashboard, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { fill } from "@/lib/i18n/translations";
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -23,6 +25,7 @@ function BudgetBar({ pct }: { pct: number }) {
 
 export function UsageSnapshotPanel() {
   const { user } = useSession();
+  const { t } = useLanguage();
   const [me, setMe] = useState<ClaudeUsageMember | null | "none" | "error">(null);
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
@@ -47,10 +50,10 @@ export function UsageSnapshotPanel() {
         className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
       >
         <div>
-          <h3 className="text-base font-semibold text-brand-purple">Usage & reports</h3>
-          <p className="mt-1 text-sm text-muted">See how your team is using Claude Code across all products.</p>
+          <h3 className="text-base font-semibold text-brand-purple">{t.panels.usageTitle}</h3>
+          <p className="mt-1 text-sm text-muted">{t.panels.usageTagline}</p>
         </div>
-        <span className="mt-4 text-sm font-semibold text-brand-purple">View Usage docs →</span>
+        <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.viewUsageDocs}</span>
       </Link>
     );
   }
@@ -76,14 +79,12 @@ export function UsageSnapshotPanel() {
         className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
       >
         <div>
-          <h3 className="text-base font-semibold text-brand-purple">Usage & reports</h3>
+          <h3 className="text-base font-semibold text-brand-purple">{t.panels.usageTitle}</h3>
           <p className="mt-1 text-sm text-muted">
-            {me === "none"
-              ? "You are not yet on the tracking roster. Add yourself in Claude Usage to see your stats here."
-              : "Couldn't load usage data right now."}
+            {me === "none" ? t.panels.notOnRoster : t.panels.loadError}
           </p>
         </div>
-        <span className="mt-4 text-sm font-semibold text-brand-purple">Open Claude Usage →</span>
+        <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.openUsage}</span>
       </Link>
     );
   }
@@ -96,23 +97,23 @@ export function UsageSnapshotPanel() {
     <div className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm">
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-brand-purple">Your Claude Usage</h3>
+          <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
           <span className="rounded-full bg-brand-purple/10 px-2.5 py-0.5 text-xs font-semibold text-brand-purple capitalize">
-            This week
+            {t.panels.thisWeek}
           </span>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3">
           <div className="rounded-xl bg-page p-3">
-            <p className="text-xs text-muted">Tokens</p>
+            <p className="text-xs text-muted">{t.panels.tokens}</p>
             <p className="mt-0.5 text-lg font-bold text-ink">{fmt(me.totalTokens)}</p>
           </div>
           <div className="rounded-xl bg-page p-3">
-            <p className="text-xs text-muted">Cost (est.)</p>
+            <p className="text-xs text-muted">{t.panels.costEst}</p>
             <p className="mt-0.5 text-lg font-bold text-ink">${me.costUsd.toFixed(2)}</p>
           </div>
           <div className="rounded-xl bg-page p-3">
-            <p className="text-xs text-muted">Budget</p>
+            <p className="text-xs text-muted">{t.panels.budget}</p>
             <p className={`mt-0.5 text-lg font-bold ${pctColor}`}>{pct}%</p>
           </div>
         </div>
@@ -121,7 +122,7 @@ export function UsageSnapshotPanel() {
           <div className="mt-3">
             <BudgetBar pct={pct} />
             <p className="mt-1 text-xs text-muted">
-              {fmt(me.totalTokens)} / {fmt(me.effectiveBudgetTokens)} tokens used this week
+              {fill(t.panels.tokensUsed, { used: fmt(me.totalTokens), total: fmt(me.effectiveBudgetTokens) })}
             </p>
           </div>
         )}
@@ -137,7 +138,7 @@ export function UsageSnapshotPanel() {
         )}
 
         {me.totalTokens === 0 && (
-          <p className="mt-3 text-xs text-muted">No usage reported yet this week. Run the reporter script to see data here.</p>
+          <p className="mt-3 text-xs text-muted">{t.panels.noUsage}</p>
         )}
       </div>
 
@@ -145,7 +146,7 @@ export function UsageSnapshotPanel() {
         href="/claude-usage"
         className="mt-4 text-sm font-semibold text-brand-purple hover:underline"
       >
-        Open full dashboard →
+        {t.panels.openDashboard}
       </Link>
     </div>
   );

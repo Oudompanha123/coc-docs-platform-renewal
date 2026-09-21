@@ -5,6 +5,24 @@ import { DocsCodeBlock } from "./DocsCodeBlock";
 import { ICON_MAP } from "@/lib/docs/icon-map";
 import type { DocContent } from "@/lib/docs/content-types";
 
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  if (parts.length === 1) return text;
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("**") && part.endsWith("**") ? (
+          <strong key={i} className="font-semibold text-ink">
+            {part.slice(2, -2)}
+          </strong>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+}
+
 /** `admin` = inside AppShell (Jex3.0's current location, text-dash-ink);
  *  `docs` = inside the standalone /docs layout (text-ink). Same content
  *  shapes render in either shell — only the heading token differs, since
@@ -66,7 +84,18 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
             </span>
           </p>
           <h2 className={`mt-1 text-center text-2xl font-bold ${heading}`}>{content.sectionHeading}</h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">{content.sectionIntro}</p>
+          {content.sectionIntro.includes("\n") ? (
+            <ul className="mt-3 space-y-2 text-left text-base text-muted">
+              {content.sectionIntro.split("\n").filter(Boolean).map((line, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-purple" />
+                  <span>{renderInline(line.startsWith("• ") ? line.slice(2) : line)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-left text-base text-muted">{renderInline(content.sectionIntro)}</p>
+          )}
 
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {content.features.map((feature) => {
@@ -82,13 +111,30 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
                     )}
                   </div>
                   <h3 className={`mt-3 text-base font-semibold ${heading}`}>{feature.title}</h3>
-                  <p className="mt-1 text-sm text-muted">{feature.description}</p>
+                  <p className="mt-1 text-sm text-muted">{renderInline(feature.description)}</p>
                 </div>
               );
             })}
           </div>
 
-          {content.closingNote && <p className="mt-6 text-sm text-muted">{content.closingNote}</p>}
+          {content.closingNote && (
+            content.closingNote.includes("\n") ? (
+              <div className="mt-6 space-y-2 rounded-[10px] border border-border bg-page p-4">
+                {content.closingNote.split("\n").filter(Boolean).map((line, i) =>
+                  line.startsWith("• ") ? (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-purple" />
+                      <span className="text-sm text-muted">{renderInline(line.slice(2))}</span>
+                    </div>
+                  ) : (
+                    <p key={i} className={`text-sm font-semibold ${heading}`}>{renderInline(line)}</p>
+                  )
+                )}
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-muted">{content.closingNote}</p>
+            )
+          )}
         </div>
       </div>
     );
@@ -101,11 +147,11 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
           {content.eyebrow}
         </span>
         <h1 className={`mt-1 text-3xl font-bold ${heading}`}>{content.heading}</h1>
-        <p className="mt-3 text-base text-muted">{content.intro}</p>
+        <p className="mt-3 text-base text-muted">{renderInline(content.intro)}</p>
 
         {content.calloutText && (
           <div className="mt-6">
-            <DocsCallout tone={content.calloutTone ?? "info"}>{content.calloutText}</DocsCallout>
+            <DocsCallout tone={content.calloutTone ?? "info"}>{renderInline(content.calloutText)}</DocsCallout>
           </div>
         )}
 
@@ -121,12 +167,12 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
                       return (
                         <ul key={pi} className="list-disc space-y-1 pl-5">
                           {lines.map((l, li) => (
-                            <li key={li}>{l.slice(2)}</li>
+                            <li key={li}>{renderInline(l.slice(2))}</li>
                           ))}
                         </ul>
                       );
                     }
-                    return <p key={pi}>{para}</p>;
+                    return <p key={pi}>{renderInline(para)}</p>;
                   })}
                 </div>
               )}
@@ -145,11 +191,11 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
         {content.eyebrow}
       </span>
       <h1 className={`mt-1 text-3xl font-bold ${heading}`}>{content.heading}</h1>
-      <p className="mt-3 text-base text-muted">{content.intro}</p>
+      <p className="mt-3 text-base text-muted">{renderInline(content.intro)}</p>
 
       {content.calloutText && (
         <div className="mt-6">
-          <DocsCallout>{content.calloutText}</DocsCallout>
+          <DocsCallout>{renderInline(content.calloutText)}</DocsCallout>
         </div>
       )}
 
@@ -160,7 +206,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
             className={i < content.sections.length - 1 ? "border-b border-border pb-8" : ""}
           >
             <h2 className={`text-lg font-bold ${heading}`}>{section.title}</h2>
-            {section.note && <p className="mt-2 text-sm text-muted">{section.note}</p>}
+            {section.note && <p className="mt-2 text-sm text-muted">{renderInline(section.note)}</p>}
             {section.command && (
               <div className="mt-3">
                 <DocsCodeBlock code={section.command} />

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
 import { RoleMultiSelect } from "./RoleMultiSelect";
-import { highestEnforcedRole, type AccountRole, type DisplayRole } from "@/lib/mock/users-roles";
+import { highestEnforcedRole, type AccountRole } from "@/lib/mock/users-roles";
 
 /**
  * Backed by the real `POST /api/v1/admin/accounts` (super_admin only). The
@@ -27,7 +27,7 @@ export function AddAccountModal({
   onAdd: (email: string, role: AccountRole) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
-  const [roles, setRoles] = useState<DisplayRole[]>(["user"]);
+  const [roles, setRoles] = useState<AccountRole[]>(["user"]);
   const [error, setError] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,7 +75,7 @@ export function AddAccountModal({
       {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
 
       <span className="mb-1.5 mt-4 block text-sm font-semibold text-ink">Roles</span>
-      <RoleMultiSelect idPrefix="add-account-role" selected={roles} onChange={setRoles} />
+      <RoleMultiSelect idPrefix="add-account-role" selected={roles} onChange={setRoles} collapseToHighest />
 
       <div className="mt-6 flex justify-end gap-3">
         <button

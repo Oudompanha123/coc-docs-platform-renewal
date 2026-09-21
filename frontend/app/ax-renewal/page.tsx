@@ -62,7 +62,10 @@ function findManifest(files: FileList): File | null {
 export default function AxRenewalPage() {
   const { user } = useSession();
   const canEdit = user?.role === "admin" || user?.role === "super_admin";
-  const canConfirm = user?.role === "super_admin" || (user?.capabilities?.includes("developer") ?? false);
+  // Exact membership, not rank: an Admin does not pass this just by
+  // out-ranking Developer (AppRole.exactAuthority(), ADR-039) — matches
+  // SecurityConfig's confirm/reopen/start-implementation gate exactly.
+  const canConfirm = user?.role === "super_admin" || (user?.roles?.includes("developer") ?? false);
 
   const router = useRouter();
   const searchParams = useSearchParams();

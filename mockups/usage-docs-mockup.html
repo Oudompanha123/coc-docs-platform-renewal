@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Usage Docs — Mockup</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --purple: #6c63ff;
+    --purple-light: rgba(108,99,255,0.10);
+    --ink: #1a1a2e;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --page: #f0f0f5;
+    --white: #ffffff;
+    --green: #059669;
+    --amber: #d97706;
+    --blue: #3b82f6;
+    --blue-light: rgba(59,130,246,0.08);
+    --danger: #dc2626;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--page); color: var(--ink); min-height: 100vh; }
+
+  /* ── NAV TABS ── */
+  .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--white); padding: 0 32px; position: sticky; top: 0; z-index: 10; }
+  .tab { padding: 14px 20px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; cursor: pointer; text-decoration: none; transition: color .15s; white-space: nowrap; }
+  .tab.active { color: var(--purple); border-bottom-color: var(--purple); }
+  .tab:hover:not(.active) { color: var(--ink); }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ── EYEBROW ── */
+  .eyebrow { display: inline-block; background: var(--purple-light); color: var(--purple); font-size: 12px; font-weight: 700; letter-spacing: .04em; border-radius: 20px; padding: 4px 12px; margin-bottom: 16px; }
+
+  /* ── HERO ── */
+  .hero-heading { font-size: 36px; font-weight: 800; line-height: 1.2; color: var(--ink); margin-bottom: 12px; }
+  .hero-sub { font-size: 16px; color: var(--muted); line-height: 1.6; margin-bottom: 40px; }
+
+  /* ── CALLOUT ── */
+  .callout { display: flex; gap: 12px; align-items: flex-start; background: var(--blue-light); border-left: 3px solid var(--blue); border-radius: 10px; padding: 14px 16px; margin-bottom: 32px; font-size: 14px; color: #1e40af; line-height: 1.6; }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── STEPS ── */
+  .steps { display: flex; flex-direction: column; gap: 0; margin-bottom: 40px; }
+  .step { display: flex; gap: 20px; padding: 28px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step-number { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .step-body { flex: 1; min-width: 0; }
+  .step-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+  .step-desc { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+  .step-code { background: #1e1e2e; color: #cdd6f4; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; border-radius: 10px; padding: 14px 18px; white-space: pre; overflow-x: auto; }
+  .step-code .comment { color: #6c7086; }
+  .step-code .keyword { color: #cba6f7; }
+  .step-code .string { color: #a6e3a1; }
+  .step-code .var { color: #89dceb; }
+  .step-output { background: #1a1a2e; color: #6b7280; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; border-radius: 0 0 10px 10px; padding: 10px 18px; margin-top: -8px; white-space: pre; overflow-x: auto; border-top: 1px solid #2a2a4a; }
+  .step-tag { display: inline-flex; align-items: center; gap: 6px; background: rgba(5,150,105,0.1); color: var(--green); font-size: 12px; font-weight: 600; border-radius: 20px; padding: 3px 10px; margin-top: 10px; }
+  .step-tag-amber { background: rgba(217,119,6,0.1); color: var(--amber); }
+
+  /* ── SECTIONS ── */
+  .section-heading { font-size: 22px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+  .section-subheading { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+  .section-card { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .section-card-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .section-card-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .icon-purple { background: var(--purple-light); }
+  .icon-green { background: rgba(5,150,105,0.10); }
+  .icon-amber { background: rgba(217,119,6,0.10); }
+  .icon-blue { background: rgba(59,130,246,0.10); }
+  .section-card-body { font-size: 14px; color: var(--muted); line-height: 1.7; }
+  .section-card-body ul { padding-left: 20px; margin-top: 8px; }
+  .section-card-body li { margin-bottom: 4px; }
+  .section-card-body strong { color: var(--ink); font-weight: 600; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 2px 8px; margin-left: 6px; }
+  .badge-admin { background: rgba(108,99,255,0.12); color: var(--purple); }
+  .badge-member { background: rgba(107,114,128,0.12); color: var(--muted); }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+  /* ── PAGE SWITCHER ── */
+  .page-panel { display: none; }
+  .page-panel.active { display: block; }
+
+  /* ── BREADCRUMB ── */
+  .breadcrumb { font-size: 12px; color: var(--muted); margin-bottom: 24px; display: flex; align-items: center; gap: 6px; }
+  .breadcrumb a { color: var(--purple); text-decoration: none; font-weight: 600; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { color: var(--border); }
+
+  /* ── LABEL ── */
+  .note { font-size: 12px; color: var(--muted); margin-top: 16px; line-height: 1.6; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- Tab bar mimicking the docs product tab bar -->
+<nav class="tab-bar">
+  <a class="tab active" onclick="showPage('setup')" href="#">Setup guide</a>
+  <a class="tab" onclick="showPage('config')" href="#">Configuration</a>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 1: SETUP GUIDE
+══════════════════════════════════════════════ -->
+<div class="page-panel active" id="setup">
+  <div class="page">
+    <div class="breadcrumb">
+      <a href="#">Usage</a>
+      <span>›</span>
+      Setup guide
+    </div>
+
+    <div class="eyebrow">Setup guide</div>
+    <h1 class="hero-heading">Get the dashboard reporting real numbers.</h1>
+    <p class="hero-sub">Five steps — from installing the reporter script to seeing your team's daily Claude usage live on the dashboard.</p>
+
+    <div class="callout">
+      <span class="callout-icon">ℹ</span>
+      <span>You need <strong>admin</strong> or <strong>super_admin</strong> role to complete steps 1 and 4. Any team member can complete steps 2 and 3 on their own machine.</span>
+    </div>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-body">
+          <div class="step-title">Copy your ingest secret</div>
+          <div class="step-desc">In the admin panel, open <strong>Claude Usage → Configuration</strong>. Copy the <strong>Ingest Secret</strong> shown there. This is the bearer token the reporter script uses to submit daily numbers — keep it out of version control.</div>
+          <span class="step-tag">&#x2714; Admin only</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-body">
+          <div class="step-title">Download the reporter script</div>
+          <div class="step-desc">Save the script to a folder on your machine. It reads from the Claude Code local usage log and POST the day's token totals to the platform.</div>
+          <div class="step-code"><span class="comment"># Download the reporter (one-time)</span>
+curl -o ~/scripts/report-claude-usage.sh \
+  https://platform.coc.internal/scripts/report-claude-usage.sh
+chmod +x ~/scripts/report-claude-usage.sh</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-body">
+          <div class="step-title">Configure and run it once</div>
+          <div class="step-desc">Set the two required environment variables and do a manual run to confirm data reaches the dashboard before automating.</div>
+          <div class="step-code"><span class="keyword">export</span> <span class="var">COC_INGEST_URL</span>=<span class="string">"https://platform.coc.internal/api/ingest"</span>
+<span class="keyword">export</span> <span class="var">COC_INGEST_SECRET</span>=<span class="string">"paste-your-secret-here"</span>
+
+<span class="comment"># Run once manually</span>
+~/scripts/report-claude-usage.sh</div>
+          <div class="step-output">Reported 2026-09-18: input=148320 output=41200 cache_read=0 cost_usd=0.0891
+OK</div>
+          <div class="step-desc" style="margin-top:12px;">If you see <strong>OK</strong>, your numbers are live. If you see an error, check that the secret matches what is shown in Configuration.</div>
+          <span class="step-tag step-tag-amber">&#9888; Verify OK before continuing</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-body">
+          <div class="step-title">Schedule it to run daily</div>
+          <div class="step-desc">Add a cron job that fires once a day — end of day works best so the numbers are complete. The script is idempotent: running it twice on the same day overwrites (not doubles) the row.</div>
+          <div class="step-code"><span class="comment"># Open crontab</span>
+crontab -e
+
+<span class="comment"># Add this line (runs at 23:30 every day)</span>
+<span class="string">30 23 * * * COC_INGEST_URL="..." COC_INGEST_SECRET="..." ~/scripts/report-claude-usage.sh</span></div>
+          <span class="step-tag">&#x2714; One-time setup per machine</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-body">
+          <div class="step-title">Invite team members to the dashboard</div>
+          <div class="step-desc">Go to <strong>Claude Usage → Members</strong> and click <strong>Invite teammate</strong>. Enter their email address (must match the one Claude Code uses on their machine). Once invited, their next daily report will flip their status from <em>Invited</em> to <em>Active</em> automatically.</div>
+          <div class="step-desc">You can also set a per-member weekly token budget at invite time, or adjust it later from the <strong>Budget overrides</strong> panel.</div>
+          <span class="step-tag">&#x2714; Done — check back tomorrow for data</span>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="note">The script reports the full running total for the day on each run. If your machine was off, it will catch up on the next run. Historical days already reported are never deleted, even if you are later removed from the roster.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 2: CONFIGURATION
+══════════════════════════════════════════════ -->
+<div class="page-panel" id="config">
+  <div class="page">
+    <div class="breadcrumb">
+      <a href="#">Usage</a>
+      <span>›</span>
+      Configuration
+    </div>
+
+    <div class="eyebrow">Configuration</div>
+    <h1 class="hero-heading">Manage your team's usage settings.</h1>
+    <p class="hero-sub">Everything you can configure on the Claude Usage dashboard — roles, budgets, the ingest secret, and reporting periods.</p>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 1: ROLES -->
+    <div class="section-heading">Roles</div>
+    <div class="section-subheading">The Usage dashboard has its own two-level role system, independent of your platform role.</div>
+
+    <div class="section-card">
+      <div class="section-card-title">
+        <div class="section-card-icon icon-purple">&#x1F451;</div>
+        Admin <span class="badge badge-admin">admin</span>
+      </div>
+      <div class="section-card-body">
+        Can do everything a member can, plus:
+        <ul>
+          <li>Invite and remove team members from the roster</li>
+          <li>Set or clear individual budget overrides</li>
+          <li>View the ingest secret in Configuration</li>
+          <li>Export usage reports to XLSX / ZIP</li>
+        </ul>
+        <strong>Who should be admin?</strong> Team leads and whoever manages Claude Code licences.
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-icon icon-blue" style="display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div class="section-card-icon icon-blue">&#x1F464;</div>
+        <strong>Member</strong> <span class="badge badge-member">member</span>
+      </div>
+      <div class="section-card-body">
+        Can view the usage table and chart for the current period. Cannot see other people's individual token breakdown unless they are on the roster themselves.
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 2: BUDGET -->
+    <div class="section-heading">Budget overrides</div>
+    <div class="section-subheading">The dashboard shows each member's usage against a weekly token budget. You can set a team-wide default and override it per person.</div>
+
+    <div class="section-card">
+      <div class="section-card-title">
+        <div class="section-card-icon icon-green">&#x1F4B0;</div>
+        Team default budget
+      </div>
+      <div class="section-card-body">
+        Set in <strong>Configuration → Default weekly budget</strong>. Applies to every member who does not have a personal override. Displayed as a progress bar on the chart — green below 80%, amber 80–100%, red above.
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-title">
+        <div class="section-card-icon icon-amber">&#x2699;</div>
+        Per-member override
+      </div>
+      <div class="section-card-body">
+        Open <strong>Budget overrides</strong> panel, find the member, enter a token count. Leave blank to revert to the team default. The override scales automatically when switching between Day / Week / Month views so the comparison always makes sense.
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 3: INGEST SECRET -->
+    <div class="section-heading">Ingest secret</div>
+    <div class="section-subheading">The shared bearer token that reporter scripts use to submit daily usage data.</div>
+
+    <div class="section-card">
+      <div class="section-card-title">
+        <div class="section-card-icon icon-purple">&#x1F511;</div>
+        Rotating the secret
+      </div>
+      <div class="section-card-body">
+        If the secret is compromised, click <strong>Rotate secret</strong> in Configuration. A new secret is generated immediately. All reporter scripts using the old secret will start failing — update their environment variable before the next scheduled run. There is no grace period.
+        <br/><br/>
+        <strong>Do not commit the secret to version control.</strong> Pass it as an environment variable or store it in your machine's keychain.
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SECTION 4: PERIOD -->
+    <div class="section-heading">Reporting period</div>
+    <div class="section-subheading">The period selector (Day / Week / Month) controls which rows are summed for the usage table and chart.</div>
+
+    <div class="section-card">
+      <div class="section-card-title">
+        <div class="section-card-icon icon-blue">&#x1F4C5;</div>
+        How period scaling works
+      </div>
+      <div class="section-card-body">
+        <ul>
+          <li><strong>Day</strong> — shows today's totals vs. 1/7 of the weekly budget.</li>
+          <li><strong>Week</strong> — shows this calendar week vs. the full weekly budget.</li>
+          <li><strong>Month</strong> — shows this calendar month vs. 4× the weekly budget.</li>
+        </ul>
+        <br/>
+        Per-member budget overrides use the same multiplier, so switching periods never changes whether someone appears over or under budget relative to their allocation.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function showPage(id) {
+    document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.target.classList.add('active');
+    event.preventDefault();
+  }
+</script>
+</body>
+</html>

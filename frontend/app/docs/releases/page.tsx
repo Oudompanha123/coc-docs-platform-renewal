@@ -1,7 +1,7 @@
 type Release = {
   date: string;
   title: string;
-  items: string[];
+  items: React.ReactNode[];
 };
 
 /** Sourced from this repo's real git history — not fabricated version numbers. */
@@ -10,28 +10,28 @@ const RELEASES: Release[] = [
     date: "2026-09-11",
     title: "Password sign-up, and a cleaner Register form",
     items: [
-      "Email/password self-registration, alongside Google sign-in",
-      "Backend logs to console and file, with more detail in development",
-      "Every backend environment variable is now documented",
+      <><strong>Email/password</strong> self-registration, alongside <strong>Google</strong> sign-in</>,
+      <><strong>Backend</strong> logs to console and file, with more detail in development</>,
+      <>Every <strong>backend</strong> environment variable is now documented</>,
     ],
   },
   {
     date: "2026-09-10",
     title: "Settings, Users & Roles, and a public Welcome page",
     items: [
-      "Users & Roles admin page — manage accounts, roles, and access",
-      "Settings page for personal preferences",
-      "Sign in with Google, brokered through Keycloak",
-      "A 404 page that doesn't just show a blank screen",
+      <><strong>Users & Roles</strong> admin page — manage accounts, roles, and access</>,
+      <><strong>Settings</strong> page for personal preferences</>,
+      <>Sign in with <strong>Google</strong>, brokered through <strong>Keycloak</strong></>,
+      <>A 404 page that doesn&apos;t just show a blank screen</>,
     ],
   },
   {
     date: "2026-09-09",
     title: "The admin app goes live",
     items: [
-      "Authenticated app shell and the Overview dashboard",
-      "Backend auth, accounts, and content API with default-deny authorization",
-      "Google ID token verification, with real backend sessions",
+      <>Authenticated app shell and the <strong>Overview</strong> dashboard</>,
+      <><strong>Backend</strong> auth, accounts, and content <strong>API</strong> with default-deny authorization</>,
+      <><strong>Google ID token</strong> verification, with real backend sessions</>,
     ],
   },
 ];
@@ -61,8 +61,8 @@ export default function ReleasesPage() {
             </div>
             <h2 className="mt-1 text-lg font-bold text-ink">{release.title}</h2>
             <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted">
-              {release.items.map((item) => (
-                <li key={item}>{item}</li>
+              {release.items.map((item, i) => (
+                <li key={i}>{item}</li>
               ))}
             </ul>
           </div>

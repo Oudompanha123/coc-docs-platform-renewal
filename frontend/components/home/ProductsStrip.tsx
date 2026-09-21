@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { LayersIcon } from "@/components/layout/icons";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { NavProduct } from "@/lib/docs/nav-api";
 import type { StatCardData } from "@/lib/mock/overview";
 import { productHref } from "@/lib/home/product-links";
@@ -10,9 +13,10 @@ import { productHref } from "@/lib/home/product-links";
  *  from the same `computeProductStats` numbers as the glance cards above,
  *  not a second judgment about what counts as "written". */
 export function ProductsStrip({ products, stats }: { products: NavProduct[]; stats: StatCardData[] }) {
+  const { t } = useLanguage();
   return (
     <section id="products" className="animate-entrance border-y border-border bg-white px-6 py-10">
-      <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted">Your products</p>
+      <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted">{t.productsStrip.label}</p>
       <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-3">
         {products.map((product) => {
           const stat = stats.find((s) => s.id === product.key);

@@ -127,6 +127,24 @@ export async function fetchNavStructure(): Promise<NavProduct[]> {
   return FALLBACK_NAV;
 }
 
+/** Same request as {@link fetchNavStructure}, but throws (`NavApiError`)
+ *  instead of substituting {@link FALLBACK_NAV} on failure — for a page
+ *  like Overview or Member Home that needs to tell "the backend is down"
+ *  apart from "here is the real, current product list", rather than quietly
+ *  rendering the static snapshot as if it were live data. */
+export async function fetchNavStructureOrThrow(): Promise<NavProduct[]> {
+  let response: Response;
+  try {
+    response = await fetch(NAV_URL, { credentials: "include" });
+  } catch {
+    throw new NavApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    throw new NavApiError("Couldn't load your products. Please try again.");
+  }
+  return (await response.json()) as NavProduct[];
+}
+
 async function adminRequest(path: string, method: string, body?: unknown): Promise<Response> {
   let response: Response;
   try {
