@@ -12,17 +12,19 @@ type MockSession = {
   user: Partial<MeResponse> | null;
 };
 
-const { replace, session } = vi.hoisted(() => ({
+const { replace, session, pathname } = vi.hoisted(() => ({
   replace: vi.fn(),
   // A box: the mock factories below close over this reference once, so
   // each test mutates `.current` instead of re-mocking the module.
   session: {
     current: { status: "authenticated", user: { role: "admin", mustChangePassword: false } } as MockSession,
   },
+  pathname: { current: "/overview" },
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
+  usePathname: () => pathname.current,
 }));
 
 vi.mock("@/lib/auth/SessionProvider", () => ({
@@ -32,6 +34,7 @@ vi.mock("@/lib/auth/SessionProvider", () => ({
 describe("RequireSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    pathname.current = "/overview";
   });
 
   it("renders the admin app for an admin role", () => {
@@ -90,5 +93,52 @@ describe("RequireSession", () => {
     );
     expect(screen.queryByText("admin content")).not.toBeInTheDocument();
     expect(replace).toHaveBeenCalledWith("/create-password");
+  });
+
+  describe("the /ax-renewal route exception (ADR-037)", () => {
+    it("admits a plain user holding the developer capability, on the /ax-renewal route", () => {
+      pathname.current = "/ax-renewal";
+      session.current = {
+        status: "authenticated",
+        user: { role: "user", mustChangePassword: false, capabilities: ["developer"] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.getByText("admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it("still refuses a plain user with the developer capability everywhere else in the admin shell", () => {
+      pathname.current = "/users-roles";
+      session.current = {
+        status: "authenticated",
+        user: { role: "user", mustChangePassword: false, capabilities: ["developer"] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
+
+    it("still refuses a plain user on /ax-renewal without the developer capability", () => {
+      pathname.current = "/ax-renewal";
+      session.current = {
+        status: "authenticated",
+        user: { role: "user", mustChangePassword: false, capabilities: [] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
   });
 });

@@ -54,6 +54,13 @@ async function readErrorDetail(response: Response): Promise<string | undefined> 
  */
 export type Role = "guest" | "user" | "admin" | "super_admin";
 
+/**
+ * A capability held in addition to `role` — layered on top of it, never
+ * replacing it (ADR-037). "developer" grants AX Renewal regardless of the
+ * base role it sits on top of.
+ */
+export type Capability = "developer";
+
 export interface AuthenticatedAccount {
   id: string;
   email: string;
@@ -89,6 +96,12 @@ export interface MeResponse {
    * "Set a password" instead. False for an anonymous caller too.
    */
   hasPassword: boolean;
+  /**
+   * Capabilities held in addition to `role` (ADR-037) — e.g. `["developer"]`.
+   * Empty, never null, so callers can `.includes(...)` without a guard; empty
+   * for an anonymous caller too.
+   */
+  capabilities: Capability[];
 }
 
 /**
