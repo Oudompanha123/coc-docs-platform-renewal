@@ -1,32 +1,5 @@
 /** Mock data for the Settings page. UI-only — no API yet, same convention as lib/mock/overview.ts. */
 
-export type NotificationPreference = {
-  id: string;
-  label: string;
-  description: string;
-  enabled: boolean;
-};
-
-/**
- * Seeded from the two badge types Topbar already surfaces via
- * TOPBAR_COUNTS (bell = notifications, mail = messages) — not invented
- * categories.
- */
-export const NOTIFICATION_PREFERENCES: NotificationPreference[] = [
-  {
-    id: "notifications",
-    label: "Notifications",
-    description: "In-app alerts, the same ones shown in the topbar's bell icon.",
-    enabled: true,
-  },
-  {
-    id: "messages",
-    label: "Messages",
-    description: "Direct messages and mentions, the same ones shown in the topbar's mail icon.",
-    enabled: true,
-  },
-];
-
 export type ActiveSession = {
   id: string;
   device: string;
