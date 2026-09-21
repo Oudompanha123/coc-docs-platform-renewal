@@ -24,8 +24,12 @@ import type { NavProduct } from "@/lib/docs/nav-api";
 
 type MenuKey = "bell" | "mail" | "user";
 
-/** Which half of the activity feed the panel is showing. Mirrors the admin Topbar's. */
-type ActivityFilter = "unread" | "all";
+/**
+ * Which half of a panel's list is showing. Mirrors the admin Topbar's, and is
+ * shared by both panels here — the bell and the activity feed answer the same
+ * question and should not answer it in two different shapes.
+ */
+type PanelFilter = "unread" | "all";
 
 const PANEL_CLASSES = "absolute right-0 z-30 mt-2 w-80 rounded-xl border border-border bg-white shadow-lg";
 
@@ -88,26 +92,39 @@ export function MemberHeader({
   // nothing else. A `user` never sees that header — /home is where this role
   // lands — so a fix made only there is a fix most of the people using this
   // product never get.
-  const [activityFilter, setActivityFilter] = useState<ActivityFilter>("all");
+  const [activityFilter, setActivityFilter] = useState<PanelFilter>("all");
   // "Unread" is live, not a snapshot: a clicked row is read, so it leaves this
   // list at once. "All" is where it can still be read back.
   const visibleActivity =
     activityFilter === "unread" ? activity.items.filter((item) => !item.read) : activity.items;
-  // See the open-effect below: read through a ref so choosing the tab does not
-  // re-run every time the count moves.
+
+  const [notificationFilter, setNotificationFilter] = useState<PanelFilter>("all");
+  const visibleNotifications =
+    notificationFilter === "unread"
+      ? notifications.items.filter((n) => !n.read)
+      : notifications.items;
+
+  // See the open-effect below: read through refs so choosing a tab does not
+  // re-run every time a count moves.
   const activityCountRef = useRef(activity.count);
   activityCountRef.current = activity.count;
+  const unreadCountRef = useRef(notifications.unreadCount);
+  unreadCountRef.current = notifications.unreadCount;
 
   /**
    * Opens the activity panel on whichever tab has something in it — "Unread"
    * while anything is unread, "All" once nothing is. Without this, clearing
    * the last row while on "Unread" left every later open showing an empty
    * panel over a feed that still had rows in it. Only on open, and the count
-   * is read through a ref so the tab cannot move mid-click.
+   * is read through a ref so the tab cannot move mid-click. The bell opens the
+   * same way, for the same reason.
    */
   useEffect(() => {
     if (openMenu === "mail") {
       setActivityFilter(activityCountRef.current > 0 ? "unread" : "all");
+    }
+    if (openMenu === "bell") {
+      setNotificationFilter(unreadCountRef.current > 0 ? "unread" : "all");
     }
   }, [openMenu]);
 
@@ -161,18 +178,73 @@ export function MemberHeader({
               <div role="menu" className={PANEL_CLASSES}>
                 <div className="border-b border-border px-4 py-3">
                   <p className="text-sm font-semibold text-ink">Notifications</p>
+                  <div className="mt-2.5 flex items-center gap-1.5">
+                    {(["unread", "all"] as const).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setNotificationFilter(key)}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
+                          notificationFilter === key
+                            ? "bg-brand-purple/10 text-brand-purple"
+                            : "border border-border text-muted hover:bg-page"
+                        }`}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => notifications.markAllRead()}
+                      disabled={notifications.unreadCount === 0}
+                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                    >
+                      Read all
+                    </button>
+                  </div>
                 </div>
                 <div className="max-h-80 overflow-y-auto py-1">
-                  {notifications.items.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm text-muted">Nothing needs your attention.</p>
+                  {visibleNotifications.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm text-muted">
+                      {notificationFilter === "unread"
+                        ? "You're all caught up."
+                        : "Nothing needs your attention."}
+                    </p>
                   ) : (
-                    notifications.items.map((n) => (
-                      <div key={n.id} role="menuitem" className="flex items-start gap-3 px-4 py-3">
+                    visibleNotifications.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        role="menuitem"
+                        // Marks read and nothing else, unlike the admin Topbar's
+                        // bell, which opens an approval or sign-in dialog on the
+                        // same click. Those dialogs are a super_admin's tools and
+                        // this header never mounts them — a click that silently
+                        // did nothing would be worse than one that plainly
+                        // acknowledges. "Notifications" in the footer opens the
+                        // full list for anything that needs more than a glance.
+                        onClick={() => notifications.markRead(n.id)}
+                        className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
+                          n.read ? "" : "bg-brand-purple/5"
+                        }`}
+                      >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-ink">{n.title}</span>
+                          <span
+                            className={`block truncate text-sm text-ink ${
+                              n.read ? "font-medium" : "font-semibold"
+                            }`}
+                          >
+                            {n.title}
+                          </span>
                           <span className="block truncate text-xs text-muted">{n.detail}</span>
                         </span>
-                      </div>
+                        {!n.read && (
+                          <span
+                            aria-label="Unread"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                          />
+                        )}
+                      </button>
                     ))
                   )}
                 </div>

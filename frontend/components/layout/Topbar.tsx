@@ -139,10 +139,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // list at once. "All" is where it can still be read back.
   const visibleActivity =
     activityFilter === "unread" ? activity.items.filter((item) => !item.read) : activity.items;
-  // Read by the open-effect below without making it a dependency: the tab is
-  // chosen when the panel opens, not re-chosen every time the count moves.
+  // Read by the open-effect below without making them dependencies: a tab is
+  // chosen when its panel opens, not re-chosen every time a count moves.
   const activityCountRef = useRef(activity.count);
   activityCountRef.current = activity.count;
+  const unreadCountRef = useRef(notifications.unreadCount);
+  unreadCountRef.current = notifications.unreadCount;
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.
@@ -173,11 +175,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
    * agreed, and both were answering a question nobody had asked.
    *
    * <p>Only on open. The count is read through a ref so that clearing the last
-   * row does not flip the tab out from under the person mid-click.
+   * row does not flip the tab out from under the person mid-click. The bell
+   * opens the same way: its tabs came from elsewhere without this, so it had
+   * the same trap — read everything while on "Unread" and it stayed empty.
    */
   useEffect(() => {
     if (openMenu === "mail") {
       setActivityFilter(activityCountRef.current > 0 ? "unread" : "all");
+    }
+    if (openMenu === "notifications") {
+      setNotificationFilter(unreadCountRef.current > 0 ? "unread" : "all");
     }
   }, [openMenu]);
 
