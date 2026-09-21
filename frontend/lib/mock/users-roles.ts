@@ -3,6 +3,19 @@
 export type AccountRole = "user" | "admin" | "super_admin";
 export type AccountStatus = "active" | "pending" | "deactivated";
 
+/**
+ * `AccountRole` plus three display-only roles with no backing in the real
+ * `AppRole` ladder yet (`backend/.../account/AppRole.java`, the `app_role`
+ * Postgres enum) — adding one for real is a deliberate schema/security
+ * decision (see `V4__roles_and_permissions.sql`'s own comment to that effect,
+ * and ADR-037, which kept "Developer" out of this ladder on purpose). Kept
+ * separate from `AccountRole` itself so it can never leak into a write path
+ * (Add User / Edit Role / Approve — all of which submit to the live backend
+ * and would have the extra values rejected); use it for badges and filters
+ * only.
+ */
+export type DisplayRole = AccountRole | "developer" | "lead" | "reviewer";
+
 export type ManagedAccount = {
   id: string;
   name: string;
@@ -23,11 +36,59 @@ export type ManagedAccount = {
  */
 export const ROLE_ORDER: AccountRole[] = ["user", "admin", "super_admin"];
 
-export const ROLE_LABELS: Record<AccountRole, string> = {
+/**
+ * `ROLE_ORDER` plus the three display-only roles, in ladder position: PM
+ * decision (2026-09-21) places Developer/Lead/Reviewer between User and
+ * Admin, tied with each other. Only the three in `ROLE_ORDER` are backed by
+ * the real `AppRole` enum today — see `DisplayRole`.
+ */
+export const DISPLAY_ROLE_ORDER: DisplayRole[] = [
+  "user",
+  "developer",
+  "lead",
+  "reviewer",
+  "admin",
+  "super_admin",
+];
+
+/** The three roles in `DISPLAY_ROLE_ORDER` that are not (yet) in `ROLE_ORDER`. */
+export const UNENFORCED_ROLES: DisplayRole[] = ["developer", "lead", "reviewer"];
+
+export const ROLE_LABELS: Record<DisplayRole, string> = {
   user: "User",
   admin: "Admin",
   super_admin: "Super Admin",
+  developer: "Developer",
+  lead: "Lead",
+  reviewer: "Reviewer",
 };
+
+export const ROLE_HINTS: Record<DisplayRole, string> = {
+  user: "Reads published content.",
+  developer: "Intended: implements features. Not enforced by the backend yet.",
+  lead: "Intended: oversees a team's content decisions. Not enforced by the backend yet.",
+  reviewer: "Intended: reviews and approves content before publish. Not enforced by the backend yet.",
+  admin: "Authors, validates and publishes content.",
+  super_admin: "Everything Admin does, plus who may do it.",
+};
+
+/**
+ * The single role actually sent to the backend when several are checked in
+ * the multi-select. The live create/update API only accepts one `role` value
+ * (`ApiDtos.CreateAccountRequest`/`UpdateAccountRequest`), and only the three
+ * roles in `ROLE_ORDER` exist in the real `AppRole` enum — so this ignores
+ * any role in `UNENFORCED_ROLES` and returns the highest-ranked real role
+ * among `selected`, defaulting to "user" when none is checked.
+ */
+export function highestEnforcedRole(selected: DisplayRole[]): AccountRole {
+  let highest: AccountRole = "user";
+  for (const role of selected) {
+    if (ROLE_ORDER.indexOf(role as AccountRole) > ROLE_ORDER.indexOf(highest)) {
+      highest = role as AccountRole;
+    }
+  }
+  return highest;
+}
 
 export const MANAGED_ACCOUNTS: ManagedAccount[] = [
   {
