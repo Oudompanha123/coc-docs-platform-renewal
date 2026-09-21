@@ -21,8 +21,8 @@ export function DocsStubPage({ header, item }: { header: { label: string }; item
           {header.label} — {item.label} isn&apos;t written yet
         </h2>
         <p className="mt-1 max-w-sm text-sm text-muted">
-          This is a Phase 2 structural stub. Real content gets cloned from the jexmcp3.0 source in
-          Phase 3.
+          This is a <strong>Phase 2</strong> structural stub. Real content gets cloned from the <strong>jexmcp3.0</strong> source in{" "}
+          <strong>Phase 3</strong>.
         </p>
       </div>
     </div>

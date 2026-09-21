@@ -38,16 +38,41 @@ describe("AddAccountModal", () => {
     expect(onAdd).toHaveBeenCalledWith("new.person@example.com", "user");
   });
 
-  it("submits the role chosen in the dropdown", async () => {
+  it("submits the role checked in the list", async () => {
     const onAdd = vi.fn();
     const user = userEvent.setup();
     render(<AddAccountModal onClose={vi.fn()} onAdd={onAdd} />);
 
     await user.type(screen.getByLabelText("Email"), "new.admin@example.com");
-    await user.selectOptions(screen.getByRole("combobox"), "admin");
+    await user.click(screen.getByRole("checkbox", { name: "Admin" }));
     await user.click(screen.getByRole("button", { name: "Add Account" }));
 
     expect(onAdd).toHaveBeenCalledWith("new.admin@example.com", "admin");
+  });
+
+  it("submits the highest checked role when several are selected, since the backend accepts only one", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(<AddAccountModal onClose={vi.fn()} onAdd={onAdd} />);
+
+    await user.type(screen.getByLabelText("Email"), "new.super.admin@example.com");
+    await user.click(screen.getByRole("checkbox", { name: "Admin" }));
+    await user.click(screen.getByRole("checkbox", { name: "Super Admin" }));
+    await user.click(screen.getByRole("button", { name: "Add Account" }));
+
+    expect(onAdd).toHaveBeenCalledWith("new.super.admin@example.com", "super_admin");
+  });
+
+  it("submits reviewer or lead like any other real role", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(<AddAccountModal onClose={vi.fn()} onAdd={onAdd} />);
+
+    await user.type(screen.getByLabelText("Email"), "new.lead@example.com");
+    await user.click(screen.getByRole("checkbox", { name: "Lead" }));
+    await user.click(screen.getByRole("button", { name: "Add Account" }));
+
+    expect(onAdd).toHaveBeenCalledWith("new.lead@example.com", "lead");
   });
 
   it("trims surrounding whitespace from the email before submitting", async () => {

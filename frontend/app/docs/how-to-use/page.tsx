@@ -1,33 +1,38 @@
 type Workflow = {
   title: string;
-  description: string;
+  description: React.ReactNode;
 };
 
 const WORKFLOWS: Workflow[] = [
   {
     title: "Write and publish in Doc Studio",
-    description:
-      "Doc Studio is where documents actually get written — create a new page, organize it into the right workspace, and publish when it's ready.",
+    description: (
+      <><strong>Doc Studio</strong> is where documents actually get written — create a new page, organize it into the right workspace, and publish when it&apos;s ready.</>
+    ),
   },
   {
     title: "Keep teams separate with Workspaces",
-    description:
-      "Every team or project gets its own Workspace. Documents and members in one workspace don't show up in another unless you explicitly share access.",
+    description: (
+      <>Every team or project gets its own <strong>Workspace</strong>. Documents and members in one workspace don&apos;t show up in another unless you explicitly share access.</>
+    ),
   },
   {
     title: "Control access from Users & Roles",
-    description:
-      "Every teammate has a role — User, Admin, or Super Admin — that decides what they can see and change. Deactivate an account here to cut off access without deleting their history.",
+    description: (
+      <>Every teammate has a role — <strong>User</strong>, <strong>Admin</strong>, or <strong>Super Admin</strong> — that decides what they can see and change. Deactivate an account here to cut off access without deleting their history.</>
+    ),
   },
   {
     title: "Watch what's happening in Activity",
-    description:
-      "The Activity page is a live feed of who published, edited, or joined what — useful for catching a change before it becomes a problem.",
+    description: (
+      <>The <strong>Activity</strong> page is a live feed of who published, edited, or joined what — useful for catching a change before it becomes a problem.</>
+    ),
   },
   {
     title: "Track Claude Code usage",
-    description:
-      "If your team uses Claude Code, the Claude Code Usage page tracks opt-in, per-person token usage against a soft budget your team sets — an estimate, not a hard limit, and never a way to see anyone's actual account.",
+    description: (
+      <>If your team uses <strong>Claude Code</strong>, the <strong>Claude Code Usage</strong> page tracks opt-in, per-person <strong>token usage</strong> against a soft <strong>budget</strong> your team sets — an estimate, not a hard limit, and never a way to see anyone&apos;s actual account.</>
+    ),
   },
   {
     title: "Check on System Health",

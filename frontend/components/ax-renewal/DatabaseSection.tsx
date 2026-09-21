@@ -115,8 +115,8 @@ export function DatabaseSection({
     <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
       <h3 className="text-sm font-bold text-dash-ink">Database</h3>
       <p className="mt-1 text-xs text-muted">
-        Metadata about the legacy database this plan reads — no credential is stored, and this phase never opens a
-        live connection. Planned changes are additive only: indexes and columns, never a table created or dropped.
+        Metadata about the <strong>legacy database</strong> this plan reads — no <strong>credential</strong> is stored, and this phase never opens a
+        live connection. Planned changes are additive only: <strong>indexes</strong> and <strong>columns</strong>, never a table created or dropped.
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -127,7 +127,7 @@ export function DatabaseSection({
             disabled={!canEdit}
             onChange={(e) => setEngine(e.target.value)}
             placeholder="e.g. PostgreSQL 15"
-            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
           />
         </div>
         <div>
@@ -136,7 +136,7 @@ export function DatabaseSection({
             value={host}
             disabled={!canEdit}
             onChange={(e) => setHost(e.target.value)}
-            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
           />
         </div>
         <div>
@@ -145,7 +145,7 @@ export function DatabaseSection({
             value={port}
             disabled={!canEdit}
             onChange={(e) => setPort(e.target.value.replace(/[^0-9]/g, ""))}
-            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
           />
         </div>
         <div>
@@ -154,7 +154,7 @@ export function DatabaseSection({
             value={databaseName}
             disabled={!canEdit}
             onChange={(e) => setDatabaseName(e.target.value)}
-            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
           />
         </div>
         <div className="sm:col-span-2">
@@ -163,7 +163,7 @@ export function DatabaseSection({
             value={schemaName}
             disabled={!canEdit}
             onChange={(e) => setSchemaName(e.target.value)}
-            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+            className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
           />
         </div>
       </div>
@@ -190,7 +190,7 @@ export function DatabaseSection({
                 value={row.changeType}
                 disabled={!canEdit}
                 onChange={(e) => updateRow(i, "changeType", e.target.value)}
-                className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm focus:outline-none disabled:bg-page"
+                className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-dash-ink focus:outline-none disabled:bg-page"
               >
                 <option value="add_column">Add column</option>
                 <option value="add_index">Add index</option>
@@ -200,14 +200,14 @@ export function DatabaseSection({
                 disabled={!canEdit}
                 onChange={(e) => updateRow(i, "tableName", e.target.value)}
                 placeholder="Table name"
-                className="rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
               />
               <input
                 value={row.rationale}
                 disabled={!canEdit}
                 onChange={(e) => updateRow(i, "rationale", e.target.value)}
                 placeholder="Why"
-                className="rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
               />
               {canEdit && (
                 <button

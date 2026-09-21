@@ -1,5 +1,5 @@
 import type { ManagedAccount } from "@/lib/mock/users-roles";
-import { avatarColorFor } from "@/lib/mock/users-roles";
+import { avatarColorFor, ROLE_LABELS } from "@/lib/mock/users-roles";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { RoleBadge } from "./RoleBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -68,13 +68,21 @@ export function AccountsTable({
                   />
                   <div>
                     <p className="font-semibold text-dash-ink">{account.name}</p>
-                    <p className="text-xs text-muted">{RoleLabelText(account.role)}</p>
+                    <p className="text-xs text-muted">{ROLE_LABELS[account.role]}</p>
                   </div>
                 </div>
               </td>
               <td className="px-4 py-4 text-muted">{account.email}</td>
               <td className="px-4 py-4">
-                <RoleBadge role={account.role} />
+                {/* Every role this account holds (ADR-016), not just the
+                    highest — an account with more than one shows all of them,
+                    since showing only the effective role hid that fact
+                    entirely. */}
+                <div className="flex flex-wrap gap-1">
+                  {account.roles.map((role) => (
+                    <RoleBadge key={role} role={role} />
+                  ))}
+                </div>
               </td>
               <td className="px-4 py-4">
                 <StatusBadge status={account.status} />
@@ -129,8 +137,4 @@ export function AccountsTable({
       </table>
     </div>
   );
-}
-
-function RoleLabelText(role: ManagedAccount["role"]): string {
-  return role === "super_admin" ? "Super Admin" : role === "admin" ? "Admin" : "User";
 }

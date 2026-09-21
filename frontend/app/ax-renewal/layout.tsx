@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { AxRenewalSidebar } from "@/components/ax-renewal/AxRenewalSidebar";
+import { AxRenewalStatusBar } from "@/components/ax-renewal/AxRenewalStatusBar";
 import { AxRenewalTopbar } from "@/components/ax-renewal/AxRenewalTopbar";
 import { RequireSession } from "@/components/layout/RequireSession";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
@@ -23,6 +24,7 @@ function AxRenewalShell({ children }: { children: ReactNode }) {
         <div className="flex min-h-screen flex-1 flex-col lg:min-w-0">
           <AxRenewalTopbar onMenuClick={() => setMobileNavOpen(true)} />
           <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <AxRenewalStatusBar />
         </div>
       </div>
     </RequireSession>

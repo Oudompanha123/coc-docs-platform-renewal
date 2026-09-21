@@ -1,4 +1,4 @@
-import type { Capability, Role } from "@/lib/auth/api";
+import type { Role } from "@/lib/auth/api";
 import type { NavProduct } from "@/lib/docs/nav-api";
 import type { IconComponent } from "./icons";
 import {
@@ -21,19 +21,15 @@ export type NavItem = {
   href: string;
   icon: IconComponent;
   /**
-   * Roles allowed to see this item. Omitted means every signed-in user sees
-   * it. Listed roles are exact, not a floor — the hierarchy that makes
-   * `super_admin` imply `admin` lives in the backend's authorization rules,
-   * and duplicating it here would mean two places to keep in step.
+   * Roles allowed to see this item — visible if the signed-in caller holds
+   * ANY of these (ADR-016: an account can hold more than one role at once,
+   * e.g. `admin` + `developer`), not just their single highest-ranked role.
+   * Omitted means every signed-in user sees it. Listed roles are exact, not a
+   * floor — the hierarchy that makes `super_admin` imply `admin` lives in the
+   * backend's authorization rules, and duplicating it here would mean two
+   * places to keep in step.
    */
   roles?: readonly Role[];
-  /**
-   * Also grants visibility, independent of `roles` — evaluated as OR, so a
-   * plain `user` holding this capability still sees the item without being
-   * promoted (ADR-037). A section-less item with only a capability listed
-   * would be visible to anyone holding it, regardless of role.
-   */
-  capability?: Capability;
   /**
    * Opens in a new browser tab instead of navigating the current one, same
    * as the "View site" link pinned below the sections. Set for AX Renewal:
@@ -105,17 +101,17 @@ const STATIC_SECTIONS: NavSection[] = [
   },
   {
     // Its own section, not folded into ADMINISTRATION: a plain `user` who
-    // only holds the `developer` capability would otherwise see a section
-    // literally titled "ADMINISTRATION" over just this one link, which reads
-    // wrong for an account with no account-authority role at all (ADR-037).
+    // only holds the `developer` role would otherwise see a section literally
+    // titled "ADMINISTRATION" over just this one link, which reads wrong for
+    // an account with no other account-authority role at all (ADR-037,
+    // ADR-039).
     label: "DEVELOPER",
     items: [
       {
         label: "AX Renewal",
         href: "/ax-renewal",
         icon: RenewIcon,
-        roles: ["admin", "super_admin"],
-        capability: "developer",
+        roles: ["developer", "admin", "super_admin"],
         newTab: true,
       },
     ],
@@ -137,31 +133,23 @@ export function isNavItemActive(pathname: string, href: string): boolean {
 }
 
 /**
- * Whether `role` (or a held `capability`) may see `item`. An unknown role
- * (still loading, or a session that carries none) sees only unrestricted
- * items — the safer default, since the alternative flashes an admin link at
- * everyone for as long as `/api/v1/auth/me` takes to answer.
+ * Whether any role in `roles` may see `item`. An unknown/empty set (still
+ * loading, or a session that carries none) sees only unrestricted items —
+ * the safer default, since the alternative flashes an admin link at everyone
+ * for as long as `/api/v1/auth/me` takes to answer.
  *
- * <p>`roles` and `capability` are evaluated as OR (ADR-037): an item listing
- * both is visible to a caller matching either — a plain `user` holding the
- * capability sees it without being promoted, and an admin sees it without
- * needing the capability too. The default empty `capabilities` array keeps
- * every existing role-only item's behaviour byte-for-byte unchanged.
+ * <p>Every role held (ADR-016), not just the highest-ranked one — a plain
+ * `user` who also holds `developer` sees a `developer`-listed item without
+ * being promoted, and an `admin` sees it without needing `developer` too.
  */
-export function isNavItemVisible(
-  item: NavItem,
-  role: Role | null | undefined,
-  capabilities: readonly Capability[] = [],
-): boolean {
-  if (!item.roles && !item.capability) return true;
-  const roleMatches = item.roles != null && role != null && item.roles.includes(role);
-  const capabilityMatches = item.capability != null && capabilities.includes(item.capability);
-  return roleMatches || capabilityMatches;
+export function isNavItemVisible(item: NavItem, roles: readonly Role[] | null | undefined): boolean {
+  if (!item.roles) return true;
+  if (roles == null) return false;
+  return item.roles.some((r) => roles.includes(r));
 }
 
 /**
- * The sections this role (and these capabilities) may see, with the items
- * they may not see removed.
+ * The sections these roles may see, with the items they may not see removed.
  *
  * <p>A section left with no items is dropped rather than rendered empty,
  * otherwise a `user` would still see the "ADMINISTRATION" heading standing
@@ -175,14 +163,13 @@ export function isNavItemVisible(
  * stops them doing it.
  */
 export function visibleNavSections(
-  role: Role | null | undefined,
+  roles: readonly Role[] | null | undefined,
   products: NavProduct[],
-  capabilities: readonly Capability[] = [],
 ): NavSection[] {
   return [productsSection(products), ...STATIC_SECTIONS]
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => isNavItemVisible(item, role, capabilities)),
+      items: section.items.filter((item) => isNavItemVisible(item, roles)),
     }))
     .filter((section) => section.items.length > 0);
 }

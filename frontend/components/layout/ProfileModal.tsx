@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/users-roles/StatusBadge";
 import { RoleBadge } from "@/components/users-roles/RoleBadge";
 import type { AccountRole } from "@/lib/mock/users-roles";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -132,7 +133,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               avatarUrl={user?.avatarUrl ?? null}
               initials={initials}
               name={user?.displayName ?? ""}
-              className={`h-24 w-24 text-2xl shadow-lg ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
+              className={`h-24 w-24 text-2xl shadow-lg ring-4 ring-brand-purple/40 ring-offset-2 ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
             />
             <span
               className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
@@ -219,8 +220,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
             />
             <p className="mt-1 text-xs text-muted">
-              Google sign-in overwrites this with the provider&apos;s name, so a correction here
-              lasts until your next sign-in.
+              Google sign-in overwrites this with the provider&apos;s name, so a correction here lasts until your next sign-in.
             </p>
           </div>
 
@@ -271,6 +271,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                 />
               </div>
             )}
+          </div>
+          {/* Notifications */}
+          <div className="rounded-[10px] border border-border px-3 py-3">
+            <p className="mb-2.5 text-sm font-semibold text-dash-ink">Notifications</p>
+            <PushNotificationsCard />
           </div>
         </div>
       </div>

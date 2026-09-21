@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
+import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -89,7 +90,7 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased" suppressHydrationWarning>
         <TopProgressBar />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

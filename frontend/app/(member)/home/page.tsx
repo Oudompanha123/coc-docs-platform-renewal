@@ -55,11 +55,10 @@ export default function MemberHomePage() {
   const notWritten = stats ? totalNotWritten(stats) : 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div data-shell="home" className="min-h-screen bg-white">
       <MemberHeader
         products={products ?? []}
         onOpenProfile={() => setShowProfile(true)}
-        onOpenNotifications={() => setShowNotifications(true)}
       />
 
       <main>
@@ -74,7 +73,7 @@ export default function MemberHomePage() {
             </span>
 
             <h1 className="mt-6 text-4xl font-extrabold leading-tight text-ink sm:text-5xl">
-              Pick up where you left off, {firstName}.
+              {`Pick up where you left off, ${firstName}.`}
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base text-muted sm:text-lg">
@@ -88,7 +87,7 @@ export default function MemberHomePage() {
                 href={attention ? productHref(attention.key) : "#products"}
                 className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
-                {attention ? `Continue with ${attention.label}` : "Browse your products"}
+                {attention ? `Continue with ${attention.label}` : "Browse all products"}
               </Link>
               <Link
                 href="#products"
@@ -155,7 +154,7 @@ export default function MemberHomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto w-[1024px] overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: the photo is bright enough that white text needs a dark
                 layer under it to stay legible, same "decorative absolute div
                 painted before the relative-positioned copy" pattern /welcome's
@@ -164,7 +163,7 @@ export default function MemberHomePage() {
             {canManage ? (
               <>
                 <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
-                  {notWritten} document{notWritten === 1 ? "" : "s"} still need{notWritten === 1 ? "s" : ""} writing.
+                  {`${notWritten} document${notWritten === 1 ? "" : "s"} still need${notWritten === 1 ? "s" : ""} writing.`}
                 </h2>
                 <p className="relative mt-3 text-sm text-sidebar-muted sm:text-base">
                   Pick a product and fill in what&apos;s missing.

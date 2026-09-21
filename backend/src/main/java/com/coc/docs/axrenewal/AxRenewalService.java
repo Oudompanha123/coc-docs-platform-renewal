@@ -21,8 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  * (four gated sections) → implement → audit workflow (ADR-037).
  *
  * <p><b>Authorisation is enforced exactly once, in {@code SecurityConfig}</b>
- * — this class never re-checks {@code actor.isAtLeast(...)} or {@code
- * actor.hasCapability(...)} itself, the same trust {@code AccountService} and
+ * — this class never re-checks {@code actor.isAtLeast(...)} or which roles
+ * {@code actor} holds itself, the same trust {@code AccountService} and
  * {@code ClaudeUsageService} place in the filter chain (ADR-011). The one
  * thing that genuinely cannot live in {@code SecurityConfig} is {@link
  * #startImplementation}'s "all four sections confirmed and a destination is
@@ -117,14 +117,34 @@ public class AxRenewalService {
     // Attach
     // -----------------------------------------------------------------------
 
+    /** Serialised size limit for {@code attach_stats} — a defensive cap, not a real-world size (see {@link #attachManifest}). */
+    private static final int MAX_ATTACH_STATS_LENGTH = 20_000;
+
     /**
      * Records a manifest against this project. Text only — file contents, not
      * parsed structure; {@link #runAnalysis} is the step that reads it.
+     *
+     * <p>{@code filename}/{@code content} are both null when the attached
+     * folder had no recognized dependency manifest — that is a fact about the
+     * project (e.g. a static site with no {@code package.json}), not a
+     * reason to refuse the attach. {@code manifest_attached_at} is set
+     * either way, so the project's attach state is never "not attached" just
+     * because it has nothing {@link #runAnalysis} can key off of.
+     *
+     * <p>{@code stats} is the browser's own real computation over the picked
+     * folder (file count, size, extensions, lockfile/secrets/build-output
+     * checks, largest file) — never fabricated content, so it is trusted and
+     * persisted as-is, only capped in size as a defensive limit against an
+     * oversized payload.
      */
     @Transactional
-    public AxRenewalProject attachManifest(UUID projectId, String filename, String content, CurrentUser actor) {
+    public AxRenewalProject attachManifest(
+            UUID projectId, String filename, String content, JsonNode stats, CurrentUser actor) {
         requireProject(projectId);
-        projects.attachManifest(projectId, filename, content, actor.id());
+        if (stats != null && stats.toString().length() > MAX_ATTACH_STATS_LENGTH) {
+            throw ApiException.badRequest("attach stats payload is too large");
+        }
+        projects.attachManifest(projectId, filename, content, stats, actor.id());
         audit.append(
                 actor.id(),
                 actor.email(),
@@ -354,16 +374,16 @@ public class AxRenewalService {
 
     /**
      * Confirms one plan section. Reachable only by a Super Admin or an
-     * account holding the {@code developer} capability — enforced in {@code
-     * SecurityConfig}, not here; this method only records <em>which</em> of
-     * the two applied, for the trail.
+     * account holding the {@code developer} role (ADR-039) — enforced in
+     * {@code SecurityConfig}, not here; this method only records
+     * <em>which</em> of the two applied, for the trail.
      */
     @Transactional
     public AxRenewalConfirmation confirmSection(UUID projectId, AxRenewalSection section, CurrentUser actor) {
         requireProject(projectId);
         String via = actor.role() == AppRole.SUPER_ADMIN
                 ? AxRenewalConfirmation.VIA_SUPER_ADMIN
-                : AxRenewalConfirmation.VIA_DEVELOPER_CAPABILITY;
+                : AxRenewalConfirmation.VIA_DEVELOPER_ROLE;
 
         confirmations.upsert(projectId, section, actor.id(), via);
 
@@ -471,7 +491,8 @@ public class AxRenewalService {
         if (body == null || body.isBlank()) {
             throw ApiException.badRequest("a comment needs a body");
         }
-        AxRenewalComment created = comments.insert(projectId, actor.id(), body.trim());
+        AxRenewalComment created =
+                comments.insert(projectId, actor.id(), actor.account().displayName(), body.trim());
 
         audit.append(
                 actor.id(),

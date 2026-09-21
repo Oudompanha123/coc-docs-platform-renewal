@@ -1,12 +1,13 @@
 import { AdminApiError, NotPermittedError } from "@/lib/admin/accounts";
+import type { AxRenewalAttachStats } from "./attachStats";
 
 /**
  * The AX Renewal API — `/api/v1/ax-renewal` (ADR-037).
  *
  * Unlike the other admin clients in this app, this surface is NOT
- * exclusively admin: a plain `user` holding the `developer` capability can
- * reach the read side and confirm/start-implementation, enforced by the
- * backend's filter chain, not by anything in this file. `credentials:
+ * exclusively admin: a plain `user` who also holds the `developer` role
+ * (ADR-039) can reach the read side and confirm/start-implementation,
+ * enforced by the backend's filter chain, not by anything in this file. `credentials:
  * "include"` on every request — the session is an httpOnly cookie on a
  * different origin, so without it the browser sends nothing and the backend
  * sees an anonymous caller.
@@ -23,6 +24,7 @@ export interface AxRenewalProject {
   status: string;
   manifestFilename: string | null;
   manifestAttachedAt: string | null;
+  attachStats: AxRenewalAttachStats | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,7 +85,7 @@ export interface AxRenewalConfirmation {
   section: PlanSection;
   confirmedAt: string;
   confirmedBy: string;
-  confirmedVia: "super_admin" | "developer_capability";
+  confirmedVia: "super_admin" | "developer_role";
 }
 
 export interface AxRenewalImplementationRun {
@@ -98,6 +100,7 @@ export interface AxRenewalImplementationRun {
 export interface AxRenewalComment {
   id: string;
   authorId: string;
+  authorName: string;
   body: string;
   createdAt: string;
 }
@@ -161,10 +164,22 @@ export function fetchProjectDetail(projectId: string): Promise<AxRenewalProjectD
   return request<AxRenewalProjectDetail>(`/projects/${projectId}`);
 }
 
-export function attachManifest(projectId: string, filename: string, content: string): Promise<AxRenewalProject> {
+/**
+ * `filename`/`content` are null when the attached folder had no recognized
+ * dependency manifest — a static site with no `package.json` is still a
+ * legitimate project to attach, so this records the attach either way.
+ * `stats` is the browser's own computed facts about the folder (see
+ * `lib/ax-renewal/attachStats.ts`) — real, measured data, persisted as-is.
+ */
+export function attachManifest(
+  projectId: string,
+  filename: string | null,
+  content: string | null,
+  stats: AxRenewalAttachStats | null,
+): Promise<AxRenewalProject> {
   return request<AxRenewalProject>(`/projects/${projectId}/manifest`, {
     method: "POST",
-    body: JSON.stringify({ filename, content }),
+    body: JSON.stringify({ filename, content, stats }),
   });
 }
 
@@ -250,4 +265,39 @@ export function addComment(projectId: string, body: string): Promise<AxRenewalCo
     method: "POST",
     body: JSON.stringify({ body }),
   });
+}
+
+export interface AxRenewalAuditEntry {
+  actorEmail: string;
+  action: string;
+  targetType: string;
+  detail: Record<string, unknown>;
+  occurredAt: string;
+}
+
+/**
+ * This project's own audit trail — `super_admin` only, unlike every other
+ * call in this file. It lives under `/api/v1/admin/audit/**`, not
+ * `/api/v1/ax-renewal/**`: every row carries another account's email
+ * (NFR-SEC-PII), the same reason `/api/v1/admin/accounts/**` sits at that
+ * floor, so it must not inherit this feature's lower developer-capability
+ * floor. A non-super-admin caller gets `NotPermittedError`, same as any
+ * other refused admin call.
+ */
+export async function fetchAuditTrail(projectId: string, limit = 50): Promise<AxRenewalAuditEntry[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/admin/audit/ax-renewal/${projectId}?limit=${limit}`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new AdminApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new NotPermittedError("Only a super admin can view the audit trail.");
+  }
+  if (!response.ok) {
+    throw new AdminApiError("Couldn't load the audit trail.");
+  }
+  return (await response.json()) as AxRenewalAuditEntry[];
 }

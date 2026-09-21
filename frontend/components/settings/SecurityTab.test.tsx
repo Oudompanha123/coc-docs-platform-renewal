@@ -261,7 +261,16 @@ describe("SecurityTab two-factor authentication", () => {
 
     render(<SecurityTab />);
 
-    expect(await screen.findByText(/Set a password first to turn this on/)).toBeInTheDocument();
+    // A function matcher, not a plain regex: the copy bolds "password" and
+    // "password sign-in", so the sentence is split across several elements and
+    // no single text node holds it. This asserts on what the reader sees.
+    expect(
+      await screen.findByText(
+        (_content, element) =>
+          element?.tagName === "P" &&
+          (element.textContent ?? "").includes("Set a password first to turn this on"),
+      ),
+    ).toBeInTheDocument();
     expect(toggle()).toBeDisabled();
     await userEvent.click(toggle());
     expect(startMfaSetup).not.toHaveBeenCalled();
