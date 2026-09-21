@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useSession } from "@/lib/auth/SessionProvider";
 
@@ -33,11 +33,24 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * <p>Rendering `null` while loading rather than the page is deliberate. Showing
  * the shell first and redirecting after means a visible flash of an interface
  * the visitor is not entitled to see.
+ *
+ * <p><b>One route-scoped exception (ADR-037).</b> A plain `user` holding the
+ * `developer` capability may enter exactly `/ax-renewal` — nothing else in
+ * the admin shell opens for them. This is deliberately narrower than
+ * widening `canAccessAdmin` unconditionally: that would also let them
+ * navigate straight to `/users-roles` or `/claude-usage` by URL (the backend
+ * would still refuse those with a 403, since this check is presentation
+ * only, but the *experience* would be an inconsistent one of a link hidden
+ * everywhere except by typing it in).
  */
 export function RequireSession({ children }: { children: ReactNode }) {
   const { status, user } = useSession();
   const router = useRouter();
-  const canAccessAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const pathname = usePathname();
+  const isAdminRole = user?.role === "admin" || user?.role === "super_admin";
+  const isAxRenewalRoute = pathname === "/ax-renewal" || pathname.startsWith("/ax-renewal/");
+  const hasDeveloperCapability = user?.capabilities?.includes("developer") ?? false;
+  const canAccessAdmin = isAdminRole || (isAxRenewalRoute && hasDeveloperCapability);
 
   useEffect(() => {
     if (status === "anonymous") {
