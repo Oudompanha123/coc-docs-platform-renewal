@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PaperclipIcon, PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
+import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
 import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
@@ -68,31 +69,37 @@ export default function AxRenewalPage() {
     router.push(`/ax-renewal?project=${nextProjectId}&section=${section}`);
   }
 
+  const picker = (
+    <ProjectPicker
+      projects={projects}
+      projectId={projectId}
+      canEdit={canEdit}
+      onSelect={(id) => goTo(id)}
+      onCreated={(created) => {
+        setProjects((prev) => (prev ? [created, ...prev] : [created]));
+        goTo(created.id);
+      }}
+    />
+  );
+
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted">
-        Plan a legacy-code migration: attach, analyze, agree a plan, and record the sign-off.
-      </p>
-
-      <ProjectPicker
-        projects={projects}
-        projectId={projectId}
-        canEdit={canEdit}
-        onSelect={(id) => goTo(id)}
-        onCreated={(created) => {
-          setProjects((prev) => (prev ? [created, ...prev] : [created]));
-          goTo(created.id);
-        }}
-      />
-
       {loadError && (
         <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
           {loadError}
         </p>
       )}
 
+      {!detail && <AxRenewalLanding>{picker}</AxRenewalLanding>}
+
       {detail && (
         <>
+          <p className="text-sm text-muted">
+            Plan a legacy-code migration: attach, analyze, agree a plan, and record the sign-off.
+          </p>
+
+          {picker}
+
           {/* The Understand/Plan/Build navigation lives in the left sidebar
               (see AxRenewalSidebar.tsx) — this page only renders whichever
               leaf is selected there. */}

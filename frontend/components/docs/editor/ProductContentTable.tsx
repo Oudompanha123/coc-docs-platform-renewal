@@ -113,7 +113,10 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
   }
 
   async function handleDeleteItem(row: Row) {
-    if (!window.confirm(`Remove "${row.label}"? This only works while it has no saved content.`)) return;
+    const warning = row.hasContent
+      ? `Remove "${row.label}"? Its saved content will be permanently deleted too.`
+      : `Remove "${row.label}"?`;
+    if (!window.confirm(warning)) return;
     setError(null);
     try {
       await deleteItem(productKey, row.slug);
