@@ -84,7 +84,7 @@ export function StackMoveSection({
     <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
       <h3 className="text-sm font-bold text-dash-ink">Stack Move</h3>
       <p className="mt-1 text-xs text-muted">
-        For each architectural layer, record what it runs on today and what it should move to. Leave the target
+        For each <strong>architectural layer</strong>, record what it runs on today and what it should move to. Leave the target
         blank to stay on the current technology.
       </p>
 
