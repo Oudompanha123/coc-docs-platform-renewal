@@ -59,7 +59,7 @@ export function AxRenewalLanding({ children }: { children: ReactNode }) {
         </p>
         <h2 className="mt-1 text-center text-2xl font-bold text-dash-ink">Attach, analyze, plan, build.</h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
-          Nothing moves to the next stage until it's been agreed — no surprises once implementation starts.
+          Nothing moves to the next stage until it&rsquo;s been agreed — no surprises once implementation starts.
         </p>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
