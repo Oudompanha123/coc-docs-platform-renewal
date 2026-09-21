@@ -43,12 +43,40 @@ export type AxRenewalExplorerKey =
   | "ai-engine"
   | "audit-trail";
 
+/**
+ * Written to the shared `section=` query param once every open tab has been
+ * closed — distinct from the param being *absent*, which means "nothing
+ * chosen yet" and defaults to Attach. Mirrors the reference prototype's own
+ * `S.active === null` after its last tab closes, which is what shows its
+ * "No tab open. Pick something from the explorer." message.
+ */
+export const NO_TAB_OPEN = "none";
+
+/**
+ * Resolves the shared `section=` query param into the active explorer key —
+ * every page/sidebar/topbar component reads this the same way, so the
+ * "no tab open" state (see `NO_TAB_OPEN`) reads identically everywhere
+ * instead of each place inventing its own null-handling.
+ */
+export function resolveActiveSection(section: string | null): AxRenewalExplorerKey | null {
+  if (section === NO_TAB_OPEN) return null;
+  return (section as AxRenewalExplorerKey | null) ?? "attach";
+}
+
 export type AxRenewalExplorerItem = {
   key: AxRenewalExplorerKey;
   label: string;
   icon: IconComponent;
   locked?: boolean;
-  done?: boolean;
+  /**
+   * A confirmable Plan item's status dot — matches the prototype's `flag()`
+   * helper, which always renders something (a purple ✓ once confirmed, a
+   * muted-amber ● while still draft) rather than showing a checkmark only
+   * once done and nothing before that.
+   */
+  flag?: boolean;
+  /** Findings' persistent count pill, shown once analysis exists — even a 0 is shown, matching the prototype's `it("find", …, project.findings.length)`. */
+  count?: number;
 };
 
 export type AxRenewalExplorerGroup = {
@@ -66,22 +94,22 @@ export type AxRenewalExplorerGroup = {
  */
 export const EXPLORER_META: Record<
   AxRenewalExplorerKey,
-  { label: string; group: "Understand" | "Plan" | "Build" | "Workspace"; section?: PlanSection }
+  { label: string; icon: IconComponent; group: "Understand" | "Plan" | "Build" | "Workspace"; section?: PlanSection }
 > = {
-  attach: { label: "Attach source", group: "Understand" },
-  codebase: { label: "Codebase", group: "Understand" },
-  "understand-architecture": { label: "Architecture", group: "Understand" },
-  findings: { label: "Findings", group: "Understand" },
-  "old-new": { label: "Old → New", group: "Plan" },
-  "stack-move": { label: "Stack move", group: "Plan", section: "stack_move" },
-  "plan-architecture": { label: "Architecture", group: "Plan", section: "architecture" },
-  pages: { label: "Pages", group: "Plan", section: "pages" },
-  database: { label: "Database", group: "Plan", section: "database" },
-  output: { label: "Output", group: "Plan" },
-  implementation: { label: "Implementation", group: "Build" },
-  "run-locally": { label: "Run locally", group: "Build" },
-  "ai-engine": { label: "AI engine", group: "Workspace" },
-  "audit-trail": { label: "Audit trail", group: "Workspace" },
+  attach: { label: "Attach source", icon: PaperclipIcon, group: "Understand" },
+  codebase: { label: "Codebase", icon: ArticleIcon, group: "Understand" },
+  "understand-architecture": { label: "Architecture", icon: NodesIcon, group: "Understand" },
+  findings: { label: "Findings", icon: WarningIcon, group: "Understand" },
+  "old-new": { label: "Old → New", icon: RenewIcon, group: "Plan" },
+  "stack-move": { label: "Stack move", icon: LayersIcon, group: "Plan", section: "stack_move" },
+  "plan-architecture": { label: "Architecture", icon: NodesIcon, group: "Plan", section: "architecture" },
+  pages: { label: "Pages", icon: DocumentIcon, group: "Plan", section: "pages" },
+  database: { label: "Database", icon: DatabaseIcon, group: "Plan", section: "database" },
+  output: { label: "Output", icon: MonitorIcon, group: "Plan" },
+  implementation: { label: "Implementation", icon: PlayIcon, group: "Build" },
+  "run-locally": { label: "Run locally", icon: PlugIcon, group: "Build" },
+  "ai-engine": { label: "AI engine", icon: SparklesIcon, group: "Workspace" },
+  "audit-trail": { label: "Audit trail", icon: TagIcon, group: "Workspace" },
 };
 
 /**
@@ -104,21 +132,21 @@ export function buildExplorerGroups(
   const analyzed = detail.analysis != null;
   const confirmedCount = Object.keys(detail.confirmations).length;
 
+  /** label + icon come from EXPLORER_META so the two never drift apart. */
+  const item = (
+    key: AxRenewalExplorerKey,
+    extra?: Partial<Omit<AxRenewalExplorerItem, "key" | "label" | "icon">>,
+  ): AxRenewalExplorerItem => ({ key, label: EXPLORER_META[key].label, icon: EXPLORER_META[key].icon, ...extra });
+
   return [
     {
       label: "Understand",
       icon: FolderIcon,
       items: [
-        { key: "attach", label: "Attach source", icon: PaperclipIcon },
-        { key: "codebase", label: "Codebase", icon: ArticleIcon, locked: !analyzed },
-        { key: "understand-architecture", label: "Architecture", icon: NodesIcon, locked: !analyzed },
-        {
-          key: "findings",
-          label: "Findings",
-          icon: WarningIcon,
-          locked: !analyzed,
-          done: analyzed && detail.analysis!.findings.length > 0,
-        },
+        item("attach"),
+        item("codebase", { locked: !analyzed }),
+        item("understand-architecture", { locked: !analyzed }),
+        item("findings", { locked: !analyzed, count: analyzed ? detail.analysis!.findings.length : undefined }),
       ],
     },
     {
@@ -126,59 +154,30 @@ export function buildExplorerGroups(
       icon: LayersIcon,
       badge: `${confirmedCount}/4`,
       items: [
-        { key: "old-new", label: "Old → New", icon: RenewIcon, locked: !analyzed },
-        {
-          key: "stack-move",
-          label: "Stack move",
-          icon: LayersIcon,
-          locked: !analyzed,
-          done: detail.confirmations.stack_move != null,
-        },
-        {
-          key: "plan-architecture",
-          label: "Architecture",
-          icon: NodesIcon,
-          locked: !analyzed,
-          done: detail.confirmations.architecture != null,
-        },
-        {
-          key: "pages",
-          label: "Pages",
-          icon: DocumentIcon,
-          locked: !analyzed,
-          done: detail.confirmations.pages != null,
-        },
-        {
-          key: "database",
-          label: "Database",
-          icon: DatabaseIcon,
-          locked: !analyzed,
-          done: detail.confirmations.database != null,
-        },
-        { key: "output", label: "Output", icon: MonitorIcon, locked: !analyzed, done: detail.destination != null },
+        item("old-new", { locked: !analyzed }),
+        item("stack-move", { locked: !analyzed, flag: detail.confirmations.stack_move != null }),
+        item("plan-architecture", { locked: !analyzed, flag: detail.confirmations.architecture != null }),
+        item("pages", { locked: !analyzed, flag: detail.confirmations.pages != null }),
+        item("database", { locked: !analyzed, flag: detail.confirmations.database != null }),
+        item("output", { locked: !analyzed, flag: detail.destination != null }),
       ],
     },
     {
       label: "Build",
       icon: PlayIcon,
       items: [
-        { key: "implementation", label: "Implementation", icon: PlayIcon, locked: !analyzed },
+        item("implementation", { locked: !analyzed }),
         // Deferred to a later phase (ADR-037) — a local run/preview needs a
         // real generated build to point at, which this phase does not
         // produce. Kept visible, always locked, rather than removed, so the
         // tree reads the same shape the prototype it replaces used.
-        { key: "run-locally", label: "Run locally", icon: PlugIcon, locked: true },
+        item("run-locally", { locked: true }),
       ],
     },
     {
       label: "Workspace",
       icon: GearIcon,
-      items: [
-        { key: "ai-engine", label: "AI engine", icon: SparklesIcon },
-        ...(role === "super_admin"
-          ? [{ key: "audit-trail" as const, label: "Audit trail", icon: TagIcon }]
-          : []),
-      ],
+      items: [item("ai-engine"), ...(role === "super_admin" ? [item("audit-trail")] : [])],
     },
   ];
 }
