@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 /** Label + input wrapper, matching the field styling already used in
- *  components/users-roles/AddAccountModal.tsx / claude-usage's
- *  InviteTeammateModal.tsx — reused here rather than restyled. */
+ *  components/users-roles/AddAccountModal.tsx — reused here rather than
+ *  restyled. (It also matched claude-usage's InviteTeammateModal, until that
+ *  modal went with the invite feature.) */
 export function FormField({
   label,
   required,
