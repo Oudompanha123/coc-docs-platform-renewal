@@ -11,6 +11,8 @@ Two things layered together:
 
 `docs/`, `backend/`, `frontend/` are the product. Everything else at the repo root (`.claude/`, `templates/`, `hooks/`, `scripts/`, `reviews/`) is harness tooling.
 
+`tools/` is neither: it holds programs a *teammate* runs on their own machine, against the deployed product. Today that is `tools/claude-usage-reporter/` — the Node script that reads this machine's own `~/.claude` transcripts and POSTs the day's token total to the backend's `/api/ingest`, which is what puts a row on the Claude Usage page. It arrived by `git subtree` from its own repository, so its two original commits are in this history under that prefix; update it with `git subtree pull --prefix=tools/claude-usage-reporter <url> <branch>` rather than by hand, or the next pull conflicts with every local edit.
+
 ## Current project state — read this before proposing work
 
 The design has just changed underneath the project and several documents have not caught up yet. Check `docs/.harness-state.yaml` for the live status, but as of the last commit:
