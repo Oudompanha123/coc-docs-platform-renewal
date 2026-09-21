@@ -58,8 +58,13 @@ export type Role = "guest" | "user" | "admin" | "super_admin";
  * A capability held in addition to `role` — layered on top of it, never
  * replacing it (ADR-037). "developer" grants AX Renewal regardless of the
  * base role it sits on top of.
+ *
+ * "tech_lead" and "reviewer" were added by ADR-039 as the other two "AX
+ * Role" choices on the account details screen — siblings of "developer" in
+ * the same non-exclusive set, not (yet) wired into any route/action gate of
+ * their own.
  */
-export type Capability = "developer";
+export type Capability = "developer" | "tech_lead" | "reviewer";
 
 export interface AuthenticatedAccount {
   id: string;

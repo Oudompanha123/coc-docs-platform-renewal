@@ -61,7 +61,7 @@ export function ArchitectureSection({
         onChange={(e) => setSummary(e.target.value)}
         rows={8}
         placeholder="e.g. Browser → API layer (controllers only) → Service layer (business rules) → Data access, against the existing schema…"
-        className="mt-4 w-full resize-y rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+        className="mt-4 w-full resize-y rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
       />
 
       {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}

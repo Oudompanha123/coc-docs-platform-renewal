@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { RenewIcon, XIcon } from "@/components/layout/icons";
+import { XIcon } from "@/components/layout/icons";
+import { useSession } from "@/lib/auth/SessionProvider";
 import { buildExplorerGroups, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { useAxRenewalProject } from "@/lib/ax-renewal/useAxRenewalProject";
 
@@ -21,16 +22,19 @@ type AxRenewalSidebarProps = {
  */
 export function AxRenewalSidebar({ isOpen, onClose }: AxRenewalSidebarProps) {
   const searchParams = useSearchParams();
+  const { user } = useSession();
   const { projectId, detail } = useAxRenewalProject();
-  const groups = buildExplorerGroups(detail);
+  const groups = buildExplorerGroups(detail, user?.role);
   const active = (searchParams.get("section") as AxRenewalExplorerKey | null) ?? "attach";
 
   const content = (
     <div className="flex h-full flex-col bg-sidebar px-4 py-5">
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2.5 text-white">
-          <RenewIcon className="h-6 w-6 text-brand-purple" />
-          <span className="text-sm font-bold">AX Renewal</span>
+        <div className="min-w-0">
+          <h1 className="text-xs font-bold uppercase tracking-wider text-sidebar-muted/70">Explorer</h1>
+          <p className="mt-1 truncate font-mono text-xs text-sidebar-muted">
+            {detail?.project.manifestFilename ?? "no source attached"}
+          </p>
         </div>
         <button
           type="button"
