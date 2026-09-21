@@ -34,9 +34,12 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * the shell first and redirecting after means a visible flash of an interface
  * the visitor is not entitled to see.
  *
- * <p><b>One route-scoped exception (ADR-037).</b> A plain `user` holding the
- * `developer` capability may enter exactly `/ax-renewal` — nothing else in
- * the admin shell opens for them. This is deliberately narrower than
+ * <p><b>One route-scoped exception (ADR-037, revised by ADR-039).</b> A plain
+ * `user` holding the `developer` role (formerly a capability) may enter
+ * exactly `/ax-renewal` — nothing else in the admin shell opens for them.
+ * `roles` (every role held), not `role` (the highest), because rank alone
+ * would not tell us they hold `developer` specifically. This is deliberately
+ * narrower than
  * widening `canAccessAdmin` unconditionally: that would also let them
  * navigate straight to `/users-roles` or `/claude-usage` by URL (the backend
  * would still refuse those with a 403, since this check is presentation
@@ -49,8 +52,8 @@ export function RequireSession({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdminRole = user?.role === "admin" || user?.role === "super_admin";
   const isAxRenewalRoute = pathname === "/ax-renewal" || pathname.startsWith("/ax-renewal/");
-  const hasDeveloperCapability = user?.capabilities?.includes("developer") ?? false;
-  const canAccessAdmin = isAdminRole || (isAxRenewalRoute && hasDeveloperCapability);
+  const holdsDeveloperRole = user?.roles?.includes("developer") ?? false;
+  const canAccessAdmin = isAdminRole || (isAxRenewalRoute && holdsDeveloperRole);
 
   useEffect(() => {
     if (status === "anonymous") {

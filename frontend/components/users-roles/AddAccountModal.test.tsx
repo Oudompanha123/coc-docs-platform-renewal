@@ -63,17 +63,16 @@ describe("AddAccountModal", () => {
     expect(onAdd).toHaveBeenCalledWith("new.super.admin@example.com", "super_admin");
   });
 
-  it("does not submit a role that isn't enforced by the backend yet", async () => {
+  it("submits reviewer or lead like any other real role", async () => {
     const onAdd = vi.fn();
     const user = userEvent.setup();
     render(<AddAccountModal onClose={vi.fn()} onAdd={onAdd} />);
 
-    await user.type(screen.getByLabelText("Email"), "new.dev@example.com");
-    // "User" starts checked by default; only add "Developer" on top of it.
-    await user.click(screen.getByRole("checkbox", { name: "Developer" }));
+    await user.type(screen.getByLabelText("Email"), "new.lead@example.com");
+    await user.click(screen.getByRole("checkbox", { name: "Lead" }));
     await user.click(screen.getByRole("button", { name: "Add Account" }));
 
-    expect(onAdd).toHaveBeenCalledWith("new.dev@example.com", "user");
+    expect(onAdd).toHaveBeenCalledWith("new.lead@example.com", "lead");
   });
 
   it("trims surrounding whitespace from the email before submitting", async () => {

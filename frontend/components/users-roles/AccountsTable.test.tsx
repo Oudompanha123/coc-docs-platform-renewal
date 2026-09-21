@@ -10,6 +10,7 @@ function row(overrides: Partial<ManagedAccount> = {}): ManagedAccount {
     name: "Dana Lee",
     email: "dana@example.com",
     role: "user",
+    roles: ["user"],
     status: "active",
     lastLogin: "2026-09-14 10:02",
     ipAddress: "—",

@@ -44,7 +44,7 @@ export function accountStatus(account: AdminAccount): AccountStatus {
 /**
  * A role's display name.
  *
- * <p>`ROLE_LABELS` covers only the three roles the table can show. The API's
+ * <p>`ROLE_LABELS` covers every role the table can show. The API's
  * `AccountRole` also allows `guest`, which no real account is ever created at
  * — every sign-in auto-provisions at `user` — so the page folds it into
  * "User". Here it is named instead: if one ever does appear, a spreadsheet

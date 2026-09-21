@@ -19,6 +19,9 @@ import type { Role } from "./api";
 const ROLE_LABELS: Record<Role, string> = {
   guest: "Guest",
   user: "User",
+  developer: "Developer",
+  reviewer: "Reviewer",
+  lead: "Lead",
   admin: "Admin",
   super_admin: "Super Admin",
 };

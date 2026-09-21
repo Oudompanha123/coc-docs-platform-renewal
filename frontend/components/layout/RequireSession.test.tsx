@@ -95,12 +95,12 @@ describe("RequireSession", () => {
     expect(replace).toHaveBeenCalledWith("/create-password");
   });
 
-  describe("the /ax-renewal route exception (ADR-037)", () => {
-    it("admits a plain user holding the developer capability, on the /ax-renewal route", () => {
+  describe("the /ax-renewal route exception (ADR-037, roles revised by ADR-039)", () => {
+    it("admits a plain user who also holds the developer role, on the /ax-renewal route", () => {
       pathname.current = "/ax-renewal";
       session.current = {
         status: "authenticated",
-        user: { role: "user", mustChangePassword: false, capabilities: ["developer"] },
+        user: { role: "user", mustChangePassword: false, roles: ["user", "developer"] },
       };
       render(
         <RequireSession>
@@ -111,11 +111,11 @@ describe("RequireSession", () => {
       expect(replace).not.toHaveBeenCalled();
     });
 
-    it("still refuses a plain user with the developer capability everywhere else in the admin shell", () => {
+    it("still refuses a plain user who also holds developer everywhere else in the admin shell", () => {
       pathname.current = "/users-roles";
       session.current = {
         status: "authenticated",
-        user: { role: "user", mustChangePassword: false, capabilities: ["developer"] },
+        user: { role: "user", mustChangePassword: false, roles: ["user", "developer"] },
       };
       render(
         <RequireSession>
@@ -126,11 +126,11 @@ describe("RequireSession", () => {
       expect(replace).toHaveBeenCalledWith("/welcome");
     });
 
-    it("still refuses a plain user on /ax-renewal without the developer capability", () => {
+    it("still refuses a plain user on /ax-renewal who does not hold the developer role", () => {
       pathname.current = "/ax-renewal";
       session.current = {
         status: "authenticated",
-        user: { role: "user", mustChangePassword: false, capabilities: [] },
+        user: { role: "user", mustChangePassword: false, roles: ["user"] },
       };
       render(
         <RequireSession>
