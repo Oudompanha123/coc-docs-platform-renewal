@@ -100,7 +100,7 @@ const TRUSTED_BY = ["Nexora", "Vantix", "Brightloop", "Corevia", "Pathframe"];
 type FeatureCard = {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
-  description: string;
+  description: React.ReactNode;
   tone: Tone;
 };
 
@@ -114,14 +114,15 @@ const FEATURES: FeatureCard[] = [
   {
     icon: FolderIcon,
     title: "Coverage at a glance",
-    description:
-      "See what's written and what's missing across Jex3.0, Jex2.0, Coach, Team, and Usage from one screen.",
+    description: (
+      <>See what&apos;s written and what&apos;s missing across <strong>Jex3.0</strong>, <strong>Jex2.0</strong>, <strong>Coach</strong>, <strong>Team</strong>, and <strong>Usage</strong> from one screen.</>
+    ),
     tone: "green",
   },
   {
     icon: ShieldIcon,
     title: "Roles & permissions",
-    description: "Super Admin, Admin, or Viewer — control who can edit and who can only read.",
+    description: <><strong>Super Admin</strong>, <strong>Admin</strong>, or <strong>Viewer</strong> — control who can edit and who can only read.</>,
     tone: "orange",
   },
   {
@@ -139,7 +140,7 @@ const FEATURES: FeatureCard[] = [
   {
     icon: GoogleIcon,
     title: "Google-only auth",
-    description: "Sign in with the Google account your team already has — no extra passwords to manage.",
+    description: <>Sign in with the <strong>Google</strong> account your team already has — no extra passwords to manage.</>,
     tone: "green",
   },
 ];
@@ -147,6 +148,7 @@ const FEATURES: FeatureCard[] = [
 export default function WelcomePage() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const isDark = theme === "dark";
+  const [authGate, setAuthGate] = useState<string | null>(null);
 
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -185,7 +187,7 @@ export default function WelcomePage() {
               {HOME_LINK.label}
             </a>
             {FALLBACK_NAV.map((product) => (
-              <NavDropdown key={product.key} product={product} isDark={isDark} />
+              <NavDropdown key={product.key} product={product} isDark={isDark} onRequireAuth={setAuthGate} />
             ))}
           </nav>
 
@@ -371,18 +373,27 @@ export default function WelcomePage() {
                     {column.heading}
                   </p>
                   <ul className="mt-3 space-y-2.5">
-                    {column.links.map((link) => (
-                      <li key={link.label}>
-                        <Link
-                          href={link.href}
-                          className={`text-sm ${
-                            isDark ? "text-[#a79fc9] hover:text-[#f2effa]" : "text-muted hover:text-ink"
-                          }`}
-                        >
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
+                    {column.links.map((link) => {
+                      const isAuthLink = link.label === "Create an account" || link.label === "Log in";
+                      const linkClass = `text-sm ${isDark ? "text-[#a79fc9] hover:text-[#f2effa]" : "text-muted hover:text-ink"}`;
+                      return (
+                        <li key={link.label}>
+                          {isAuthLink ? (
+                            <Link href={link.href} className={linkClass}>
+                              {link.label}
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setAuthGate(link.label)}
+                              className={linkClass}
+                            >
+                              {link.label}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}
@@ -405,6 +416,50 @@ export default function WelcomePage() {
           </div>
         </ScrollReveal>
       </footer>
+
+      {/* Auth-gate modal — shown when a visitor clicks a product nav item */}
+      {authGate !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          onClick={() => setAuthGate(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-purple/10">
+              <ShieldIcon className="h-7 w-7 text-brand-purple" />
+            </div>
+            <h2 className="text-xl font-bold text-ink">Sign in to access {authGate}</h2>
+            <p className="mt-2 text-sm text-muted">
+              {authGate} documentation is only available to signed-in members. Create a free account or log in to continue.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <Link
+                href="/register"
+                className="flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                onClick={() => setAuthGate(null)}
+              >
+                Get started free
+              </Link>
+              <Link
+                href="/login"
+                className="flex items-center justify-center rounded-full border border-border bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-page"
+                onClick={() => setAuthGate(null)}
+              >
+                Log in
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAuthGate(null)}
+              className="mt-4 w-full text-center text-xs text-muted hover:text-ink"
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
