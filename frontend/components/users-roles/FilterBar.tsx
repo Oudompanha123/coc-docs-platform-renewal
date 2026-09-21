@@ -1,7 +1,7 @@
-import { ROLE_LABELS, ROLE_ORDER, type AccountRole, type AccountStatus } from "@/lib/mock/users-roles";
+import { DISPLAY_ROLE_ORDER, ROLE_LABELS, type AccountStatus, type DisplayRole } from "@/lib/mock/users-roles";
 
 export type StatusFilter = AccountStatus | "all";
-export type RoleFilter = AccountRole | "all";
+export type RoleFilter = DisplayRole | "all";
 
 function RoleGlyphIcon({ className }: { className?: string }) {
   return (
@@ -69,7 +69,7 @@ export function FilterBar({
           className="appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
         >
           <option value="all">All Roles</option>
-          {ROLE_ORDER.map((r) => (
+          {DISPLAY_ROLE_ORDER.map((r) => (
             <option key={r} value={r}>
               {ROLE_LABELS[r]}
             </option>

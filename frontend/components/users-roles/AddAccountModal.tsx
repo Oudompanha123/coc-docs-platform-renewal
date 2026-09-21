@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Modal } from "./Modal";
-import { ROLE_LABELS, ROLE_ORDER, type AccountRole } from "@/lib/mock/users-roles";
+import { RoleMultiSelect } from "./RoleMultiSelect";
+import { highestEnforcedRole, type AccountRole, type DisplayRole } from "@/lib/mock/users-roles";
 
 /**
  * Backed by the real `POST /api/v1/admin/accounts` (super_admin only). The
@@ -26,7 +27,7 @@ export function AddAccountModal({
   onAdd: (email: string, role: AccountRole) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<AccountRole>("user");
+  const [roles, setRoles] = useState<DisplayRole[]>(["user"]);
   const [error, setError] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,7 +45,7 @@ export function AddAccountModal({
     setError(undefined);
     setIsSubmitting(true);
     try {
-      await onAdd(trimmed, role);
+      await onAdd(trimmed, highestEnforcedRole(roles));
       // No further state change here on success: the parent closes this
       // modal once the account is actually in its list, which is also what
       // unmounts this component.
@@ -73,33 +74,8 @@ export function AddAccountModal({
       />
       {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
 
-      <label htmlFor="add-account-role" className="mb-1.5 mt-4 block text-sm font-semibold text-ink">
-        Role
-      </label>
-      <div className="relative">
-        <select
-          id="add-account-role"
-          value={role}
-          onChange={(e) => setRole(e.target.value as AccountRole)}
-          className="w-full appearance-none rounded-xl border border-border bg-white px-3 py-2.5 pr-9 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-        >
-          {ROLE_ORDER.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
-        <svg
-          viewBox="0 0 24 24"
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          aria-hidden="true"
-        >
-          <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      <span className="mb-1.5 mt-4 block text-sm font-semibold text-ink">Roles</span>
+      <RoleMultiSelect idPrefix="add-account-role" selected={roles} onChange={setRoles} />
 
       <div className="mt-6 flex justify-end gap-3">
         <button
