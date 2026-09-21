@@ -89,21 +89,21 @@ export function PagesSection({
               disabled={!canEdit}
               onChange={(e) => updateRow(i, "oldPath", e.target.value)}
               placeholder="Old route (e.g. /products)"
-              className="rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+              className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
             />
             <input
               value={row.newPath}
               disabled={!canEdit}
               onChange={(e) => updateRow(i, "newPath", e.target.value)}
               placeholder="New route"
-              className="rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+              className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
             />
             <input
               value={row.notes}
               disabled={!canEdit}
               onChange={(e) => updateRow(i, "notes", e.target.value)}
               placeholder="Notes"
-              className="rounded-lg border border-border px-2 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+              className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
             />
             {canEdit && (
               <button
