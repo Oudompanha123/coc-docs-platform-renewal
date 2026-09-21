@@ -16,6 +16,13 @@ function urlFor(productKey: string, slug: string): string {
   return `${BACKEND_URL}/api/v1/docs-content/${productKey}/${slug || "index"}`;
 }
 
+/** The write side lives under a different prefix (`AdminDocsContentController`,
+ *  `admin`-role gated in `SecurityConfig`) — a distinct path from the public
+ *  read endpoint above, not just a different method on the same one. */
+function adminUrlFor(productKey: string, slug: string): string {
+  return `${BACKEND_URL}/api/v1/admin/docs-content/${productKey}/${slug || "index"}`;
+}
+
 /**
  * Fetches the content for a registry id — a saved backend row if one
  * exists, else the seed content, else `undefined`. Never throws: the same
@@ -82,7 +89,7 @@ export async function saveDocContent(id: string, content: DocContent): Promise<D
 
   let response: Response;
   try {
-    response = await fetch(urlFor(productKey, slug), {
+    response = await fetch(adminUrlFor(productKey, slug), {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

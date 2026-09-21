@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { DocumentIcon } from "@/components/layout/icons";
@@ -34,6 +34,7 @@ const BLANK: Record<DocContent["kind"], DocContent> = {
 
 export default function ContentEditPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { productKey, slug } = parseContentId(id);
   const products = useNavStructure();
   const product = products?.find((p) => p.key === productKey);
@@ -98,15 +99,17 @@ export default function ContentEditPage() {
   }
 
   async function handleSave() {
-    if (!draft) return;
+    if (!draft || !entry) return;
     setSaving(true);
     setSaveError(null);
     try {
       await saveDocContent(id, draft);
       setSavedAt(Date.now());
+      // Closes this editor and returns to the product page it belongs to —
+      // the same destination as the "Back to {productLabel}" link above.
+      router.push(`/${entry.productKey}`);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Couldn't save. Please try again.");
-    } finally {
       setSaving(false);
     }
   }
@@ -138,7 +141,7 @@ export default function ContentEditPage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save"}
           </button>

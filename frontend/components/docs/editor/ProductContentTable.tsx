@@ -113,7 +113,10 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
   }
 
   async function handleDeleteItem(row: Row) {
-    if (!window.confirm(`Remove "${row.label}"? This only works while it has no saved content.`)) return;
+    const warning = row.hasContent
+      ? `Remove "${row.label}"? Its saved content will be permanently deleted too.`
+      : `Remove "${row.label}"?`;
+    if (!window.confirm(warning)) return;
     setError(null);
     try {
       await deleteItem(productKey, row.slug);
@@ -148,7 +151,7 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
             onChange={(e) => setNewLabel(e.target.value)}
             placeholder="Item label (e.g. Prerequisites)"
             required
-            className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-lg border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
           />
           {newLabel.trim() && <span className="shrink-0 text-xs text-muted">/{slugify(newLabel)}</span>}
           <button
