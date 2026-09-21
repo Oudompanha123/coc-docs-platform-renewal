@@ -109,8 +109,8 @@ export function SecurityTab() {
                 <p className="text-xs text-muted">
                   {passwordNotice ??
                     (user?.hasPassword
-                      ? "Keep your account secure with a strong password."
-                      : "You signed in with Google. Add a password to also sign in with your email.")}
+                      ? <>Keep your account secure with a <strong>strong password</strong>.</>
+                      : <>You signed in with <strong>Google</strong>. Add a <strong>password</strong> to also sign in with your email.</>)}
                 </p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export function SecurityTab() {
                   {mfaNotice ??
                     (user?.hasPassword
                       ? "Add an extra step when signing in."
-                      : "Set a password first to turn this on — it protects password sign-in only.")}
+                      : <>Set a <strong>password</strong> first to turn this on — it protects <strong>password sign-in</strong> only.</>)}
                 </p>
               </div>
             </div>
