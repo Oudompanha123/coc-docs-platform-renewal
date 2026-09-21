@@ -128,12 +128,21 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // super_admin sees everyone's activity here; every other role sees only
   // their own, decided server-side (NFR-SEC-PII).
   const activity = useActivityFeed();
-  // The panel lists what the badge counts, and only that. Showing read lines
-  // under a badge that says zero was the complaint: the number and the list
-  // disagreed, so neither meant anything. History is not lost — the Overview
-  // page's Recent Activity panel is the place that keeps it, and it is the
-  // place with room to read it.
-  const unreadActivity = activity.items.filter((item) => !item.read);
+  // Same two-way filter as the bell above, for the same reason: a panel that
+  // listed only unread had no way back to what you had just cleared, and a
+  // panel that listed everything made a badge saying zero sit over a full
+  // list. The tab is the answer to both — "Unread" is what the badge counts,
+  // "All" is the history — and it costs no second fetch, being a filter over
+  // the twenty rows the feed already holds.
+  const [activityFilter, setActivityFilter] = useState<NotificationFilter>("all");
+  // "Unread" is live, not a snapshot: a clicked row is read, so it leaves this
+  // list at once. "All" is where it can still be read back.
+  const visibleActivity =
+    activityFilter === "unread" ? activity.items.filter((item) => !item.read) : activity.items;
+  // Read by the open-effect below without making it a dependency: the tab is
+  // chosen when the panel opens, not re-chosen every time the count moves.
+  const activityCountRef = useRef(activity.count);
+  activityCountRef.current = activity.count;
   // The applicant whose notification was clicked — approving from the bell
   // rather than making the reader navigate to another page to act on a
   // one-line decision.
@@ -153,6 +162,24 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     applyTheme(stored);
     setDarkMode(stored === "dark");
   }, []);
+
+  /**
+   * Opens the activity panel on whichever tab has something in it.
+   *
+   * <p>The tab is component state and this header never unmounts, so a choice
+   * made once held for the rest of the session. Clear the last unread item
+   * while on "Unread" and every reopen after that showed an empty panel —
+   * over a feed with four things in it. The badge said zero and the list
+   * agreed, and both were answering a question nobody had asked.
+   *
+   * <p>Only on open. The count is read through a ref so that clearing the last
+   * row does not flip the tab out from under the person mid-click.
+   */
+  useEffect(() => {
+    if (openMenu === "mail") {
+      setActivityFilter(activityCountRef.current > 0 ? "unread" : "all");
+    }
+  }, [openMenu]);
 
   useEffect(() => {
     if (!openMenu) return;
@@ -336,29 +363,48 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
           {openMenu === "mail" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div className="border-b border-border px-4 py-3">
                 {/* "Activity", not "Messages": these are recorded events, not
                     mail from a person. The old label invited people to look
                     for a Reply button that was never going to exist. */}
                 <p className="text-sm font-semibold text-dash-ink">Activity</p>
-                {activity.count > 0 && (
+                <div className="mt-2.5 flex items-center gap-1.5">
+                  {(["unread", "all"] as const).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setActivityFilter(key)}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
+                        activityFilter === key
+                          ? "bg-brand-purple/10 text-brand-purple"
+                          : "border border-border text-muted hover:bg-page"
+                      }`}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                  {/* Not a filter, so it never shows "active" — a one-shot
+                      action grouped with the tabs because that is where the
+                      person is already looking when they want it. */}
                   <button
                     type="button"
                     onClick={() => activity.markAllRead()}
-                    className="text-xs font-semibold text-brand-purple hover:underline"
+                    disabled={activity.count === 0}
+                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                   >
-                    Mark all as read
+                    Read all
                   </button>
-                )}
+                </div>
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
-                {unreadActivity.length === 0 ? (
-                  // Not "Nothing recent": there may be plenty, all of it read.
-                  // This panel lists what the badge counts and nothing else, so
-                  // an empty one means caught up, not a quiet week.
-                  <p className="px-4 py-6 text-center text-xs text-muted">You&rsquo;re all caught up.</p>
+                {visibleActivity.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-xs text-muted">
+                    {/* Two different facts. Under "Unread" an empty list means
+                        caught up; under "All" it means nothing has happened. */}
+                    {activityFilter === "unread" ? "You're all caught up." : "Nothing recent."}
+                  </p>
                 ) : (
-                  unreadActivity.map((item) => (
+                  visibleActivity.map((item) => (
                     <button
                       key={item.id}
                       type="button"
@@ -370,7 +416,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       // the acknowledgement and nothing more. "Mark all as
                       // read" in the header is there for clearing the lot.
                       onClick={() => activity.markRead(item.id)}
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page"
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
+                        item.read ? "" : "bg-brand-purple/5"
+                      }`}
                     >
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[toneFor(item.actorEmail)]}`}
@@ -378,7 +426,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         {actorInitials(item)}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-dash-ink">
+                        <span
+                          className={`block truncate text-sm text-dash-ink ${
+                            item.read ? "font-medium" : "font-semibold"
+                          }`}
+                        >
                           {actorName(item)}
                         </span>
                         <span className="block truncate text-xs text-muted">{item.summary}</span>
@@ -386,13 +438,15 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                           {timeAgo(item.occurredAt)}
                         </span>
                       </span>
-                      {/* Every row here is unread, so the dot marks nothing
-                          out — it is an affordance, not a status. It is what
-                          says this line is the thing a click clears. */}
-                      <span
-                        aria-label="Unread"
-                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
-                      />
+                      {/* Now that "All" exists, the dot is a status again and
+                          not just an affordance: under that tab it is what
+                          tells the two kinds of row apart. */}
+                      {!item.read && (
+                        <span
+                          aria-label="Unread"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                        />
+                      )}
                     </button>
                   ))
                 )}
