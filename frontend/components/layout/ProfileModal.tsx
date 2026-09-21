@@ -12,7 +12,6 @@ import { StatusBadge } from "@/components/users-roles/StatusBadge";
 import { RoleBadge } from "@/components/users-roles/RoleBadge";
 import type { AccountRole } from "@/lib/mock/users-roles";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
 
 function formatWhen(iso: string | null): string {
@@ -38,7 +37,6 @@ const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 export function ProfileModal({ onClose }: { onClose: () => void }) {
   const { user, refresh } = useSession();
-  const { t } = useLanguage();
 
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [saving, setSaving] = useState(false);
@@ -62,7 +60,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       await refresh();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.profile.couldNotSave);
+      setError(err instanceof Error ? err.message : "Could not save profile.");
       setSaving(false);
     }
   }
@@ -75,11 +73,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     if (!file) return;
 
     if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-      setAvatarError(t.profile.wrongType);
+      setAvatarError("Photos must be PNG, JPEG, or WebP.");
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setAvatarError(t.profile.tooLarge);
+      setAvatarError("That photo is too large — please choose one under 2 MB.");
       return;
     }
 
@@ -89,7 +87,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       await uploadAvatar(file);
       await refresh();
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : t.profile.uploadFailed);
+      setAvatarError(err instanceof Error ? err.message : "Couldn't upload that photo.");
     } finally {
       setAvatarBusy(false);
     }
@@ -102,7 +100,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
       await removeAvatar();
       await refresh();
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : t.profile.removeFailed);
+      setAvatarError(err instanceof Error ? err.message : "Couldn't remove that photo.");
     } finally {
       setAvatarBusy(false);
     }
@@ -146,7 +144,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             </span>
           </div>
           <span className="mt-1.5 text-xs font-medium text-brand-purple underline-offset-2 group-hover:underline">
-            {avatarBusy ? t.profile.uploading : t.profile.changePhoto}
+            {avatarBusy ? "Uploading…" : "Change photo"}
           </span>
           <input
             type="file"
@@ -164,7 +162,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             disabled={avatarBusy}
             className="mt-0.5 text-xs text-muted underline-offset-2 hover:text-danger hover:underline disabled:cursor-not-allowed"
           >
-            {t.profile.removePhoto}
+            Remove photo
           </button>
         )}
         {avatarError && <p className="mt-1 text-xs text-danger">{avatarError}</p>}
@@ -180,27 +178,27 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
         {/* Read-only details */}
         <dl className="space-y-3 border-b border-border pb-4 text-sm">
           <div className="flex items-start justify-between gap-4">
-            <dt className="text-muted">{t.profile.email}</dt>
+            <dt className="text-muted">Email</dt>
             <dd className="min-w-0 break-all text-right font-medium text-dash-ink">
               {user?.email ?? "—"}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">{t.profile.currentRole}</dt>
+            <dt className="text-muted">Current role</dt>
             <dd>{user?.role ? <RoleBadge role={user.role.toLowerCase() as AccountRole} /> : "—"}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">{t.profile.status}</dt>
+            <dt className="text-muted">Status</dt>
             <dd>
               <StatusBadge status="active" />
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">{t.profile.lastSignIn}</dt>
+            <dt className="text-muted">Last sign-in</dt>
             <dd className="font-medium text-dash-ink">{formatWhen(user?.lastSignInAt ?? null)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">{t.profile.created}</dt>
+            <dt className="text-muted">Created</dt>
             <dd className="font-medium text-dash-ink">{formatWhen(user?.createdAt ?? null)}</dd>
           </div>
         </dl>
@@ -212,7 +210,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               htmlFor="profile-display-name"
               className="mb-1.5 block text-sm font-semibold text-ink"
             >
-              {t.profile.displayName}
+              Display name
             </label>
             <input
               id="profile-display-name"
@@ -222,7 +220,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-xl border border-border px-3 py-2 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
             />
             <p className="mt-1 text-xs text-muted">
-              {t.profile.displayNameHint}
+              Google sign-in overwrites this with the provider&apos;s name, so a correction here lasts until your next sign-in.
             </p>
           </div>
 
@@ -239,12 +237,12 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
               <div className="flex items-center gap-2.5">
                 <LockIcon className="h-4 w-4 shrink-0 text-muted" />
                 <div>
-                  <p className="text-sm font-semibold text-dash-ink">{t.profile.password}</p>
+                  <p className="text-sm font-semibold text-dash-ink">Password</p>
                   <p className="text-xs text-muted">
                     {passwordNotice ??
                       (user?.hasPassword
-                        ? t.profile.keepSecureHint
-                        : t.profile.addPasswordHint)}
+                        ? "Keep your account secure with a strong password."
+                        : "You signed in with Google. Add a password to also sign in with your email.")}
                   </p>
                 </div>
               </div>
@@ -257,7 +255,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
                   }}
                   className="shrink-0 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
                 >
-                  {user?.hasPassword ? t.profile.changePassword : t.profile.setPassword}
+                  {user?.hasPassword ? "Change password" : "Set password"}
                 </button>
               )}
             </div>
@@ -292,7 +290,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           onClick={onClose}
           className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-gray-50"
         >
-          {t.profile.close}
+          Close
         </button>
         <button
           type="button"
@@ -300,7 +298,7 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
           disabled={!dirty || saving}
           className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {saving ? t.profile.saving : t.profile.saveChanges}
+          {saving ? "Saving…" : "Save changes"}
         </button>
       </div>
     </Modal>

@@ -15,8 +15,6 @@ import { NotificationsModal } from "@/components/home/NotificationsModal";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { fill } from "@/lib/i18n/translations";
 import { computeProductStats, computeRecentDocs, type ContentDocRow } from "@/lib/docs/content-stats";
 import type { StatCardData } from "@/lib/mock/overview";
 import { fetchOpenTasks, type Task } from "@/lib/tasks/tasks-api";
@@ -34,7 +32,6 @@ import { UsageSnapshotPanel } from "@/components/home/UsageSnapshotPanel";
 export default function MemberHomePage() {
   const { user } = useSession();
   const currentUser = useCurrentUser();
-  const { t } = useLanguage();
   const products = useNavStructure();
   const [stats, setStats] = useState<StatCardData[] | null>(null);
   const [recentDocs, setRecentDocs] = useState<ContentDocRow[] | null>(null);
@@ -70,20 +67,20 @@ export default function MemberHomePage() {
           <div className="animate-entrance mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
               {stats === null
-                ? t.home.loading
+                ? "Loading your workspace…"
                 : notWritten > 0
-                  ? fill(t.home.needsWriting, { n: notWritten, s: notWritten === 1 ? "" : "s" })
-                  : t.home.allWritten}
+                  ? `${notWritten} document${notWritten === 1 ? "" : "s"} still need writing since your last visit`
+                  : "Every document across your workspace is written"}
             </span>
 
             <h1 className="mt-6 text-4xl font-extrabold leading-tight text-ink sm:text-5xl">
-              {fill(t.home.greeting, { name: firstName })}
+              {`Pick up where you left off, ${firstName}.`}
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-base text-muted sm:text-lg">
               {attention
-                ? fill(t.home.attentionNote, { product: attention.label })
-                : t.home.allDocumented}
+                ? `${attention.label} needs the most attention right now — pick up where the team left off.`
+                : "Every product is fully documented. Browse what your team has written so far."}
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -91,13 +88,13 @@ export default function MemberHomePage() {
                 href={attention ? productHref(attention.key) : "#products"}
                 className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
-                {attention ? fill(t.home.continueWith, { product: attention.label }) : t.home.browseAll}
+                {attention ? `Continue with ${attention.label}` : "Browse all products"}
               </Link>
               <Link
                 href="#products"
                 className="inline-flex items-center justify-center rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-page active:scale-[0.97]"
               >
-                {t.home.browseAll}
+                Browse all products
               </Link>
             </div>
           </div>
@@ -144,9 +141,9 @@ export default function MemberHomePage() {
 
         <section className="mx-auto max-w-5xl px-6 py-20">
           <ScrollReveal>
-            <h2 className="text-center text-3xl font-bold text-ink">{t.home.bentoHeading}</h2>
+            <h2 className="text-center text-3xl font-bold text-ink">Everything you need, in one place.</h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
-              {t.home.bentoSub}
+              Your documents, your open tasks, and how the team is using the workspace.
             </p>
           </ScrollReveal>
 
@@ -167,32 +164,32 @@ export default function MemberHomePage() {
             {canManage ? (
               <>
                 <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
-                  {fill(t.home.bannerNeedsWriting, { n: notWritten, s: notWritten === 1 ? "" : "s", sv: notWritten === 1 ? "s" : "" })}
+                  {`${notWritten} document${notWritten === 1 ? "" : "s"} still need${notWritten === 1 ? "s" : ""} writing.`}
                 </h2>
                 <p className="relative mt-3 text-sm text-sidebar-muted sm:text-base">
-                  {t.home.bannerFillIn}
+                  Pick a product and fill in what&apos;s missing.
                 </p>
                 <Link
                   href={attention ? productHref(attention.key) : "#products"}
                   className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
-                  {t.home.newDocument}
+                  New Document
                 </Link>
               </>
             ) : (
               <>
                 <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
-                  {t.home.bannerMissing}
+                  Spotted something missing or out of date?
                 </h2>
                 <p className="relative mt-3 text-sm text-white sm:text-base">
-                  {t.home.bannerReadOnly}
+                  Your account can read every product&apos;s documentation, but editing is limited to admins.
                 </p>
                 <button
                   type="button"
                   className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
                   <ShieldIcon className="h-4 w-4 text-white/80" />
-                  {t.home.askAdmin}
+                  Ask an Admin for edit access
                 </button>
               </>
             )}

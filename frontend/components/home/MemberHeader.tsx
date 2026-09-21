@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
   BellIcon,
   ChevronDownIcon,
-  GlobeIcon,
   LayersIcon,
   LogOutIcon,
   MailIcon,
@@ -19,7 +17,6 @@ import {
   SettingsIcon,
   SunIcon,
 } from "@/components/layout/icons";
-import { LANGUAGE_LABELS, type Language } from "@/lib/i18n/translations";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
@@ -31,7 +28,7 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-type MenuKey = "bell" | "mail" | "user" | "products" | "lang";
+type MenuKey = "bell" | "mail" | "user" | "products";
 
 const PANEL_CLASSES = "absolute right-0 z-30 mt-2 w-80 rounded-xl border border-border bg-white shadow-lg";
 
@@ -76,7 +73,6 @@ function ProductsDropdown({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const { t } = useLanguage();
 
   return (
     <div
@@ -84,7 +80,7 @@ function ProductsDropdown({
       className="absolute left-0 top-[72px] z-30 w-80 rounded-2xl border border-border bg-white p-4 shadow-xl"
     >
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted">
-        {t.products.label}
+        PRODUCTS
       </p>
       <div className="grid grid-cols-2 gap-2">
         {products.map((product) => {
@@ -144,7 +140,6 @@ export function MemberHeader({
   const pathname = usePathname();
   const user = useCurrentUser();
   const { user: sessionUser, signOut, isSigningOut } = useSession();
-  const { t, language, setLanguage } = useLanguage();
   const notifications = useNotifications();
   const activity = useActivityFeed();
   const unreadActivity = activity.items.filter((item) => !item.read);
@@ -209,7 +204,7 @@ export function MemberHeader({
         <nav className="hidden items-center gap-7 md:flex">
           {/* Home */}
           <Link href="/home" className={navLinkClass(pathname === "/home")}>
-            {t.nav.home}
+            Home
           </Link>
 
           {/* Products dropdown */}
@@ -221,7 +216,7 @@ export function MemberHeader({
               onClick={() => toggleMenu("products")}
               className={`${navLinkClass(isProductsActive)} gap-1`}
             >
-              {t.nav.products}
+              Products
               <ChevronDownIcon
                 className={`h-4 w-4 transition-transform duration-150 ${
                   openMenu === "products" ? "rotate-180" : ""
@@ -242,7 +237,7 @@ export function MemberHeader({
             href="/ax-renewal"
             className={navLinkClass(pathname?.startsWith("/ax-renewal") ?? false)}
           >
-            {t.nav.aiRenewal}
+            AI Renewal
           </Link>
 
           {/* How to Use */}
@@ -250,57 +245,12 @@ export function MemberHeader({
             href="/docs/get-started"
             className={navLinkClass(pathname?.startsWith("/docs/get-started") ?? false)}
           >
-            {t.nav.howToUse}
+            How to Use
           </Link>
         </nav>
 
         {/* Right-side chrome */}
         <div className="flex items-center gap-2" ref={clusterRef}>
-
-          {/* Language picker */}
-          <div className="relative">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={openMenu === "lang"}
-              onClick={() => toggleMenu("lang")}
-              className="relative flex items-center gap-1.5 rounded-xl bg-gray-100 px-2.5 py-2 text-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
-            >
-              <GlobeIcon className="h-5 w-5" />
-              <span className="text-xs font-semibold uppercase">{language}</span>
-            </button>
-
-            {openMenu === "lang" && (
-              <div
-                role="menu"
-                className="absolute right-0 z-30 mt-2 w-44 rounded-xl border border-border bg-white py-2 shadow-lg"
-              >
-                <p className="px-4 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-widest text-muted">
-                  Language
-                </p>
-                {(["en", "ko", "km"] as Language[]).map((lang) => {
-                  const FLAG: Record<Language, string> = { en: "🇺🇸", ko: "🇰🇷", km: "🇰🇭" };
-                  return (
-                    <button
-                      key={lang}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => { setLanguage(lang); setOpenMenu(null); }}
-                      className={`flex w-full items-center gap-2.5 px-4 py-2 text-sm transition-colors hover:bg-page ${
-                        language === lang ? "font-semibold text-brand-purple" : "text-ink"
-                      }`}
-                    >
-                      <span className="text-base">{FLAG[lang]}</span>
-                      <span className="flex-1 text-left">{LANGUAGE_LABELS[lang]}</span>
-                      {language === lang && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-purple" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
 
           {/* Theme toggle */}
           <button
@@ -331,11 +281,11 @@ export function MemberHeader({
             {openMenu === "bell" && (
               <div role="menu" className={PANEL_CLASSES}>
                 <div className="border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">{t.notifications.title}</p>
+                  <p className="text-sm font-semibold text-ink">Notifications</p>
                 </div>
                 <div className="max-h-80 overflow-y-auto py-1">
                   {notifications.items.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm text-muted">{t.notifications.empty}</p>
+                    <p className="px-4 py-6 text-center text-sm text-muted">Nothing needs your attention.</p>
                   ) : (
                     notifications.items.map((n) => (
                       <div key={n.id} role="menuitem" className="flex items-start gap-3 px-4 py-3">
@@ -365,20 +315,20 @@ export function MemberHeader({
             {openMenu === "mail" && (
               <div role="menu" className={PANEL_CLASSES}>
                 <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">{t.activity.title}</p>
+                  <p className="text-sm font-semibold text-ink">Activity</p>
                   {activity.count > 0 && (
                     <button
                       type="button"
                       onClick={() => activity.markAllRead()}
                       className="text-xs font-semibold text-brand-purple hover:underline"
                     >
-                      {t.activity.markAllRead}
+                      Mark all as read
                     </button>
                   )}
                 </div>
                 <div className="max-h-80 overflow-y-auto py-1">
                   {unreadActivity.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-xs text-muted">{t.activity.caughtUp}</p>
+                    <p className="px-4 py-6 text-center text-xs text-muted">You&apos;re all caught up.</p>
                   ) : (
                     unreadActivity.map((item) => (
                       <button
@@ -451,7 +401,7 @@ export function MemberHeader({
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
-                    {t.menu.profile}
+                    Profile
                   </button>
                   {canManage && (
                     <Link
@@ -475,7 +425,7 @@ export function MemberHeader({
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSigningOut ? <Spinner /> : <LogOutIcon className="h-4 w-4" />}
-                    {isSigningOut ? t.menu.loggingOut : t.menu.logout}
+                    {isSigningOut ? "Logging out…" : "Log out"}
                   </button>
                 </div>
               </div>
