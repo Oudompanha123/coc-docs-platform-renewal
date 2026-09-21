@@ -11,13 +11,10 @@ import {
   LayersIcon,
   LogOutIcon,
   MailIcon,
-  MoonIcon,
   PersonIcon,
   ReturnIcon,
   SettingsIcon,
-  SunIcon,
 } from "@/components/layout/icons";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
@@ -134,7 +131,6 @@ export function MemberHeader({
   onOpenNotifications: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
-  const [isDark, setIsDark] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -170,16 +166,6 @@ export function MemberHeader({
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [openMenu]);
-
-  useEffect(() => {
-    setIsDark(getStoredTheme() === "dark");
-  }, []);
-
-  function toggleTheme() {
-    const next = isDark ? "light" : "dark";
-    applyTheme(next);
-    setIsDark(next === "dark");
-  }
 
   function toggleMenu(key: MenuKey) {
     setOpenMenu((current) => (current === key ? null : key));
@@ -251,21 +237,6 @@ export function MemberHeader({
 
         {/* Right-side chrome */}
         <div className="flex items-center gap-2" ref={clusterRef}>
-
-          {/* Theme toggle */}
-          <button
-            type="button"
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            aria-pressed={isDark}
-            onClick={toggleTheme}
-            className={`rounded-xl p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
-              isDark
-                ? "bg-brand-purple/20 text-brand-purple"
-                : "bg-gray-100 text-ink/70 hover:bg-brand-purple/20"
-            }`}
-          >
-            {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
-          </button>
 
           {/* Notifications */}
           <div className="relative">
