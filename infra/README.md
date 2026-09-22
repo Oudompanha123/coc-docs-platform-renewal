@@ -121,6 +121,12 @@ storage — is read at startup, so `docker compose up -d` is enough.
 
 ## Optional pieces
 
+**AX Renewal analysis is deliberately not one of these.** `Run analysis` uses a
+disclosed keyword match here and will keep doing so: it can only reach a real
+model on a machine that has Claude Code installed, which this instance does
+not and should not. See CONTRIBUTING.md, "Real analysis, on your own machine" — it is a
+developer setup step, not a deployment setting.
+
 **Email** (`MAIL_HOST`). Without it, password-reset links are logged at WARN
 instead of sent, and registration OTPs cannot be delivered — so password
 registration is not really usable until this is set. Google sign-in is

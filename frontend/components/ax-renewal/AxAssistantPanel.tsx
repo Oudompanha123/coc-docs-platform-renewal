@@ -10,6 +10,8 @@ import {
   reopenSection,
   runAnalysis,
   startImplementation,
+  fetchEngineStatus,
+  type AxRenewalEngineStatus,
   type PlanSection,
 } from "@/lib/ax-renewal/api";
 import { EXPLORER_META, resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
@@ -68,6 +70,15 @@ export function AxAssistantPanel() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<Note | null>(null);
+
+  // Null until the answer is known. The banner renders nothing in that gap
+  // rather than guessing: flashing "no model connected" and correcting a
+  // moment later would teach people to distrust the line that exists
+  // precisely to be trusted (ADR-043).
+  const [engine, setEngine] = useState<AxRenewalEngineStatus | null>(null);
+  useEffect(() => {
+    void fetchEngineStatus().then(setEngine);
+  }, []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const meta = active != null ? EXPLORER_META[active] : null;
@@ -176,20 +187,45 @@ export function AxAssistantPanel() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-          <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
-          <span>
-            No model connected — <span className="font-semibold">fixed commands only</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => onOpenTab("ai-engine")}
-            className="ml-auto shrink-0 rounded-[5px] border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
-          >
-            connect
-          </button>
-        </div>
-
+        {/* Three states, not one. This line used to assert "No model
+            connected" unconditionally, which was true of every deployment and
+            wrong on a machine with a local Claude Code installation -- and it
+            is the one line in the workspace whose whole job is to be honest
+            about what the assistant can do (ADR-043). */}
+        {engine?.connected ? (
+          <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
+            <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              Local model connected —{" "}
+              <span className="font-semibold">
+                {engine.readsSource ? "reads your source" : "reads the manifest only"}
+              </span>
+            </span>
+            {!engine.readsSource && (
+              <button
+                type="button"
+                onClick={() => onOpenTab("ai-engine")}
+                className="ml-auto shrink-0 rounded-[5px] border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+              >
+                why
+              </button>
+            )}
+          </div>
+        ) : engine ? (
+          <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+            <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              No model connected — <span className="font-semibold">fixed commands only</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => onOpenTab("ai-engine")}
+              className="ml-auto shrink-0 rounded-[5px] border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+            >
+              connect
+            </button>
+          </div>
+        ) : null}
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
           {detail.comments.length === 0 && (
             <p className="text-sm text-muted">No comments yet — anything you type that isn&apos;t a command above is recorded here.</p>
