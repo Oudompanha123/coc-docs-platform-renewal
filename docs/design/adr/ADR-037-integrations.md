@@ -199,6 +199,18 @@ like every other route today.
 - **Disconnect** (`DELETE /api/v1/admin/integrations/{id}`): see schema
   section above. Audit-logged (`AuditRepository.append(..., "integration.disconnected", ...)`),
   same as every other admin mutation in this system.
+- **Reconnect** (`POST /api/v1/admin/integrations/{id}/reconnect`, added
+  2026-09-22): re-activates a disconnected row in place — same `id`, provider,
+  name, target URL, events and delivery history — rather than requiring a
+  fresh `POST /integrations` (which would leave the disconnected row behind
+  as an orphaned duplicate). Reuses connect's own machinery verbatim: a new
+  256-bit secret is generated and encrypted the same way (the old one was
+  nulled at disconnect time and cannot be recovered), the response shape is
+  the same one-time-reveal `IntegrationSecretResponse`, and it is
+  audit-logged as `integration.reconnect`. No new decision is made here —
+  same trust floor (`super_admin`), same encryption-at-rest and SSRF-at-connect-time
+  posture as already decided above — so this is recorded as an addition to
+  this ADR rather than a new one.
 
 ### 6. SSRF posture — decided, not merely recommended
 
@@ -304,6 +316,9 @@ Still open:
       (`SecurityRulesTest$IntegrationsPath` proves the authorization floor
       with a mocked service, not the schema or the JSONB containment query).
 - [ ] `page.published` is not wired — see Decision §5.
+- [ ] The 2026-09-22 Reconnect addition has no `FR-INTEG-*` requirement of its
+      own yet, and needs a `TM-03x` threat-model entry alongside the ones
+      already outstanding for connect/disconnect above.
 
 ## References
 
@@ -329,6 +344,7 @@ Still open:
 |---|---|---|---|
 | 2026-09-18 | 1.0 | Initial draft, on direct PM/developer instruction in-session | AI |
 | 2026-09-18 | 1.1 | Renumbered from ADR-036 to ADR-037 on discovering ADR-036 (per-model pricing) already existed in `ADR-INDEX.md` | AI |
+| 2026-09-22 | 1.2 | Added Reconnect (§5) — re-activates a disconnected row in place instead of requiring a new connection | AI |
 
 ---
 

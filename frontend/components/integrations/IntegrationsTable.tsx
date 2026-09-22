@@ -34,6 +34,7 @@ export function IntegrationsTable({
   onTest,
   onRotate,
   onDisconnect,
+  onReconnect,
   onEdit,
   onViewHistory,
 }: {
@@ -41,6 +42,7 @@ export function IntegrationsTable({
   onTest: (integration: Integration) => Promise<void>;
   onRotate: (integration: Integration) => Promise<void>;
   onDisconnect: (integration: Integration) => void;
+  onReconnect: (integration: Integration) => Promise<void>;
   onEdit: (integration: Integration) => void;
   onViewHistory: (integration: Integration) => void;
 }) {
@@ -59,6 +61,15 @@ export function IntegrationsTable({
     setBusyId(integration.id);
     try {
       await onRotate(integration);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function runReconnect(integration: Integration) {
+    setBusyId(integration.id);
+    try {
+      await onReconnect(integration);
     } finally {
       setBusyId(null);
     }
@@ -130,14 +141,25 @@ export function IntegrationsTable({
                   >
                     Rotate secret
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => onDisconnect(integration)}
-                    disabled={busy || disconnected}
-                    className="inline-flex items-center rounded-full border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Disconnect
-                  </button>
+                  {disconnected ? (
+                    <button
+                      type="button"
+                      onClick={() => runReconnect(integration)}
+                      disabled={busy}
+                      className="inline-flex items-center rounded-full border border-brand-purple/30 px-3 py-1.5 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Reconnect
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onDisconnect(integration)}
+                      disabled={busy}
+                      className="inline-flex items-center rounded-full border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Disconnect
+                    </button>
+                  )}
                 </td>
               </tr>
             );

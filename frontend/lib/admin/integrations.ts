@@ -126,3 +126,8 @@ export function rotateSecret(id: string): Promise<IntegrationWithSecret> {
 export function disconnectIntegration(id: string): Promise<Integration> {
   return request<Integration>(`/${id}`, { method: "DELETE" });
 }
+
+/** Re-activates a disconnected row in place with a freshly issued secret, shown once. */
+export function reconnectIntegration(id: string): Promise<IntegrationWithSecret> {
+  return request<IntegrationWithSecret>(`/${id}/reconnect`, { method: "POST" });
+}

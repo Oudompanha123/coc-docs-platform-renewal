@@ -5,6 +5,7 @@ import {
   disconnectIntegration,
   listDeliveries,
   listIntegrations,
+  reconnectIntegration,
   rotateSecret,
   testIntegration,
   updateIntegration,
@@ -113,6 +114,19 @@ describe("integrations client", () => {
 
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toMatch(new RegExp(`/api/v1/admin/integrations/${INTEGRATION.id}/rotate-secret$`));
+    expect(init).toMatchObject({ method: "POST" });
+  });
+
+  it("POSTs to reconnect and returns the new plaintext secret", async () => {
+    respondWith(200, { integration: { ...INTEGRATION, status: "connected" }, signingSecret: "reconnected-secret" });
+
+    await expect(reconnectIntegration(INTEGRATION.id)).resolves.toEqual({
+      integration: { ...INTEGRATION, status: "connected" },
+      signingSecret: "reconnected-secret",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toMatch(new RegExp(`/api/v1/admin/integrations/${INTEGRATION.id}/reconnect$`));
     expect(init).toMatchObject({ method: "POST" });
   });
 
