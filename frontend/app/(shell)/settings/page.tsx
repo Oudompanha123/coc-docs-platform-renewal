@@ -13,7 +13,6 @@ import { AccordionSection } from "@/components/settings/AccordionSection";
 import { DangerZoneCard } from "@/components/settings/DangerZoneCard";
 import { ShieldIcon } from "@/components/auth/icons";
 import { BellIcon, PersonIcon, SettingsIcon, SunIcon } from "@/components/layout/icons";
-import { NOTIFICATION_PREFERENCES } from "@/lib/mock/settings";
 
 // Hoisted rather than created inline in the JSX below: AppShell's effect
 // that publishes the header to ShellContext is keyed on this element's
@@ -63,7 +62,7 @@ export default function SettingsPage() {
                 the only control that asks for notification permission, so
                 without it nothing can be enabled at all (ADR-025). */}
             <PushNotificationsCard />
-            <NotificationsCard data={NOTIFICATION_PREFERENCES} />
+            <NotificationsCard />
           </SettingsCard>
         </div>
       </div>
