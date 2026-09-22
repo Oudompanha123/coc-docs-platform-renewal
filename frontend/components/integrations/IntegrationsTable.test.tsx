@@ -29,6 +29,7 @@ describe("IntegrationsTable", () => {
         onTest={vi.fn()}
         onRotate={vi.fn()}
         onDisconnect={vi.fn()}
+        onReconnect={vi.fn()}
         onEdit={onEdit}
         onViewHistory={vi.fn()}
       />,
@@ -48,6 +49,7 @@ describe("IntegrationsTable", () => {
         onTest={vi.fn()}
         onRotate={vi.fn()}
         onDisconnect={vi.fn()}
+        onReconnect={vi.fn()}
         onEdit={vi.fn()}
         onViewHistory={onViewHistory}
       />,
@@ -65,6 +67,7 @@ describe("IntegrationsTable", () => {
         onTest={vi.fn()}
         onRotate={vi.fn()}
         onDisconnect={vi.fn()}
+        onReconnect={vi.fn()}
         onEdit={vi.fn()}
         onViewHistory={vi.fn()}
       />,
@@ -74,5 +77,43 @@ describe("IntegrationsTable", () => {
     expect(screen.getByRole("button", { name: "Rotate secret" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "History" })).toBeEnabled();
+  });
+
+  it("shows Reconnect instead of Disconnect once disconnected, and calls onReconnect for that row", async () => {
+    const onReconnect = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <IntegrationsTable
+        integrations={[row({ status: "disabled" })]}
+        onTest={vi.fn()}
+        onRotate={vi.fn()}
+        onDisconnect={vi.fn()}
+        onReconnect={onReconnect}
+        onEdit={vi.fn()}
+        onViewHistory={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Disconnect" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reconnect" }));
+
+    expect(onReconnect).toHaveBeenCalledWith(row({ status: "disabled" }));
+  });
+
+  it("shows Disconnect, not Reconnect, while connected", () => {
+    render(
+      <IntegrationsTable
+        integrations={[row()]}
+        onTest={vi.fn()}
+        onRotate={vi.fn()}
+        onDisconnect={vi.fn()}
+        onReconnect={vi.fn()}
+        onEdit={vi.fn()}
+        onViewHistory={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Disconnect" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Reconnect" })).not.toBeInTheDocument();
   });
 });
