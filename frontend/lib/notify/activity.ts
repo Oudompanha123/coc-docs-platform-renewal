@@ -78,6 +78,91 @@ export async function listNotifications(limit = 20): Promise<NotificationItem[]>
   return (await response.json()) as NotificationItem[];
 }
 
+/** The `hrms:` prefix `NotificationFeedService` puts on report ids so they cannot collide with audit ids. */
+const HRMS_ID_PREFIX = "hrms:";
+
+/** Whether this feed row is an HRMS report, and so has a report behind it to open. */
+export function isHrmsReport(item: NotificationItem): boolean {
+  return item.id.startsWith(HRMS_ID_PREFIX);
+}
+
+/** One check in the attendance table: what was scheduled, what happened, and HRMS's word for it. */
+export interface HrmsAttendanceCheck {
+  scheduled: string;
+  actual: string;
+  status: string;
+}
+
+/** One person's line. */
+export interface HrmsAttendanceRow {
+  name: string;
+  yesterdayCheckOut: HrmsAttendanceCheck;
+  todayCheckIn: HrmsAttendanceCheck;
+}
+
+/** One labelled field from an HRMS mail that is not an attendance report. */
+export interface HrmsMailDetail {
+  label: string;
+  value: string;
+}
+
+/**
+ * `GET /api/v1/notifications/hrms/{id}`'s shape.
+ *
+ * `rows` and `details` are the two kinds of HRMS mail: an attendance report
+ * fills the first, everything else — leave and overtime requests, account
+ * created, password reset — fills the second. Both empty means the parser
+ * genuinely could not read it.
+ */
+export interface HrmsAttendanceReport {
+  subject: string;
+  /** ISO date, or null when the subject did not parse. */
+  reportDate: string | null;
+  /** The mail's own heading: a department for a report, "Leave Request" otherwise. */
+  department: string;
+  rows: HrmsAttendanceRow[];
+  details: HrmsMailDetail[];
+  /** The sender's "do not reply" footer, worth keeping when read outside a mail client. */
+  note: string;
+}
+
+/**
+ * One attendance report, fetched when somebody opens it.
+ *
+ * <p>The backend reads the mail on this request and stores nothing — see
+ * ADR-042. That is why this is a call on a click rather than a field on the
+ * feed row: the data exists for the life of the response and no longer.
+ *
+ * Throws rather than returning null, unlike {@link listNotifications}: this is
+ * a deliberate open, not a decoration, and a dialog that silently shows nothing
+ * is worse than one that says it could not read the mail.
+ */
+export async function fetchHrmsReport(feedItemId: string): Promise<HrmsAttendanceReport> {
+  const id = feedItemId.startsWith(HRMS_ID_PREFIX)
+    ? feedItemId.slice(HRMS_ID_PREFIX.length)
+    : feedItemId;
+
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/notifications/hrms/${encodeURIComponent(id)}`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server.");
+  }
+
+  if (response.status === 404) {
+    // One status for three cases, by design server-side: unknown id, mail gone
+    // from the mailbox, mailbox unreachable. The reader can act on none of
+    // them differently, so they get one sentence.
+    throw new AuthApiError("That report isn't available any more — it may have been removed from the mailbox.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't load that report.");
+  }
+  return (await response.json()) as HrmsAttendanceReport;
+}
+
 /**
  * "5m ago", from an absolute instant.
  *
