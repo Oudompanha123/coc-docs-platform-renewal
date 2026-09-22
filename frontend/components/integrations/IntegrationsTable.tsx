@@ -34,11 +34,15 @@ export function IntegrationsTable({
   onTest,
   onRotate,
   onDisconnect,
+  onEdit,
+  onViewHistory,
 }: {
   integrations: Integration[];
   onTest: (integration: Integration) => Promise<void>;
   onRotate: (integration: Integration) => Promise<void>;
   onDisconnect: (integration: Integration) => void;
+  onEdit: (integration: Integration) => void;
+  onViewHistory: (integration: Integration) => void;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -96,6 +100,20 @@ export function IntegrationsTable({
                     : "Never"}
                 </td>
                 <td className="px-4 py-4 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onViewHistory(integration)}
+                    className="mr-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:border-brand-purple hover:text-brand-purple"
+                  >
+                    History
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEdit(integration)}
+                    className="mr-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:border-brand-purple hover:text-brand-purple"
+                  >
+                    Edit
+                  </button>
                   <button
                     type="button"
                     onClick={() => runTest(integration)}

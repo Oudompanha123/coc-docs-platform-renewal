@@ -6,13 +6,17 @@ import { PlugIcon } from "@/components/layout/icons";
 import { Modal } from "@/components/users-roles/Modal";
 import { CodeBlock } from "@/components/claude-usage/CodeBlock";
 import { ConnectIntegrationModal } from "@/components/integrations/ConnectIntegrationModal";
+import { DeliveryHistoryModal } from "@/components/integrations/DeliveryHistoryModal";
+import { EditIntegrationModal } from "@/components/integrations/EditIntegrationModal";
 import { IntegrationsTable } from "@/components/integrations/IntegrationsTable";
 import {
   connectIntegration,
   disconnectIntegration,
+  listDeliveries,
   listIntegrations,
   rotateSecret,
   testIntegration,
+  updateIntegration,
   type Integration,
   type IntegrationProvider,
 } from "@/lib/admin/integrations";
@@ -30,6 +34,8 @@ export default function IntegrationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showConnect, setShowConnect] = useState(false);
   const [revealedSecret, setRevealedSecret] = useState<{ name: string; secret: string } | null>(null);
+  const [editing, setEditing] = useState<Integration | null>(null);
+  const [historyFor, setHistoryFor] = useState<Integration | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -77,6 +83,12 @@ export default function IntegrationsPage() {
     }
   }
 
+  async function handleUpdate(id: string, name: string, events: string[]) {
+    const updated = await updateIntegration(id, name, events);
+    await reload();
+    return updated;
+  }
+
   function handleDisconnect(integration: Integration) {
     if (!window.confirm(`Disconnect "${integration.name}"? Its signing secret is discarded immediately — reconnecting issues a new one.`)) {
       return;
@@ -120,11 +132,29 @@ export default function IntegrationsPage() {
             onTest={handleTest}
             onRotate={handleRotate}
             onDisconnect={handleDisconnect}
+            onEdit={setEditing}
+            onViewHistory={setHistoryFor}
           />
         </div>
       )}
 
       {showConnect && <ConnectIntegrationModal onClose={() => setShowConnect(false)} onConnect={handleConnect} />}
+
+      {editing && (
+        <EditIntegrationModal
+          integration={editing}
+          onClose={() => setEditing(null)}
+          onSave={(name, events) => handleUpdate(editing.id, name, events)}
+        />
+      )}
+
+      {historyFor && (
+        <DeliveryHistoryModal
+          integration={historyFor}
+          onClose={() => setHistoryFor(null)}
+          loadDeliveries={listDeliveries}
+        />
+      )}
 
       {revealedSecret && (
         <Modal title="Secret rotated" onClose={() => setRevealedSecret(null)}>
