@@ -54,7 +54,12 @@ export function AxRenewalActivityBar() {
 
   return (
     <aside className="hidden w-[52px] shrink-0 lg:block">
-      <div className="sticky top-0 flex h-screen w-[52px] flex-col items-center gap-1 bg-sidebar py-3">
+      {/* h-[calc(100vh-32px)], not h-screen: AxRenewalStatusBar (h-8,
+          border-box) now spans the full shell width as its own row below
+          this one, instead of running only under the main content — so
+          this stops short of the full viewport by exactly that height
+          rather than overlapping it. */}
+      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[52px] flex-col items-center gap-1 bg-sidebar py-3">
         {GROUPS.map((group) => {
           const isActive = group.label === activeGroup;
           const locked = group.gatedByAnalysis && !analyzed;
