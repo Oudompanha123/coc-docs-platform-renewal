@@ -6,7 +6,7 @@ import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
-import { useActivityFeed } from "@/lib/notify/useActivityFeed";
+import { useActivityFeed, type ActivityItem } from "@/lib/notify/useActivityFeed";
 import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
 import { ApproveRegistrationModal } from "./ApproveRegistrationModal";
 import { NewSignInModal } from "./NewSignInModal";
@@ -27,6 +27,7 @@ import {
   SunIcon,
 } from "./icons";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProfileModal } from "./ProfileModal";
 import { Spinner } from "./Spinner";
 import { useShell } from "@/lib/layout/ShellContext";
@@ -58,6 +59,45 @@ function toneFor(actorEmail: string | null): (typeof AVATAR_TONES)[number] {
     hash = (hash * 31 + actorEmail.charCodeAt(i)) | 0;
   }
   return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length]!;
+}
+
+/**
+ * The Activity row's own avatar — a real picture when the actor has one,
+ * the same per-actor coloured-initials bubble as before otherwise.
+ *
+ * <p>Not {@link ApplicantAvatar}: that component's fallback is a fixed
+ * brand-gradient bubble, which would flatten every actor without a picture
+ * to the same look and lose the reason {@link toneFor} exists — telling
+ * several people in the same short list apart at a glance. This keeps that
+ * fallback and only adds the picture on top of it.
+ */
+function ActivityAvatar({ item }: { item: ActivityItem }) {
+  const [failed, setFailed] = useState(false);
+
+  if (item.actorAvatarUrl && !failed) {
+    return (
+      // A plain <img>, same reasoning ApplicantAvatar gives: next/image wants
+      // every host configured up front, and this can be whichever identity
+      // provider the actor signed in with.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={item.actorAvatarUrl}
+        alt=""
+        aria-hidden="true"
+        onError={() => setFailed(true)}
+        referrerPolicy="no-referrer"
+        className="h-8 w-8 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[toneFor(item.actorEmail)]}`}
+    >
+      {actorInitials(item)}
+    </span>
+  );
 }
 
 function CountBadge({
@@ -96,6 +136,7 @@ type NotificationFilter = "unread" | "all";
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { header: { title, subtitle, titleIcon } } = useShell();
+  const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfile, setShowProfile] = useState(false);
@@ -417,21 +458,27 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       type="button"
                       role="menuitem"
                       // Clears this line and only this line — the badge goes
-                      // down by one. There is no dialog behind an audit row the
-                      // way there is behind a bell notification; the line
-                      // already says everything that happened, so the click is
-                      // the acknowledgement and nothing more. "Mark all as
-                      // read" in the header is there for clearing the lot.
-                      onClick={() => activity.markRead(item.id)}
+                      // down by one, whether or not there is somewhere to go
+                      // next. When there is (item.href — set server-side, per
+                      // target type and the caller's own role), this also
+                      // navigates there and closes the panel, the same shape
+                      // the bell's own items already use. When there is not,
+                      // the click is the acknowledgement and nothing more,
+                      // same as before this had any destinations at all.
+                      // "Mark all as read" in the header is still there for
+                      // clearing the lot without leaving this panel.
+                      onClick={() => {
+                        activity.markRead(item.id);
+                        if (item.href) {
+                          setOpenMenu(null);
+                          router.push(item.href);
+                        }
+                      }}
                       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                         item.read ? "" : "bg-brand-purple/5"
                       }`}
                     >
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS[toneFor(item.actorEmail)]}`}
-                      >
-                        {actorInitials(item)}
-                      </span>
+                      <ActivityAvatar item={item} />
                       <span className="min-w-0 flex-1">
                         <span
                           className={`block truncate text-sm text-dash-ink ${

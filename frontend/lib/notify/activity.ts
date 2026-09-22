@@ -23,10 +23,32 @@ export interface NotificationItem {
   id: string;
   /** Null when the actor was the system rather than a person. */
   actorEmail: string | null;
+  /**
+   * The actor's current picture, read live server-side rather than stored —
+   * null for no picture, a since-deleted account, or no actor at all (an
+   * HRMS report arrival). {@link ApplicantAvatar} already falls back to
+   * initials for null, same as everywhere else in this app that shows one.
+   */
+  actorAvatarUrl: string | null;
   /** The action in words, e.g. "Approved a registration". */
   summary: string;
   /** ISO-8601 instant. Formatted for display by {@link timeAgo}, never by the server. */
   occurredAt: string;
+  /** The raw audit action key, e.g. `"account.role_change"`. Null for an HRMS report arrival — nobody here did it. */
+  actionType: string | null;
+  /** What kind of thing this is about, e.g. `"account"` or `"page"`. Null when there is no target — same cases as {@link actionType}. */
+  targetType: string | null;
+  /** The target's id. Present whenever {@link targetType} is, whether or not {@link href} could be built for it. */
+  targetId: string | null;
+  /**
+   * Where to navigate on click, or null when there is nowhere to send the
+   * reader — no destination exists for this target type yet, or the caller
+   * could not open it anyway. The backend decides this, not this client: see
+   * `NotificationFeedService.hrefFor`. A present value is not a guarantee the
+   * target still exists — the destination page is what has to answer that
+   * gracefully (e.g. a deleted account just does not open).
+   */
+  href: string | null;
 }
 
 /**

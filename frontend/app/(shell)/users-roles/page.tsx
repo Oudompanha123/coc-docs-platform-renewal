@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { UsersIcon } from "@/components/layout/icons";
 import { AccountsTable } from "@/components/users-roles/AccountsTable";
@@ -95,6 +96,17 @@ type PageTab = "users" | "pending" | "roles";
  * in `audit_log` — see lib/admin/export-users.
  */
 export default function UsersRolesPage() {
+  // useSearchParams() requires a Suspense boundary in the App Router so the
+  // page can still be prerendered — same reason the login page wraps its own
+  // body, per that page's own comment on the same hook.
+  return (
+    <Suspense fallback={null}>
+      <UsersRolesPageInner />
+    </Suspense>
+  );
+}
+
+function UsersRolesPageInner() {
   const [tab, setTab] = useState<PageTab>("users");
   // The API records, kept as they arrived. `rows` below is the table's view of
   // them; the detail modal needs the full record, so throwing it away at load
@@ -178,6 +190,28 @@ export default function UsersRolesPage() {
     void reload();
     void reloadPending();
   }, [reload, reloadPending]);
+
+  // Opens an account's detail from `?highlight=<id>` — how the topbar's
+  // Activity panel sends someone here for "Changed an account's role" and
+  // similar (NotificationFeedService.hrefFor). Applied once: a ref, not a
+  // dependency on `detailId`, so closing the modal afterwards does not reopen
+  // it the next time `records` happens to refetch.
+  //
+  // No error, no message, nothing at all when the id is not in `records` —
+  // deleted since the notification fired, or (defensively) not something this
+  // account can see. `detail` above already resolves a missing id to `null`,
+  // so this only has to decide whether to *try* setting it.
+  const searchParams = useSearchParams();
+  const appliedHighlight = useRef(false);
+  useEffect(() => {
+    if (appliedHighlight.current || loading) return;
+    const highlight = searchParams.get("highlight");
+    if (!highlight) return;
+    appliedHighlight.current = true;
+    if (records.some((r) => r.id === highlight)) {
+      setDetailId(highlight);
+    }
+  }, [searchParams, records, loading]);
 
   // Roles load once with the page rather than when the tab is first opened:
   // it is one small request, and paying for it up front means the tab renders
