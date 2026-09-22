@@ -107,7 +107,7 @@ export const FALLBACK_NAV: NavProduct[] = [
     icon: "barChart",
     minRole: "admin",
     items: [
-      { slug: "", label: "Dashboard" },
+      { slug: "", label: "Overview" },
       { slug: "setup-guide", label: "Setup guide" },
       { slug: "configuration", label: "Configuration" },
     ],
