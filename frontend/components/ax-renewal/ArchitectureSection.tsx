@@ -72,7 +72,7 @@ export function ArchitectureSection({
             type="button"
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save architecture"}
           </button>

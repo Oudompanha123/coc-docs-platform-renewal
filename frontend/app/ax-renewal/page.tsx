@@ -10,6 +10,7 @@ import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
 import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
 import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
+import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
@@ -69,13 +70,13 @@ export default function AxRenewalPage() {
     <div className="space-y-5">
       {!detail && <AxRenewalLanding>{picker}</AxRenewalLanding>}
 
-      {detail && (
+      {detail && active != null && (
         <p className="text-sm text-muted">
           Plan a legacy-code migration: attach, analyze, agree a plan, and record the sign-off.
         </p>
       )}
 
-      {detail && picker}
+      {detail && active != null && picker}
 
       {loadError && (
         <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
@@ -219,25 +220,13 @@ function ProjectPicker({
         <label htmlFor="ax-project" className="text-xs font-semibold text-muted">
           Project
         </label>
-        <select
-          id="ax-project"
-          value={projectId ?? ""}
-          onChange={(e) => onSelect(e.target.value)}
-          className="min-w-[220px] rounded-xl border border-border bg-white px-3 py-1.5 text-sm font-medium text-dash-ink focus:outline-none"
-        >
-          {(projects ?? []).length === 0 && <option value="">No projects yet</option>}
-          {(projects ?? []).map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <ProjectSwitcher projects={projects} projectId={projectId} onSelect={onSelect} />
 
         {canEdit && !creating && (
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+            className="flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             New project
@@ -258,14 +247,14 @@ function ProjectPicker({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create"}
           </button>
           <button
             type="button"
             onClick={() => setCreating(false)}
-            className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
+            className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
           >
             Cancel
           </button>
@@ -493,7 +482,7 @@ function OutputPanel({
             type="button"
             onClick={() => void handleSave()}
             disabled={saving || !target.trim()}
-            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save destination"}
           </button>
@@ -548,7 +537,7 @@ function ImplementationPanel({
               type="button"
               onClick={() => void handleStart()}
               disabled={!readyToStart || starting}
-              className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {starting ? "Starting…" : "Start implementation"}
             </button>

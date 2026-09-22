@@ -297,7 +297,7 @@ export function AttachSourceSection({
                 stopPickClock();
                 setPhase("empty");
               }}
-              className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+              className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
             >
               Back
             </button>
@@ -360,7 +360,7 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={cancelScan}
-              className="rounded-xl border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
+              className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
             >
               Cancel
             </button>
@@ -395,14 +395,14 @@ export function AttachSourceSection({
                 <button
                   type="button"
                   onClick={() => beginPick(folderInputRef.current)}
-                  className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   Choose a folder
                 </button>
                 <button
                   type="button"
                   onClick={() => beginPick(filesInputRef.current)}
-                  className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+                  className="rounded-[5px] border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
                 >
                   Choose files
                 </button>
@@ -519,7 +519,7 @@ export function AttachSourceSection({
                     type="button"
                     onClick={startOver}
                     disabled={phase === "attaching"}
-                    className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Choose a different folder
                   </button>
@@ -527,7 +527,7 @@ export function AttachSourceSection({
                     type="button"
                     onClick={() => void handleAttach()}
                     disabled={phase === "attaching"}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <PaperclipIcon className="h-4 w-4" />
                     {phase === "attaching" ? "Attaching…" : "Attach"}
@@ -539,7 +539,7 @@ export function AttachSourceSection({
                   <button
                     type="button"
                     onClick={() => beginPick(folderInputRef.current)}
-                    className="rounded-xl border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+                    className="rounded-[5px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
                   >
                     Replace source
                   </button>
@@ -591,7 +591,7 @@ export function AttachSourceSection({
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis again"}
               </button>
@@ -599,7 +599,7 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=understand-architecture`)}
-              className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open architecture
             </button>
@@ -614,7 +614,7 @@ export function AttachSourceSection({
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis"}
               </button>
