@@ -1,10 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MailIcon, WarningIcon } from "@/components/layout/icons";
 import { SettingsCard } from "@/components/settings/SettingsCard";
 import { sendActivityDigest, type DigestResult } from "@/lib/admin/notifications";
 import { useSession } from "@/lib/auth/SessionProvider";
+
+/** Today, in this browser's local calendar date — `YYYY-MM-DD`, used to seed
+ *  the date field once mounted. Built from local getters rather than
+ *  `Date.toISOString()`, which reads in UTC and would show yesterday's date
+ *  for the first few hours after local midnight in any zone ahead of UTC
+ *  (Cambodia included, UTC+7). Only ever seeds a field the caller can still
+ *  change or clear; the backend still resolves "yesterday" itself in its own
+ *  configured zone when the field is left empty. */
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 /**
  * Sends the content-activity digest on demand.
@@ -32,10 +44,17 @@ import { useSession } from "@/lib/auth/SessionProvider";
  */
 export function ActivityDigestCard() {
   const { user } = useSession();
+  // Empty on first render, on both server and client, so the two agree; set
+  // to today only after mount, same reasoning PushNotificationsCard gives for
+  // reading browser-local state in an effect rather than during render.
   const [day, setDay] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<DigestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDay(todayLocal());
+  }, []);
 
   async function send() {
     setSending(true);

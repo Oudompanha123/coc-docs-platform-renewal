@@ -20,6 +20,14 @@ function signedInAs(role: Role) {
 
 const SEND = { name: "Send digest now" };
 
+/** Mirrors ActivityDigestCard's own `todayLocal()`, so this test stays
+ *  correct on whatever day it actually runs rather than pinning a date that
+ *  goes stale. */
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 describe("ActivityDigestCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -49,10 +57,28 @@ describe("ActivityDigestCard", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("sends with no day when the field is left empty, so the backend picks yesterday", async () => {
+  it("defaults the day field to today once mounted, for convenience", async () => {
+    render(<ActivityDigestCard />);
+
+    expect(await screen.findByLabelText("Day to report on")).toHaveValue(todayLocal());
+  });
+
+  it("sends today when the prefilled field is left as-is", async () => {
     const user = userEvent.setup();
     render(<ActivityDigestCard />);
 
+    await screen.findByDisplayValue(todayLocal());
+    await user.click(screen.getByRole("button", SEND));
+
+    expect(sendActivityDigest).toHaveBeenCalledWith(todayLocal());
+  });
+
+  it("sends no day when the field is cleared, so the backend picks yesterday", async () => {
+    const user = userEvent.setup();
+    render(<ActivityDigestCard />);
+
+    const field = await screen.findByLabelText("Day to report on");
+    await user.clear(field);
     await user.click(screen.getByRole("button", SEND));
 
     // undefined, not a date computed here: the report's day is resolved in the
@@ -64,7 +90,9 @@ describe("ActivityDigestCard", () => {
     const user = userEvent.setup();
     render(<ActivityDigestCard />);
 
-    await user.type(screen.getByLabelText("Day to report on"), "2026-09-01");
+    const field = await screen.findByLabelText("Day to report on");
+    await user.clear(field);
+    await user.type(field, "2026-09-01");
     await user.click(screen.getByRole("button", SEND));
 
     expect(sendActivityDigest).toHaveBeenCalledWith("2026-09-01");
