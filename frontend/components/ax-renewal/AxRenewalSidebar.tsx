@@ -171,9 +171,13 @@ export function AxRenewalSidebar({ isOpen, onClose }: AxRenewalSidebarProps) {
 
   return (
     <>
-      {/* Desktop: sticky, always visible — same pattern as the admin Sidebar. */}
+      {/* Desktop: sticky, always visible — same pattern as the admin Sidebar.
+          h-[calc(100vh-32px)], not h-screen: AxRenewalStatusBar now spans the
+          full shell width as its own row below this one, so this stops
+          short of the full viewport by that same height instead of running
+          past where the status bar starts. */}
       <aside className="hidden lg:block lg:w-64 lg:shrink-0">
-        <div className="sticky top-0 h-screen w-64">{content}</div>
+        <div className="sticky top-0 h-[calc(100vh-32px)] w-64">{content}</div>
       </aside>
 
       {/* Mobile/tablet: off-canvas drawer */}
