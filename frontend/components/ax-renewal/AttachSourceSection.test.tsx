@@ -162,6 +162,10 @@ describe("AttachSourceSection", () => {
       stackDetected: {},
       findings: [],
       pagesDetected: [],
+      indexed: {},
+      runningOnToday: [],
+      fileLayout: [],
+      moduleCoupling: {},
       modelConnected: false,
       analyzedAt: "2026-01-02T00:00:00Z",
     };
