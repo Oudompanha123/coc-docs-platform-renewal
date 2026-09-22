@@ -31,15 +31,27 @@ function AxRenewalShell({ children }: { children: ReactNode }) {
     <RequireSession>
       <AxRenewalThemeSync />
       <AxRenewalProjectProvider>
-        <div data-shell="ax-renewal" className="min-h-screen bg-page lg:flex">
-          <AxRenewalActivityBar />
-          <AxRenewalSidebar isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-          <div className="flex min-h-screen flex-1 flex-col lg:min-w-0">
-            <AxRenewalTopbar onMenuClick={() => setMobileNavOpen(true)} />
-            <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-            <AxRenewalStatusBar />
+        {/* Two rows, not one: content, then a footer spanning every column
+            beneath it — matching CodeRenewalPlatform.html's own shell
+            (a grid with `grid-template-rows: minmax(0,1fr) 26px` and
+            `.status{grid-column:1/5}`) instead of nesting the status bar
+            inside just the middle column, which left it running under the
+            main content only while the activity bar/sidebar/assistant panel
+            each ran the full viewport height beside it. Every sticky column
+            below (`AxRenewalActivityBar`, `AxRenewalSidebar`,
+            `AxAssistantPanel`) sizes itself to `calc(100vh-32px)` — the
+            status bar's own height — for exactly this reason. */}
+        <div data-shell="ax-renewal" className="flex min-h-screen flex-col bg-page">
+          <div className="flex-1 lg:flex">
+            <AxRenewalActivityBar />
+            <AxRenewalSidebar isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+            <div className="flex flex-1 flex-col lg:min-w-0">
+              <AxRenewalTopbar onMenuClick={() => setMobileNavOpen(true)} />
+              <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+            </div>
+            <AxAssistantPanel />
           </div>
-          <AxAssistantPanel />
+          <AxRenewalStatusBar />
         </div>
       </AxRenewalProjectProvider>
     </RequireSession>
