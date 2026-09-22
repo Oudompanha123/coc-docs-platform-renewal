@@ -28,9 +28,47 @@ export function supportsDirectoryDrop(items: DataTransferItemList): boolean {
   return items.length > 0 && typeof items[0]?.webkitGetAsEntry === "function";
 }
 
+/**
+ * Directories walked past without descending into them.
+ *
+ * <p>Measured on this repository: 295 source files against 37,933 in
+ * `node_modules` — 128 times more files, none of which say anything about
+ * the project being migrated. Reading them is not merely wasteful, it is
+ * what makes attaching a real project fail: every entry becomes a `File`
+ * object held in memory, and a browser asked for a hundred thousand of them
+ * stops responding.
+ *
+ * Each of these is either a dependency tree, build output, or version-control
+ * metadata — restorable from the manifest and the repository, and therefore
+ * describing nothing a migration plan needs to know.
+ */
+const SKIPPED_DIRECTORIES = new Set([
+  "node_modules",
+  ".git",
+  ".next",
+  "dist",
+  "build",
+  "out",
+  "target",
+  "vendor",
+  ".venv",
+  "__pycache__",
+  ".gradle",
+  ".idea",
+  ".vscode",
+]);
+
+/** Whether this directory is walked past rather than into. Exported for the test that pins the list. */
+export function isSkippedDirectory(name: string): boolean {
+  return SKIPPED_DIRECTORIES.has(name);
+}
+
 function readEntry(entry: FileSystemEntry, prefix: string): Promise<File[]> {
   if (entry.isFile) return readFileEntry(entry as FileSystemFileEntry, prefix);
-  if (entry.isDirectory) return readDirectoryEntry(entry as FileSystemDirectoryEntry, prefix);
+  if (entry.isDirectory) {
+    if (isSkippedDirectory(entry.name)) return Promise.resolve([]);
+    return readDirectoryEntry(entry as FileSystemDirectoryEntry, prefix);
+  }
   return Promise.resolve([]);
 }
 

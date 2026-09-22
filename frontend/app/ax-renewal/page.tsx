@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
+import { formatBytes } from "@/lib/ax-renewal/attachStats";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { AttachSourceSection } from "@/components/ax-renewal/AttachSourceSection";
 import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
@@ -278,15 +279,78 @@ function NoModelBanner() {
   );
 }
 
+/**
+ * What a panel shows before Run analysis has been pressed.
+ *
+ * Every analysis-fed panel used to fall back to a bare "No findings yet." or
+ * "No stack could be detected", which reads as a failure — the same blank a
+ * broken panel would show. The distinction that matters is: nothing has been
+ * asked for yet. The prototype filled this gap with hardcoded sample data
+ * labelled "these are not your findings"; saying what to press is more use
+ * and invents nothing.
+ */
+function NotAnalysedYet({ what }: { what: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center">
+      <p className="text-sm font-medium text-dash-ink">Nothing analysed yet</p>
+      <p className="mt-1 text-xs text-muted">
+        Press <b className="font-semibold text-dash-ink">Run analysis</b> under Understand → Attach source, and {what}{" "}
+        appears here.
+      </p>
+    </div>
+  );
+}
+
 function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
   const analysis = detail.analysis;
+  const stats = detail.project.attachStats;
+  // The extension breakdown, biggest first. Measured at attach time from the
+  // real file list, so this is the one part of the workspace that is true
+  // whether or not a model has ever run.
+  const topExtensions = stats
+    ? Object.entries(stats.extensions)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+    : [];
+
   return (
     <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Codebase</h3>
-      <p className="mt-1 text-xs text-muted">What was detected from the attached manifest.</p>
+      <p className="mt-1 text-xs text-muted">Counted at attach time. Detection below comes from analysis.</p>
 
       <div className="mt-4 space-y-4">
         {analysis && !analysis.modelConnected && <NoModelBanner />}
+
+        {stats ? (
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-4">
+            {[
+              { label: "project files", value: stats.fileCount.toLocaleString() },
+              { label: "on disk", value: formatBytes(stats.totalBytes) },
+              { label: "file types", value: Object.keys(stats.extensions).length.toLocaleString() },
+              { label: "runtime", value: stats.runtime ?? "—" },
+            ].map((cell) => (
+              <div key={cell.label} className="bg-white p-3">
+                <b className="block text-lg font-bold tracking-tight text-dash-ink">{cell.value}</b>
+                <span className="text-xs text-muted">{cell.label}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">Nothing attached yet — start at Understand → Attach source.</p>
+        )}
+
+        {topExtensions.length > 0 && (
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wide text-muted">By file type</h4>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {topExtensions.map(([ext, count]) => (
+                <span key={ext} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
+                  .{ext} <span className="text-muted">{count.toLocaleString()}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-xl bg-page p-3">
@@ -296,7 +360,7 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
           <div className="rounded-xl bg-page p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Analyzed</p>
             <p className="mt-1 text-sm font-medium text-dash-ink">
-              {analysis ? new Date(analysis.analyzedAt).toLocaleString() : "—"}
+              {analysis ? new Date(analysis.analyzedAt).toLocaleString() : "not yet — press Run analysis"}
             </p>
           </div>
         </div>
@@ -327,13 +391,17 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
 
       <div className="mt-4 space-y-4">
         {analysis && !analysis.modelConnected && <NoModelBanner />}
-        <p className="text-sm text-dash-ink">
-          {analysis && Object.keys(analysis.stackDetected).length > 0
-            ? `Detected runtime: ${Object.values(analysis.stackDetected).join(", ")}. A structural diagram of the ` +
-              "current system is a later phase's feature, once a real model is connected — this phase reports " +
-              "only what it can actually evidence."
-            : "No stack could be detected from the attached manifest."}
-        </p>
+        {!analysis ? (
+          <NotAnalysedYet what="the detected architecture" />
+        ) : (
+          <p className="text-sm text-dash-ink">
+            {Object.keys(analysis.stackDetected).length > 0
+              ? `Detected runtime: ${Object.values(analysis.stackDetected).join(", ")}. A structural diagram of ` +
+                "the current system is a later phase's feature, once a real model is connected — this phase " +
+                "reports only what it can actually evidence."
+              : "No stack could be detected from the attached manifest."}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -348,8 +416,10 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
       <div className="mt-4 space-y-4">
         {analysis && !analysis.modelConnected && <NoModelBanner />}
-        {!analysis || analysis.findings.length === 0 ? (
-          <p className="text-sm text-muted">No findings yet.</p>
+        {!analysis ? (
+          <NotAnalysedYet what="what a renewal would have to deal with" />
+        ) : analysis.findings.length === 0 ? (
+          <p className="text-sm text-muted">Nothing flagged — the analysis found no issues worth raising.</p>
         ) : (
           <ul className="space-y-1.5">
             {analysis.findings.map((f, i) => (
