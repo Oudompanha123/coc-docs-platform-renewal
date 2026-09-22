@@ -1,60 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { DocumentRow } from "@/components/dashboard/DocumentRow";
 import { RecentActivityPanel, RECENT_PANEL_LIST_HEIGHT } from "@/components/dashboard/RecentActivityPanel";
 import { EmptyContentIllustration } from "@/components/docs/editor/EmptyContentIllustration";
 import { HomeIcon } from "@/components/layout/icons";
-import { QUICK_ACTIONS } from "@/lib/mock/overview";
 import { useProductStats } from "@/lib/docs/useProductStats";
-import { mostAttentionProduct } from "@/lib/home/product-links";
-import { me, type Role } from "@/lib/auth/api";
-
-/**
- * Where each Quick Action card actually goes. Computed here rather than
- * baked into `QUICK_ACTIONS` (`lib/mock/overview.ts`) because two of the
- * four depend on runtime state that module has no access to: which product
- * most needs writing, and this caller's own role (`admin` cannot use
- * Invite Teammate or Connect Integration — both are `super_admin`-only on
- * the backend, same floor `nav-config.ts` already hides their sidebar links
- * behind). `QUICK_ACTIONS` itself is unchanged and still backs the
- * decorative `/welcome` preview, which never navigates anywhere.
- */
-function quickActionHrefs(attentionProductKey: string | null, role: Role | null): Record<string, string | null> {
-  return {
-    "new-document": attentionProductKey ? `/${attentionProductKey}` : null,
-    "invite-teammate": role === "super_admin" ? "/users-roles" : null,
-    "connect-integration": role === "super_admin" ? "/integrations" : null,
-    "view-reports": "/claude-usage",
-  };
-}
 
 export default function OverviewPage() {
   const productStats = useProductStats();
-  // Not useSession(): SessionProvider is mounted inside AppShell, which this
-  // page renders, so a hook call up here sits outside that provider — same
-  // reasoning app/(shell)/users-roles/page.tsx already gives for calling
-  // me() directly instead.
-  const [role, setRole] = useState<Role | null>(null);
-
-  useEffect(() => {
-    void me()
-      .then((session) => setRole(session.role))
-      .catch(() => {
-        // Leave it null — every role-gated quick action then hides itself,
-        // the safer default while /auth/me is unreachable.
-      });
-  }, []);
-
-  const attention =
-    productStats.status === "ready" ? mostAttentionProduct(productStats.products, productStats.stats) : null;
-  const attentionProductKey =
-    attention?.key ?? (productStats.status === "ready" ? (productStats.products[0]?.key ?? null) : null);
-  const hrefs = quickActionHrefs(attentionProductKey, role);
-  const quickActions = QUICK_ACTIONS.filter((action) => hrefs[action.id] != null);
 
   return (
     <AppShell
@@ -93,13 +48,7 @@ export default function OverviewPage() {
             ))}
           </div>
 
-          <div className="animate-entrance mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 [animation-delay:70ms]">
-            {quickActions.map((action) => (
-              <QuickActionCard key={action.id} data={action} href={hrefs[action.id]!} />
-            ))}
-          </div>
-
-          <div className="animate-entrance mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[65fr_35fr] [animation-delay:140ms]">
+          <div className="animate-entrance mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[65fr_35fr] [animation-delay:70ms]">
             <div className="overflow-hidden rounded-[10px] border border-border bg-white py-5 shadow-sm">
               <div>
                 <div className="flex items-center justify-between pl-5 pr-[15px]">

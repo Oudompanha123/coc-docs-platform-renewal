@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
-import { PulseIcon } from "@/components/layout/icons";
+import { ChevronDownIcon, PulseIcon } from "@/components/layout/icons";
 import { TotpDisableForm, TotpSetupWizard } from "@/components/settings/TotpSetupForm";
 import { getMfaStatus, listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -16,14 +16,20 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * ProfileModal}'s equivalent section.
  *
  * Two-factor authentication (ADR-031) is real too, as of the same change
- * that corrected the copy above: the toggle reflects {@code GET
- * /api/v1/auth/mfa/status}, turning it on opens {@link TotpSetupWizard}
- * (QR code, manual secret, confirmation code), and turning it off opens
- * {@link TotpDisableForm} (current password required). It used to be
- * local-state mock only, same fidelity as NotificationsCard — per-session
- * sign-out above is the one remaining place that's still real from before.
+ * that corrected the copy above: an "On" pill reflects {@code GET
+ * /api/v1/auth/mfa/status} (styled after the Authentication row's own
+ * "Connected" pill just above, same green/dot treatment), and the whole row
+ * is a chevron disclosure — matching the outer Security accordion's own
+ * header pattern (AccordionSection) rather than a switch, since clicking it
+ * never flips the state instantly either way: turning it on opens
+ * {@link TotpSetupWizard} (QR code, manual secret, confirmation code) and
+ * turning it off opens {@link TotpDisableForm} (current password required) —
+ * both still require a second step before anything actually changes. It used
+ * to be local-state mock only, same fidelity as NotificationsCard —
+ * per-session sign-out above is the one remaining place that's still real
+ * from before.
  *
- * <p>The toggle is disabled — not hidden — for an account with no password
+ * <p>The row is disabled — not hidden — for an account with no password
  * (`user.hasPassword` false): TOTP only ever gates `/login-password`
  * (ADR-031's own scope decision), so there is no password sign-in on a
  * Google-only account for it to protect yet. Disabled-with-an-explanation
@@ -166,7 +172,17 @@ export function SecurityTab() {
             offering the toggle would turn "on" a control that does nothing
             until they also set a password (ADR-030/ADR-029). */}
         <div className="py-4">
-          <div className="flex items-center justify-between gap-4">
+          <button
+            type="button"
+            aria-expanded={mfaMode !== "idle"}
+            aria-label="Two-factor authentication"
+            disabled={!user?.hasPassword}
+            onClick={() => {
+              setMfaNotice(null);
+              setMfaMode((current) => (current === "idle" ? (mfaEnabled ? "disabling" : "enabling") : "idle"));
+            }}
+            className="flex w-full items-center justify-between gap-4 text-left disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
                 <ShieldIcon className="h-5 w-5" />
@@ -181,27 +197,22 @@ export function SecurityTab() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={mfaEnabled}
-              aria-label="Toggle two-factor authentication"
-              disabled={mfaMode !== "idle" || !user?.hasPassword}
-              onClick={() => {
-                setMfaNotice(null);
-                setMfaMode(mfaEnabled ? "disabling" : "enabling");
-              }}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60 ${
-                mfaEnabled ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
-                  mfaEnabled ? "left-[22px]" : "left-0.5"
-                }`}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Same pill the Authentication row above uses for "Connected" —
+                  the only remaining state indicator now that this is a
+                  disclosure rather than a switch whose thumb position used
+                  to carry that meaning. */}
+              {mfaEnabled && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-1 text-xs font-semibold text-[#1f9d6b]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
+                  On
+                </span>
+              )}
+              <ChevronDownIcon
+                className={`h-5 w-5 text-muted transition-transform ${mfaMode !== "idle" ? "rotate-180" : ""}`}
               />
-            </button>
-          </div>
+            </div>
+          </button>
 
           {mfaMode === "enabling" && (
             <TotpSetupWizard

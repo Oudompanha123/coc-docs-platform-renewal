@@ -44,10 +44,11 @@ Elaborates the Skill 1 proposal and the 30 business requirements into Functional
 
 Use cases: **7**. Orphan requirements: **0** as of v1.6 — every in-scope FR and NFR maps to ≥ 1 use case (verified in the matrix). The 5 `Won't` requirements are deliberately unmapped, since they are excluded from this release.
 
-> **v1.7 note**: `FR-INTEG-001..006` (§2.9) are not yet mapped to a use case
-> or to `requirements-matrix.csv` — recorded as required follow-up in
-> `ADR-037`, not silently counted as covered here. The "0 orphans" claim
-> above is as of v1.6 and does not yet account for this section.
+> **v1.8 note**: `FR-INTEG-001..006` (§2.9) were **withdrawn** in v1.8 (§7.8)
+> — the feature they described was fully removed, so the use-case/matrix
+> mapping the v1.7 note here originally flagged as outstanding no longer
+> applies. The "0 orphans" claim above is as of v1.6 and does not account for
+> this section either way, since it was never mapped and is now moot.
 
 ---
 
@@ -150,11 +151,13 @@ Use cases: **7**. Orphan requirements: **0** as of v1.6 — every in-scope FR an
 | FR-USAGE-003 | Removing a teammate from tracking hides them from active views but never deletes their recorded usage history | Must | Integration test |
 | FR-USAGE-004 | The Claude Usage dashboard is visible only to `admin` and `super_admin` | Must | Security test (negative) |
 
-### 2.9 Integrations (`FR-INTEG-`)
+### 2.9 Integrations (`FR-INTEG-`) — **WITHDRAWN in v1.8 (§7.8)**
 
-> Added in v1.7 (§7.7), on direct PM/developer instruction — **formal PM
-> sign-off recommended, not yet recorded**, same caveat as §7.3–§7.6. See
-> ADR-037 for the design this section is paired with.
+> Added in v1.7 (§7.7), on direct PM/developer instruction. **Withdrawn in
+> v1.8** — the feature these requirements described was fully removed
+> (frontend, backend, and the `integration`/`integration_delivery` tables)
+> on direct developer instruction. Kept below for the historical record;
+> none of it is implemented. See ADR-037, now **REVERTED**, and §7.8.
 
 | REQ-ID | Requirement | Priority | Verification Method |
 |--------|---------|---------|----------|
@@ -320,6 +323,28 @@ Nine gaps (G-03 to G-12) were closed with stated defaults rather than questions,
 | 2026-09-16 | **1.5** | `FR-AUTH-002` amended again: `/forgot-password` now covers a Google-only account too, as a path to its first password. See §7.5, ADR-029 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4 rows above |
 | 2026-09-17 | **1.6** | `FR-USAGE-001` reversed: no longer **Won't** (`AMB-004`). New §2.8 `FR-USAGE-001..004` — real persistence and a bearer-secret ingest endpoint for Claude Code usage, replacing the mock the Claude Usage dashboard shipped against. See §7.6, ADR-035 | AI, implementing on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3/1.4/1.5 rows above |
 | 2026-09-18 | **1.7** | New §2.9 `FR-INTEG-001..006` — the Overview "Connect Integration" quick action becomes a real, `super_admin`-managed outgoing-webhook feature, not a disabled card. Old §2.9 ("Excluded from This Release") renumbered to §2.10. See §7.7, ADR-037 | AI, drafted on direct PM/developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3–1.6 rows above |
+| 2026-09-22 | **1.8** | `FR-INTEG-001..006` (§2.9) **withdrawn** — the outgoing-webhook integrations feature (frontend, backend, `integration`/`integration_delivery` tables) was fully removed. See §7.8, ADR-037 (now **REVERTED**) | AI, on direct developer instruction — **formal PM sign-off recommended**, not yet recorded, same caveat as the 1.3–1.7 rows above |
+
+### 7.8 Integrations Withdrawn — ADR-037 Reverted — 2026-09-22
+
+The outgoing-webhook integrations feature added in v1.7 (§7.7) was removed
+end to end on direct developer instruction: the frontend `/integrations`
+page and its components, the nav entry, the backend controller/service/
+repository/dispatcher/listener and the `SecretBox` encryption primitive, and
+the `integration`/`integration_delivery` tables (dropped forward by
+`V37__drop_integrations.sql`; `V23` itself is kept unedited, since later
+migrations already ran after it in any environment that has migrated this
+far).
+
+**What changed**: `FR-INTEG-001..006` (§2.9) are withdrawn — the rows stay
+in that section for the historical record, marked as such, rather than being
+deleted outright. `ADR-037`'s own Status section is updated to **REVERTED**,
+and its revisits of `ADR-004`/`ADR-007`'s recorded-N/A triggers are noted in
+`ADR-INDEX.md` as reopened, since the channel/column each cited no longer
+exists.
+
+**Same caveat as §7.3–§7.7**: this row reflects direction given during the
+implementation session itself, not yet a recorded PM decision.
 
 ### 7.7 Integrations — a Real Outgoing-Webhook Feature, Not a Disabled Card — 2026-09-18
 

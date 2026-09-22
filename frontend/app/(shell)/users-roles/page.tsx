@@ -213,6 +213,18 @@ function UsersRolesPageInner() {
     }
   }, [searchParams, records, loading]);
 
+  // Opens Add Account from `?invite=1` — how the Overview dashboard's
+  // "Invite Teammate" quick action sends someone here. Applied once, the
+  // same ref-guarded shape as `?highlight` above; unlike that one, this does
+  // not wait on `records`, since the modal needs no account already loaded.
+  const appliedInvite = useRef(false);
+  useEffect(() => {
+    if (appliedInvite.current) return;
+    if (!searchParams.get("invite")) return;
+    appliedInvite.current = true;
+    setAddOpen(true);
+  }, [searchParams]);
+
   // Roles load once with the page rather than when the tab is first opened:
   // it is one small request, and paying for it up front means the tab renders
   // immediately instead of flashing a spinner the first time it is clicked.
