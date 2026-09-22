@@ -14,6 +14,7 @@ import {
   disconnectIntegration,
   listDeliveries,
   listIntegrations,
+  reconnectIntegration,
   rotateSecret,
   testIntegration,
   updateIntegration,
@@ -98,6 +99,16 @@ export default function IntegrationsPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Couldn't disconnect that integration."));
   }
 
+  async function handleReconnect(integration: Integration) {
+    try {
+      const reconnected = await reconnectIntegration(integration.id);
+      setRevealedSecret({ name: reconnected.integration.name, secret: reconnected.signingSecret });
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't reconnect that integration.");
+    }
+  }
+
   return (
     <AppShell
       pageTitle="Integrations"
@@ -132,6 +143,7 @@ export default function IntegrationsPage() {
             onTest={handleTest}
             onRotate={handleRotate}
             onDisconnect={handleDisconnect}
+            onReconnect={handleReconnect}
             onEdit={setEditing}
             onViewHistory={setHistoryFor}
           />
@@ -157,7 +169,7 @@ export default function IntegrationsPage() {
       )}
 
       {revealedSecret && (
-        <Modal title="Secret rotated" onClose={() => setRevealedSecret(null)}>
+        <Modal title="New signing secret" onClose={() => setRevealedSecret(null)}>
           <p className="text-sm text-muted">
             <span className="font-semibold text-dash-ink">{revealedSecret.name}</span>&apos;s new signing secret is
             shown once — copy it now if the receiving side verifies signed payloads.
