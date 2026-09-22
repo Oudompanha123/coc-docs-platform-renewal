@@ -824,62 +824,79 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
   [contentId("usage", "")]: {
     kind: "hero",
     heading: "Usage",
-    tagline: "See how the platform is actually being used.",
-    subline: "Activity, coverage, and trends — all in one dashboard.",
-    ctaLabel: "Get started",
-    ctaHref: "/docs/usage/setup-guide",
+    tagline: "Track your team's Claude Code token usage in one place.",
+    subline: "Token counts, API-equivalent costs, and active users — updated each time a teammate runs the reporter.",
+    ctaLabel: "Open Claude Usage",
+    ctaHref: "/claude-usage",
     eyebrow: "Overview",
-    sectionHeading: "One dashboard for every product.",
+    sectionHeading: "One tool, full team visibility.",
     sectionIntro:
-      "**Usage** pulls **activity** and **coverage data** from every product into a **single dashboard**, so you can see what's happening across the whole platform without checking each product separately.",
+      "**Usage** collects token data reported by each teammate's local reporter script and shows it in a **single dashboard** — broken down by person, model, and day.",
     features: [
       {
-        icon: "layers",
-        title: "Cross-product view",
-        description: "See activity and coverage for **Jex3.0**, **Jex2.0**, **Coach**, **Team**, and **Usage** itself from one screen.",
+        icon: "coins",
+        title: "Real token counts",
+        description: "Actual tokens from **Claude Code transcripts**, summed daily and sent by each person from their own machine — not estimates.",
       },
       {
         icon: "pulse",
-        title: "Trends over time",
-        description: "Track how **documentation coverage** and activity change **week over week**, not just a snapshot.",
+        title: "Per-person breakdown",
+        description: "See **who's using what**: input / output tokens, total, **API-equivalent cost**, last-active time, and models per teammate.",
+      },
+      {
+        icon: "shield",
+        title: "Soft budget alerts",
+        description: "Set a **weekly token limit** per person. The dashboard shows a **progress bar** and flags anyone approaching their limit.",
       },
       {
         icon: "sparkles",
-        title: "No manual reporting",
-        description: "Numbers update **automatically** as products are used — no one has to compile a **status report** by hand.",
-      },
-      {
-        icon: "tag",
-        title: "Drill down by product",
-        description: "Jump from the **overall dashboard** into a single product's detail when something needs a closer look.",
+        title: "Privacy-first by design",
+        description: "Each person **runs the reporter on their own machine** and controls when they send. The dashboard shows only what people choose to report.",
       },
     ],
   },
   [contentId("usage", "setup-guide")]: {
     kind: "steps",
     eyebrow: "Setup guide",
-    heading: "Get the dashboard reporting real numbers.",
-    intro: "Five steps from connecting data to trusting what you see.",
+    heading: "Start reporting your Claude Code usage.",
+    intro:
+      "Each teammate follows these steps once on their own machine. No server-side changes are needed after your admin deploys the backend.",
     steps: [
       {
-        title: "Confirm data sources",
-        body: "Make sure each product (Jex3.0, Jex2.0, Coach, Team) is reporting activity into Usage.",
+        title: "Get the reporter files",
+        body: "Locate **`tools/claude-usage-reporter/`** in the team repository. You need: `push-usage.mjs`, `claude-usage.config.example.json`, and on Windows: `run-push-usage.cmd` + `run-push-usage.vbs`.",
       },
       {
-        title: "Set your reporting period",
-        body: "Choose the default time window the dashboard shows (e.g. last 7 or 30 days).",
+        title: "Install Node.js",
+        body: "The reporter requires **Node.js 18 or later**. Check with `node --version` in a terminal. If the command is not found, download and install Node.js from **nodejs.org**, then restart your terminal.",
+        command: "node --version",
       },
       {
-        title: "Pick the metrics that matter",
-        body: "Select which numbers appear on the dashboard by default (coverage %, active users, documents written, etc.).",
+        title: "Create your config file",
+        body: "Copy `claude-usage.config.example.json` → `claude-usage.config.json` in the same folder. Open the new file in any text editor and fill in the four values below.\n\n**USER_EMAIL** — your Coc Docs Platform account email, the same one you use to sign in (e.g. `you@company.com`). This is how the dashboard identifies you.\n\n**USER_NAME** — your display name as it will appear on the Claude Usage dashboard (e.g. `Sam Sophanna`).\n\n**INGEST_URL** — the backend endpoint that receives your usage data. Contact your **admin or super admin** to get this URL. It looks like `https://your-backend.com/api/ingest`.\n\n**INGEST_SECRET** — a shared secret that proves you are a trusted team member. **Contact your admin or super admin** to get this value — they hold it and share it with each teammate individually. Without it the reporter cannot send data.",
       },
       {
-        title: "Share access",
-        body: "Decide who on the team can view the dashboard, and who (if anyone) can export reports.",
+        title: "Test with a dry run",
+        body: "Open a terminal in the reporter folder and run the command below. It reads your **`~/.claude/projects`** transcripts and prints what it *would* send — without posting anything. Confirm you see today's token count in the output.",
+        command: "node push-usage.mjs --dry-run --verbose",
       },
       {
-        title: "Verify the numbers",
-        body: "Cross-check the dashboard against one product's own numbers (e.g. Jex3.0's written/not-written count) to confirm the data lines up.",
+        title: "Send your first report",
+        body: "Run the reporter for real. On the first interactive run it confirms your display name once and saves it, then POSTs today's token total to the backend. A success message shows the count submitted.",
+        command: "node push-usage.mjs",
+      },
+      {
+        title: "Verify in Claude Usage",
+        body: "Open **Claude Usage** from the sidebar (admin and super admin only). Your name should appear in the **per-user table** with today's token count and API-equivalent cost within a few seconds.",
+      },
+      {
+        title: "Schedule daily reporting",
+        body: "To keep the dashboard current automatically:\n\n**Windows** — open Task Scheduler, create a Daily trigger (e.g. 8 PM), and set the action to run `run-push-usage.vbs`. This runs silently with no console window.\n\n**Mac / Linux** — add a cron job: `0 20 * * * cd /path/to/reporter && node push-usage.mjs >> push-usage.log 2>&1`",
+      },
+      {
+        title: "Backfill past data (one-time)",
+        body: "To seed the dashboard with history from transcripts still on disk, run with `--days N`. The reporter skips days already submitted.",
+        command: "node push-usage.mjs --days 30",
       },
     ],
   },
@@ -888,7 +905,28 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Configuration",
     heading: "The settings behind the dashboard.",
     intro:
-      "**Configuration** covers the settings behind the Usage dashboard: which products **feed it data**, how often **numbers refresh**, which **metrics** are shown by default, and who has **access** to view or export reports. Changes here affect what everyone sees on the dashboard, so treat this section as **admin-level setup** rather than day-to-day use.",
-    sections: [],
+      "Most configuration is **per-reporter** (your local `claude-usage.config.json`) or **per-session** (the time-period toggle on the Claude Usage page). There is nothing to deploy or restart.",
+    sections: [
+      {
+        title: "Reporter config file",
+        note: "Copy `claude-usage.config.example.json` → `claude-usage.config.json` next to the script. Environment variables (`USER_EMAIL`, `USER_NAME`, `INGEST_URL`, `INGEST_SECRET`) override file values — useful for CI or Docker.",
+      },
+      {
+        title: "Custom transcript directory",
+        note: "By default the reporter reads `~/.claude/projects`. If your Claude Code transcripts live elsewhere, set `CLAUDE_PROJECTS_DIR` in `claude-usage.config.json` or as an environment variable.",
+      },
+      {
+        title: "Soft budget overrides",
+        note: "The default limit is **1.2 M tokens per person per week**. To override it for a specific person, open **Claude Usage** → scroll to **Soft budget overrides** → enter a new value next to their name. Changes take effect immediately — no redeploy needed.",
+      },
+      {
+        title: "Reporting period",
+        note: "The **Day / Week / Month** toggle on the Claude Usage page changes how tokens are aggregated. It is a per-session display setting — no configuration file is involved.",
+      },
+      {
+        title: "Adding teammates",
+        note: "Any teammate who runs the reporter at least once is added to the dashboard automatically. No admin action is needed to enrol them — the dashboard picks up whoever sends data.",
+      },
+    ],
   },
 };

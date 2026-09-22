@@ -124,7 +124,7 @@ function ProductsDropdown({
 
 /**
  * The signed-in Member's header for `/home`.
- * Nav: Home | Products ▾ | AI Renewal | How to Use
+ * Nav: Home | Products ▾
  * Right: Notifications, Activity, User chip.
  */
 // onOpenNotifications is gone from this header on purpose: notification
@@ -264,21 +264,6 @@ export function MemberHeader({
             )}
           </div>
 
-          {/* AI Renewal */}
-          <Link
-            href="/ax-renewal"
-            className={navLinkClass(pathname?.startsWith("/ax-renewal") ?? false)}
-          >
-            AI Renewal
-          </Link>
-
-          {/* How to Use */}
-          <Link
-            href="/docs/get-started"
-            className={navLinkClass(pathname?.startsWith("/docs/get-started") ?? false)}
-          >
-            How to Use
-          </Link>
         </nav>
 
         {/* Right-side chrome */}
