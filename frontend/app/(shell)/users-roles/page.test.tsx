@@ -4,8 +4,11 @@ import { ShellProvider } from "@/lib/layout/ShellContext";
 import type { AdminAccount } from "@/lib/admin/accounts";
 
 let highlight: string | null = null;
+let invite: string | null = null;
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => ({ get: (key: string) => (key === "highlight" ? highlight : null) }),
+  useSearchParams: () => ({
+    get: (key: string) => (key === "highlight" ? highlight : key === "invite" ? invite : null),
+  }),
 }));
 
 vi.mock("@/lib/auth/api", () => ({
@@ -86,5 +89,29 @@ describe("UsersRolesPage — ?highlight deep link", () => {
 
     await screen.findByRole("tab", { name: "Users" });
     expect(screen.queryByDisplayValue("Dana Lee")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The Overview dashboard's "Invite Teammate" quick action sends a
+ * super_admin here as `/users-roles?invite=1` — this is the other half of
+ * that path: what this page does with it.
+ */
+describe("UsersRolesPage — ?invite deep link", () => {
+  it("opens Add User when ?invite=1 is present", async () => {
+    highlight = null;
+    invite = "1";
+    renderPage();
+
+    expect(await screen.findByText("Add User")).toBeInTheDocument();
+  });
+
+  it("renders normally with no ?invite at all", async () => {
+    highlight = null;
+    invite = null;
+    renderPage();
+
+    await screen.findByRole("tab", { name: "Users" });
+    expect(screen.queryByText("Add User")).not.toBeInTheDocument();
   });
 });

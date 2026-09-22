@@ -35,6 +35,21 @@ export interface SheetData {
    * where left-aligned text reads as ragged against a bordered grid.
    */
   centeredColumns?: number[];
+  /**
+   * 0-based row indices (into {@link rows}, not counting the header) that
+   * read as a bold, lightly-shaded banner rather than an ordinary data row
+   * — for a sheet that stacks a second, differently-shaped block under the
+   * same two columns (e.g. `export-my-data.ts`'s "Recent activity" label
+   * and its own "Occurred at"/"Summary" sub-header), since this writer only
+   * ever produces one sheet and so has no second real header row to give
+   * it. Every cell in the row gets {@link STYLE_SECTION}; if only the first
+   * column holds a value and the rest are blank, the row is also merged
+   * across every column so the label reads as one banner rather than a
+   * word floating over an empty, bordered neighbor. A `Date` value in a
+   * section row is not given its date format — section rows are for short
+   * text labels, not data.
+   */
+  sectionRows?: number[];
 }
 
 /** Style indices, matching the order of `cellXfs` in {@link STYLES_XML}. */
@@ -43,6 +58,7 @@ const STYLE_HEADER = 1;
 const STYLE_DATE = 2;
 const STYLE_DEFAULT_CENTER = 3;
 const STYLE_DATE_CENTER = 4;
+const STYLE_SECTION = 5;
 
 /**
  * Escapes text for XML content.
@@ -183,11 +199,26 @@ const WORKBOOK_RELS_XML = `${XML_DECLARATION}
  * <p>`numFmtId` 164 is the first id available to a document; everything below
  * it is reserved for Excel's built-in formats.
  *
+ * <p>{@link STYLE_DATE} carries an explicit `horizontal="left"` rather than
+ * leaving alignment unset: a date is a number under the hood, and Excel's
+ * "general" alignment right-aligns numbers but left-aligns text, so an
+ * unstyled date cell would sit flush against the right border while the
+ * plain-text cells above and below it hug the left one — visibly ragged in
+ * a column that mixes dates with strings like "Yes"/"No", which every sheet
+ * built on this writer does.
+ *
  * <p>Two more formats, {@link STYLE_DEFAULT_CENTER} and
  * {@link STYLE_DATE_CENTER}, mirror the first and third exactly but add
  * `<alignment horizontal="center"/>` — for columns a caller names via
  * {@link SheetData.centeredColumns}, e.g. a short status word or a Yes/No
  * flag, where left-aligned text reads as ragged against a bordered grid.
+ *
+ * <p>A sixth format, {@link STYLE_SECTION}, is a light tint of the header's
+ * own brand-purple (`FFF1ECFC`, solid rather than the header's gradient —
+ * a whole tinted row reads as a banner; a whole gradient row reads as a
+ * second header competing with the real one) with the same bold font as
+ * the header, for a sheet that stacks more than one section into its one
+ * sheet — see {@link SheetData.sectionRows}.
  */
 const STYLES_XML = `${XML_DECLARATION}
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -197,10 +228,11 @@ const STYLES_XML = `${XML_DECLARATION}
 <font><b/><sz val="11"/><name val="Calibri"/></font>
 <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
 </fonts>
-<fills count="3">
+<fills count="4">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
 <fill><gradientFill degree="0"><stop position="0"><color rgb="FF6D3CE0"/></stop><stop position="1"><color rgb="FF4C6FF0"/></stop></gradientFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF1ECFC"/><bgColor indexed="64"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border/>
@@ -212,12 +244,13 @@ const STYLES_XML = `${XML_DECLARATION}
 </border>
 </borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="5">
+<cellXfs count="6">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
 <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
-<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
 <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>`;
@@ -240,11 +273,15 @@ function workbookXml(sheetName: string): string {
  *
  * @param centered whether this column is one of {@link SheetData.centeredColumns} —
  *     picks the centred variant of the default/date style rather than a third,
- *     separately-tracked style constant per call site.
+ *     separately-tracked style constant per call site. Ignored when `section`
+ *     is true.
+ * @param section whether this row is one of {@link SheetData.sectionRows} —
+ *     every cell in it renders as the shaded banner style regardless of
+ *     column or value type.
  */
-function cellXml(ref: string, value: CellValue, centered: boolean): string {
-  const defaultStyle = centered ? STYLE_DEFAULT_CENTER : STYLE_DEFAULT;
-  const dateStyle = centered ? STYLE_DATE_CENTER : STYLE_DATE;
+function cellXml(ref: string, value: CellValue, centered: boolean, section: boolean): string {
+  const defaultStyle = section ? STYLE_SECTION : centered ? STYLE_DEFAULT_CENTER : STYLE_DEFAULT;
+  const dateStyle = section ? STYLE_SECTION : centered ? STYLE_DATE_CENTER : STYLE_DATE;
 
   if (value === null || value === undefined || value === "") {
     return `<c r="${ref}" s="${defaultStyle}"/>`;
@@ -283,26 +320,46 @@ function sheetXml(data: SheetData): string {
     .join("");
 
   const centeredColumns = new Set(data.centeredColumns ?? []);
+  const sectionRows = new Set(data.sectionRows ?? []);
+  const lastColumn = columnName(Math.max(headers.length - 1, 0));
+
+  // A section row whose only value sits in the first column is merged across
+  // every column, so a label like "Recent activity" reads as one banner
+  // rather than a word floating over an empty, bordered neighbor. A section
+  // row with more than one value (e.g. "Occurred at" / "Summary") keeps its
+  // own cell per column instead — merging would erase the second label.
+  const merges: string[] = [];
 
   const bodyRows = rows
     .map((row, r) => {
       const rowNumber = r + 2; // row 1 is the header
+      const isSection = sectionRows.has(r);
       const cells = row
-        .map((value, c) => cellXml(`${columnName(c)}${rowNumber}`, value, centeredColumns.has(c)))
+        .map((value, c) => cellXml(`${columnName(c)}${rowNumber}`, value, centeredColumns.has(c), isSection))
         .join("");
+
+      if (isSection && headers.length > 1) {
+        const isLoneLabel = row.slice(1).every((value) => value === null || value === undefined || value === "");
+        if (isLoneLabel) {
+          merges.push(`<mergeCell ref="A${rowNumber}:${lastColumn}${rowNumber}"/>`);
+        }
+      }
+
       return `<row r="${rowNumber}">${cells}</row>`;
     })
     .join("");
 
+  const mergeCellsXml = merges.length > 0 ? `<mergeCells count="${merges.length}">${merges.join("")}</mergeCells>` : "";
+
   // The header is frozen and filterable: one attribute each, and the first two
   // things anybody does by hand to a sheet this shape.
-  const lastColumn = columnName(Math.max(headers.length - 1, 0));
   return `${XML_DECLARATION}
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
 <cols>${widths}</cols>
 <sheetData><row r="1" ht="20" customHeight="1">${headerCells}</row>${bodyRows}</sheetData>
 <autoFilter ref="A1:${lastColumn}${rows.length + 1}"/>
+${mergeCellsXml}
 </worksheet>`;
 }
 

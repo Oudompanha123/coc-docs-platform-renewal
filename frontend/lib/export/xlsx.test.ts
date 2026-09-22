@@ -208,6 +208,13 @@ describe("buildXlsx", () => {
     expect(whole).not.toContain("2026-09-17T08:30");
   });
 
+  it("left-aligns dates explicitly, so they don't sit right-aligned against left-aligned text in the same column", () => {
+    const whole = text(sheet());
+    expect(whole).toContain(
+      '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left"/></xf>',
+    );
+  });
+
   it("still writes and borders a blank cell, rather than leaving a gap in the ruled table", () => {
     // Row 3 is the second data row, whose second column is null. Every cell
     // now carries a border (style 0), including blank ones — see cellXml's
@@ -216,14 +223,14 @@ describe("buildXlsx", () => {
     expect(whole).toContain('<c r="B3" s="0"/>');
   });
 
-  it("borders every one of the five cell styles, not only the header", () => {
+  it("borders every one of the six cell styles, not only the header", () => {
     const whole = text(sheet());
     // Each cellXf now applies the same borderId; if a future edit drops one,
     // this catches it rather than leaving a borderless row nobody notices
-    // until they open the file. Five: default, header, date, and the
-    // centred variants of default and date.
+    // until they open the file. Six: default, header, date, the centred
+    // variants of default and date, and the section-banner style.
     const applyBorderCount = whole.match(/applyBorder="1"/g)?.length ?? 0;
-    expect(applyBorderCount).toBe(5);
+    expect(applyBorderCount).toBe(6);
   });
 
   it("gives the header a distinct style: bold white text, centred, on the brand gradient", () => {
@@ -269,5 +276,59 @@ describe("buildXlsx", () => {
     const whole = text(buildXlsx({ sheetName: "Empty", headers: ["A"], rows: [] }));
     expect(whole).toContain("<t>A</t>");
     expect(whole).toContain('<autoFilter ref="A1:A1"/>');
+  });
+
+  describe("sectionRows", () => {
+    it("styles a lone-label section row as the shaded banner, and merges it across every column", () => {
+      const whole = text(
+        buildXlsx({
+          sheetName: "Sheet",
+          headers: ["Field", "Value"],
+          rows: [
+            ["Email", "dana@example.com"],
+            ["Recent activity", ""],
+          ],
+          sectionRows: [1],
+        }),
+      );
+
+      // Row 3 (the second data row) is the section row.
+      expect(whole).toContain(`<c r="A3" s="${5}"`);
+      expect(whole).toContain(`<c r="B3" s="${5}"`);
+      expect(whole).toContain('<mergeCell ref="A3:B3"/>');
+      expect(whole).toContain('<mergeCells count="1">');
+    });
+
+    it("does not merge a section row that carries a value in every column", () => {
+      const whole = text(
+        buildXlsx({
+          sheetName: "Sheet",
+          headers: ["Field", "Value"],
+          rows: [
+            ["Email", "dana@example.com"],
+            ["Occurred at", "Summary"],
+          ],
+          sectionRows: [1],
+        }),
+      );
+
+      expect(whole).not.toContain("<mergeCells");
+      expect(whole).toContain(`<c r="A3" s="${5}"`);
+      expect(whole).toContain(`<c r="B3" s="${5}"`);
+    });
+
+    it("leaves rows outside sectionRows with their ordinary style", () => {
+      const whole = text(
+        buildXlsx({
+          sheetName: "Sheet",
+          headers: ["Field", "Value"],
+          rows: [["Email", "dana@example.com"]],
+          sectionRows: [],
+        }),
+      );
+
+      expect(whole).toContain('<c r="A2" s="0"');
+      expect(whole).not.toContain("<mergeCells");
+    });
   });
 });

@@ -2,6 +2,36 @@
 
 ## Status
 
+**REVERTED** — 2026-09-22
+
+- Deciders: developer, via Claude Code pairing session (same channel that
+  requested this feature in the first place, same "not yet a recorded PM
+  decision" caveat every prior status on this ADR carried).
+- The entire feature was removed end to end, on direct instruction: the
+  frontend page (`/integrations`) and its components, the nav entry, the
+  backend controller/service/repository/dispatcher/listener and the
+  `SecretBox` encryption primitive, the `ApiDtos`/`SecurityConfig`/
+  `AuditAction` wiring, and the `integration`/`integration_delivery` tables
+  (dropped forward by `V37__drop_integrations.sql` — `V23` itself is kept
+  unedited, since later migrations already ran after it in any environment
+  that has migrated this far; rewriting it would break Flyway's checksum
+  history there). Nothing below in this document is live code anymore; kept
+  for the record of what was built and why, the same convention ADR-033
+  uses for its own partial revert.
+- This re-opens `ADR-004` and `ADR-007`'s N/A records: this was the one
+  channel/column each cites as its revisit trigger, and that channel/column
+  no longer exists. Whether to mark them N/A again is left to the PM, same
+  `CONST-PROC-01` reasoning this ADR's §7 already gave for not rewriting
+  their records wholesale.
+- `FR-INTEG-001..006` (`REQUIREMENTS-SPEC.md` §2.9) are withdrawn — see that
+  document's v1.8 change-history row and its own note in §2.9.
+
+Everything from here down describes the original, now-reverted decision —
+context for a future "should we build this again" conversation, not a
+description of what exists in the codebase today.
+
+---
+
 Accepted. Implemented directly on PM/developer instruction in-session (same
 class of decision as REQUIREMENTS-SPEC.md §7.3–§7.6) — **formal PM sign-off
 recommended, not yet recorded**, same caveat as every other in-session
@@ -345,6 +375,7 @@ Still open:
 | 2026-09-18 | 1.0 | Initial draft, on direct PM/developer instruction in-session | AI |
 | 2026-09-18 | 1.1 | Renumbered from ADR-036 to ADR-037 on discovering ADR-036 (per-model pricing) already existed in `ADR-INDEX.md` | AI |
 | 2026-09-22 | 1.2 | Added Reconnect (§5) — re-activates a disconnected row in place instead of requiring a new connection | AI |
+| 2026-09-22 | 1.3 | **REVERTED.** Whole feature removed (frontend, backend, `SecretBox`, schema) on direct developer instruction. See Status | AI |
 
 ---
 
