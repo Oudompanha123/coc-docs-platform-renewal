@@ -54,7 +54,7 @@ export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="shrink-0 p-3 text-dash-ink transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple lg:hidden"
+          className="shrink-0 rounded-[5px] p-3 text-dash-ink transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple lg:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>

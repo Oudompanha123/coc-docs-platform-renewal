@@ -49,7 +49,7 @@ export function ConfirmationBar({
           onClick={onReopen}
           disabled={busy || !canConfirm}
           title={canConfirm ? undefined : "Only a Super Admin or an account with the Developer role may reopen this"}
-          className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-[5px] border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ReopenIcon className="h-3.5 w-3.5" />
           Reopen
@@ -60,7 +60,7 @@ export function ConfirmationBar({
           onClick={onConfirm}
           disabled={busy || !canConfirm}
           title={canConfirm ? undefined : "Only a Super Admin or an account with the Developer role may confirm this"}
-          className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? "Confirming…" : `Confirm ${sectionLabel(section)}`}
         </button>

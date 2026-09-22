@@ -174,7 +174,7 @@ export function DatabaseSection({
             type="button"
             onClick={() => void handleConnect()}
             disabled={connecting}
-            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             {connecting ? "Saving…" : "Save connection metadata"}
           </button>
@@ -214,7 +214,7 @@ export function DatabaseSection({
                   type="button"
                   onClick={() => removeRow(i)}
                   aria-label="Remove change"
-                  className="flex items-center justify-center rounded-lg border border-border p-2 text-muted transition-colors hover:bg-page hover:text-danger"
+                  className="flex items-center justify-center rounded-[5px] border border-border p-2 text-muted transition-colors hover:bg-page hover:text-danger"
                 >
                   <TrashIcon className="h-4 w-4" />
                 </button>
@@ -227,7 +227,7 @@ export function DatabaseSection({
           <button
             type="button"
             onClick={addRow}
-            className="mt-3 flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+            className="mt-3 flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             Add change
@@ -240,7 +240,7 @@ export function DatabaseSection({
               type="button"
               onClick={() => void handleSaveChanges()}
               disabled={savingChanges}
-              className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
             >
               {savingChanges ? "Saving…" : "Save planned changes"}
             </button>
