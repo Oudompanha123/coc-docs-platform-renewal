@@ -301,3 +301,27 @@ export async function fetchAuditTrail(projectId: string, limit = 50): Promise<Ax
   }
   return (await response.json()) as AxRenewalAuditEntry[];
 }
+
+/**
+ * Whether Run analysis reaches a real model on this deployment (ADR-043).
+ *
+ * Resolves to "not connected" on any failure rather than throwing. The
+ * banner this feeds is an honest disclosure, and the honest answer when we
+ * cannot tell is the cautious one — claiming a model is connected because a
+ * status call failed would be the one wrong way to get this wrong.
+ */
+export async function fetchEngineStatus(): Promise<AxRenewalEngineStatus> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/v1/ax-renewal/engine`, { credentials: "include" });
+    if (!response.ok) return { connected: false, readsSource: false };
+    return (await response.json()) as AxRenewalEngineStatus;
+  } catch {
+    return { connected: false, readsSource: false };
+  }
+}
+
+export interface AxRenewalEngineStatus {
+  connected: boolean;
+  /** Whether the model sees the source, or only the stored dependency manifest. */
+  readsSource: boolean;
+}
