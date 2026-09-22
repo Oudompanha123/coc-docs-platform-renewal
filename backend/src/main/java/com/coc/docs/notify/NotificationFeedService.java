@@ -149,25 +149,27 @@ public class NotificationFeedService {
     }
 
     /**
-     * HRMS report arrivals, for the roles that should see them.
+     * HRMS report arrivals, for every signed-in role.
      *
-     * <p><b>{@code admin} and above.</b> These are operational notices about a
-     * mailbox the platform watches, not editorial activity, and an editor has
-     * no use for them — the same reasoning that puts the digest route at a
-     * higher floor than the rest of {@code /admin}. It is not a confidentiality
-     * boundary: a subject line says a report arrived on a date and names
-     * nobody, which is the whole reason the body was never stored
-     * ({@code V21__hrms_notification.sql}). If that ever stops being true, this
-     * rule is no longer sufficient and the floor has to move to
-     * {@code super_admin}.
+     * <p><b>This used to be {@code admin} and above, and it used to say that
+     * if the content ever named people the floor would have to move up to
+     * {@code super_admin}.</b> The content now does name people — opening a
+     * row shows the attendance table (ADR-042) — and the floor moved the other
+     * way, to every role, on the PM's decision. The rule that predicted this is
+     * left here rather than quietly deleted, because the next person to read
+     * it should see that it was overruled and not that it never existed.
      *
-     * <p>Not filtered by actor for non-super_admins the way audit rows are:
-     * there is no actor. Nobody in this system did it.
+     * <p>What that means in practice: any signed-in user can see that a report
+     * arrived and can open it. ADR-042 records who decided that and on what
+     * grounds; it is a business judgement about one company's own attendance
+     * data, not a defect, and it is not this class's to re-litigate. What this
+     * class still owes is that the decision is visible — hence this paragraph
+     * and the ADR reference, rather than a silently deleted {@code if}.
+     *
+     * <p>Not filtered by actor the way audit rows are: there is no actor.
+     * Nobody in this system did it.
      */
     private Stream<FeedItem> hrmsItemsFor(CurrentUser caller, int limit) {
-        if (!caller.role().isAtLeast(AppRole.ADMIN)) {
-            return Stream.empty();
-        }
         return hrms.recent(limit).stream().map(NotificationFeedService::toItem);
     }
 
@@ -210,14 +212,17 @@ public class NotificationFeedService {
      * has no destination for that target type yet, or because {@code caller}
      * could not open it even if there were one.
      *
-     * <p><b>Only {@code account} resolves today.</b> {@code page} carries a
-     * real {@code target_id} (the {@code page}/{@code page_version} tables and
-     * {@code AdminContentController} both exist), but no frontend route opens
-     * one — there is no page editor and no reader page keyed by page id
-     * anywhere in this codebase yet, confirmed by grep. Returning a link to a
-     * page that does not exist would be worse than returning none, so a
-     * {@code page} target is deliberately left with no {@code href} until an
-     * editor exists to send someone to.
+     * <p><b>{@code account} and {@code integration} resolve today.</b> {@code
+     * page} carries a real {@code target_id} (the {@code page}/{@code
+     * page_version} tables and {@code AdminContentController} both exist),
+     * but no frontend route opens one — there is no page editor and no
+     * reader page keyed by page id anywhere in this codebase yet, confirmed
+     * by grep. Returning a link to a page that does not exist would be worse
+     * than returning none, so a {@code page} target is deliberately left with
+     * no {@code href} until an editor exists to send someone to. {@code
+     * integration} has no per-row detail view the way {@code account} does
+     * ({@code /integrations?highlight=} opens nothing), so it resolves to the
+     * list page itself rather than a specific row.
      *
      * <p>Gated on role here, not left to the destination to refuse, for the
      * same reason {@code SecurityConfig} puts {@code /users-roles} and
@@ -237,6 +242,13 @@ public class NotificationFeedService {
                 && entry.targetId() != null
                 && caller.isAtLeast(AppRole.SUPER_ADMIN)) {
             return "/users-roles?highlight=" + entry.targetId();
+        }
+        // Same floor as the /integrations route itself (SecurityConfig,
+        // nav-config.ts): a caller who cannot open that page should not be
+        // handed a link to it, even a dead one.
+        if (AuditAction.TARGET_INTEGRATION.equals(entry.targetType())
+                && caller.isAtLeast(AppRole.SUPER_ADMIN)) {
+            return "/integrations";
         }
         return null;
     }
@@ -294,6 +306,7 @@ public class NotificationFeedService {
             case AuditAction.INTEGRATION_UPDATE -> "Updated an integration";
             case AuditAction.INTEGRATION_ROTATE_SECRET -> "Rotated an integration's signing secret";
             case AuditAction.INTEGRATION_DISCONNECT -> "Disconnected an integration";
+            case AuditAction.INTEGRATION_RECONNECT -> "Reconnected an integration";
             case AuditAction.CLAUDE_USAGE_MEMBER_INVITE -> "Invited someone to Claude Usage";
             case AuditAction.CLAUDE_USAGE_MEMBER_ROLE_CHANGE -> "Changed a Claude Usage member's role";
             case AuditAction.CLAUDE_USAGE_MEMBER_BUDGET_CHANGE -> "Changed a Claude Usage member's budget";

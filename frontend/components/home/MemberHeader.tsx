@@ -16,7 +16,8 @@ import {
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
-import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
+import { actorInitials, actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
+import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -168,6 +169,10 @@ export function MemberHeader({
   activityCountRef.current = activity.count;
   const unreadCountRef = useRef(notifications.unreadCount);
   unreadCountRef.current = notifications.unreadCount;
+
+  // The HRMS report a feed row was clicked to open. Held here only while the
+  // dialog is up; the report itself never reaches this component (ADR-042).
+  const [openReport, setOpenReport] = useState<NotificationItem | null>(null);
 
   /**
    * Opens the activity panel on whichever tab has something in it — "Unread"
@@ -412,7 +417,15 @@ export function MemberHeader({
                         key={item.id}
                         type="button"
                         role="menuitem"
-                        onClick={() => activity.markRead(item.id)}
+                        onClick={() => {
+                        activity.markRead(item.id);
+                        // An HRMS row has a report behind it; every other row
+                        // is the whole of what happened and has nothing to open.
+                        if (isHrmsReport(item)) {
+                          setOpenReport(item);
+                          setOpenMenu(null);
+                        }
+                      }}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                           item.read ? "" : "bg-brand-purple/5"
                         }`}
@@ -525,6 +538,8 @@ export function MemberHeader({
           </div>
         </div>
       </div>
+
+    {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
     </header>
   );
 }

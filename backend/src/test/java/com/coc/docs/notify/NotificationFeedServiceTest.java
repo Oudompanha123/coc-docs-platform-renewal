@@ -195,14 +195,24 @@ class NotificationFeedServiceTest {
          * Not a confidentiality rule — the subject names nobody. An editor has
          * no use for an operational notice about a mailbox, and the feed is
          * more useful for not carrying it.
+         *
+         * <p><b>That floor is gone (ADR-042).</b> This test asserted the
+         * opposite until the attendance popup was added: a report row can now
+         * be opened to show the table, and the PM decided every role should
+         * see it. The test is rewritten rather than deleted so the change is
+         * legible here — a vanished test looks like an oversight, an inverted
+         * one looks like a decision.
          */
         @Test
-        @DisplayName("do not appear below the admin floor")
-        void editorDoesNotSeeThem() {
+        @DisplayName("appear for every signed-in role, including a plain user")
+        void everyRoleSeesThem() {
             CurrentUser caller = TestCallers.user(AppRole.USER);
+            when(hrms.recent(anyInt()))
+                    .thenReturn(List.of(report(7, "Attendance on 08-Sep-2026", Instant.now())));
 
-            assertThat(service.feedFor(caller, 20)).isEmpty();
-            verify(hrms, never()).recent(anyInt());
+            assertThat(service.feedFor(caller, 20))
+                    .extracting(NotificationFeedService.FeedItem::summary)
+                    .containsExactly("Attendance on 08-Sep-2026");
         }
 
         /**
@@ -331,6 +341,45 @@ class NotificationFeedServiceTest {
                 assertThat(item.targetId()).isEqualTo(pageId);
                 assertThat(item.href()).isNull();
             });
+        }
+
+        @Test
+        @DisplayName("an integration target resolves to the Integrations list for a super_admin")
+        void integrationTargetResolvesForSuperAdmin() {
+            CurrentUser caller = TestCallers.user(AppRole.SUPER_ADMIN);
+            UUID integrationId = UUID.randomUUID();
+            when(audit.recent(anyInt())).thenReturn(List.of(new AuditEntry(
+                    1, UUID.randomUUID(), "a@example.com", null, AuditAction.INTEGRATION_DISCONNECT,
+                    AuditAction.TARGET_INTEGRATION, integrationId, null, Instant.now())));
+
+            List<NotificationFeedService.FeedItem> feed = service.feedFor(caller, 20);
+
+            assertThat(feed).singleElement().satisfies(item -> {
+                assertThat(item.targetType()).isEqualTo(AuditAction.TARGET_INTEGRATION);
+                assertThat(item.targetId()).isEqualTo(integrationId);
+                assertThat(item.href()).isEqualTo("/integrations");
+            });
+        }
+
+        /**
+         * Same defence-in-depth reasoning as the account case: an admin
+         * cannot in practice cause an integration mutation (that route is
+         * super_admin-only), but a row like this must never be handed a link
+         * to a page it could not open.
+         */
+        @Test
+        @DisplayName("an integration target never resolves to a link for anyone below super_admin")
+        void integrationTargetDoesNotResolveBelowSuperAdmin() {
+            CurrentUser caller = TestCallers.user(AppRole.ADMIN);
+            UUID integrationId = UUID.randomUUID();
+            when(audit.recentForActor(eq(caller.id()), anyInt())).thenReturn(List.of(new AuditEntry(
+                    1, caller.id(), caller.email(), null, AuditAction.INTEGRATION_CONNECT,
+                    AuditAction.TARGET_INTEGRATION, integrationId, null, Instant.now())));
+
+            assertThat(service.feedFor(caller, 20))
+                    .singleElement()
+                    .extracting(NotificationFeedService.FeedItem::href)
+                    .isNull();
         }
 
         @Test

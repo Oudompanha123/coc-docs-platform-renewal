@@ -7,7 +7,8 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useActivityFeed, type ActivityItem } from "@/lib/notify/useActivityFeed";
-import { actorInitials, actorName, timeAgo } from "@/lib/notify/activity";
+import { actorInitials, actorName, isHrmsReport, timeAgo } from "@/lib/notify/activity";
+import { HrmsReportModal } from "./HrmsReportModal";
 import { ApproveRegistrationModal } from "./ApproveRegistrationModal";
 import { NewSignInModal } from "./NewSignInModal";
 import { ApplicantAvatar } from "./ApplicantAvatar";
@@ -194,6 +195,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // the button that ends it. Same reasoning: the answer to "was that you?"
   // belongs where the question was asked.
   const [reviewingSignIn, setReviewingSignIn] = useState<SessionSummary | null>(null);
+  // The HRMS report a feed row was clicked to open. Held here only while the
+  // dialog is up; the report itself never reaches this component (ADR-042).
+  const [openReport, setOpenReport] = useState<ActivityItem | null>(null);
   const userAvatar = AVATAR_GRADIENTS.purple;
 
   // Topbar renders on every admin page (via AppShell), so this is what
@@ -458,18 +462,25 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       type="button"
                       role="menuitem"
                       // Clears this line and only this line — the badge goes
-                      // down by one, whether or not there is somewhere to go
-                      // next. When there is (item.href — set server-side, per
-                      // target type and the caller's own role), this also
-                      // navigates there and closes the panel, the same shape
-                      // the bell's own items already use. When there is not,
-                      // the click is the acknowledgement and nothing more,
-                      // same as before this had any destinations at all.
-                      // "Mark all as read" in the header is still there for
-                      // clearing the lot without leaving this panel.
+                      // down by one, and then one of two things, or neither.
+                      //
+                      // An HRMS row opens its report over the panel (ADR-042):
+                      // the mail is fetched on this click and there is no page
+                      // to send anyone to. Every other row with somewhere to go
+                      // (item.href — set server-side, per target type and the
+                      // caller's own role) navigates there instead, the same
+                      // shape the bell's own items use. A row that is neither
+                      // is the whole of what happened, and the click is just
+                      // the acknowledgement, as it was before either existed.
+                      //
+                      // "Mark all as read" in the header still clears the lot
+                      // without leaving the panel.
                       onClick={() => {
                         activity.markRead(item.id);
-                        if (item.href) {
+                        if (isHrmsReport(item)) {
+                          setOpenReport(item);
+                          setOpenMenu(null);
+                        } else if (item.href) {
                           setOpenMenu(null);
                           router.push(item.href);
                         }
@@ -600,6 +611,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         onEnded={() => void notifications.refresh()}
       />
     )}
+
+    {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
     </div>
   );
 }

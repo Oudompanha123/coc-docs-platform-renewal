@@ -152,7 +152,13 @@ export function AxAssistantPanel() {
 
   return (
     <aside className="hidden shrink-0 xl:block xl:w-[360px]">
-      <div className="sticky top-0 flex h-screen w-[360px] flex-col overflow-hidden border-l border-border bg-page">
+      {/* h-[calc(100vh-32px)], not h-screen: AxRenewalStatusBar (h-8,
+          border-box) now spans the full shell width as its own row below
+          this one (see ax-renewal/layout.tsx), matching
+          CodeRenewalPlatform.html's own two-row grid — so this stops short
+          of the full viewport by that same height instead of running past
+          where the status bar starts. */}
+      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[360px] flex-col overflow-hidden border-l border-border bg-page">
         <div className="flex items-center gap-2 border-b border-border bg-white px-4 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
           <span className="text-xs font-bold uppercase tracking-wider text-dash-ink">AX Assistant</span>
