@@ -15,6 +15,7 @@ import {
   type PlanSection,
 } from "@/lib/ax-renewal/api";
 import { EXPLORER_META, resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
+import { readUseModel, writeUseModel } from "@/lib/ax-renewal/engine-preference";
 import { describeCommand, parseCommand } from "@/lib/ax-renewal/commands";
 import { SparklesIcon } from "@/components/layout/icons";
 
@@ -79,6 +80,19 @@ export function AxAssistantPanel() {
   useEffect(() => {
     void fetchEngineStatus().then(setEngine);
   }, []);
+
+  // Whether this browser wants the configured model used. Read after mount,
+  // not during render: localStorage does not exist on the server, and a value
+  // read during the first render would differ between the two and fail
+  // hydration.
+  const [useModel, setUseModelState] = useState(true);
+  useEffect(() => {
+    setUseModelState(readUseModel());
+  }, []);
+  function setUseModel(next: boolean) {
+    writeUseModel(next);
+    setUseModelState(next);
+  }
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const meta = active != null ? EXPLORER_META[active] : null;
@@ -186,30 +200,45 @@ export function AxAssistantPanel() {
             "no tab open"
           )}
         </div>
-
-        {/* Three states, not one. This line used to assert "No model
-            connected" unconditionally, which was true of every deployment and
-            wrong on a machine with a local Claude Code installation -- and it
-            is the one line in the workspace whose whole job is to be honest
-            about what the assistant can do (ADR-043). */}
-        {engine?.connected ? (
+        {/* Four states now, and one silent one. This line used to assert "No
+            model connected" unconditionally — true of every deployment, wrong
+            on a machine with a local Claude Code installation, and it is the
+            one line in the workspace whose whole job is to be honest about
+            what the assistant can do (ADR-043). */}
+        {engine?.connected && useModel ? (
           <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
-              Local model connected —{" "}
+              Local model in use —{" "}
               <span className="font-semibold">
                 {engine.readsSource ? "reads your source" : "reads the manifest only"}
               </span>
             </span>
-            {!engine.readsSource && (
-              <button
-                type="button"
-                onClick={() => onOpenTab("ai-engine")}
-                className="ml-auto shrink-0 rounded-[5px] border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
-              >
-                why
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setUseModel(false)}
+              // "Stop using it", not "disconnect": the path in .env.local is
+              // untouched and the backend could still run it. All this does is
+              // stop asking, which is the only thing a web page honestly can do.
+              title="Run the keyword analysis instead. The configured model stays configured."
+              className="ml-auto shrink-0 rounded-[5px] border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+            >
+              stop using
+            </button>
+          </div>
+        ) : engine?.connected ? (
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-700">
+            <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              A model is available — <span className="font-semibold">not using it here</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setUseModel(true)}
+              className="ml-auto shrink-0 rounded-[5px] border border-slate-400 px-2.5 py-0.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              use it
+            </button>
           </div>
         ) : engine ? (
           <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">

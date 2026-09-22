@@ -127,7 +127,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: init?.body ? { "Content-Type": "application/json" } : undefined,
       ...init,
     });
-  } catch {
+  } catch (err) {
+    // An abort is the caller stopping on purpose, not the server being
+    // unreachable. Folded into the message below it would report a network
+    // failure for a button the person just pressed themselves.
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new AdminApiError("Couldn't reach the server. Check your connection and try again.");
   }
   if (response.status === 401 || response.status === 403) {
@@ -183,8 +187,21 @@ export function attachManifest(
   });
 }
 
-export function runAnalysis(projectId: string): Promise<AxRenewalAnalysis> {
-  return request<AxRenewalAnalysis>(`/projects/${projectId}/analysis/run`, { method: "POST" });
+/**
+ * Runs the analysis. Takes a `signal` so Stop can genuinely abort the
+ * request rather than only hiding the progress panel -- with a local model
+ * reading real source this call can be in flight for minutes, and a Stop
+ * button that leaves it running would be a lie about what it did.
+ */
+export function runAnalysis(
+  projectId: string,
+  signal?: AbortSignal,
+  useModel = true,
+): Promise<AxRenewalAnalysis> {
+  return request<AxRenewalAnalysis>(`/projects/${projectId}/analysis/run?useModel=${useModel}`, {
+    method: "POST",
+    signal,
+  });
 }
 
 export function updateStackMove(

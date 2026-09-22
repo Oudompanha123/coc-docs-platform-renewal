@@ -1,5 +1,18 @@
 /**
- * Computes real, measured facts about a folder picked in the browser's file
+ * Computes real, measured facts ab  // Extensions describe the project, so they count the filtered list.
+  for (const path of paths) {
+    const match = /.([a-z0-9]+)$/i.exec(path.toLowerCase());
+    const ext = match ? match[1]! : "(none)";
+    extensions[ext] = (extensions[ext] ?? 0) + 1;
+  }
+  // Committed build output is the opposite case: it has to be looked for in
+  // everything the browser handed over, because the whole point of the
+  // finding is that these directories are present. Detecting them here and
+  // skipping their contents elsewhere is the same judgement, not a conflict.
+  for (const path of allPaths) {
+    const dirMatch = /(^|/)(dist|build|out|node_modules|vendor)//.exec(path);
+    if (dirMatch) buildOutputDirs.add(dirMatch[2]!);
+  } a folder picked in the browser's file
  * input — file count, size, extension breakdown, manifest/lockfile presence,
  * a secrets scan of small config files, and the largest file. Nothing here
  * is fabricated or sampled: every field is counted or read directly from the
@@ -33,6 +46,13 @@ export interface AxRenewalAttachStats {
    * inherited as-is from the prototype's identical fallback.
    */
   rootFolderName: string | null;
+  /**
+   * Files dropped for being inside a dependency tree, build output or VCS
+   * folder. Reported rather than hidden: a project that shows 295 files when
+   * the folder plainly has forty thousand needs to say why, or it reads as
+   * having failed to see most of the code.
+   */
+  skippedCount: number;
   fileCount: number;
   totalBytes: number;
   extensions: Record<string, number>;
@@ -86,13 +106,34 @@ function yieldToUi(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/**
+ * Whether a path runs through a directory whose contents say nothing about
+ * the project — a dependency tree, build output, or VCS metadata.
+ *
+ * The drag-and-drop walk skips these before creating a `File` at all
+ * (`readDroppedFiles.ts`). The folder picker cannot: `webkitdirectory`
+ * enumerates everything in the browser before handing it over, with no way to
+ * exclude. So they are dropped here instead — the memory has already been
+ * spent by then, but the counts, the extension breakdown and the secrets scan
+ * all end up describing the project rather than its dependencies.
+ */
+const SKIPPED_PATH_SEGMENT =
+  /(^|\/)(node_modules|\.git|\.next|dist|build|out|target|vendor|\.venv|__pycache__|\.gradle|\.idea|\.vscode)\//;
+
 export async function computeAttachStats(
   files: FileList | File[],
   onStage?: (stage: AttachStageIndex, detail: string) => void,
 ): Promise<AxRenewalAttachStats> {
-  const list = Array.from(files);
+  // Everything the browser handed over, then only what describes the project.
+  // `skippedCount` is reported so the UI can say why 38,000 files became 295
+  // rather than leaving somebody to wonder whether it read their code at all.
+  const everything = Array.from(files);
+  const list = everything.filter((f) => !SKIPPED_PATH_SEGMENT.test(pathOf(f)));
   const paths = list.map(pathOf);
-  const rootFolderName = paths.length > 0 ? paths[0]!.split("/")[0]! || "(files)" : null;
+  // Read off the unfiltered list: the folder somebody picked keeps its name
+  // even when everything inside it turned out to be dependencies.
+  const allPaths = everything.map(pathOf);
+  const rootFolderName = allPaths.length > 0 ? allPaths[0]!.split("/")[0]! || "(files)" : null;
 
   // Stage 0 — the file list itself.
   onStage?.(0, "");
@@ -125,10 +166,17 @@ export async function computeAttachStats(
   onStage?.(2, "");
   const extensions: Record<string, number> = {};
   const buildOutputDirs = new Set<string>();
+  // Extensions describe the project, so they count the filtered list.
   for (const path of paths) {
     const match = /\.([a-z0-9]+)$/i.exec(path.toLowerCase());
     const ext = match ? match[1]! : "(none)";
     extensions[ext] = (extensions[ext] ?? 0) + 1;
+  }
+  // Committed build output is the opposite case: it has to be looked for in
+  // everything the browser handed over, because the whole point of the
+  // finding is that these directories are present at all. Detecting them here
+  // while skipping their contents elsewhere is one judgement, not a conflict.
+  for (const path of allPaths) {
     const dirMatch = /(^|\/)(dist|build|out|node_modules|vendor)\//.exec(path);
     if (dirMatch) buildOutputDirs.add(dirMatch[2]!);
   }
@@ -179,6 +227,7 @@ export async function computeAttachStats(
     secretsFound,
     buildOutputDirs: Array.from(buildOutputDirs),
     largestFile,
+    skippedCount: everything.length - list.length,
   };
 }
 

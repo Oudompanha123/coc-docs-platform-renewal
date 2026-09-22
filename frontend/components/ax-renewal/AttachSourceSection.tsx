@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PaperclipIcon } from "@/components/layout/icons";
 import {
@@ -11,7 +11,9 @@ import {
   type AttachStageIndex,
   type AxRenewalAttachStats,
 } from "@/lib/ax-renewal/attachStats";
-import { attachManifest, runAnalysis, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
+import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
+import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
+import { readUseModel } from "@/lib/ax-renewal/engine-preference";
 import { readDroppedFiles, supportsDirectoryDrop } from "@/lib/ax-renewal/readDroppedFiles";
 
 /** Recognized manifest filenames, matching AxRenewalService's own RUNTIME_HINTS server-side. */
@@ -73,6 +75,22 @@ export function AttachSourceSection({
   const [pickWaitSecs, setPickWaitSecs] = useState(0);
   const [stage, setStage] = useState<{ index: AttachStageIndex; detail: string }>({ index: 0, detail: "" });
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // Shown top-right while analysing -- the slot where the prototype admits
+  // "sample data — no model connected". Same honesty, current facts.
+  const [engine, setEngine] = useState<AxRenewalEngineStatus | null>(null);
+  useEffect(() => {
+    void fetchEngineStatus().then(setEngine);
+  }, []);
+  const engineLabel = !engine
+    ? "checking the analyser"
+    : !engine.connected
+      ? "keyword match — no model connected"
+      : !readUseModel()
+        ? "keyword match — model available but not in use"
+        : engine.readsSource
+          ? "local model — reading your source"
+          : "local model — manifest only";
   const [scannedCount, setScannedCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   // The browser's own facts about the picked folder, computed as soon as it's
@@ -233,17 +251,33 @@ export function AttachSourceSection({
     }
   }
 
+  // Held so Stop can abort the request rather than only hiding the panel.
+  const analysisAbortRef = useRef<AbortController | null>(null);
+
   async function handleAnalyze() {
+    const controller = new AbortController();
+    analysisAbortRef.current = controller;
     setAnalyzing(true);
     setError(null);
     try {
-      await runAnalysis(detail.project.id);
+      // Read at click time, so toggling it in the assistant panel takes
+      // effect on the next run without this component having to subscribe.
+      await runAnalysis(detail.project.id, controller.signal, readUseModel());
       await onChanged();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't run analysis.");
+      // A deliberate Stop leaves no error behind: nothing was changed, and
+      // the person who pressed it already knows what happened.
+      if (!(err instanceof DOMException && err.name === "AbortError")) {
+        setError(err instanceof Error ? err.message : "Couldn't run analysis.");
+      }
     } finally {
+      analysisAbortRef.current = null;
       setAnalyzing(false);
     }
+  }
+
+  function stopAnalysis() {
+    analysisAbortRef.current?.abort();
   }
 
   const alreadyAttached = detail.project.manifestAttachedAt != null;
@@ -468,7 +502,7 @@ export function AttachSourceSection({
               </div>
               <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4">
                 {[
-                  { label: "files listed", value: shownStats.fileCount.toLocaleString() },
+                  { label: "project files", value: shownStats.fileCount.toLocaleString() },
                   { label: "on disk", value: formatBytes(shownStats.totalBytes) },
                   {
                     label: pickedStats ? "scanned" : "attached",
@@ -487,6 +521,15 @@ export function AttachSourceSection({
                   </div>
                 ))}
               </div>
+              {shownStats.skippedCount > 0 && (
+                // Said out loud, because the alternative is somebody seeing
+                // "295 project files" for a folder they know holds forty
+                // thousand and concluding it failed to read their code.
+                <p className="border-t border-border px-5 py-2.5 text-xs text-muted">
+                  {shownStats.skippedCount.toLocaleString()} files skipped — dependency trees, build output and
+                  version-control folders, which describe nothing a migration plan needs.
+                </p>
+              )}
               <div className="space-y-1.5 px-5 py-3.5 text-sm">
                 <div className="flex items-center justify-between border-b border-border py-1.5">
                   <span className="text-muted">Name</span>
@@ -578,6 +621,13 @@ export function AttachSourceSection({
           )}
         </>
       )}
+
+      {/* Above the cards, not instead of them. Replacing them would hide
+          "Open architecture" mid-run and, on a re-run, take away results that
+          are still perfectly valid until the new ones land. Both buttons are
+          already disabled while analysing, so there is no double-click to
+          guard against. */}
+      {analyzing && <AnalysisProgress engineLabel={engineLabel} onStop={stopAnalysis} />}
 
       {detail.analysis ? (
         <div className="rounded-[5px] border border-border bg-white p-5">
