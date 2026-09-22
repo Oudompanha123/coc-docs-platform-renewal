@@ -69,7 +69,7 @@ export function AxRenewalActivityBar() {
               aria-label={group.label}
               aria-current={isActive}
               aria-disabled={locked}
-              className={`relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+              className={`relative flex h-10 w-10 items-center justify-center rounded-[5px] transition-colors ${
                 locked
                   ? "cursor-not-allowed text-sidebar-muted opacity-30"
                   : isActive

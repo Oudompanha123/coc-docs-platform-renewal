@@ -70,7 +70,7 @@ export function AxRenewalSidebar({ isOpen, onClose }: AxRenewalSidebarProps) {
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
+          className="rounded-[5px] p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
         >
           <XIcon className="h-5 w-5" />
         </button>
@@ -88,7 +88,7 @@ export function AxRenewalSidebar({ isOpen, onClose }: AxRenewalSidebarProps) {
               type="button"
               onClick={() => toggleGroup(group.label)}
               aria-expanded={isOpen}
-              className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted/70 transition-colors hover:text-white"
+              className="flex w-full items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-sidebar-muted/70 transition-colors hover:text-white"
             >
               <ChevronDownIcon
                 className={`h-2.5 w-2.5 shrink-0 transition-transform ${isOpen ? "" : "-rotate-90"}`}
@@ -112,7 +112,12 @@ export function AxRenewalSidebar({ isOpen, onClose }: AxRenewalSidebarProps) {
               )}
             </button>
             {isOpen && (
-            <div className="space-y-0.5">
+            // pl-9 lines a sub-item's icon up under where the group label
+            // above it starts (px-2 + chevron + gap + icon + gap = 48px) —
+            // purely an outer offset on this wrapper, so every row's own
+            // border-l-2/icon/label spacing (and their behavior) is
+            // untouched.
+            <div className="space-y-0.5 pl-9">
               {group.items.map((sub) => {
                 const subActive = active === sub.key;
                 const href = `/ax-renewal?project=${projectId ?? ""}&section=${sub.key}`;

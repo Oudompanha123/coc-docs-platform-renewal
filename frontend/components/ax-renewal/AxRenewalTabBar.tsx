@@ -26,6 +26,11 @@ function accentColor(group: string): string {
  * caller (it decides which neighboring tab becomes active).
  */
 export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTabBarProps) {
+  // Nothing to show here once every tab is closed — AxRenewalBreadcrumb
+  // (rendered directly below this by AxRenewalTopbar) is the single "no tab
+  // open" message for this whole area; a second one here just duplicated it.
+  if (tabs.length === 0) return null;
+
   return (
     <div className="flex flex-1 overflow-x-auto border-b border-border bg-page">
       {tabs.map((key) => {
@@ -49,7 +54,7 @@ export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTa
               type="button"
               onClick={() => onClose(key)}
               aria-label={`Close ${meta.label}`}
-              className={`shrink-0 rounded p-0.5 text-muted opacity-0 transition-opacity hover:bg-page hover:text-dash-ink group-hover:opacity-100 ${
+              className={`shrink-0 rounded-[5px] p-0.5 text-muted opacity-0 transition-opacity hover:bg-page hover:text-dash-ink group-hover:opacity-100 ${
                 isActive ? "opacity-100" : ""
               }`}
             >

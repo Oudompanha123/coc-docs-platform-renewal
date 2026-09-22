@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
@@ -12,7 +12,7 @@ import {
   startImplementation,
   type PlanSection,
 } from "@/lib/ax-renewal/api";
-import { EXPLORER_META, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
+import { EXPLORER_META, resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { describeCommand, parseCommand } from "@/lib/ax-renewal/commands";
 import { SparklesIcon } from "@/components/layout/icons";
 
@@ -59,14 +59,31 @@ export function AxAssistantPanel() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { projectId, detail, refresh } = useAxRenewalProjectContext();
-  const active = (searchParams.get("section") as AxRenewalExplorerKey | null) ?? "attach";
+  // Same sentinel every other AX Renewal component resolves through — a raw
+  // `searchParams.get("section") ?? "attach"` here previously let the
+  // NO_TAB_OPEN sentinel ("none") through uncaught, so `EXPLORER_META[active]`
+  // came back `undefined` and `.group` threw once the last tab was closed.
+  const active = resolveActiveSection(searchParams.get("section"));
 
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<Note | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const meta = EXPLORER_META[active];
-  const isPlanTab = meta.group === "Plan";
+  const meta = active != null ? EXPLORER_META[active] : null;
+  const isPlanTab = meta?.group === "Plan";
+
+  // Grows the composer with what's typed (up to a cap, then its own scroll)
+  // instead of a fixed single row that hides everything past line one behind
+  // a scrollbar — runs on every `text` change, whether typed or set by a
+  // suggestion chip. Floored at 67px (the default/empty size) rather than
+  // shrinking to a bare single line.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.max(67, Math.min(el.scrollHeight, 120))}px`;
+  }, [text]);
 
   function onOpenTab(key: AxRenewalExplorerKey) {
     if (projectId) router.push(`/ax-renewal?project=${projectId}&section=${key}`);
@@ -131,7 +148,7 @@ export function AxAssistantPanel() {
 
   if (!detail) return null;
 
-  const suggestions = SUGGESTIONS[active] ?? [];
+  const suggestions = active != null ? SUGGESTIONS[active] ?? [] : [];
 
   return (
     <aside className="hidden shrink-0 xl:block xl:w-[360px]">
@@ -141,10 +158,16 @@ export function AxAssistantPanel() {
           <span className="text-xs font-bold uppercase tracking-wider text-dash-ink">AX Assistant</span>
         </div>
         <div className="border-b border-border px-4 py-2 font-mono text-xs text-muted">
-          {isPlanTab ? "acting on " : "reading "}
-          <span className="font-semibold text-dash-ink">
-            {isPlanTab ? meta.label.toLowerCase() : `${meta.group.toLowerCase()} / ${meta.label.toLowerCase()}`}
-          </span>
+          {meta ? (
+            <>
+              {isPlanTab ? "acting on " : "reading "}
+              <span className="font-semibold text-dash-ink">
+                {isPlanTab ? meta.label.toLowerCase() : `${meta.group.toLowerCase()} / ${meta.label.toLowerCase()}`}
+              </span>
+            </>
+          ) : (
+            "no tab open"
+          )}
         </div>
 
         <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
@@ -155,7 +178,7 @@ export function AxAssistantPanel() {
           <button
             type="button"
             onClick={() => onOpenTab("ai-engine")}
-            className="ml-auto shrink-0 rounded-full border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+            className="ml-auto shrink-0 rounded-[5px] border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
           >
             connect
           </button>
@@ -166,7 +189,7 @@ export function AxAssistantPanel() {
             <p className="text-sm text-muted">No comments yet — anything you type that isn&apos;t a command above is recorded here.</p>
           )}
           {detail.comments.map((comment) => (
-            <div key={comment.id} className="rounded-xl border border-border bg-white px-3 py-2 text-sm">
+            <div key={comment.id} className="rounded-[5px] border border-border bg-white px-3 py-2 text-sm">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold text-dash-ink">{comment.authorName}</span>
                 <span className="shrink-0 text-xs text-muted">{new Date(comment.createdAt).toLocaleString()}</span>
@@ -195,7 +218,7 @@ export function AxAssistantPanel() {
                 key={s}
                 type="button"
                 onClick={() => setText(s)}
-                className="rounded-full border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-brand-purple hover:text-brand-purple"
+                className="rounded-[5px] border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-brand-purple hover:text-brand-purple"
               >
                 {s}
               </button>
@@ -203,7 +226,7 @@ export function AxAssistantPanel() {
           </div>
         )}
 
-        {!isPlanTab && (
+        {meta && !isPlanTab && (
           <p className="border-t border-border bg-white px-4 py-2 text-xs italic text-muted">
             Read only here — a comment is recorded, but nothing on this tab is changed by it.
           </p>
@@ -211,6 +234,7 @@ export function AxAssistantPanel() {
 
         <form onSubmit={(e) => void handleSend(e)} className="flex items-end gap-2 border-t border-border bg-white p-3">
           <textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -222,12 +246,12 @@ export function AxAssistantPanel() {
             disabled={busy}
             placeholder="Type a command (see suggestions above), or leave a comment…"
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+            className="no-scrollbar min-h-[67px] max-h-[120px] flex-1 resize-none overflow-y-auto rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
           />
           <button
             type="submit"
             disabled={busy || !text.trim()}
-            className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           >
             Send
           </button>
