@@ -107,7 +107,7 @@ schema it needs.
 - Requirements: `FR-AUTH-008`
 - Related: `ADR-025` (defines `NotificationType`), `ADR-034` (the `notification`
   table this gates delivery into)
-- Code: `db/migration/V33__notification_preference.sql`,
+- Code: `db/migration/V34__notification_preference.sql`,
   `notify/NotificationPreferenceRepository.java`,
   `notify/NotificationPreferenceService.java`,
   `web/NotificationPreferenceController.java`,
