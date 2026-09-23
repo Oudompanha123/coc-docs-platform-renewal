@@ -11,7 +11,9 @@ import {
   WarningIcon,
 } from "@/components/layout/icons";
 import { BudgetOverridesPanel } from "@/components/claude-usage/BudgetOverridesPanel";
+import { DownloadConfigPanel } from "@/components/claude-usage/DownloadConfigPanel";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
+import { TeamRosterPanel } from "@/components/claude-usage/TeamRosterPanel";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { UsageTable } from "@/components/claude-usage/UsageTable";
@@ -231,7 +233,7 @@ export default function ClaudeUsagePage() {
               label="Near Limit"
               value={String(dashboard?.nearLimit ?? 0)}
               tone="orange"
-              note="≥ 80% of soft budget"
+              note="≥ 70% of soft budget"
             />
           </div>
 
@@ -245,10 +247,14 @@ export default function ClaudeUsagePage() {
 
           <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
-            <UsageTable members={members} onRoleChange={handleRoleChange} onRemove={handleRemove} />
+            <UsageTable members={members} />
           </div>
 
+          <TeamRosterPanel members={members} onRoleChange={handleRoleChange} onRemove={handleRemove} />
+
           <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
+
+          <DownloadConfigPanel />
         </>
       )}
 

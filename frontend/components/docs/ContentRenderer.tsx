@@ -2,8 +2,30 @@ import Link from "next/link";
 import { DocStep } from "./DocStep";
 import { DocsCallout } from "./DocsCallout";
 import { DocsCodeBlock } from "./DocsCodeBlock";
+import { DownloadIcon } from "@/components/layout/icons";
 import { ICON_MAP } from "@/lib/docs/icon-map";
-import type { DocContent } from "@/lib/docs/content-types";
+import type { DocContent, DownloadLink } from "@/lib/docs/content-types";
+
+/** Plain `<a download>` links, not a fetch-and-save button: these are static
+ *  files under `public/downloads/`, so the browser can save them without a
+ *  round trip through the app. */
+function DownloadLinks({ downloads }: { downloads: DownloadLink[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {downloads.map((d, i) => (
+        <a
+          key={`${d.href}-${i}`}
+          href={d.href}
+          download
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow"
+        >
+          <DownloadIcon className="h-3.5 w-3.5" />
+          {d.label}
+        </a>
+      ))}
+    </div>
+  );
+}
 
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -176,6 +198,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
                   })}
                 </div>
               )}
+              {step.downloads && step.downloads.length > 0 && <DownloadLinks downloads={step.downloads} />}
               {step.command && <DocsCodeBlock code={step.command} output={step.output} />}
             </DocStep>
           ))}
@@ -207,6 +230,11 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
           >
             <h2 className={`text-lg font-bold ${heading}`}>{section.title}</h2>
             {section.note && <p className="mt-2 text-sm text-muted">{renderInline(section.note)}</p>}
+            {section.downloads && section.downloads.length > 0 && (
+              <div className="mt-3">
+                <DownloadLinks downloads={section.downloads} />
+              </div>
+            )}
             {section.command && (
               <div className="mt-3">
                 <DocsCodeBlock code={section.command} />

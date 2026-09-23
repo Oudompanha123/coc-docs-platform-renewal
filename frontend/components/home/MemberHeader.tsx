@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { ActivityAvatar } from "@/components/layout/ActivityAvatar";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
   BellIcon,
@@ -16,7 +17,7 @@ import {
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
-import { actorInitials, actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
+import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
@@ -430,11 +431,7 @@ export function MemberHeader({
                           item.read ? "" : "bg-brand-purple/5"
                         }`}
                       >
-                        <span
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${AVATAR_GRADIENTS.purple}`}
-                        >
-                          {actorInitials(item)}
-                        </span>
+                        <ActivityAvatar item={item} />
                         <span className="min-w-0 flex-1">
                           <span
                             className={`block truncate text-sm text-ink ${
