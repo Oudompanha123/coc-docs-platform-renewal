@@ -352,11 +352,25 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/ax-renewal/**").hasRole(AppRole.USER.name())
                         .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects/*/comments")
                         .hasRole(AppRole.USER.name())
+                        // Removing one stays at the same floor as writing one:
+                        // whether this particular caller may remove this
+                        // particular comment depends on who wrote it, which is
+                        // row data no matcher can see. AxRenewalService makes
+                        // that call — author, or super_admin (ADR-045).
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/ax-renewal/projects/*/comments/*")
+                        .hasRole(AppRole.USER.name())
 
                         .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects").hasRole(AppRole.ADMIN.name())
                         .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects/*/manifest")
                         .hasRole(AppRole.ADMIN.name())
                         .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects/*/analysis/run")
+                        .hasRole(AppRole.ADMIN.name())
+                        // Assistant chat sits at the analysis floor, not the
+                        // comment floor it superficially resembles: both this
+                        // and Run analysis can point a local model at the
+                        // source folder, and reading the source is the thing
+                        // being gated. Writing a comment cannot (ADR-046).
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects/*/assistant/chat")
                         .hasRole(AppRole.ADMIN.name())
                         .requestMatchers(HttpMethod.PUT, "/api/v1/ax-renewal/projects/*/plan/**")
                         .hasRole(AppRole.ADMIN.name())

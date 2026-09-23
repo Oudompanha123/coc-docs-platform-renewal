@@ -357,6 +357,57 @@ export function addComment(projectId: string, body: string): Promise<AxRenewalCo
   });
 }
 
+/**
+ * Hides one comment from the project thread (ADR-045).
+ *
+ * Soft on the server: the row stays, so nothing here can rewrite what was
+ * said — it stops being shown. Whether this caller may is decided backend-side
+ * from the comment's author (their own, or `super_admin`); the button this
+ * sits behind is a convenience, never the check.
+ */
+export function deleteComment(projectId: string, commentId: string): Promise<void> {
+  return request<void>(`/projects/${projectId}/comments/${commentId}`, { method: "DELETE" });
+}
+
+/** One thing said in the assistant's chat — `"you"` is the person at the keyboard. */
+export interface AxRenewalChatTurn {
+  role: "you" | "assistant";
+  text: string;
+}
+
+export interface AxRenewalChatReply {
+  reply: string;
+  /** Whether the model saw the source, or only what the backend stores. */
+  readSource: boolean;
+}
+
+/**
+ * Asks the local Claude Code installation one question about this project
+ * (ADR-046).
+ *
+ * <p>Nothing here is persisted — not by the backend, and not by this module.
+ * `history` is the conversation this tab is holding in React state, replayed
+ * so the model has context it cannot get from anywhere else. That also means
+ * a refresh genuinely ends the conversation, which is the behaviour the panel
+ * advertises.
+ *
+ * Takes a signal for the same reason `runAnalysis` does: a local model
+ * reading real source can take a while, and a Stop button that left the
+ * request running would be lying.
+ */
+export function chatWithAssistant(
+  projectId: string,
+  message: string,
+  history: AxRenewalChatTurn[],
+  signal?: AbortSignal,
+): Promise<AxRenewalChatReply> {
+  return request<AxRenewalChatReply>(`/projects/${projectId}/assistant/chat`, {
+    method: "POST",
+    body: JSON.stringify({ message, history }),
+    signal,
+  });
+}
+
 export interface AxRenewalAuditEntry {
   actorEmail: string;
   action: string;
