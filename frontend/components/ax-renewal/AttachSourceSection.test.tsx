@@ -1,11 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { attachManifest, runAnalysis } = vi.hoisted(() => ({
+const { attachManifest, runAnalysis, fetchEngineStatus } = vi.hoisted(() => ({
   attachManifest: vi.fn(),
   runAnalysis: vi.fn(),
+  // Added with the analysing panel (ADR-043): the section asks on mount what
+  // is doing the analysis, to label the progress card. "Not connected" keeps
+  // these tests on the branch they were written for.
+  fetchEngineStatus: vi.fn().mockResolvedValue({ connected: false, readsSource: false }),
 }));
-vi.mock("@/lib/ax-renewal/api", () => ({ attachManifest, runAnalysis }));
+vi.mock("@/lib/ax-renewal/api", () => ({ attachManifest, runAnalysis, fetchEngineStatus }));
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -99,7 +103,9 @@ describe("AttachSourceSection", () => {
     expect(extensionsPanel.textContent).toContain(".png");
     expect(extensionsPanel.textContent).toContain(".css");
 
-    const filesListedLabel = await screen.findByText("files listed");
+    // Renamed from "files listed" when dependency trees stopped being counted:
+    // the number is the project's own files now, not everything on disk.
+    const filesListedLabel = await screen.findByText("project files");
     expect(filesListedLabel.parentElement?.querySelector("b")?.textContent).toBe("16");
 
     const nameLabel = screen.getByText("Name");
@@ -141,7 +147,9 @@ describe("AttachSourceSection", () => {
       dataTransfer: { items: [{ webkitGetAsEntry: () => dirEntry }] },
     });
 
-    const filesListedLabel = await screen.findByText("files listed");
+    // Renamed from "files listed" when dependency trees stopped being counted:
+    // the number is the project's own files now, not everything on disk.
+    const filesListedLabel = await screen.findByText("project files");
     expect(filesListedLabel.parentElement?.querySelector("b")?.textContent).toBe("3");
     // The bug this guards against: without directory-entry walking, a
     // dropped folder resolves to one zero-byte, extension-less pseudo-file.
@@ -154,6 +162,10 @@ describe("AttachSourceSection", () => {
       stackDetected: {},
       findings: [],
       pagesDetected: [],
+      indexed: {},
+      runningOnToday: [],
+      fileLayout: [],
+      moduleCoupling: {},
       modelConnected: false,
       analyzedAt: "2026-01-02T00:00:00Z",
     };
@@ -165,7 +177,9 @@ describe("AttachSourceSection", () => {
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Run analysis again" }));
-    expect(runAnalysis).toHaveBeenCalledWith("p1");
+    // Second argument is the AbortSignal behind Stop; the third is whether
+    // this browser wants the configured model used (ADR-043).
+    expect(runAnalysis).toHaveBeenCalledWith("p1", expect.any(AbortSignal), true);
 
     fireEvent.click(screen.getByRole("button", { name: "Open architecture" }));
     expect(push).toHaveBeenCalledWith("/ax-renewal?project=p1&section=understand-architecture");

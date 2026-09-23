@@ -216,6 +216,42 @@ Sometimes right — a demo, or reproducing something only its data shows. Two ru
 1. **Push a migration before you run it there.** A migration applied from an unpushed branch leaves everyone else unable to start: Flyway finds an applied version it cannot resolve, and the only real fix is the file you still have not pushed.
 2. **Never rebuild it to escape a Flyway error.** Rebuilding is a local remedy applied to shared infrastructure. Move to your own schema instead; that is the fix.
 
+## Real analysis, on your own machine
+
+AX Renewal's **Run analysis** matches keywords against the attached manifest
+and says so. On a machine with Claude Code installed it can do the real thing
+instead — the backend runs your own `claude` binary as a subprocess (ADR-043).
+
+Two settings in `backend/.env.local`, both optional:
+
+```
+APP_AXRENEWAL_CLAUDECLIPATH=C:/Users/you/.local/bin/claude.exe
+APP_AXRENEWAL_SOURCEPATH=D:/work/the-legacy-project
+```
+
+The first turns it on. Without the second the model reads only the stored
+dependency manifest — real reasoning about real content, but it has not seen
+your code; with it, `--add-dir` points it at the folder and it reads the
+source. The assistant panel's banner tells you which of the two you are
+getting, so you never have to guess.
+
+**Why this can't be a deployment setting.** What makes it work is that the
+backend, the CLI, your signed-in seat and the source folder are all one
+computer. The deployed instance has none of them, so it keeps the keyword
+stub — and the browser cannot supply `APP_AXRENEWAL_SOURCEPATH` for you
+either, because the File API deliberately hides absolute paths from a web
+page.
+
+The names look odd because they are the form Spring binds directly onto
+`app.ax-renewal.*`. Everything else here (`MAIL_HOST`, `S3_*`) is mapped in
+`application.yml`; these two are not, so turning the feature on touches only
+your own file.
+
+**When it doesn't work**, it falls back to the keyword stub rather than
+failing your request, and logs why at WARN — a mistyped path, a timeout after
+three minutes, a non-zero exit. If Run analysis seems to do nothing new,
+that log line names the reason.
+
 ## The settings that are not obvious
 
 `backend/.env.example` is a list of names and defaults. These are the ones where the default is a local convenience, or where getting it wrong fails in a way that does not name itself.

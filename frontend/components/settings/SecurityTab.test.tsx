@@ -235,7 +235,14 @@ describe("SecurityTab password — Google-only account", () => {
   });
 });
 
-/** ADR-031: the toggle used to be local-state mock only; these pin that it's wired to the real endpoints now. */
+/**
+ * ADR-031, revised: the toggle used to be local-state mock only, then a real
+ * switch; it's a chevron disclosure now (matching the outer Security
+ * accordion's own header), so "on/off" and "expanded/collapsed" are two
+ * separate signals — the "On" pill (styled after the Authentication row's
+ * "Connected" pill) is what these pin for server state, `aria-expanded` for
+ * whether the setup/disable form is showing.
+ */
 describe("SecurityTab two-factor authentication", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -243,8 +250,8 @@ describe("SecurityTab two-factor authentication", () => {
     sessionUser.hasPassword = true;
   });
 
-  function toggle() {
-    return screen.getByRole("switch", { name: "Toggle two-factor authentication" });
+  function disclosure() {
+    return screen.getByRole("button", { name: "Two-factor authentication" });
   }
 
   it("reflects the server's enabled state on load", async () => {
@@ -252,7 +259,8 @@ describe("SecurityTab two-factor authentication", () => {
 
     render(<SecurityTab />);
 
-    await waitFor(() => expect(toggle()).toHaveAttribute("aria-checked", "true"));
+    expect(await screen.findByText("On")).toBeInTheDocument();
+    expect(disclosure()).toHaveAttribute("aria-expanded", "false");
   });
 
   it("is disabled with an explanation for a Google-only account (revision of ADR-031)", async () => {
@@ -271,8 +279,8 @@ describe("SecurityTab two-factor authentication", () => {
           (element.textContent ?? "").includes("Set a password first to turn this on"),
       ),
     ).toBeInTheDocument();
-    expect(toggle()).toBeDisabled();
-    await userEvent.click(toggle());
+    expect(disclosure()).toBeDisabled();
+    await userEvent.click(disclosure());
     expect(startMfaSetup).not.toHaveBeenCalled();
   });
 
@@ -287,7 +295,7 @@ describe("SecurityTab two-factor authentication", () => {
     const user = userEvent.setup();
     render(<SecurityTab />);
 
-    await user.click(await screen.findByRole("switch", { name: "Toggle two-factor authentication" }));
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
 
     expect(await screen.findByText("JBSWY3DPEHPK3PXP")).toBeInTheDocument();
     expect(screen.getByAltText("Scan this QR code with your authenticator app")).toHaveAttribute(
@@ -295,6 +303,28 @@ describe("SecurityTab two-factor authentication", () => {
       "data:image/png;base64,zzzz",
     );
     expect(startMfaSetup).toHaveBeenCalledTimes(1);
+    expect(disclosure()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("clicking again while open collapses it without submitting anything", async () => {
+    getMfaStatus.mockResolvedValue(false);
+    startMfaSetup.mockResolvedValue({
+      secret: "JBSWY3DPEHPK3PXP",
+      qrCodeDataUri: "data:image/png;base64,zzzz",
+      issuer: "Coc Docs Platform",
+      accountLabel: "person@example.com",
+    });
+    const user = userEvent.setup();
+    render(<SecurityTab />);
+
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
+    expect(await screen.findByText("JBSWY3DPEHPK3PXP")).toBeInTheDocument();
+
+    await user.click(disclosure());
+
+    expect(screen.queryByText("JBSWY3DPEHPK3PXP")).not.toBeInTheDocument();
+    expect(disclosure()).toHaveAttribute("aria-expanded", "false");
+    expect(verifyMfaSetup).not.toHaveBeenCalled();
   });
 
   it("a wrong code shows an error and leaves it off", async () => {
@@ -308,16 +338,16 @@ describe("SecurityTab two-factor authentication", () => {
     verifyMfaSetup.mockRejectedValue(new AuthApiError("That code is incorrect. Please try again."));
     const user = userEvent.setup();
     render(<SecurityTab />);
-    await user.click(await screen.findByRole("switch", { name: "Toggle two-factor authentication" }));
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
 
     await user.type(await screen.findByLabelText("Verification Code"), "000000");
     await user.click(screen.getByRole("button", { name: "Verify & turn on" }));
 
     expect(await screen.findByText("That code is incorrect. Please try again.")).toBeInTheDocument();
-    expect(toggle()).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByText("On")).not.toBeInTheDocument();
   });
 
-  it("a correct code shows success and flips the toggle on", async () => {
+  it("a correct code shows success and flips it on", async () => {
     getMfaStatus.mockResolvedValue(false);
     startMfaSetup.mockResolvedValue({
       secret: "JBSWY3DPEHPK3PXP",
@@ -328,14 +358,16 @@ describe("SecurityTab two-factor authentication", () => {
     verifyMfaSetup.mockResolvedValue("Two-factor authentication is now on for your account.");
     const user = userEvent.setup();
     render(<SecurityTab />);
-    await user.click(await screen.findByRole("switch", { name: "Toggle two-factor authentication" }));
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
 
     await user.type(await screen.findByLabelText("Verification Code"), "123456");
     await user.click(screen.getByRole("button", { name: "Verify & turn on" }));
 
     expect(await screen.findByText("Two-factor authentication is now on for your account.")).toBeInTheDocument();
-    expect(toggle()).toHaveAttribute("aria-checked", "true");
+    expect(await screen.findByText("On")).toBeInTheDocument();
     expect(screen.queryByLabelText("Verification Code")).not.toBeInTheDocument();
+    // Success collapses the row back, the same as Cancel would.
+    expect(disclosure()).toHaveAttribute("aria-expanded", "false");
   });
 
   it("toggling off an enabled account asks for the current password first", async () => {
@@ -343,7 +375,7 @@ describe("SecurityTab two-factor authentication", () => {
     const user = userEvent.setup();
     render(<SecurityTab />);
 
-    await user.click(await screen.findByRole("switch", { name: "Toggle two-factor authentication" }));
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
 
     expect(screen.getByLabelText("Current Password")).toBeInTheDocument();
     expect(disableMfa).not.toHaveBeenCalled();
@@ -354,13 +386,13 @@ describe("SecurityTab two-factor authentication", () => {
     disableMfa.mockRejectedValue(new AuthApiError("your current password is incorrect"));
     const user = userEvent.setup();
     render(<SecurityTab />);
-    await user.click(await screen.findByRole("switch", { name: "Toggle two-factor authentication" }));
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
 
     await user.type(screen.getByLabelText("Current Password"), "WrongPassword!");
     await user.click(screen.getByRole("button", { name: "Turn off" }));
 
     expect(await screen.findByText("your current password is incorrect")).toBeInTheDocument();
-    expect(toggle()).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText("On")).toBeInTheDocument();
   });
 
   it("the correct password turns it off", async () => {
@@ -368,13 +400,13 @@ describe("SecurityTab two-factor authentication", () => {
     disableMfa.mockResolvedValue("Two-factor authentication has been turned off.");
     const user = userEvent.setup();
     render(<SecurityTab />);
-    await user.click(await screen.findByRole("switch", { name: "Toggle two-factor authentication" }));
+    await user.click(await screen.findByRole("button", { name: "Two-factor authentication" }));
 
     await user.type(screen.getByLabelText("Current Password"), "Password123!");
     await user.click(screen.getByRole("button", { name: "Turn off" }));
 
     expect(await screen.findByText("Two-factor authentication has been turned off.")).toBeInTheDocument();
-    expect(toggle()).toHaveAttribute("aria-checked", "false");
+    await waitFor(() => expect(screen.queryByText("On")).not.toBeInTheDocument());
     expect(disableMfa).toHaveBeenCalledWith("Password123!");
   });
 });

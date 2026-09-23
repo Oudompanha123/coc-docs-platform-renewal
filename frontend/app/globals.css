@@ -501,3 +501,30 @@ select {
 .animate-ribbon-drift {
   animation: wave-drift 48s linear infinite;
 }
+
+/* The indeterminate bar on AX Renewal's Analysing panel (ADR-043). A sliding
+   segment rather than a percentage: the analysis is one backend call that
+   reports nothing until it returns, so a filling bar would be a guess dressed
+   as a measurement. */
+@keyframes ax-analysing-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.ax-analysing-bar {
+  animation: ax-analysing-slide 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ax-analysing-bar {
+    animation: none;
+    /* Still visibly "in progress" without movement, for anyone who has asked
+       the system not to animate. */
+    width: 100%;
+    opacity: 0.35;
+  }
+}

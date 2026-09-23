@@ -15,6 +15,7 @@ import { BACKEND_URL } from "@/lib/auth/api";
 
 export type ActivityEntry = {
   actorEmail: string;
+  actorAvatarUrl: string | null;
   action: string;
   targetType: string;
   detail: Record<string, unknown>;

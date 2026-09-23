@@ -1,5 +1,5 @@
 import { AdminApiError, NotPermittedError } from "@/lib/admin/accounts";
-import type { AxRenewalAttachStats } from "./attachStats";
+import type { AxRenewalAttachStats, FileLayoutEntry } from "./attachStats";
 
 /**
  * The AX Renewal API — `/api/v1/ax-renewal` (ADR-037).
@@ -31,10 +31,83 @@ export interface AxRenewalProject {
 
 export interface AxRenewalAnalysis {
   stackDetected: Record<string, string>;
-  findings: { severity: string; what: string; where: string }[];
-  pagesDetected: unknown[];
+  findings: AxRenewalFinding[];
+  pagesDetected: AxRenewalPageDetected[];
+  /**
+   * lines/routes/templates/dependencies/testCoveragePercent — each `null`
+   * (or absent) unless a connected local model could support it with real
+   * evidence (ADR-043). `{}` on the keyword-stub path. File count and
+   * language shares deliberately live on `project.attachStats` instead,
+   * since the browser already measures those for real, model or not.
+   */
+  indexed: AxRenewalIndexedStats;
+  /**
+   * What the project visibly runs on today, not a migration target (that
+   * stays the Plan section's own data). `[]` on the keyword-stub path.
+   */
+  runningOnToday: AxRenewalRunningOnTodayTag[];
+  /**
+   * Directories a connected local model actually saw under `source-path` —
+   * `[]` on the keyword-stub path or a manifest-only run. Prefer
+   * `project.attachStats.fileLayout` when that's present (a full browser
+   * scan, not whatever subset the model looked at); this is the fallback
+   * for a project attached before that scan existed.
+   */
+  fileLayout: FileLayoutEntry[];
+  /**
+   * Which modules import which, traced by a connected local model actually
+   * reading source — `{}` (all fields absent) on the keyword-stub path or a
+   * manifest-only run. Backs the Architecture panel's "Module coupling"
+   * diagram.
+   */
+  moduleCoupling: AxRenewalModuleCoupling;
   modelConnected: boolean;
   analyzedAt: string;
+}
+
+export interface AxRenewalIndexedStats {
+  lines?: number | null;
+  routes?: number | null;
+  templates?: number | null;
+  dependencies?: number | null;
+  testCoveragePercent?: number | null;
+}
+
+export interface AxRenewalRunningOnTodayTag {
+  label: string;
+  note?: string | null;
+}
+
+export interface AxRenewalPageDetected {
+  path: string;
+  purpose: string;
+}
+
+export type AxRenewalFixedBy = "stack_move" | "database" | "architecture" | "decision";
+
+export interface AxRenewalFinding {
+  severity: string;
+  what: string;
+  where: string;
+  /**
+   * Which part of the renewal already addresses this, when a connected
+   * model was confident enough to say so — absent/null far more often than
+   * not, since most findings don't cleanly fit one bucket. Never a
+   * recommendation for what to change to, just where in the existing plan
+   * this gets handled.
+   */
+  fixedBy?: AxRenewalFixedBy | null;
+}
+
+export interface AxRenewalModuleCoupling {
+  /** A representative subset of paths, not every file — the indices below refer into this list. */
+  modules?: string[];
+  /** `[fromIndex, toIndex]` pairs meaning `modules[fromIndex]` imports `modules[toIndex]`. */
+  edges?: [number, number][];
+  /** Indices of modules at least three other reported modules import directly. */
+  hubs?: number[];
+  /** `[a, b]` index pairs the model saw import each other directly. */
+  cycles?: [number, number][];
 }
 
 export interface AxRenewalStackLayer {
@@ -127,7 +200,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: init?.body ? { "Content-Type": "application/json" } : undefined,
       ...init,
     });
-  } catch {
+  } catch (err) {
+    // An abort is the caller stopping on purpose, not the server being
+    // unreachable. Folded into the message below it would report a network
+    // failure for a button the person just pressed themselves.
+    if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new AdminApiError("Couldn't reach the server. Check your connection and try again.");
   }
   if (response.status === 401 || response.status === 403) {
@@ -183,8 +260,21 @@ export function attachManifest(
   });
 }
 
-export function runAnalysis(projectId: string): Promise<AxRenewalAnalysis> {
-  return request<AxRenewalAnalysis>(`/projects/${projectId}/analysis/run`, { method: "POST" });
+/**
+ * Runs the analysis. Takes a `signal` so Stop can genuinely abort the
+ * request rather than only hiding the progress panel -- with a local model
+ * reading real source this call can be in flight for minutes, and a Stop
+ * button that leaves it running would be a lie about what it did.
+ */
+export function runAnalysis(
+  projectId: string,
+  signal?: AbortSignal,
+  useModel = true,
+): Promise<AxRenewalAnalysis> {
+  return request<AxRenewalAnalysis>(`/projects/${projectId}/analysis/run?useModel=${useModel}`, {
+    method: "POST",
+    signal,
+  });
 }
 
 export function updateStackMove(
@@ -300,4 +390,28 @@ export async function fetchAuditTrail(projectId: string, limit = 50): Promise<Ax
     throw new AdminApiError("Couldn't load the audit trail.");
   }
   return (await response.json()) as AxRenewalAuditEntry[];
+}
+
+/**
+ * Whether Run analysis reaches a real model on this deployment (ADR-043).
+ *
+ * Resolves to "not connected" on any failure rather than throwing. The
+ * banner this feeds is an honest disclosure, and the honest answer when we
+ * cannot tell is the cautious one — claiming a model is connected because a
+ * status call failed would be the one wrong way to get this wrong.
+ */
+export async function fetchEngineStatus(): Promise<AxRenewalEngineStatus> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/v1/ax-renewal/engine`, { credentials: "include" });
+    if (!response.ok) return { connected: false, readsSource: false };
+    return (await response.json()) as AxRenewalEngineStatus;
+  } catch {
+    return { connected: false, readsSource: false };
+  }
+}
+
+export interface AxRenewalEngineStatus {
+  connected: boolean;
+  /** Whether the model sees the source, or only the stored dependency manifest. */
+  readsSource: boolean;
 }

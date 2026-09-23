@@ -212,17 +212,14 @@ public class NotificationFeedService {
      * has no destination for that target type yet, or because {@code caller}
      * could not open it even if there were one.
      *
-     * <p><b>{@code account} and {@code integration} resolve today.</b> {@code
-     * page} carries a real {@code target_id} (the {@code page}/{@code
-     * page_version} tables and {@code AdminContentController} both exist),
-     * but no frontend route opens one — there is no page editor and no
-     * reader page keyed by page id anywhere in this codebase yet, confirmed
-     * by grep. Returning a link to a page that does not exist would be worse
-     * than returning none, so a {@code page} target is deliberately left with
-     * no {@code href} until an editor exists to send someone to. {@code
-     * integration} has no per-row detail view the way {@code account} does
-     * ({@code /integrations?highlight=} opens nothing), so it resolves to the
-     * list page itself rather than a specific row.
+     * <p><b>Only {@code account} resolves today.</b> {@code page} carries a
+     * real {@code target_id} (the {@code page}/{@code page_version} tables and
+     * {@code AdminContentController} both exist), but no frontend route opens
+     * one — there is no page editor and no reader page keyed by page id
+     * anywhere in this codebase yet, confirmed by grep. Returning a link to a
+     * page that does not exist would be worse than returning none, so a
+     * {@code page} target is deliberately left with no {@code href} until an
+     * editor exists to send someone to.
      *
      * <p>Gated on role here, not left to the destination to refuse, for the
      * same reason {@code SecurityConfig} puts {@code /users-roles} and
@@ -242,13 +239,6 @@ public class NotificationFeedService {
                 && entry.targetId() != null
                 && caller.isAtLeast(AppRole.SUPER_ADMIN)) {
             return "/users-roles?highlight=" + entry.targetId();
-        }
-        // Same floor as the /integrations route itself (SecurityConfig,
-        // nav-config.ts): a caller who cannot open that page should not be
-        // handed a link to it, even a dead one.
-        if (AuditAction.TARGET_INTEGRATION.equals(entry.targetType())
-                && caller.isAtLeast(AppRole.SUPER_ADMIN)) {
-            return "/integrations";
         }
         return null;
     }
@@ -284,6 +274,8 @@ public class NotificationFeedService {
             case AuditAction.ACCOUNT_CREATE -> "Created an account";
             case AuditAction.ACCOUNT_ROLE_CHANGE -> "Changed an account's role";
             case AuditAction.ACCOUNT_DEACTIVATE -> "Deactivated an account";
+            case AuditAction.ACCOUNT_DEACTIVATE_SCHEDULE -> "Scheduled an account to deactivate";
+            case AuditAction.ACCOUNT_DEACTIVATE_CANCEL -> "Cancelled a scheduled deactivation";
             case AuditAction.ACCOUNT_REACTIVATE -> "Reactivated an account";
             case AuditAction.ACCOUNT_DELETE -> "Deleted an account";
             case AuditAction.ACCOUNT_REGISTER -> "Registered an account";
@@ -302,11 +294,6 @@ public class NotificationFeedService {
             case AuditAction.NAV_PRODUCT_DELETE -> "Removed a product";
             case AuditAction.NAV_ITEM_CREATE -> "Added a navigation item";
             case AuditAction.NAV_ITEM_DELETE -> "Removed a navigation item";
-            case AuditAction.INTEGRATION_CONNECT -> "Connected an integration";
-            case AuditAction.INTEGRATION_UPDATE -> "Updated an integration";
-            case AuditAction.INTEGRATION_ROTATE_SECRET -> "Rotated an integration's signing secret";
-            case AuditAction.INTEGRATION_DISCONNECT -> "Disconnected an integration";
-            case AuditAction.INTEGRATION_RECONNECT -> "Reconnected an integration";
             case AuditAction.CLAUDE_USAGE_MEMBER_INVITE -> "Invited someone to Claude Usage";
             case AuditAction.CLAUDE_USAGE_MEMBER_ROLE_CHANGE -> "Changed a Claude Usage member's role";
             case AuditAction.CLAUDE_USAGE_MEMBER_BUDGET_CHANGE -> "Changed a Claude Usage member's budget";

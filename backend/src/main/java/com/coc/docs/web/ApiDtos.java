@@ -173,7 +173,18 @@ public final class ApiDtos {
              * role (ADR-039) the way AX Renewal's confirm action does
              * server-side.
              */
-            List<String> roles) {
+            List<String> roles,
+            /**
+             * True only on the response to a sign-in call that itself just
+             * cancelled a pending self-service deactivation (revision of
+             * ADR-042) — always false from {@link #of}; set afterwards via
+             * {@link #withDeactivationCancelled} by the three controller
+             * methods that complete a sign-in ({@code /google},
+             * {@code /login-password}, {@code /mfa/verify}). The frontend
+             * uses it to tell the caller their scheduled deactivation was
+             * just called off, rather than that being silently true.
+             */
+            boolean deactivationCancelled) {
 
         public static MeResponse of(CurrentUser user, Instant lastSignInAt) {
             return of(user.account(), lastSignInAt);
@@ -191,7 +202,15 @@ public final class ApiDtos {
                     lastSignInAt,
                     account.mustChangePassword(),
                     account.hasPassword(),
-                    account.roles().stream().map(AppRole::wire).sorted().toList());
+                    account.roles().stream().map(AppRole::wire).sorted().toList(),
+                    false);
+        }
+
+        /** A copy flagging that this same sign-in cancelled a pending self-service deactivation. */
+        public MeResponse withDeactivationCancelled(boolean cancelled) {
+            return new MeResponse(
+                    id, email, displayName, role, avatarUrl, authenticated, createdAt, lastSignInAt,
+                    mustChangePassword, hasPassword, roles, cancelled);
         }
 
         /**
@@ -203,9 +222,15 @@ public final class ApiDtos {
          * satisfied here or not at all. // req: NFR-SEC-PII
          */
         public static MeResponse anonymous() {
-            return new MeResponse(null, null, null, null, null, false, null, null, false, false, List.of());
+            return new MeResponse(null, null, null, null, null, false, null, null, false, false, List.of(), false);
         }
     }
+
+    /** The Danger zone's chosen grace period (revision of ADR-042) — validated against {@code SessionService.DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS}. */
+    public record DeactivateSelfRequest(@jakarta.validation.constraints.NotNull Integer graceDays) {}
+
+    /** When a just-scheduled self-service deactivation will actually take effect, absent a sign-in before then. */
+    public record DeactivateSelfResponse(Instant scheduledFor) {}
 
     // -----------------------------------------------------------------------
     // Reader path
@@ -719,11 +744,16 @@ public final class ApiDtos {
      *  anything to that panel, and dropping them means one less field to
      *  remember not to widen later. */
     public record ActivityEntryResponse(
-            String actorEmail, String action, String targetType, JsonNode detail, Instant occurredAt) {
+            String actorEmail, String actorAvatarUrl, String action, String targetType, JsonNode detail, Instant occurredAt) {
 
         public static ActivityEntryResponse of(com.coc.docs.audit.AuditEntry entry) {
             return new ActivityEntryResponse(
-                    entry.actorEmail(), entry.action(), entry.targetType(), entry.detail(), entry.occurredAt());
+                    entry.actorEmail(),
+                    entry.actorAvatarUrl(),
+                    entry.action(),
+                    entry.targetType(),
+                    entry.detail(),
+                    entry.occurredAt());
         }
     }
 
@@ -954,81 +984,6 @@ public final class ApiDtos {
     public record ClaudeUsageIngestResponse(String action) {}
 
     // -----------------------------------------------------------------------
-    // Integrations (ADR-037)
-    // -----------------------------------------------------------------------
-
-    /**
-     * One connected integration, without its secret — no field here can ever
-     * carry it, by construction, the same "absent from the DTO, not merely
-     * unpopulated" shape every other secret in this codebase already uses.
-     */
-    public record IntegrationResponse(
-            UUID id,
-            String provider,
-            String name,
-            String targetUrl,
-            List<String> events,
-            String status,
-            Instant lastTestedAt,
-            String lastTestStatus,
-            Instant createdAt) {
-
-        public static IntegrationResponse of(com.coc.docs.integration.Integration integration) {
-            return new IntegrationResponse(
-                    integration.id(),
-                    integration.provider(),
-                    integration.name(),
-                    integration.targetUrl(),
-                    integration.events(),
-                    integration.status(),
-                    integration.lastTestedAt(),
-                    integration.lastTestStatus(),
-                    integration.createdAt());
-        }
-    }
-
-    /**
-     * The signing secret, shown exactly once — the response shape only
-     * {@code connect} and {@code rotate-secret} return; every other
-     * integration response uses {@link IntegrationResponse}, which has no
-     * field for it at all.
-     */
-    public record IntegrationSecretResponse(IntegrationResponse integration, String signingSecret) {
-
-        public static IntegrationSecretResponse of(com.coc.docs.integration.Integration integration, String plaintextSecret) {
-            return new IntegrationSecretResponse(IntegrationResponse.of(integration), plaintextSecret);
-        }
-    }
-
-    public record ConnectIntegrationRequest(
-            @NotBlank String provider, @NotBlank String name, @NotBlank String targetUrl, @NotNull List<String> events) {}
-
-    public record UpdateIntegrationRequest(@NotBlank String name, @NotNull List<String> events) {}
-
-    /** One delivery attempt — a real event or the synthetic {@code integration.test}. */
-    public record IntegrationDeliveryResponse(
-            long id, String eventType, Integer httpStatus, boolean success, String error, Integer latencyMs, Instant attemptedAt) {
-
-        public static IntegrationDeliveryResponse of(com.coc.docs.integration.IntegrationDelivery delivery) {
-            return new IntegrationDeliveryResponse(
-                    delivery.id(),
-                    delivery.eventType(),
-                    delivery.httpStatus(),
-                    delivery.success(),
-                    delivery.error(),
-                    delivery.latencyMs(),
-                    delivery.attemptedAt());
-        }
-    }
-
-    public record TestIntegrationResponse(IntegrationDeliveryResponse result) {
-
-        public static TestIntegrationResponse of(com.coc.docs.integration.IntegrationDelivery delivery) {
-            return new TestIntegrationResponse(IntegrationDeliveryResponse.of(delivery));
-        }
-    }
-
-    // -----------------------------------------------------------------------
     // Docs content meta (product docs pages' "About this document" panel)
     // -----------------------------------------------------------------------
 
@@ -1049,6 +1004,19 @@ public final class ApiDtos {
     // -----------------------------------------------------------------------
     // AX Renewal (ADR-037)
     // -----------------------------------------------------------------------
+
+    /**
+     * What the workspace says about its analysis engine (ADR-043).
+     *
+     * <p>No path, no key, no model name -- only the two facts the UI needs.
+     * A configured CLI path is a filesystem detail of somebody's machine and
+     * has no business in an API response.
+     *
+     * @param connected whether Run analysis reaches a real model
+     * @param readsSource whether that model can see the source, or only the
+     *     stored dependency manifest
+     */
+    public record AxRenewalEngineResponse(boolean connected, boolean readsSource) {}
 
     public record CreateAxRenewalProjectRequest(@NotBlank String name, String description) {}
 
@@ -1113,6 +1081,10 @@ public final class ApiDtos {
             JsonNode stackDetected,
             JsonNode findings,
             JsonNode pagesDetected,
+            JsonNode indexed,
+            JsonNode runningOnToday,
+            JsonNode fileLayout,
+            JsonNode moduleCoupling,
             boolean modelConnected,
             Instant analyzedAt) {
 
@@ -1121,6 +1093,10 @@ public final class ApiDtos {
                     analysis.stackDetected(),
                     analysis.findings(),
                     analysis.pagesDetected(),
+                    analysis.indexed(),
+                    analysis.runningOnToday(),
+                    analysis.fileLayout(),
+                    analysis.moduleCoupling(),
                     analysis.modelConnected(),
                     analysis.analyzedAt());
         }

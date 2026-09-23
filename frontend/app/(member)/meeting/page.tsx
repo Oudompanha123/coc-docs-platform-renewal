@@ -366,46 +366,6 @@ function PresentersSlide() {
   );
 }
 
-const DOMO_QUESTIONS = [
-  "What is Domo trying to do, in one sentence?",
-  "Which part is slow or painful today?",
-  "Where could AI or the harness help first?",
-  "What does each of us need from the others?",
-];
-
-function DomoSlide() {
-  return (
-    <div>
-      <Eyebrow>Together</Eyebrow>
-      <Title>Project Domo</Title>
-      <ul className="mt-10 space-y-6">
-        {DOMO_QUESTIONS.map((question) => (
-          <li key={question} className="flex items-start gap-4 text-xl text-dash-ink sm:text-2xl">
-            <span aria-hidden="true" className="mt-3 h-2 w-2 shrink-0 rounded-full bg-brand-purple" />
-            {question}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ClosingSlide() {
-  return (
-    <div className="text-center">
-      <Eyebrow>Before we finish</Eyebrow>
-      <h2 className="mt-5 text-4xl font-extrabold leading-tight text-dash-ink sm:text-5xl">
-        One next step.
-        <br />
-        One owner.
-      </h2>
-      <p className="mx-auto mt-8 max-w-lg text-lg text-muted">
-        Questions and disagreement are the useful part — please interrupt.
-      </p>
-    </div>
-  );
-}
-
 const SLIDES = [
   TitleSlide,
   AgendaSlide,
@@ -413,6 +373,4 @@ const SLIDES = [
   WorkflowSlide,
   A2ASlide,
   PresentersSlide,
-  DomoSlide,
-  ClosingSlide,
 ];

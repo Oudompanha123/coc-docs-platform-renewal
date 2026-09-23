@@ -29,6 +29,22 @@ public final class AuditAction {
     public static final String ACCOUNT_REACTIVATE = "account.reactivate";
 
     /**
+     * A self-service deactivation was scheduled but has not taken effect yet
+     * (revision of ADR-042) — {@code detail} carries {@code days} and {@code
+     * scheduledFor}. Distinct from {@link #ACCOUNT_DEACTIVATE}, which is only
+     * written once {@code deactivated_at} is actually set, whether that is
+     * immediately (admin path) or once the grace period elapses (self-service
+     * sweep).
+     */
+    public static final String ACCOUNT_DEACTIVATE_SCHEDULE = "account.deactivate_schedule";
+
+    /**
+     * A pending self-service deactivation was cancelled by its owner signing
+     * back in before it took effect (revision of ADR-042).
+     */
+    public static final String ACCOUNT_DEACTIVATE_CANCEL = "account.deactivate_cancel";
+
+    /**
      * The account row is gone (ADR-023). The only account action whose target
      * cannot be looked up afterwards, so the entry carries the subject email
      * and roles in {@code detail} — the trail has to answer "who was removed"
@@ -145,26 +161,6 @@ public final class AuditAction {
     public static final String TARGET_NAV_ITEM = "nav_item";
 
     public static final String TARGET_CLAUDE_USAGE_MEMBER = "claude_usage_member";
-
-    /** A super_admin connected a new outgoing webhook integration (ADR-037). */
-    public static final String INTEGRATION_CONNECT = "integration.connect";
-
-    /** Renamed or re-subscribed an existing integration — never its target URL or secret, which have no update action of their own today. */
-    public static final String INTEGRATION_UPDATE = "integration.update";
-
-    public static final String INTEGRATION_ROTATE_SECRET = "integration.rotate_secret";
-
-    /**
-     * The integration's signing secret was nulled and it stopped receiving
-     * deliveries. Never raised for a delete -- there is no delete; see
-     * {@code Integration}'s Javadoc.
-     */
-    public static final String INTEGRATION_DISCONNECT = "integration.disconnect";
-
-    /** A disconnected integration's row was re-activated with a freshly issued signing secret — never a new row. */
-    public static final String INTEGRATION_RECONNECT = "integration.reconnect";
-
-    public static final String TARGET_INTEGRATION = "integration";
 
     public static final String TARGET_AX_RENEWAL_PROJECT = "ax_renewal_project";
 }
