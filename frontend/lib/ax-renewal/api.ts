@@ -161,13 +161,35 @@ export interface AxRenewalConfirmation {
   confirmedVia: "super_admin" | "developer_role";
 }
 
+export type AxRenewalImplementationStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "generating"
+  | "awaiting_review"
+  | "applying"
+  | "applied"
+  | "rejected";
+
 export interface AxRenewalImplementationRun {
   id: string;
-  status: "running" | "completed" | "failed";
+  status: AxRenewalImplementationStatus;
   beforeReport: Record<string, unknown> | null;
   afterReport: Record<string, unknown> | null;
   startedAt: string;
   completedAt: string | null;
+  /** Why a {@code failed} run failed, in its own words — null on every other status. */
+  failureReason: string | null;
+}
+
+export type AxRenewalChangeKind = "create" | "modify" | "delete";
+
+/** One file a Generate run actually found different — real before/after content, never a computed patch format (ADR-044). */
+export interface AxRenewalGeneratedChange {
+  path: string;
+  changeKind: AxRenewalChangeKind;
+  beforeContent: string | null;
+  afterContent: string | null;
 }
 
 export interface AxRenewalComment {
@@ -348,6 +370,25 @@ export function reopenSection(projectId: string, section: PlanSection): Promise<
 
 export function startImplementation(projectId: string): Promise<AxRenewalImplementationRun> {
   return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/start`, { method: "POST" });
+}
+
+/** The files a Generate run actually found different, once it reaches `awaiting_review` (ADR-044). */
+export function fetchGeneratedChanges(projectId: string, runId: string): Promise<AxRenewalGeneratedChange[]> {
+  return request<AxRenewalGeneratedChange[]>(`/projects/${projectId}/implementation/${runId}/changes`);
+}
+
+/** Copies a Generate run's approved changes into the real destination — the one call in this whole feature that writes outside this application's own database. */
+export function approveImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/approve`, {
+    method: "POST",
+  });
+}
+
+/** Discards a Generate run's staged changes — the destination is never touched. */
+export function rejectImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/reject`, {
+    method: "POST",
+  });
 }
 
 export function addComment(projectId: string, body: string): Promise<AxRenewalComment> {
