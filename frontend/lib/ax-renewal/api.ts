@@ -357,6 +357,45 @@ export function addComment(projectId: string, body: string): Promise<AxRenewalCo
   });
 }
 
+/** One thing said in the assistant's chat — `"you"` is the person at the keyboard. */
+export interface AxRenewalChatTurn {
+  role: "you" | "assistant";
+  text: string;
+}
+
+export interface AxRenewalChatReply {
+  reply: string;
+  /** Whether the model saw the source, or only what the backend stores. */
+  readSource: boolean;
+}
+
+/**
+ * Asks the local Claude Code installation one question about this project
+ * (ADR-044).
+ *
+ * <p>Nothing here is persisted — not by the backend, and not by this module.
+ * `history` is the conversation this tab is holding in React state, replayed
+ * so the model has context it cannot get from anywhere else. That also means
+ * a refresh genuinely ends the conversation, which is the behaviour the panel
+ * advertises.
+ *
+ * Takes a signal for the same reason `runAnalysis` does: a local model
+ * reading real source can take a while, and a Stop button that left the
+ * request running would be lying.
+ */
+export function chatWithAssistant(
+  projectId: string,
+  message: string,
+  history: AxRenewalChatTurn[],
+  signal?: AbortSignal,
+): Promise<AxRenewalChatReply> {
+  return request<AxRenewalChatReply>(`/projects/${projectId}/assistant/chat`, {
+    method: "POST",
+    body: JSON.stringify({ message, history }),
+    signal,
+  });
+}
+
 export interface AxRenewalAuditEntry {
   actorEmail: string;
   action: string;
