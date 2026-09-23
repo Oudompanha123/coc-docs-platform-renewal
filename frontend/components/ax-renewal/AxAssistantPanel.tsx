@@ -8,6 +8,7 @@ import {
   addComment,
   chatWithAssistant,
   confirmSection,
+  deleteComment,
   reopenSection,
   runAnalysis,
   startImplementation,
@@ -90,6 +91,8 @@ export function AxAssistantPanel() {
   // cache. Unmounting this component is the conversation ending (ADR-044).
   const [mode, setMode] = useState<"thread" | "chat">("thread");
   const [chat, setChat] = useState<ChatMessage[]>([]);
+  /** The comment whose Remove has been pressed once and is awaiting a second. */
+  const [confirming, setConfirming] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -243,6 +246,38 @@ export function AxAssistantPanel() {
     }
   }
 
+  /**
+   * Removes one comment from the thread (ADR-045). Two presses, not a
+   * `confirm()` dialog: the second press is the confirmation, and it keeps a
+   * mistake one click from being undone-by-not-clicking rather than behind a
+   * modal nobody reads.
+   *
+   * <p>Soft on the server — this hides a comment, it does not erase what was
+   * said, and there is no edit anywhere.
+   */
+  async function handleDelete(commentId: string) {
+    if (!detail) return;
+    if (confirming !== commentId) {
+      setConfirming(commentId);
+      return;
+    }
+    setConfirming(null);
+    setBusy(true);
+    setNote(null);
+    try {
+      await deleteComment(detail.project.id, commentId);
+      await refresh();
+      setNote({ text: "comment removed", tone: "applied" });
+    } catch (err) {
+      setNote({
+        text: err instanceof Error ? err.message : "that comment could not be removed",
+        tone: "denied",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function deny(action: string) {
     setNote({ text: `you don't have permission to ${action}`, tone: "denied" });
     setBusy(false);
@@ -390,15 +425,47 @@ export function AxAssistantPanel() {
           {detail.comments.length === 0 && (
             <p className="text-sm text-muted">No comments yet — anything you type that isn&apos;t a command above is recorded here.</p>
           )}
-          {detail.comments.map((comment) => (
+          {detail.comments.map((comment) => {
+            // Mirrors the backend's rule (author, or super_admin) so the
+            // button is not offered where it would 403 — the check itself is
+            // the server's, always (ADR-045).
+            const canRemove =
+              user?.role === "super_admin" || (user?.id != null && user.id === comment.authorId);
+            return (
             <div key={comment.id} className="rounded-[5px] border border-border bg-white px-3 py-2 text-sm">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold text-dash-ink">{comment.authorName}</span>
                 <span className="shrink-0 text-xs text-muted">{new Date(comment.createdAt).toLocaleString()}</span>
               </div>
               <p className="mt-1 text-dash-ink">{comment.body}</p>
+              {canRemove && (
+                <div className="mt-1.5 flex justify-end gap-2">
+                  {confirming === comment.id && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(null)}
+                      className="text-xs font-semibold text-muted hover:text-dash-ink"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handleDelete(comment.id)}
+                    className={`text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      confirming === comment.id
+                        ? "text-rose-600 hover:text-rose-700"
+                        : "text-muted hover:text-rose-600"
+                    }`}
+                  >
+                    {confirming === comment.id ? "Really remove" : "Remove"}
+                  </button>
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
             </>
           )}
           {note && (

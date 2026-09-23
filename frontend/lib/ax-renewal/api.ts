@@ -357,6 +357,18 @@ export function addComment(projectId: string, body: string): Promise<AxRenewalCo
   });
 }
 
+/**
+ * Hides one comment from the project thread (ADR-045).
+ *
+ * Soft on the server: the row stays, so nothing here can rewrite what was
+ * said — it stops being shown. Whether this caller may is decided backend-side
+ * from the comment's author (their own, or `super_admin`); the button this
+ * sits behind is a convenience, never the check.
+ */
+export function deleteComment(projectId: string, commentId: string): Promise<void> {
+  return request<void>(`/projects/${projectId}/comments/${commentId}`, { method: "DELETE" });
+}
+
 /** One thing said in the assistant's chat — `"you"` is the person at the keyboard. */
 export interface AxRenewalChatTurn {
   role: "you" | "assistant";

@@ -17,6 +17,7 @@ vi.mock("@/lib/ax-renewal/api", () => ({
   addComment: vi.fn(),
   chatWithAssistant: vi.fn(),
   confirmSection: vi.fn(),
+  deleteComment: vi.fn(),
   reopenSection: vi.fn(),
   runAnalysis: vi.fn(),
   startImplementation: vi.fn(),
@@ -26,7 +27,13 @@ vi.mock("@/lib/ax-renewal/api", () => ({
   fetchEngineStatus: vi.fn().mockResolvedValue({ connected: false, readsSource: false }),
 }));
 
-import { addComment, chatWithAssistant, confirmSection, fetchEngineStatus } from "@/lib/ax-renewal/api";
+import {
+  addComment,
+  chatWithAssistant,
+  confirmSection,
+  deleteComment,
+  fetchEngineStatus,
+} from "@/lib/ax-renewal/api";
 import { AxAssistantPanel } from "./AxAssistantPanel";
 import type { AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 
@@ -344,6 +351,101 @@ describe("AxAssistantPanel", () => {
 
       await waitFor(() => expect(screen.queryByRole("tab", { name: "chat" })).not.toBeInTheDocument());
       expect(screen.queryByText(/Not saved/)).not.toBeInTheDocument();
+    });
+  });
+
+  // A comment used to be write-once with no way back (ADR-045). Remove is
+  // soft server-side; what these pin is that it is offered to the right
+  // people and never fires on one click.
+  describe("removing a comment", () => {
+    function renderThreadWith(
+      comments: { id: string; authorId: string; authorName: string; body: string; createdAt: string }[],
+      me: { id: string; role: string },
+    ) {
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: false, readsSource: false });
+      searchParamsString = "project=p1&section=attach";
+      useSession.mockReturnValue({ user: { id: me.id, role: me.role, roles: [] } });
+      const detail = detailFixture();
+      detail.comments = comments;
+      useAxRenewalProjectContext.mockReturnValue({ projectId: "p1", detail, refresh: vi.fn() });
+      render(<AxAssistantPanel />);
+    }
+
+    const mine = {
+      id: "c1",
+      authorId: "u1",
+      authorName: "Me",
+      body: "typo here",
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+    const theirs = {
+      id: "c2",
+      authorId: "u2",
+      authorName: "Someone else",
+      body: "their remark",
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+
+    it("offers Remove on your own comment", () => {
+      renderThreadWith([mine], { id: "u1", role: "user" });
+
+      expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    });
+
+    it("does not offer it on somebody else's", () => {
+      renderThreadWith([theirs], { id: "u1", role: "admin" });
+
+      // Admin is not enough — an Admin out-ranks a user but does not own
+      // their words. Only the author or a super_admin, same as the backend.
+      expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    });
+
+    it("offers it to a super admin on anybody's comment", () => {
+      renderThreadWith([theirs], { id: "u1", role: "super_admin" });
+
+      expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    });
+
+    it("takes two presses, and the first one changes nothing", () => {
+      renderThreadWith([mine], { id: "u1", role: "user" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+      expect(deleteComment).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Really remove" })).toBeInTheDocument();
+    });
+
+    it("removes it on the second press", async () => {
+      vi.mocked(deleteComment).mockResolvedValue(undefined);
+      renderThreadWith([mine], { id: "u1", role: "user" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+      fireEvent.click(screen.getByRole("button", { name: "Really remove" }));
+
+      await waitFor(() => expect(deleteComment).toHaveBeenCalledWith("p1", "c1"));
+      expect(await screen.findByText(/comment removed/)).toBeInTheDocument();
+    });
+
+    it("lets you back out after the first press", () => {
+      renderThreadWith([mine], { id: "u1", role: "user" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(deleteComment).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    });
+
+    it("says so when the server refuses", async () => {
+      vi.mocked(deleteComment).mockRejectedValue(
+        new Error("only its author or a super admin can remove a comment"),
+      );
+      renderThreadWith([mine], { id: "u1", role: "user" });
+
+      fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+      fireEvent.click(screen.getByRole("button", { name: "Really remove" }));
+
+      expect(await screen.findByText(/only its author or a super admin/)).toBeInTheDocument();
     });
   });
 });
