@@ -29,6 +29,7 @@ import {
   updateDatabasePlan,
   updatePages,
   updateStackMove,
+  type AxRenewalFixedBy,
   type AxRenewalProject,
   type AxRenewalProjectDetail,
   type PlanSection,
@@ -636,29 +637,94 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
   );
 }
 
+/** Worst first, matching the panel's own subtitle — order is a display concern, not something a run has to get right. */
+const SEVERITY_ORDER: Record<string, number> = { risk: 0, warn: 1, info: 2 };
+
+function severityBadgeClasses(severity: string): string {
+  if (severity === "risk") return "bg-danger/10 text-danger";
+  if (severity === "warn") return "bg-amber-50 text-amber-800";
+  return "bg-page text-muted";
+}
+
+const FIXED_BY_LABELS: { key: AxRenewalFixedBy; label: string }[] = [
+  { key: "stack_move", label: "Fixed by the stack move" },
+  { key: "database", label: "Fixed by the database plan" },
+  { key: "architecture", label: "Fixed by the architecture" },
+  { key: "decision", label: "Needs a decision from you" },
+];
+
 function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
   const analysis = detail.analysis;
-  return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Findings</h3>
-      <p className="mt-1 text-xs text-muted">Worst first — what a renewal would need to address.</p>
+  const findings = analysis
+    ? [...analysis.findings].sort(
+        (a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3),
+      )
+    : [];
+  const fixedByGroups = FIXED_BY_LABELS.map(({ key, label }) => ({
+    key,
+    label,
+    findings: findings.filter((f) => f.fixedBy === key),
+  })).filter((g) => g.findings.length > 0);
 
-      <div className="mt-4 space-y-4">
-        {analysis && !analysis.modelConnected && <NoModelBanner />}
-        {!analysis ? (
-          <NotAnalysedYet what="what a renewal would have to deal with" />
-        ) : analysis.findings.length === 0 ? (
-          <p className="text-sm text-muted">Nothing flagged — the analysis found no issues worth raising.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {analysis.findings.map((f, i) => (
-              <li key={i} className="text-sm text-dash-ink">
-                <span className="font-semibold uppercase text-muted">{f.severity}</span> — {f.what}
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-dash-ink">
+            {analysis ? `${findings.length} finding${findings.length === 1 ? "" : "s"}` : "Findings"}
+          </h3>
+          {findings.length > 0 && <span className="text-xs text-muted">worst first</span>}
+        </div>
+        <p className="mt-1 text-xs text-muted">What a renewal would need to address.</p>
+
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
+          {!analysis ? (
+            <NotAnalysedYet what="what a renewal would have to deal with" />
+          ) : findings.length === 0 ? (
+            <p className="text-sm text-muted">Nothing flagged — the analysis found no issues worth raising.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {findings.map((f, i) => (
+                <li key={i} className="flex items-start gap-3 py-2.5">
+                  <span
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${severityBadgeClasses(f.severity)}`}
+                  >
+                    {f.severity === "info" ? "·" : "!"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-dash-ink">{f.what}</span>
+                    <span className="mt-0.5 block font-mono text-xs text-muted">{f.where}</span>
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${severityBadgeClasses(f.severity)}`}
+                  >
+                    {f.severity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {fixedByGroups.length > 0 && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Which of these the renewal fixes</h3>
+          <p className="mt-1 text-xs text-muted">
+            Only findings the connected model was confident enough to place — most findings are not categorized
+            below, and that&apos;s the honest answer, not a gap.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm text-dash-ink">
+            {fixedByGroups.map((group) => (
+              <li key={group.key}>
+                <b className="font-semibold">{group.label}:</b>{" "}
+                {group.findings.map((f) => f.what).join(" · ")}
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

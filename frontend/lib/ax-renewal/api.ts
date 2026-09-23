@@ -31,7 +31,7 @@ export interface AxRenewalProject {
 
 export interface AxRenewalAnalysis {
   stackDetected: Record<string, string>;
-  findings: { severity: string; what: string; where: string }[];
+  findings: AxRenewalFinding[];
   pagesDetected: AxRenewalPageDetected[];
   /**
    * lines/routes/templates/dependencies/testCoveragePercent — each `null`
@@ -81,6 +81,22 @@ export interface AxRenewalRunningOnTodayTag {
 export interface AxRenewalPageDetected {
   path: string;
   purpose: string;
+}
+
+export type AxRenewalFixedBy = "stack_move" | "database" | "architecture" | "decision";
+
+export interface AxRenewalFinding {
+  severity: string;
+  what: string;
+  where: string;
+  /**
+   * Which part of the renewal already addresses this, when a connected
+   * model was confident enough to say so — absent/null far more often than
+   * not, since most findings don't cleanly fit one bucket. Never a
+   * recommendation for what to change to, just where in the existing plan
+   * this gets handled.
+   */
+  fixedBy?: AxRenewalFixedBy | null;
 }
 
 export interface AxRenewalModuleCoupling {
