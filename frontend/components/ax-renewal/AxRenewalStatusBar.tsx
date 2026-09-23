@@ -42,6 +42,10 @@ export function AxRenewalStatusBar() {
   const analyzed = detail.analysis != null;
   const confirmedCount = Object.keys(detail.confirmations).length;
   const movingLayers = detail.stackLayers.filter((l) => l.newTarget && l.newTarget !== l.oldTarget).length;
+  // Confirming Database with nothing entered records "this renewal doesn't
+  // use one" — a real decision, not the same as not having gotten to it yet.
+  const noDatabaseNeeded =
+    detail.confirmations.database != null && !detail.dbConnection && detail.dbChanges.length === 0;
 
   return (
     <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 overflow-x-auto border-t border-border bg-white px-4 font-mono text-xs text-muted">
@@ -49,8 +53,12 @@ export function AxRenewalStatusBar() {
       {analyzed && (
         <>
           <span>{movingLayers}/{detail.stackLayers.length} layers moving</span>
-          <span className={detail.dbConnection ? "text-brand-purple" : ""}>
-            {detail.dbConnection ? detail.dbConnection.databaseName ?? "connected" : "database not connected"}
+          <span className={detail.dbConnection || noDatabaseNeeded ? "text-brand-purple" : ""}>
+            {detail.dbConnection
+              ? detail.dbConnection.databaseName ?? "connected"
+              : noDatabaseNeeded
+                ? "no database required"
+                : "database not connected"}
           </span>
           <span className={confirmedCount === 4 ? "text-brand-purple" : ""}>{confirmedCount}/4 confirmed</span>
           <span className={detail.destination ? "text-brand-purple" : ""}>

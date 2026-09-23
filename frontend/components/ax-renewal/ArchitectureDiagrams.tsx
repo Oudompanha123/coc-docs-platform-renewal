@@ -11,7 +11,7 @@ import type { FileLayoutEntry } from "@/lib/ax-renewal/attachStats";
  * label in it.
  */
 
-const COLOR = {
+export const COLOR = {
   ink: "#16141f",
   muted: "#6b6b80",
   border: "#ececf2",
@@ -31,7 +31,7 @@ const COLOR = {
  * label that still doesn't fit past that gets an ellipsis rather than
  * spilling out regardless.
  */
-function wrapText(text: string, maxCharsPerLine: number, maxLines = 3): string[] {
+export function wrapText(text: string, maxCharsPerLine: number, maxLines = 3): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = "";
@@ -59,11 +59,11 @@ function wrapText(text: string, maxCharsPerLine: number, maxLines = 3): string[]
 }
 
 /** For a label with no room to wrap into more than one line (a small directory box, say) — ellipsis instead of overflow. */
-function truncate(text: string, maxChars: number): string {
+export function truncate(text: string, maxChars: number): string {
   return text.length > maxChars ? `${text.slice(0, maxChars - 1).trimEnd()}…` : text;
 }
 
-function Box({
+export function Box({
   x,
   y,
   width,
@@ -118,7 +118,7 @@ function Box({
   );
 }
 
-function ArrowMarkers() {
+export function ArrowMarkers() {
   return (
     <defs>
       <marker id="arch-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
@@ -131,7 +131,7 @@ function ArrowMarkers() {
   );
 }
 
-function ArrowH({ x1, x2, y, label }: { x1: number; x2: number; y: number; label?: string }) {
+export function ArrowH({ x1, x2, y, label }: { x1: number; x2: number; y: number; label?: string }) {
   return (
     <g>
       <line x1={x1} y1={y} x2={x2 - 6} y2={y} stroke={COLOR.muted} strokeWidth={1.5} markerEnd="url(#arch-arrow)" />

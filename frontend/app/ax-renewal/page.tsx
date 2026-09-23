@@ -10,6 +10,7 @@ import { AttachSourceSection } from "@/components/ax-renewal/AttachSourceSection
 import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
 import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
 import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
+import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
@@ -109,6 +110,7 @@ export default function AxRenewalPage() {
           {active === "stack-move" && (
             <StackMoveSection
               layers={detail.stackLayers}
+              analysis={detail.analysis}
               confirmation={detail.confirmations.stack_move}
               canEdit={canEdit}
               canConfirm={canConfirm}
@@ -123,6 +125,8 @@ export default function AxRenewalPage() {
           {active === "plan-architecture" && (
             <ArchitectureSection
               architecture={detail.architecture}
+              analysis={detail.analysis}
+              stackLayers={detail.stackLayers}
               confirmation={detail.confirmations.architecture}
               canEdit={canEdit}
               canConfirm={canConfirm}
@@ -137,6 +141,7 @@ export default function AxRenewalPage() {
           {active === "pages" && (
             <PagesSection
               pages={detail.pageMappings}
+              analysis={detail.analysis}
               confirmation={detail.confirmations.pages}
               canEdit={canEdit}
               canConfirm={canConfirm}
@@ -729,45 +734,128 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
   );
 }
 
-/** A read-only synthesis of the Stack Move layers already entered — the bridging summary the prototype's own "Old → New" page showed. */
+/**
+ * Plan → Old → New, following CodeRenewalPlatform.html's `vBridge()` layout
+ * (a diagram, a side-by-side list, "what does not change", two navigation
+ * buttons) — entirely from real Plan data (stack layers, database plan,
+ * page mappings), never that prototype's fixed nine-layer fictional
+ * migration or its hardcoded incident numbers. Read-only, same as before:
+ * every fact here is edited under its own Plan section, not here.
+ */
 function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
+  const router = useRouter();
   const layers = detail.stackLayers.filter((l) => l.oldTarget || l.newTarget);
-  return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Old → New</h3>
-      <p className="mt-1 text-xs text-muted">
-        A summary of the move, built from what is entered under Plan → Stack move. Edit it there; this view is
-        read-only.
-      </p>
+  const dbChanges = detail.dbChanges;
+  const mappedPages = detail.pageMappings.filter((p) => p.oldPath && p.newPath);
+  const changedPaths = mappedPages.filter((p) => p.oldPath !== p.newPath);
+  const samePaths = mappedPages.filter((p) => p.oldPath === p.newPath);
+  const sameDatabase = dbChanges.length > 0 || detail.dbConnection != null;
+  // Confirming Database with nothing entered is itself a real decision — "this
+  // renewal doesn't use one" — not the same as not having gotten to it yet.
+  // Distinguishing the two needs no new field: the confirmation already
+  // records that a person reviewed this section and signed off on it as-is.
+  const noDatabaseNeeded = detail.confirmations.database != null && !sameDatabase;
 
-      {layers.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">Nothing recorded yet — fill in Stack move first.</p>
-      ) : (
-        <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted">
-                <th className="px-3 py-2 text-left">Layer</th>
-                <th className="px-3 py-2 text-left text-[#9c4620]">Old</th>
-                <th className="px-3 py-2 text-left text-brand-purple">New</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {layers.map((l) => (
-                <tr key={l.layerKey}>
-                  <td className="px-3 py-2 font-medium text-dash-ink">{l.layerKey}</td>
-                  <td className="px-3 py-2 text-dash-ink">{l.oldTarget || "—"}</td>
-                  <td className="px-3 py-2 text-dash-ink">{l.newTarget || "stays the same"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  function goTo(section: AxRenewalExplorerKey) {
+    router.push(`/ax-renewal?project=${detail.project.id}&section=${section}`);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <h3 className="text-sm font-bold text-dash-ink">How the old becomes the new</h3>
+        <p className="mt-1 text-xs text-muted">The whole move on one page, built from what is entered under Plan.</p>
+        <div className="mt-3 rounded-xl border border-border bg-page p-3">
+          {layers.length > 0 ? (
+            <OldToNewDiagram layers={layers} sameDatabase={sameDatabase} />
+          ) : (
+            <p className="py-6 text-center text-sm text-muted">
+              Nothing recorded yet — fill in Plan → Stack move first.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {layers.length > 0 && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Side by side</h3>
+          <p className="mt-1 text-xs text-muted">
+            Every layer entered under Plan → Stack move. Edit it there; this view is read-only.
+          </p>
+          <div className="mt-3 grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+            <div className="bg-[#fdf1e3]/30 p-3">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-[#9c4620]">Old</h4>
+              <div className="mt-2 space-y-1.5">
+                {layers.map((l) => (
+                  <p key={l.layerKey} className="text-sm text-dash-ink">
+                    {l.oldTarget || "—"} <span className="text-xs text-muted">{l.layerKey}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+            <div className="bg-brand-purple/5 p-3">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-brand-purple">New</h4>
+              <div className="mt-2 space-y-1.5">
+                {layers.map((l) => (
+                  <p key={l.layerKey} className="text-sm text-dash-ink">
+                    {l.newTarget || `stays on ${l.oldTarget || "—"}`}{" "}
+                    <span className="text-xs text-muted">{l.layerKey}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="mt-4 rounded-xl border border-border bg-page p-3 text-xs text-muted">
-        The database is not copied or recreated — old and new both read the same schema throughout the move (see
-        Plan → Database).
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <h3 className="text-sm font-bold text-dash-ink">What does not change</h3>
+        <ul className="mt-3 space-y-2.5 text-sm text-dash-ink">
+          <li>
+            <b className="font-semibold">The database.</b>{" "}
+            {dbChanges.length > 0
+              ? `Same schema throughout — ${dbChanges.length} additive change${dbChanges.length === 1 ? "" : "s"} planned (columns/indexes only, see Plan → Database); nothing is dropped or recreated.`
+              : detail.dbConnection
+                ? `Connected to ${detail.dbConnection.engine ?? "the existing database"} — read-only so far, no changes planned yet.`
+                : noDatabaseNeeded
+                  ? "No database required for this renewal — confirmed under Plan → Database."
+                  : "No database changes planned yet — see Plan → Database."}
+          </li>
+          <li>
+            <b className="font-semibold">The URLs.</b>{" "}
+            {mappedPages.length === 0
+              ? "No page mappings entered yet — see Plan → Pages."
+              : changedPaths.length === 0
+                ? `All ${samePaths.length} mapped page${samePaths.length === 1 ? "" : "s"} keep their existing path.`
+                : `${changedPaths.length} page${changedPaths.length === 1 ? "" : "s"} change path: ${changedPaths
+                    .map((p) => `${p.oldPath} → ${p.newPath}`)
+                    .join(", ")}${
+                    samePaths.length > 0
+                      ? `; ${samePaths.length} other${samePaths.length === 1 ? "" : "s"} stay the same`
+                      : ""
+                  }.`}
+          </li>
+          <li>
+            <b className="font-semibold">The old system.</b> Nothing here edits it — it keeps serving every request
+            until you decide to cut traffic over, so reverting at any point is a routing change, not a restore.
+          </li>
+        </ul>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => goTo("stack-move")}
+            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+          >
+            Choose the target stack
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo("output")}
+            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+          >
+            Set where the code goes
+          </button>
+        </div>
       </div>
     </div>
   );
