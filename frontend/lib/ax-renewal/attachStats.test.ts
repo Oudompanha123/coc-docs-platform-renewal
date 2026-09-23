@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVerification, computeAttachStats, formatBytes } from "./attachStats";
+import { buildVerification, computeAttachStats, formatBytes, languageBreakdown } from "./attachStats";
 
 function fakeFile(path: string, content: string): File {
   const file = new File([content], path.split("/").pop() ?? path, { type: "text/plain" });
@@ -74,6 +74,72 @@ describe("computeAttachStats", () => {
   it("is null when nothing was picked", async () => {
     const stats = await computeAttachStats([]);
     expect(stats.rootFolderName).toBeNull();
+  });
+});
+
+describe("fileLayout", () => {
+  it("groups files by directory, relative to the attached root", async () => {
+    const files = [
+      fakeFile("app/src/routes/products.js", ""),
+      fakeFile("app/src/routes/checkout.js", ""),
+      fakeFile("app/src/db.js", ""),
+      fakeFile("app/views/products.hbs", ""),
+    ];
+    const stats = await computeAttachStats(files);
+    const routes = (stats.fileLayout ?? []).find((e) => e.dir === "src/routes");
+    expect(routes?.fileCount).toBe(2);
+    expect(routes?.files.sort()).toEqual(["checkout.js", "products.js"]);
+    const srcRoot = (stats.fileLayout ?? []).find((e) => e.dir === "src");
+    expect(srcRoot?.files).toEqual(["db.js"]);
+  });
+
+  it("uses \"\" for files dropped directly in the attached root", async () => {
+    const files = [fakeFile("app/index.js", ""), fakeFile("app/src/util.js", "")];
+    const stats = await computeAttachStats(files);
+    const root = (stats.fileLayout ?? []).find((e) => e.dir === "");
+    expect(root?.files).toEqual(["index.js"]);
+  });
+
+  it("flags a file already found by the secrets scan as a risk within its directory group", async () => {
+    const files = [fakeFile("app/src/db.js", "module.exports = 'postgres://user:pass@host/db'")];
+    const stats = await computeAttachStats(files);
+    const src = (stats.fileLayout ?? []).find((e) => e.dir === "src");
+    expect(src?.riskFiles).toEqual(["db.js"]);
+  });
+
+  it("caps listed filenames per directory and marks the group truncated", async () => {
+    const files = Array.from({ length: 10 }, (_, i) => fakeFile(`app/src/file${i}.js`, ""));
+    const stats = await computeAttachStats(files);
+    const src = (stats.fileLayout ?? []).find((e) => e.dir === "src");
+    expect(src?.fileCount).toBe(10);
+    expect(src?.files.length).toBe(8);
+    expect(src?.truncated).toBe(true);
+  });
+});
+
+describe("languageBreakdown", () => {
+  it("turns real extension counts into sorted percentages", () => {
+    const shares = languageBreakdown({ js: 61, hbs: 17, css: 12, sql: 10 });
+    expect(shares).toEqual([
+      { name: "JavaScript", percent: 61 },
+      { name: "Handlebars", percent: 17 },
+      { name: "CSS", percent: 12 },
+      { name: "SQL and shell", percent: 10 },
+    ]);
+  });
+
+  it("combines extensions that map to the same language", () => {
+    const shares = languageBreakdown({ js: 2, jsx: 2 });
+    expect(shares).toEqual([{ name: "JavaScript", percent: 100 }]);
+  });
+
+  it("leaves out extensions with no language mapping rather than guessing", () => {
+    const shares = languageBreakdown({ json: 5, "package-lock": 1 });
+    expect(shares).toEqual([]);
+  });
+
+  it("is empty for an empty extensions map", () => {
+    expect(languageBreakdown({})).toEqual([]);
   });
 });
 
