@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
-import { formatBytes } from "@/lib/ax-renewal/attachStats";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
+import { ModuleCouplingDiagram, SystemContextDiagram } from "@/components/ax-renewal/ArchitectureDiagrams";
 import { AttachSourceSection } from "@/components/ax-renewal/AttachSourceSection";
 import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
 import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
@@ -13,7 +13,9 @@ import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
+import { Tabs, type Tab } from "@/components/settings/Tabs";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { formatBytes, languageBreakdown, type FileLayoutEntry } from "@/lib/ax-renewal/attachStats";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import {
@@ -27,6 +29,7 @@ import {
   updateDatabasePlan,
   updatePages,
   updateStackMove,
+  type AxRenewalFixedBy,
   type AxRenewalProject,
   type AxRenewalProjectDetail,
   type PlanSection,
@@ -303,87 +306,265 @@ function NotAnalysedYet({ what }: { what: string }) {
 
 function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
   const analysis = detail.analysis;
-  const stats = detail.project.attachStats;
+  const attachStats = detail.project.attachStats;
+  const indexed = analysis?.indexed ?? {};
+  const languages = languageBreakdown(attachStats?.extensions ?? {});
+  const runningOnToday = analysis?.runningOnToday ?? [];
+  // Two independent sources for the same fact: the browser's own attach-time
+  // scan (a full listing, but only as fresh as the last attach — attachStats
+  // is stored as whatever the browser computed then, opaque JSON, persisted
+  // as-is, so a project attached before fileLayout existed has stats with no
+  // such field at all) and a connected local model's own read of source-path
+  // (only ever a subset it chose to look at, but available immediately on
+  // the next "Run analysis" with no re-attach needed). Prefer the fuller one.
+  const attachFileLayout = attachStats?.fileLayout ?? [];
+  const fileLayout: FileLayoutEntry[] = attachFileLayout.length > 0 ? attachFileLayout : (analysis?.fileLayout ?? []);
   // The extension breakdown, biggest first. Measured at attach time from the
   // real file list, so this is the one part of the workspace that is true
   // whether or not a model has ever run.
-  const topExtensions = stats
-    ? Object.entries(stats.extensions)
+  const topExtensions = attachStats
+    ? Object.entries(attachStats.extensions)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
     : [];
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Codebase</h3>
-      <p className="mt-1 text-xs text-muted">Counted at attach time. Detection below comes from analysis.</p>
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <h3 className="text-sm font-bold text-dash-ink">Codebase</h3>
+        <p className="mt-1 text-xs text-muted">Counted at attach time. Detection below comes from analysis.</p>
 
-      <div className="mt-4 space-y-4">
-        {analysis && !analysis.modelConnected && <NoModelBanner />}
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
 
-        {stats ? (
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-4">
+          {attachStats ? (
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-4">
+              {[
+                { label: "project files", value: attachStats.fileCount.toLocaleString() },
+                { label: "on disk", value: formatBytes(attachStats.totalBytes) },
+                { label: "file types", value: Object.keys(attachStats.extensions).length.toLocaleString() },
+                { label: "runtime", value: attachStats.runtime ?? "—" },
+              ].map((cell) => (
+                <div key={cell.label} className="bg-white p-3">
+                  <b className="block text-lg font-bold tracking-tight text-dash-ink">{cell.value}</b>
+                  <span className="text-xs text-muted">{cell.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted">Nothing attached yet — start at Understand → Attach source.</p>
+          )}
+
+          {topExtensions.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">By file type</h4>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {topExtensions.map(([ext, count]) => (
+                  <span key={ext} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
+                    .{ext} <span className="text-muted">{count.toLocaleString()}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-page p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Manifest</p>
+              <p className="mt-1 text-sm font-medium text-dash-ink">{detail.project.manifestFilename ?? "—"}</p>
+            </div>
+            <div className="rounded-xl bg-page p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Analyzed</p>
+              <p className="mt-1 text-sm font-medium text-dash-ink">
+                {analysis ? new Date(analysis.analyzedAt).toLocaleString() : "not yet — press Run analysis"}
+              </p>
+            </div>
+          </div>
+
+          {analysis && Object.keys(analysis.stackDetected).length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">Detected</h4>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {/* "notes" is prose, not a short tag — a pill stretched around a
+                    whole sentence is the broken-looking oval this excludes it from;
+                    it gets its own paragraph below instead. */}
+                {Object.entries(analysis.stackDetected)
+                  .filter(([key]) => key !== "notes")
+                  .map(([key, value]) => (
+                    <span key={key} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
+                      {key}: {value}
+                    </span>
+                  ))}
+              </div>
+              {analysis.stackDetected.notes && (
+                <p className="mt-2 text-sm text-dash-ink">{analysis.stackDetected.notes}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {attachStats && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Indexed</h3>
+          <p className="mt-1 text-xs text-muted">
+            Files, size and runtime above are counted at attach time; lines, routes, templates, dependencies and
+            test coverage need a connected local model reading the source —{" "}
+            <span className="font-medium text-dash-ink">—</span> means it hasn&apos;t reported one.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {[
-              { label: "project files", value: stats.fileCount.toLocaleString() },
-              { label: "on disk", value: formatBytes(stats.totalBytes) },
-              { label: "file types", value: Object.keys(stats.extensions).length.toLocaleString() },
-              { label: "runtime", value: stats.runtime ?? "—" },
+              { label: "lines", value: formatCount(indexed.lines) },
+              { label: "routes", value: formatCount(indexed.routes) },
+              { label: "templates", value: formatCount(indexed.templates) },
+              { label: "dependencies", value: formatCount(indexed.dependencies) },
+              {
+                label: "test coverage",
+                value: indexed.testCoveragePercent != null ? `${indexed.testCoveragePercent}%` : "—",
+              },
             ].map((cell) => (
-              <div key={cell.label} className="bg-white p-3">
-                <b className="block text-lg font-bold tracking-tight text-dash-ink">{cell.value}</b>
-                <span className="text-xs text-muted">{cell.label}</span>
+              <div key={cell.label} className="rounded-xl bg-page p-3">
+                <p className="text-xl font-bold tabular-nums tracking-tight text-dash-ink">{cell.value}</p>
+                <p className="text-xs text-muted">{cell.label}</p>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-sm text-muted">Nothing attached yet — start at Understand → Attach source.</p>
-        )}
+        </div>
+      )}
 
-        {topExtensions.length > 0 && (
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wide text-muted">By file type</h4>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {topExtensions.map(([ext, count]) => (
-                <span key={ext} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
-                  .{ext} <span className="text-muted">{count.toLocaleString()}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl bg-page p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Manifest</p>
-            <p className="mt-1 text-sm font-medium text-dash-ink">{detail.project.manifestFilename ?? "—"}</p>
-          </div>
-          <div className="rounded-xl bg-page p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Analyzed</p>
-            <p className="mt-1 text-sm font-medium text-dash-ink">
-              {analysis ? new Date(analysis.analyzedAt).toLocaleString() : "not yet — press Run analysis"}
-            </p>
+      {fileLayout.length > 0 && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">File layout</h3>
+          <p className="mt-1 text-xs text-muted">
+            {attachFileLayout.length > 0
+              ? "The largest directories in the attached folder, by file count — read from the browser's own scan, not a guess."
+              : "Directories a connected local model actually looked at while reading the source — not a full scan, and not a guess."}
+          </p>
+          <div className="mt-3 space-y-1.5 font-mono text-xs">
+            {fileLayout.map((entry) => (
+              <div key={entry.dir || "(root)"} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="font-semibold text-dash-ink">{entry.dir ? `${entry.dir}/` : "(root)"}</span>
+                {entry.files.map((name) => {
+                  const risky = entry.riskFiles.includes(name);
+                  return (
+                    <span key={name} className={risky ? "font-semibold text-danger" : "text-muted"}>
+                      {name}
+                    </span>
+                  );
+                })}
+                {entry.truncated && <span className="text-muted">+{entry.fileCount - entry.files.length} more</span>}
+                {entry.riskFiles.length > 0 && (
+                  <span className="text-danger">— possible credentials in {entry.riskFiles.join(", ")}</span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        {analysis && Object.keys(analysis.stackDetected).length > 0 && (
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wide text-muted">Detected</h4>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {Object.entries(analysis.stackDetected).map(([key, value]) => (
-                <span key={key} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
-                  {key}: {value}
-                </span>
-              ))}
-            </div>
+      {languages.length > 0 && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Languages</h3>
+          <p className="mt-1 text-xs text-muted">Share of recognized source files by extension, not by AI guess.</p>
+          <div className="mt-3 divide-y divide-border">
+            {languages.map((l) => (
+              <div key={l.name} className="flex items-center justify-between py-1.5 text-sm">
+                <span className="text-muted">{l.name}</span>
+                <b className="font-semibold tabular-nums text-dash-ink">{l.percent}%</b>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
+
+      {runningOnToday.length > 0 && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Running on today</h3>
+          <p className="mt-1 text-xs text-muted">
+            What the connected model actually found in place — not a recommendation for what to move to.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {runningOnToday.map((tag) => (
+              <span
+                key={tag.label}
+                className={`rounded-md border px-2.5 py-1 font-mono text-xs ${
+                  tag.note
+                    ? "border-amber-200 bg-amber-50 text-amber-800"
+                    : "border-border bg-page text-dash-ink"
+                }`}
+              >
+                {tag.label}
+                {tag.note ? ` · ${tag.note}` : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** "—" for a count that hasn't been reported, otherwise the number as-is — never a guess in place of the dash. */
+function formatCount(value: number | null | undefined): string {
+  return value == null ? "—" : value.toLocaleString();
+}
+
+const ARCHITECTURE_TABS: Tab[] = [
+  { id: "context", label: "System context" },
+  { id: "sequence", label: "Request lifecycle" },
+  { id: "coupling", label: "Module coupling" },
+  { id: "deploy", label: "Deployment" },
+];
+
+/** The "What this shows" / "Why it matters" pair from CodeRenewalPlatform.html's own diagram tabs, written to describe real data rather than the prototype's fixed demo commentary. */
+function ArchExplainer({ what, why }: { what: string; why: string }) {
+  return (
+    <div className="space-y-3 border-t border-border pt-3 text-sm text-dash-ink">
+      <div>
+        <h4 className="text-xs font-bold uppercase tracking-wide text-muted">What this shows</h4>
+        <p className="mt-1">{what}</p>
       </div>
+      <div>
+        <h4 className="text-xs font-bold uppercase tracking-wide text-muted">Why it matters for the move</h4>
+        <p className="mt-1">{why}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A tab whose diagram genuinely cannot be produced honestly — not "not
+ * analysed yet", but "this tool has no way to know this, connected model or
+ * not". Request lifecycle needs a timed run against real traffic; Deployment
+ * needs a person describing how they actually ship. Neither is answerable
+ * from reading source, so this says why instead of showing a placeholder
+ * shape or (worse) inventing numbers the way the reference prototype's own
+ * fixed demo timings do.
+ */
+function HonestlyUnavailable({ reason }: { reason: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center">
+      <p className="text-sm font-medium text-dash-ink">Not something this tool can answer</p>
+      <p className="mx-auto mt-1 max-w-md text-xs text-muted">{reason}</p>
     </div>
   );
 }
 
 function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetail }) {
   const analysis = detail.analysis;
+  const attachStats = detail.project.attachStats;
+  const [archTab, setArchTab] = useState<string>("context");
+
+  const attachFileLayout = attachStats?.fileLayout ?? [];
+  const fileLayout: FileLayoutEntry[] =
+    attachFileLayout.length > 0 ? attachFileLayout : (analysis?.fileLayout ?? []);
+  const routeCount = analysis?.pagesDetected.length ?? 0;
+  const runtime = analysis?.stackDetected.runtime ?? attachStats?.runtime ?? null;
+  const framework = analysis?.stackDetected.framework ?? null;
+  const coupling = analysis?.moduleCoupling ?? {};
+  const hasCoupling = (coupling.modules?.length ?? 0) > 0;
+  const hasContext = runtime != null || framework != null || fileLayout.length > 0;
+
   return (
     <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
@@ -391,45 +572,159 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
 
       <div className="mt-4 space-y-4">
         {analysis && !analysis.modelConnected && <NoModelBanner />}
+
         {!analysis ? (
           <NotAnalysedYet what="the detected architecture" />
         ) : (
-          <p className="text-sm text-dash-ink">
-            {Object.keys(analysis.stackDetected).length > 0
-              ? `Detected runtime: ${Object.values(analysis.stackDetected).join(", ")}. A structural diagram of ` +
-                "the current system is a later phase's feature, once a real model is connected — this phase " +
-                "reports only what it can actually evidence."
-              : "No stack could be detected from the attached manifest."}
-          </p>
+          <>
+            <Tabs tabs={ARCHITECTURE_TABS} active={archTab} onChange={setArchTab} />
+
+            {archTab === "context" &&
+              (hasContext ? (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-border bg-page p-3">
+                    <SystemContextDiagram
+                      runtime={runtime}
+                      framework={framework}
+                      fileLayout={fileLayout}
+                      routeCount={routeCount}
+                    />
+                  </div>
+                  <ArchExplainer
+                    what="Everything detected so far runs as one process — the browser talks to it directly, and the directories shown are real ones the attach step or analysis actually found inside it."
+                    why="A fuller picture (data stores, external services this talks to) needs more than static analysis can honestly tell — either a connected model reading further, or someone confirming what else the system depends on."
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-muted">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
+              ))}
+
+            {archTab === "sequence" && (
+              <HonestlyUnavailable reason="Seeing what actually happens on one request — which queries run, how long each step takes — means running the application with real traffic and measuring it. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
+            )}
+
+            {archTab === "coupling" &&
+              (hasCoupling ? (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-border bg-page p-3">
+                    <ModuleCouplingDiagram coupling={coupling} />
+                  </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-muted">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-sm border border-danger bg-danger/10" /> hub — imported by
+                      several modules
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-0.5 w-4 bg-danger" /> circular dependency
+                    </span>
+                  </div>
+                  <ArchExplainer
+                    what="Which files import which, as actually traced by the connected model reading source — not every file in the project, just the ones it judged central enough to report."
+                    why="A hub means many other files depend on its behavior, so it needs to become an injected dependency before anything around it can be tested in isolation. A cycle means neither file involved can be moved or replaced on its own until it's broken."
+                  />
+                </div>
+              ) : (
+                <HonestlyUnavailable reason="Tracing real imports between files needs a connected local model actually reading the source (source-path configured, not just the manifest) — this project hasn't reported one yet." />
+              ))}
+
+            {archTab === "deploy" && (
+              <HonestlyUnavailable reason="How this project actually reaches production — build steps, hosting, rollback — isn't visible from its source code at all. That has to come from a person who runs the deploy, not from analysis." />
+            )}
+          </>
         )}
       </div>
     </div>
   );
 }
 
+/** Worst first, matching the panel's own subtitle — order is a display concern, not something a run has to get right. */
+const SEVERITY_ORDER: Record<string, number> = { risk: 0, warn: 1, info: 2 };
+
+function severityBadgeClasses(severity: string): string {
+  if (severity === "risk") return "bg-danger/10 text-danger";
+  if (severity === "warn") return "bg-amber-50 text-amber-800";
+  return "bg-page text-muted";
+}
+
+const FIXED_BY_LABELS: { key: AxRenewalFixedBy; label: string }[] = [
+  { key: "stack_move", label: "Fixed by the stack move" },
+  { key: "database", label: "Fixed by the database plan" },
+  { key: "architecture", label: "Fixed by the architecture" },
+  { key: "decision", label: "Needs a decision from you" },
+];
+
 function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
   const analysis = detail.analysis;
-  return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Findings</h3>
-      <p className="mt-1 text-xs text-muted">Worst first — what a renewal would need to address.</p>
+  const findings = analysis
+    ? [...analysis.findings].sort(
+        (a, b) => (SEVERITY_ORDER[a.severity] ?? 3) - (SEVERITY_ORDER[b.severity] ?? 3),
+      )
+    : [];
+  const fixedByGroups = FIXED_BY_LABELS.map(({ key, label }) => ({
+    key,
+    label,
+    findings: findings.filter((f) => f.fixedBy === key),
+  })).filter((g) => g.findings.length > 0);
 
-      <div className="mt-4 space-y-4">
-        {analysis && !analysis.modelConnected && <NoModelBanner />}
-        {!analysis ? (
-          <NotAnalysedYet what="what a renewal would have to deal with" />
-        ) : analysis.findings.length === 0 ? (
-          <p className="text-sm text-muted">Nothing flagged — the analysis found no issues worth raising.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {analysis.findings.map((f, i) => (
-              <li key={i} className="text-sm text-dash-ink">
-                <span className="font-semibold uppercase text-muted">{f.severity}</span> — {f.what}
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-dash-ink">
+            {analysis ? `${findings.length} finding${findings.length === 1 ? "" : "s"}` : "Findings"}
+          </h3>
+          {findings.length > 0 && <span className="text-xs text-muted">worst first</span>}
+        </div>
+        <p className="mt-1 text-xs text-muted">What a renewal would need to address.</p>
+
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
+          {!analysis ? (
+            <NotAnalysedYet what="what a renewal would have to deal with" />
+          ) : findings.length === 0 ? (
+            <p className="text-sm text-muted">Nothing flagged — the analysis found no issues worth raising.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {findings.map((f, i) => (
+                <li key={i} className="flex items-start gap-3 py-2.5">
+                  <span
+                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${severityBadgeClasses(f.severity)}`}
+                  >
+                    {f.severity === "info" ? "·" : "!"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-dash-ink">{f.what}</span>
+                    <span className="mt-0.5 block font-mono text-xs text-muted">{f.where}</span>
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${severityBadgeClasses(f.severity)}`}
+                  >
+                    {f.severity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {fixedByGroups.length > 0 && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Which of these the renewal fixes</h3>
+          <p className="mt-1 text-xs text-muted">
+            Only findings the connected model was confident enough to place — most findings are not categorized
+            below, and that&apos;s the honest answer, not a gap.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm text-dash-ink">
+            {fixedByGroups.map((group) => (
+              <li key={group.key}>
+                <b className="font-semibold">{group.label}:</b>{" "}
+                {group.findings.map((f) => f.what).join(" · ")}
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

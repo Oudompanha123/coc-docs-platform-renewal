@@ -15,6 +15,7 @@ const USER: MeResponse = {
   mustChangePassword: false,
   hasPassword: true,
   roles: ["user"],
+  deactivationCancelled: false,
 };
 
 const ACTIVITY: NotificationItem[] = [

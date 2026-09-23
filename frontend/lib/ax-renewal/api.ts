@@ -1,5 +1,5 @@
 import { AdminApiError, NotPermittedError } from "@/lib/admin/accounts";
-import type { AxRenewalAttachStats } from "./attachStats";
+import type { AxRenewalAttachStats, FileLayoutEntry } from "./attachStats";
 
 /**
  * The AX Renewal API — `/api/v1/ax-renewal` (ADR-037).
@@ -31,10 +31,83 @@ export interface AxRenewalProject {
 
 export interface AxRenewalAnalysis {
   stackDetected: Record<string, string>;
-  findings: { severity: string; what: string; where: string }[];
-  pagesDetected: unknown[];
+  findings: AxRenewalFinding[];
+  pagesDetected: AxRenewalPageDetected[];
+  /**
+   * lines/routes/templates/dependencies/testCoveragePercent — each `null`
+   * (or absent) unless a connected local model could support it with real
+   * evidence (ADR-043). `{}` on the keyword-stub path. File count and
+   * language shares deliberately live on `project.attachStats` instead,
+   * since the browser already measures those for real, model or not.
+   */
+  indexed: AxRenewalIndexedStats;
+  /**
+   * What the project visibly runs on today, not a migration target (that
+   * stays the Plan section's own data). `[]` on the keyword-stub path.
+   */
+  runningOnToday: AxRenewalRunningOnTodayTag[];
+  /**
+   * Directories a connected local model actually saw under `source-path` —
+   * `[]` on the keyword-stub path or a manifest-only run. Prefer
+   * `project.attachStats.fileLayout` when that's present (a full browser
+   * scan, not whatever subset the model looked at); this is the fallback
+   * for a project attached before that scan existed.
+   */
+  fileLayout: FileLayoutEntry[];
+  /**
+   * Which modules import which, traced by a connected local model actually
+   * reading source — `{}` (all fields absent) on the keyword-stub path or a
+   * manifest-only run. Backs the Architecture panel's "Module coupling"
+   * diagram.
+   */
+  moduleCoupling: AxRenewalModuleCoupling;
   modelConnected: boolean;
   analyzedAt: string;
+}
+
+export interface AxRenewalIndexedStats {
+  lines?: number | null;
+  routes?: number | null;
+  templates?: number | null;
+  dependencies?: number | null;
+  testCoveragePercent?: number | null;
+}
+
+export interface AxRenewalRunningOnTodayTag {
+  label: string;
+  note?: string | null;
+}
+
+export interface AxRenewalPageDetected {
+  path: string;
+  purpose: string;
+}
+
+export type AxRenewalFixedBy = "stack_move" | "database" | "architecture" | "decision";
+
+export interface AxRenewalFinding {
+  severity: string;
+  what: string;
+  where: string;
+  /**
+   * Which part of the renewal already addresses this, when a connected
+   * model was confident enough to say so — absent/null far more often than
+   * not, since most findings don't cleanly fit one bucket. Never a
+   * recommendation for what to change to, just where in the existing plan
+   * this gets handled.
+   */
+  fixedBy?: AxRenewalFixedBy | null;
+}
+
+export interface AxRenewalModuleCoupling {
+  /** A representative subset of paths, not every file — the indices below refer into this list. */
+  modules?: string[];
+  /** `[fromIndex, toIndex]` pairs meaning `modules[fromIndex]` imports `modules[toIndex]`. */
+  edges?: [number, number][];
+  /** Indices of modules at least three other reported modules import directly. */
+  hubs?: number[];
+  /** `[a, b]` index pairs the model saw import each other directly. */
+  cycles?: [number, number][];
 }
 
 export interface AxRenewalStackLayer {

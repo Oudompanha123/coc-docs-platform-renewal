@@ -97,6 +97,13 @@ export interface MeResponse {
    * server-side; empty for an anonymous caller too.
    */
   roles: Role[];
+  /**
+   * True only on the response to a sign-in call that itself just cancelled a
+   * pending self-service deactivation (revision of ADR-042) — signing back
+   * in during the grace period is what cancels it. False on every other
+   * `MeResponse`, including this same endpoint's normal `GET /auth/me`.
+   */
+  deactivationCancelled: boolean;
 }
 
 /**
@@ -676,6 +683,65 @@ export async function removeAvatar(): Promise<MeResponse> {
     throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't remove that photo. Please try again.");
   }
   return (await response.json()) as MeResponse;
+}
+
+/**
+ * The grace-period presets the Danger zone panel offers, in days — must
+ * match `SessionService.DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS` (revision
+ * of ADR-042); the backend is the one that actually enforces this set, this
+ * is only what the panel renders as choices.
+ */
+export const DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS = [3, 7, 14, 30] as const;
+
+export type DeactivationGracePeriodDays = (typeof DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS)[number];
+
+/** `POST /api/v1/auth/me/deactivate`'s response: when the scheduled deactivation actually takes effect. */
+export interface DeactivateSelfResponse {
+  scheduledFor: string;
+}
+
+/**
+ * POST /api/v1/auth/me/deactivate (revision of ADR-042). Schedules the
+ * caller's own account to deactivate after `graceDays` — Settings → Danger
+ * zone's confirmed "Deactivate my account" action, after the in-place
+ * confirmation panel, not a single click.
+ *
+ * Every session for the account is revoked server-side right away,
+ * including this one — signing back in before `scheduledFor` cancels the
+ * schedule, which is why that revocation happens immediately rather than
+ * waiting for the grace period to end. The caller only has two refusal
+ * cases left to see (an out-of-range `graceDays`, or the last active super
+ * admin), surfaced via `detail` the same way {@link changePassword} reads
+ * it; every other failure gets the generic message below.
+ */
+export async function deactivateMyAccount(
+  graceDays: DeactivationGracePeriodDays,
+): Promise<DeactivateSelfResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/auth/me/deactivate`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ graceDays }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    // Not "the deactivation failed" — the caller was not actually signed in
+    // any more when they clicked confirm (an expired session, or a second
+    // tab/stale page after an earlier sign-out). Retrying this request as-is
+    // would just 401 again forever, so this is distinguished the same way
+    // {@link listSessions} distinguishes it, for the same reason.
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError(
+      (await readErrorDetail(response)) ?? "Couldn't deactivate your account. Please try again.",
+    );
+  }
+  return (await response.json()) as DeactivateSelfResponse;
 }
 
 /** One device the caller is signed in on — `GET /api/v1/auth/sessions`. */
