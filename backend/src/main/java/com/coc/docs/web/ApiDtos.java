@@ -12,6 +12,7 @@ import com.coc.docs.axrenewal.AxRenewalConfirmation;
 import com.coc.docs.axrenewal.AxRenewalDbChange;
 import com.coc.docs.axrenewal.AxRenewalDbConnection;
 import com.coc.docs.axrenewal.AxRenewalDestination;
+import com.coc.docs.axrenewal.AxRenewalGeneratedChange;
 import com.coc.docs.axrenewal.AxRenewalImplementationRun;
 import com.coc.docs.axrenewal.AxRenewalPageMapping;
 import com.coc.docs.axrenewal.AxRenewalProject;
@@ -31,9 +32,11 @@ import com.coc.docs.claudeusage.ClaudeUsageDashboard;
 import com.coc.docs.claudeusage.ClaudeUsageMemberUsage;
 import com.coc.docs.claudeusage.ClaudeUsageTotals;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -1018,6 +1021,33 @@ public final class ApiDtos {
      */
     public record AxRenewalEngineResponse(boolean connected, boolean readsSource) {}
 
+    /**
+     * One turn typed into the AX Assistant's chat, plus the conversation the
+     * browser is replaying with it (ADR-046).
+     *
+     * <p>{@code history} comes from the page because the server keeps none:
+     * nothing about this conversation is stored, so there is nowhere else it
+     * could come from. It is therefore caller-supplied and bounded here —
+     * {@code 40} entries at 4,000 characters is well past any real
+     * conversation and well short of a prompt somebody could use to make the
+     * backend spawn work indefinitely. {@code LocalClaudeChat} trims further
+     * to the last 20 turns.
+     */
+    public record AxRenewalChatRequest(
+            @NotBlank @Size(max = 4_000) String message,
+            @Size(max = 40) List<@Valid AxRenewalChatTurn> history) {}
+
+    /** @param role {@code "you"} or {@code "assistant"}; anything else reads as the person. */
+    public record AxRenewalChatTurn(@NotBlank @Size(max = 16) String role, @NotBlank @Size(max = 4_000) String text) {}
+
+    /**
+     * @param reply the model's own prose, unparsed
+     * @param readSource whether it could see the source or only what this
+     *     application stores — the panel says which, rather than letting
+     *     somebody assume the code was read
+     */
+    public record AxRenewalChatResponse(String reply, boolean readSource) {}
+
     public record CreateAxRenewalProjectRequest(@NotBlank String name, String description) {}
 
     // filename is nullable, not @NotBlank: a folder with no recognized
@@ -1175,11 +1205,28 @@ public final class ApiDtos {
             JsonNode beforeReport,
             JsonNode afterReport,
             Instant startedAt,
-            Instant completedAt) {
+            Instant completedAt,
+            String failureReason) {
 
         public static AxRenewalImplementationRunResponse of(AxRenewalImplementationRun run) {
             return new AxRenewalImplementationRunResponse(
-                    run.id(), run.status(), run.beforeReport(), run.afterReport(), run.startedAt(), run.completedAt());
+                    run.id(),
+                    run.status(),
+                    run.beforeReport(),
+                    run.afterReport(),
+                    run.startedAt(),
+                    run.completedAt(),
+                    run.failureReason());
+        }
+    }
+
+    /** One file a Generate run actually found different — real before/after content, never a computed patch format (ADR-044). */
+    public record AxRenewalGeneratedChangeResponse(
+            String path, String changeKind, String beforeContent, String afterContent) {
+
+        public static AxRenewalGeneratedChangeResponse of(AxRenewalGeneratedChange change) {
+            return new AxRenewalGeneratedChangeResponse(
+                    change.path(), change.changeKind(), change.beforeContent(), change.afterContent());
         }
     }
 

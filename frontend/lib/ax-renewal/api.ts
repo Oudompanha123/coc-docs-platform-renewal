@@ -161,13 +161,35 @@ export interface AxRenewalConfirmation {
   confirmedVia: "super_admin" | "developer_role";
 }
 
+export type AxRenewalImplementationStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | "generating"
+  | "awaiting_review"
+  | "applying"
+  | "applied"
+  | "rejected";
+
 export interface AxRenewalImplementationRun {
   id: string;
-  status: "running" | "completed" | "failed";
+  status: AxRenewalImplementationStatus;
   beforeReport: Record<string, unknown> | null;
   afterReport: Record<string, unknown> | null;
   startedAt: string;
   completedAt: string | null;
+  /** Why a {@code failed} run failed, in its own words — null on every other status. */
+  failureReason: string | null;
+}
+
+export type AxRenewalChangeKind = "create" | "modify" | "delete";
+
+/** One file a Generate run actually found different — real before/after content, never a computed patch format (ADR-044). */
+export interface AxRenewalGeneratedChange {
+  path: string;
+  changeKind: AxRenewalChangeKind;
+  beforeContent: string | null;
+  afterContent: string | null;
 }
 
 export interface AxRenewalComment {
@@ -350,10 +372,80 @@ export function startImplementation(projectId: string): Promise<AxRenewalImpleme
   return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/start`, { method: "POST" });
 }
 
+/** The files a Generate run actually found different, once it reaches `awaiting_review` (ADR-044). */
+export function fetchGeneratedChanges(projectId: string, runId: string): Promise<AxRenewalGeneratedChange[]> {
+  return request<AxRenewalGeneratedChange[]>(`/projects/${projectId}/implementation/${runId}/changes`);
+}
+
+/** Copies a Generate run's approved changes into the real destination — the one call in this whole feature that writes outside this application's own database. */
+export function approveImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/approve`, {
+    method: "POST",
+  });
+}
+
+/** Discards a Generate run's staged changes — the destination is never touched. */
+export function rejectImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/reject`, {
+    method: "POST",
+  });
+}
+
 export function addComment(projectId: string, body: string): Promise<AxRenewalComment> {
   return request<AxRenewalComment>(`/projects/${projectId}/comments`, {
     method: "POST",
     body: JSON.stringify({ body }),
+  });
+}
+
+/**
+ * Hides one comment from the project thread (ADR-045).
+ *
+ * Soft on the server: the row stays, so nothing here can rewrite what was
+ * said — it stops being shown. Whether this caller may is decided backend-side
+ * from the comment's author (their own, or `super_admin`); the button this
+ * sits behind is a convenience, never the check.
+ */
+export function deleteComment(projectId: string, commentId: string): Promise<void> {
+  return request<void>(`/projects/${projectId}/comments/${commentId}`, { method: "DELETE" });
+}
+
+/** One thing said in the assistant's chat — `"you"` is the person at the keyboard. */
+export interface AxRenewalChatTurn {
+  role: "you" | "assistant";
+  text: string;
+}
+
+export interface AxRenewalChatReply {
+  reply: string;
+  /** Whether the model saw the source, or only what the backend stores. */
+  readSource: boolean;
+}
+
+/**
+ * Asks the local Claude Code installation one question about this project
+ * (ADR-046).
+ *
+ * <p>Nothing here is persisted — not by the backend, and not by this module.
+ * `history` is the conversation this tab is holding in React state, replayed
+ * so the model has context it cannot get from anywhere else. That also means
+ * a refresh genuinely ends the conversation, which is the behaviour the panel
+ * advertises.
+ *
+ * Takes a signal for the same reason `runAnalysis` does: a local model
+ * reading real source can take a while, and a Stop button that left the
+ * request running would be lying.
+ */
+export function chatWithAssistant(
+  projectId: string,
+  message: string,
+  history: AxRenewalChatTurn[],
+  signal?: AbortSignal,
+): Promise<AxRenewalChatReply> {
+  return request<AxRenewalChatReply>(`/projects/${projectId}/assistant/chat`, {
+    method: "POST",
+    body: JSON.stringify({ message, history }),
+    signal,
   });
 }
 
