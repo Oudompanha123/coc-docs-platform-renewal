@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
@@ -10,6 +10,7 @@ import { AttachSourceSection } from "@/components/ax-renewal/AttachSourceSection
 import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
 import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
 import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
+import { GeneratedChangesReview } from "@/components/ax-renewal/GeneratedChangesReview";
 import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
@@ -946,6 +947,9 @@ function OutputPanel({
 }
 
 /** Comments used to have their own card here — they now live in the AxAssistantPanel column, which is the one comment thread for the whole project, not just this tab. */
+/** Statuses the backend is still actively working on — the frontend needs to keep checking back on its own, nobody is going to click anything to move these along. */
+const POLLING_STATUSES = new Set(["generating", "applying"]);
+
 function ImplementationPanel({
   detail,
   canConfirm,
@@ -957,11 +961,41 @@ function ImplementationPanel({
 }) {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [elapsedSecs, setElapsedSecs] = useState(0);
+  const run = detail.latestImplementationRun;
 
   const allConfirmed = (["stack_move", "architecture", "pages", "database"] as PlanSection[]).every(
     (s) => detail.confirmations[s] != null,
   );
   const readyToStart = allConfirmed && detail.destination != null;
+  // Editing any Plan section clears that section's confirmation (already the
+  // existing behaviour, unchanged here), so `readyToStart` only goes back to
+  // true after everything is reconfirmed — "Rebuild" only becomes clickable
+  // once the *latest confirmed* Plan is what it's about to build from, per
+  // what was asked for, not the moment something was edited.
+  const isActive = run != null && POLLING_STATUSES.has(run.status);
+
+  // Generate/Apply run in the background (ADR-044) — nothing on this screen
+  // triggers the next step for them, so this polls project detail every few
+  // seconds while a run is at one of those statuses, and stops the moment
+  // it isn't (awaiting_review needs a person, everything else is terminal).
+  useEffect(() => {
+    if (!run || !POLLING_STATUSES.has(run.status)) return;
+    const id = setInterval(() => void onChanged(), 4000);
+    return () => clearInterval(id);
+  }, [run, onChanged]);
+
+  // A real elapsed-time count, not a fabricated percentage — nothing reports
+  // how far a generation run actually is, so this is honest about what it
+  // can show: how long it has actually been running.
+  useEffect(() => {
+    if (!run || !isActive) return;
+    const startedAtMs = new Date(run.startedAt).getTime();
+    const tick = () => setElapsedSecs(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [run, isActive]);
 
   async function handleStart() {
     setStarting(true);
@@ -984,7 +1018,7 @@ function ImplementationPanel({
           <p className="mt-2 text-xs text-muted">Confirm all four plan sections and set a destination before starting.</p>
         )}
 
-        {canConfirm && (
+        {canConfirm && !isActive && (
           <div className="mt-3">
             <button
               type="button"
@@ -992,16 +1026,59 @@ function ImplementationPanel({
               disabled={!readyToStart || starting}
               className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {starting ? "Starting…" : "Start implementation"}
+              {starting ? "Starting…" : run ? "Rebuild" : "Start implementation"}
             </button>
+            {run && !readyToStart && (
+              <p className="mt-1.5 text-xs text-muted">
+                A Plan section changed since the last build — reconfirm all four sections above to rebuild.
+              </p>
+            )}
           </div>
         )}
 
-        {detail.latestImplementationRun && (
+        {run && (
           <div className="mt-4 rounded-xl border border-border bg-page p-4 text-sm">
-            <p className="font-semibold text-dash-ink">Status: {detail.latestImplementationRun.status}</p>
-            {detail.latestImplementationRun.afterReport && (
-              <p className="mt-2 text-dash-ink">{String(detail.latestImplementationRun.afterReport.note ?? "")}</p>
+            {isActive ? (
+              <div className="flex items-center gap-3">
+                <span
+                  className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="font-semibold text-dash-ink">
+                    {run.status === "generating" ? "Rebuilding…" : "Applying…"}
+                  </p>
+                  <p className="text-xs text-muted">{elapsedSecs}s elapsed</p>
+                </div>
+              </div>
+            ) : (
+              <p className="font-semibold text-dash-ink">Status: {run.status.replace(/_/g, " ")}</p>
+            )}
+
+            {run.status === "generating" && (
+              <p className="mt-2 text-dash-ink">
+                Copying the attached source, asking your local model to carry out the confirmed plan against that
+                copy, then comparing the result — this can take up to 20 minutes. Nothing is written to the
+                destination until you approve it.
+              </p>
+            )}
+            {run.status === "applying" && <p className="mt-2 text-dash-ink">Copying the approved changes into the destination…</p>}
+            {run.status === "failed" && run.failureReason && (
+              <p className="mt-2 text-danger">{run.failureReason}</p>
+            )}
+            {(run.status === "completed" || run.status === "applied" || run.status === "rejected") &&
+              run.afterReport && <p className="mt-2 text-dash-ink">{String(run.afterReport.note ?? "")}</p>}
+            {run.status === "applied" && typeof run.afterReport?.filesApplied === "number" && (
+              <p className="mt-1 text-dash-ink">{run.afterReport.filesApplied} file(s) written to the destination.</p>
+            )}
+
+            {run.status === "awaiting_review" && (
+              <GeneratedChangesReview
+                projectId={detail.project.id}
+                runId={run.id}
+                canConfirm={canConfirm}
+                onChanged={onChanged}
+              />
             )}
           </div>
         )}
