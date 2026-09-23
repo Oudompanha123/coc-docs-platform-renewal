@@ -4,7 +4,7 @@
 > **Date**: 2026-09-23
 > **Author**: backend/frontend (paired), on the PM's request
 > **Approver**: PM (pending) — `CONST-PROC-01`
-> **Related ADR**: Revises the comment surface introduced by [ADR-037](ADR-037-integrations.md). Unrelated to [ADR-044](ADR-044-assistant-chat-local-model.md)'s Chat mode, which stores nothing in the first place.
+> **Related ADR**: Revises the comment surface introduced by [ADR-037](ADR-037-integrations.md). Unrelated to [ADR-046](ADR-046-assistant-chat-local-model.md)'s Chat mode, which stores nothing in the first place.
 
 ---
 

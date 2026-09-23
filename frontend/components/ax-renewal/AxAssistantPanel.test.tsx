@@ -239,7 +239,7 @@ describe("AxAssistantPanel", () => {
   });
 
   // Chat is the one thing in this workspace that deliberately persists
-  // nothing (ADR-044). Each test here pins one half of that promise: the
+  // nothing (ADR-046). Each test here pins one half of that promise: the
   // reply reaches the panel, and nothing on the way there writes a row.
   describe("chat with the local model", () => {
     beforeEach(() => localStorage.clear());

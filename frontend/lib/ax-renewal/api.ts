@@ -383,7 +383,7 @@ export interface AxRenewalChatReply {
 
 /**
  * Asks the local Claude Code installation one question about this project
- * (ADR-044).
+ * (ADR-046).
  *
  * <p>Nothing here is persisted — not by the backend, and not by this module.
  * `history` is the conversation this tab is holding in React state, replayed

@@ -1,4 +1,4 @@
-# ADR-044: Free-Text Assistant Chat Against the Local Model, Stored Nowhere
+# ADR-046: Free-Text Assistant Chat Against the Local Model, Stored Nowhere
 
 > **Status**: PROPOSED
 > **Date**: 2026-09-23

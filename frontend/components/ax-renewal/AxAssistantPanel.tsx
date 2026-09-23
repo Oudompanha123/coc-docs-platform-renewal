@@ -51,7 +51,7 @@ type ChatMessage = AxRenewalChatTurn;
  *   free text answered by that local model, and **stored nowhere**: the
  *   conversation lives in this component's state, is replayed to the backend
  *   so the model has context, and is gone on refresh. That is deliberate
- *   (ADR-044), and the panel says so rather than letting somebody assume
+ *   (ADR-046), and the panel says so rather than letting somebody assume
  *   they can come back to it.
  *
  * Keeping both in one column is why the toggle exists at all: two message
@@ -88,7 +88,7 @@ export function AxAssistantPanel() {
   const [note, setNote] = useState<Note | null>(null);
 
   // Chat lives here and only here: no fetch on mount, no write on send, no
-  // cache. Unmounting this component is the conversation ending (ADR-044).
+  // cache. Unmounting this component is the conversation ending (ADR-046).
   const [mode, setMode] = useState<"thread" | "chat">("thread");
   const [chat, setChat] = useState<ChatMessage[]>([]);
   /** The comment whose Remove has been pressed once and is awaiting a second. */
