@@ -2,10 +2,51 @@
 
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
-import type { AxRenewalArchitecture, AxRenewalConfirmation } from "@/lib/ax-renewal/api";
+import type { AxRenewalAnalysis, AxRenewalArchitecture, AxRenewalConfirmation, AxRenewalStackLayer } from "@/lib/ax-renewal/api";
+
+/**
+ * A starting draft built only from facts already on record — real hubs/
+ * cycles a connected model actually traced (Understand → Architecture →
+ * Module coupling) and real decisions already entered one step earlier
+ * (Plan → Stack move) — never an invented architecture claim. Returns ""
+ * when neither exists, which leaves the textarea's own placeholder example
+ * showing, the same honest-empty state as before.
+ */
+export function suggestSummary(analysis: AxRenewalAnalysis | null, stackLayers: AxRenewalStackLayer[]): string {
+  const lines: string[] = [];
+
+  const decided = stackLayers.filter((l) => l.newTarget && l.newTarget !== l.oldTarget);
+  if (decided.length > 0) {
+    lines.push("Planned layers (from Stack move):");
+    for (const l of decided) {
+      lines.push(`- ${l.layerKey}: ${l.oldTarget || "current"} → ${l.newTarget}`);
+    }
+  }
+
+  const coupling = analysis?.moduleCoupling;
+  const modules = coupling?.modules ?? [];
+  const hubLines = (coupling?.hubs ?? [])
+    .map((i) => modules[i])
+    .filter((name): name is string => Boolean(name))
+    .map((name) => `- ${name} is a hub — imported by several modules; consider making it an injected dependency.`);
+  const cycleLines = (coupling?.cycles ?? [])
+    .map(([a, b]) => [modules[a], modules[b]] as const)
+    .filter((pair): pair is [string, string] => Boolean(pair[0] && pair[1]))
+    .map(([a, b]) => `- ${a} and ${b} import each other — break this cycle before either can move independently.`);
+
+  if (hubLines.length > 0 || cycleLines.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push("What Module coupling found (Understand → Architecture):");
+    lines.push(...hubLines, ...cycleLines);
+  }
+
+  return lines.join("\n");
+}
 
 export function ArchitectureSection({
   architecture,
+  analysis,
+  stackLayers,
   confirmation,
   canEdit,
   canConfirm,
@@ -14,6 +55,8 @@ export function ArchitectureSection({
   onReopen,
 }: {
   architecture: AxRenewalArchitecture | null;
+  analysis: AxRenewalAnalysis | null;
+  stackLayers: AxRenewalStackLayer[];
   confirmation: AxRenewalConfirmation | undefined;
   canEdit: boolean;
   canConfirm: boolean;
@@ -21,7 +64,8 @@ export function ArchitectureSection({
   onConfirm: () => void;
   onReopen: () => void;
 }) {
-  const [summary, setSummary] = useState(architecture?.summary ?? "");
+  const [summary, setSummary] = useState(() => architecture?.summary ?? suggestSummary(analysis, stackLayers));
+  const [isSuggestion] = useState(() => !architecture && summary.length > 0);
   const [saving, setSaving] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +98,13 @@ export function ArchitectureSection({
         Describe the resulting <strong>layered design</strong> once the <strong>stack move</strong> above is decided — what talks to what, and why
         it is shaped this way.
       </p>
+
+      {isSuggestion && (
+        <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+          Drafted from Stack move&apos;s recorded decisions and Module coupling&apos;s real findings — nothing is
+          saved yet. Edit it into your own words, then <strong>Save architecture</strong>.
+        </p>
+      )}
 
       <textarea
         value={summary}
