@@ -3,16 +3,27 @@
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ConfirmationBar } from "./ConfirmationBar";
-import type { AxRenewalConfirmation, AxRenewalPageMapping } from "@/lib/ax-renewal/api";
+import type { AxRenewalAnalysis, AxRenewalConfirmation, AxRenewalPageMapping } from "@/lib/ax-renewal/api";
 
 type Row = { oldPath: string; newPath: string; notes: string };
 
-function toRows(pages: AxRenewalPageMapping[]): Row[] {
-  return pages.map((p) => ({ oldPath: p.oldPath ?? "", newPath: p.newPath ?? "", notes: p.notes ?? "" }));
+/**
+ * When nothing has been mapped yet, a starting point built from the real
+ * routes/screens analysis actually found (`pagesDetected`) — never a
+ * fabricated page. `newPath` stays blank; where each old page ends up is a
+ * decision, not something analysis can answer. Genuinely empty when
+ * analysis found no pages at all — same "add one by hand" state as before.
+ */
+export function toRows(pages: AxRenewalPageMapping[], analysis: AxRenewalAnalysis | null): Row[] {
+  if (pages.length > 0) {
+    return pages.map((p) => ({ oldPath: p.oldPath ?? "", newPath: p.newPath ?? "", notes: p.notes ?? "" }));
+  }
+  return (analysis?.pagesDetected ?? []).map((p) => ({ oldPath: p.path, newPath: "", notes: p.purpose }));
 }
 
 export function PagesSection({
   pages,
+  analysis,
   confirmation,
   canEdit,
   canConfirm,
@@ -21,6 +32,7 @@ export function PagesSection({
   onReopen,
 }: {
   pages: AxRenewalPageMapping[];
+  analysis: AxRenewalAnalysis | null;
   confirmation: AxRenewalConfirmation | undefined;
   canEdit: boolean;
   canConfirm: boolean;
@@ -28,7 +40,8 @@ export function PagesSection({
   onConfirm: () => void;
   onReopen: () => void;
 }) {
-  const [rows, setRows] = useState<Row[]>(() => toRows(pages));
+  const [rows, setRows] = useState<Row[]>(() => toRows(pages, analysis));
+  const [isSuggestion] = useState(() => pages.length === 0 && rows.length > 0);
   const [saving, setSaving] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +93,13 @@ export function PagesSection({
         Map each old page to its new route. Leave the old side blank for a page that never existed before; leave
         the new side blank for one being retired.
       </p>
+
+      {isSuggestion && (
+        <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+          Old routes and notes below are pages <strong>Run analysis</strong> actually detected — nothing is saved
+          yet. Fill in a new route for each, remove any that don&apos;t belong, then <strong>Save pages</strong>.
+        </p>
+      )}
 
       <div className="mt-4 space-y-2">
         {rows.map((row, i) => (

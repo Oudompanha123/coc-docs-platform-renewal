@@ -141,4 +141,37 @@ describe("RequireSession", () => {
       expect(replace).toHaveBeenCalledWith("/welcome");
     });
   });
+
+  describe("/claude-usage (ADR-047, further revised: admin-only again, no exception)", () => {
+    // The personal view that briefly lived at this same url now lives as a
+    // section on /home instead (RequireMemberSession's own gate, not this
+    // one) — so /claude-usage is back to being an ordinary
+    // ADMINISTRATION-floor route with no carve-out, same as /users-roles.
+    it("refuses a plain user", () => {
+      pathname.current = "/claude-usage";
+      session.current = {
+        status: "authenticated",
+        user: { role: "user", mustChangePassword: false, roles: ["user"] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
+
+    it("admits an admin", () => {
+      pathname.current = "/claude-usage";
+      session.current = { status: "authenticated", user: { role: "admin", mustChangePassword: false } };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.getByText("admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
+  });
 });

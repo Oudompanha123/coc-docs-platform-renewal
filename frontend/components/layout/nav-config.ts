@@ -85,10 +85,18 @@ const STATIC_SECTIONS: NavSection[] = [
       // content; granting roles is a different kind of authority. Listing
       // "admin" here showed them a link to a page that 403s on every request.
       { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
-      // admin and super_admin: unlike Users & Roles, this page is a
-      // team-wide usage/cost monitor, not an account-authority tool, so it
-      // sits at the same floor as everything else an admin manages.
-      { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
+      // "Claude Usage" used to live here, and before that also had a "MY
+      // WORK → My Claude Usage" sibling entry for every non-admin role
+      // (ADR-047). Both are gone (ADR-047, further revised): /home's
+      // `MemberHeader` carries the one "Claude Usage" nav link now, for
+      // every signed-in role alike — admin/super_admin included, who get
+      // /claude-usage's team view there the same as anywhere else it's
+      // reached. Two sidebar entries plus a header link, all pointing at
+      // the same url under two different labels depending on who was
+      // looking, was the confusion this removal answers. A plain `admin`
+      // (not `super_admin`) now sees no ADMINISTRATION items at all, so
+      // the whole heading is dropped for them — `visibleNavSections`
+      // already does this for any section left with nothing in it.
     ],
   },
   {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldIcon } from "@/components/auth/icons";
+import { MyClaudeUsageSection } from "@/components/claude-usage/MyClaudeUsageSection";
 import { MemberHeader } from "@/components/home/MemberHeader";
 import { ProductGlanceCard } from "@/components/home/ProductGlanceCard";
 import { RecentDocumentsPanel } from "@/components/home/RecentDocumentsPanel";
@@ -17,7 +18,6 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useProductStats } from "@/lib/docs/useProductStats";
 import { fetchOpenTasks, type Task } from "@/lib/tasks/tasks-api";
 import { mostAttentionProduct, productHref, totalNotWritten } from "@/lib/home/product-links";
-import { UsageSnapshotPanel } from "@/components/home/UsageSnapshotPanel";
 
 /**
  * The Member (`user`-role) post-login home — reuses `/welcome`'s visual
@@ -146,14 +146,31 @@ export default function MemberHomePage() {
           <ScrollReveal>
             <h2 className="text-center text-3xl font-bold text-ink">Everything you need, in one place.</h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
-              Your documents, your open tasks, and how the team is using the workspace.
+              Your documents and your open tasks.
             </p>
           </ScrollReveal>
 
-          <ScrollReveal delayMs={80} className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <ScrollReveal delayMs={80} className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RecentDocumentsPanel docs={productStats.status === "ready" ? productStats.recentDocs : null} />
             <TasksPanel tasks={tasks} />
-            <UsageSnapshotPanel />
+          </ScrollReveal>
+        </section>
+
+        {/* Anchored by the header's "Claude Usage" link (ADR-047, further
+            revised) — scroll-to, not a separate page, so this lives on
+            /home itself rather than under the admin shell. scroll-mt-20
+            keeps the sticky header (h-[72px] plus a little breathing room)
+            from covering the heading when the browser jumps here. */}
+        <section id="my-claude-usage" className="mx-auto max-w-5xl scroll-mt-20 px-6 pb-20">
+          <ScrollReveal>
+            <h2 className="text-center text-3xl font-bold text-ink">My Claude Usage</h2>
+            <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
+              Your own Claude Code usage — nobody else&apos;s.
+            </p>
+          </ScrollReveal>
+
+          <ScrollReveal delayMs={80} className="mt-10">
+            <MyClaudeUsageSection />
           </ScrollReveal>
         </section>
 

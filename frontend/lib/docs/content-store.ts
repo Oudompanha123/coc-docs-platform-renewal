@@ -866,17 +866,8 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       "**What gets sent** — your name and email, the date, today's token counts, and which models, as daily totals only (one row per person per day). **Never sent** — prompts, code, file names, project names, per-message rows, transcripts, or anything Anthropic holds.",
     steps: [
       {
-        title: "Download the script",
-        body: "No clone, no install, no build step. **Node 20 or newer**, and one rule: **the config goes in the same folder** — the script looks for it right next to itself.\n\nDownload **push-usage.mjs** below (or get it from `tools/claude-usage-reporter/` in the team repository). That is the only file you need if you get your config the fast way in the next step — grab **claude-usage.config.example.json** too only if you are filling it in by hand.\n\nSkip this and the script only asks for **USER_EMAIL** — without INGEST_URL/INGEST_SECRET it still runs, just as a local preview that sends nothing.",
-        downloads: [
-          { label: "push-usage.mjs", href: "/downloads/push-usage.mjs" },
-          { label: "claude-usage.config.example.json", href: "/downloads/claude-usage.config.example.json" },
-        ],
-      },
-      {
-        title: "Get your config",
-        body: "**Fastest** — on the dashboard, open **Claude Usage → Download Config**, label the machine (e.g. \"My Laptop\"), and click **Generate & Download**. That downloads `claude-usage.config.json` already filled in with your email, your name, the dashboard's ingest URL, and a personal token scoped to just your own account — nothing to type, nobody to ask, and you can revoke it later from the same panel if a laptop is retired.\n\n**By hand** — rename `claude-usage.config.example.json` to `claude-usage.config.json` and fill in the three values yourself. Ask whoever set up the dashboard for the shared secret (or paste in a personal token from Download Config instead of it), and leave **USER_NAME** out — the first run in a terminal asks for it once, then saves it, so scheduled runs never prompt. Environment variables of the same names override the file, if you prefer either way.",
-        command: '{\n  "USER_EMAIL": "you@company.com",\n  "USER_NAME": "Your Name",\n  "INGEST_URL": "https://your-backend.com/api/ingest",\n  "INGEST_SECRET": "<ask the team, or paste your personal token from Download Config>"\n}',
+        title: "Download your script",
+        body: "No clone, no install, no build step, and no config file to fill in. **Node 20 or newer**, one download, one command.\n\nOpen **Claude Code Usage** (admin/super_admin — link below), find **Download push-usage.mjs**, label the machine (e.g. \"My Laptop\"), and click **Generate & Download**. That downloads a `push-usage.mjs` already filled in with your email, your name, the dashboard's ingest URL, and a personal token scoped to just your own account — nothing to type, nobody to ask. Put it anywhere and run it; you can revoke the token later from the same panel if a laptop is retired.\n\nThe token inside is tied to the account that generated it, so a copy only ever reports as **that** account — it cannot be handed to a teammate to report as them. If you are not an admin/super_admin yet, or you need this for CI/Docker rather than your own machine, see **manual setup** below instead.",
       },
       {
         title: "Check it first — nothing is sent",
@@ -906,7 +897,14 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       },
       {
         title: "If it doesn't work",
-        body: "The script exits `0` on success and `1` with a one-line reason otherwise, so the scheduler's last-result column is meaningful.\n\n• **rejected (401)** — your `INGEST_SECRET` doesn't match the server's, or it was a personal token that got revoked from Download Config. Generate a fresh one and swap it in.\n• **no ingest route at…** — the URL must end in `/api/ingest`.\n• **a proxy or DLP agent is intercepting HTTPS** — a company HTTPS-inspecting proxy. Fixed once per machine — see Configuration.\n• **cannot resolve the host** — typo in the URL.",
+        body: "The script exits `0` on success and `1` with a one-line reason otherwise, so the scheduler's last-result column is meaningful.\n\n• **rejected (401)** — your `INGEST_SECRET` doesn't match the server's, or it was a personal token that got revoked from Claude Code Usage → Download push-usage.mjs. Generate a fresh script and swap it in.\n• **no ingest route at…** — the URL must end in `/api/ingest`.\n• **a proxy or DLP agent is intercepting HTTPS** — a company HTTPS-inspecting proxy. Fixed once per machine — see Configuration.\n• **cannot resolve the host** — typo in the URL.",
+      },
+      {
+        title: "Manual setup (no admin account, CI, or Docker)",
+        body: "The one-click script above needs an admin/super_admin session to mint its embedded token, so it does not fit an unattended CI job, a container, or a plain member account. For those, download the **generic** `push-usage.mjs` below and configure it the old way — environment variables, since there is no companion config file to place beside it anymore.\n\nAsk an admin for a personal token (Claude Code Usage → Download push-usage.mjs mints one; they can paste just the token value to you, without sharing the file it came embedded in) or the shared secret, if one is configured for this deployment. Leave **USER_NAME** out and the script asks for it once on first run in a real terminal, then remembers it — skip that too and it falls back to the email's local part, which is what a non-interactive job needs anyway.",
+        downloads: [{ label: "push-usage.mjs", href: "/downloads/push-usage.mjs" }],
+        command:
+          'USER_EMAIL=you@company.com \\\nUSER_NAME="Your Name" \\\nINGEST_URL=https://your-backend.com/api/ingest \\\nINGEST_SECRET=<personal token or shared secret> \\\nnode push-usage.mjs',
       },
     ],
   },
@@ -915,19 +913,19 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     eyebrow: "Configuration",
     heading: "The settings behind the dashboard.",
     intro:
-      "Most configuration is **per-reporter** (your local `claude-usage.config.json`) or **per-session** (the time-period toggle on the Claude Usage page). There is nothing to deploy or restart.",
+      "Most configuration is **per-reporter** (embedded in your downloaded `push-usage.mjs`, or environment variables for manual/CI setups) or **per-session** (the time-period toggle on the Claude Usage page). There is nothing to deploy or restart.",
     sections: [
       {
         title: "What the percentage means",
         note: "The percentage on the Claude Usage dashboard is **not** an Anthropic limit — Pro/Max plans are rolling 5-hour windows plus a weekly cap, and no API exposes how much is left. It measures usage against a soft budget this team set for itself, to answer **\"is this person burning through more than we planned for the week?\"** For the exact remaining quota, run `/usage` inside Claude Code — that is the only exact source.",
       },
       {
-        title: "Reporter config file",
-        note: "**Claude Usage → Download Config** generates and downloads this file for you, already filled in — the fastest way to get one. To build it by hand instead, copy `claude-usage.config.example.json` → `claude-usage.config.json` next to the script. Environment variables (`USER_EMAIL`, `USER_NAME`, `INGEST_URL`, `INGEST_SECRET`) override file values either way — useful for CI or Docker.",
+        title: "Reporter config",
+        note: "**Claude Code Usage → Download push-usage.mjs** generates a single, self-contained script with your email, name, ingest URL, and a personal token baked in — no separate config file to place beside it, nothing to fill in by hand. For CI, Docker, or an account that can't mint its own token, the generic `push-usage.mjs` still reads `USER_EMAIL`, `USER_NAME`, `INGEST_URL`, and `INGEST_SECRET` as environment variables (see **Manual setup** in the setup guide) — those always take priority over whatever a downloaded script has embedded.",
       },
       {
         title: "Custom transcript directory",
-        note: "By default the reporter reads `~/.claude/projects`. If your Claude Code transcripts live elsewhere, set `CLAUDE_PROJECTS_DIR` in `claude-usage.config.json` or as an environment variable.",
+        note: "By default the reporter reads `~/.claude/projects`. If your Claude Code transcripts live elsewhere, set `CLAUDE_PROJECTS_DIR` as an environment variable.",
       },
       {
         title: "Soft budget overrides",
@@ -967,7 +965,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       },
       {
         title: "Company HTTPS inspection (one-off, per machine)",
-        note: "If the reporter fails with **\"a proxy or DLP agent is intercepting HTTPS\"**, your company's network re-signs HTTPS traffic with its own certificate. Windows and your browser trust it because it's installed in the Windows certificate store — but **Node ships its own trusted-authority list and doesn't read that store**, so it refuses the connection instead. The script below finds that certificate and points Node at it via `NODE_EXTRA_CA_CERTS`, set as a **real system environment variable** (Node reads it once at process start, so it can't come from `claude-usage.config.json`) — reopen your terminal before trying again. **Never set** `NODE_TLS_REJECT_UNAUTHORIZED=0` to work around this — it turns off certificate checking for every connection the reporter makes, including the one carrying your shared `INGEST_SECRET`.",
+        note: "If the reporter fails with **\"a proxy or DLP agent is intercepting HTTPS\"**, your company's network re-signs HTTPS traffic with its own certificate. Windows and your browser trust it because it's installed in the Windows certificate store — but **Node ships its own trusted-authority list and doesn't read that store**, so it refuses the connection instead. The script below finds that certificate and points Node at it via `NODE_EXTRA_CA_CERTS`, set as a **real system environment variable** (Node reads it once at process start, so it can't come from `claude-usage.config.json`) — reopen your terminal before trying again. **Never set** `NODE_TLS_REJECT_UNAUTHORIZED=0` to work around this — it turns off certificate checking for every connection the reporter makes, including the one carrying your `INGEST_SECRET`.",
         downloads: [{ label: "fix-node-ca.ps1", href: "/downloads/fix-node-ca.ps1" }],
         command: "powershell -ExecutionPolicy Bypass -File fix-node-ca.ps1 -TargetHost your-backend-host",
       },

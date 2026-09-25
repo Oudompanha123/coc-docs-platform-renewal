@@ -34,17 +34,24 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * the shell first and redirecting after means a visible flash of an interface
  * the visitor is not entitled to see.
  *
- * <p><b>One route-scoped exception (ADR-037, revised by ADR-039).</b> A plain
+ * <p>One route-scoped exception (ADR-037, revised by ADR-039). A plain
  * `user` holding the `developer` role (formerly a capability) may enter
  * exactly `/ax-renewal` — nothing else in the admin shell opens for them.
  * `roles` (every role held), not `role` (the highest), because rank alone
  * would not tell us they hold `developer` specifically. This is deliberately
- * narrower than
- * widening `canAccessAdmin` unconditionally: that would also let them
- * navigate straight to `/users-roles` or `/claude-usage` by URL (the backend
- * would still refuse those with a 403, since this check is presentation
- * only, but the *experience* would be an inconsistent one of a link hidden
- * everywhere except by typing it in).
+ * narrower than widening `canAccessAdmin` unconditionally: that would also
+ * let them navigate straight to `/users-roles` or `/claude-usage` by URL
+ * (the backend would still refuse those with a 403, since this check is
+ * presentation only, but the *experience* would be an inconsistent one of a
+ * link hidden everywhere except by typing it in).
+ *
+ * <p><b>ADR-047, no longer an exception here.</b> `/claude-usage` briefly
+ * admitted any authenticated caller, rendering a personal view for
+ * non-admins at that same url. That personal view now lives as a section
+ * embedded directly on `/home` instead (`RequireMemberSession`'s own gate,
+ * not this one) — see `components/claude-usage/MyClaudeUsageSection.tsx` —
+ * so `/claude-usage` is back to being an ordinary admin-only route with no
+ * carve-out, the same as every other item in `ADMINISTRATION`.
  */
 export function RequireSession({ children }: { children: ReactNode }) {
   const { status, user } = useSession();

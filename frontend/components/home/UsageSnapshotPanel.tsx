@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchDashboard, type BudgetStatus, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
+import { fetchMyUsage, type MyClaudeUsageDashboard } from "@/lib/claudeUsage/myUsage";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { fill } from "@/lib/i18n/translations";
@@ -27,6 +28,7 @@ export function UsageSnapshotPanel() {
   const { user } = useSession();
   const { t } = useLanguage();
   const [me, setMe] = useState<ClaudeUsageMember | null | "none" | "error">(null);
+  const [mine, setMine] = useState<MyClaudeUsageDashboard | "loading" | "error">("loading");
 
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
@@ -42,19 +44,84 @@ export function UsageSnapshotPanel() {
       .catch(() => setMe("error"));
   }, [isAdmin, user?.email]);
 
-  // Non-admin: generic promo card
+  // Non-admin: the caller's own real usage (ADR-047), not a filtered read of
+  // the team dashboard admins get below — GET /api/v1/claude-usage/me is the
+  // one endpoint a plain user may call, since it is scoped server-side to
+  // the signed-in session and can never be asked for anyone else's usage.
+  useEffect(() => {
+    if (isAdmin) return;
+    fetchMyUsage()
+      .then(setMine)
+      .catch(() => setMine("error"));
+  }, [isAdmin]);
+
   if (!isAdmin) {
-    return (
-      <Link
-        href="/docs/usage"
-        className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
-      >
-        <div>
-          <h3 className="text-base font-semibold text-brand-purple">{t.panels.usageTitle}</h3>
-          <p className="mt-1 text-sm text-muted">{t.panels.usageTagline}</p>
+    if (mine === "loading") {
+      return (
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm">
+          <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+          <div className="mt-3 space-y-2">
+            <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-gray-100" />
+          </div>
         </div>
-        <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.viewUsageDocs}</span>
-      </Link>
+      );
+    }
+
+    if (mine === "error") {
+      return (
+        <Link
+          href="/claude-usage"
+          className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+        >
+          <div>
+            <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
+            <p className="mt-1 text-sm text-muted">{t.panels.loadError}</p>
+          </div>
+          <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.openMyUsage}</span>
+        </Link>
+      );
+    }
+
+    if (mine.lastUpdated === null) {
+      return (
+        <Link
+          href="/claude-usage"
+          className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+        >
+          <div>
+            <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
+            <p className="mt-1 text-sm text-muted">{t.panels.noPersonalUsage}</p>
+          </div>
+          <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.openMyUsage}</span>
+        </Link>
+      );
+    }
+
+    return (
+      <div className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm">
+        <div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
+            <span className="rounded-full bg-brand-purple/10 px-2.5 py-0.5 text-xs font-semibold text-brand-purple capitalize">
+              {t.panels.today}
+            </span>
+          </div>
+
+          <div className="mt-4 rounded-xl bg-page p-3">
+            <p className="text-xs text-muted">{t.panels.tokens}</p>
+            <p className="mt-0.5 text-lg font-bold text-ink">{fmt(mine.todayTotalTokens)}</p>
+          </div>
+
+          {mine.todayTotalTokens === 0 && (
+            <p className="mt-3 text-xs text-muted">{t.panels.noPersonalUsage}</p>
+          )}
+        </div>
+
+        <Link href="/claude-usage" className="mt-4 text-sm font-semibold text-brand-purple hover:underline">
+          {t.panels.openMyUsage}
+        </Link>
+      </div>
     );
   }
 

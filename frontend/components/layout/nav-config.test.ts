@@ -40,20 +40,6 @@ describe("visibleNavSections", () => {
     expect(labelsFor(null)).not.toContain("Users & Roles");
   });
 
-  it("shows Claude Usage to an admin and a super admin", () => {
-    expect(labelsFor(["admin"])).toContain("Claude Usage");
-    expect(labelsFor(["super_admin"])).toContain("Claude Usage");
-  });
-
-  it("hides Claude Usage from an ordinary user and a guest", () => {
-    expect(labelsFor(["user"])).not.toContain("Claude Usage");
-    expect(labelsFor(["guest"])).not.toContain("Claude Usage");
-  });
-
-  it("hides Claude Usage while the session is still loading", () => {
-    expect(labelsFor(null)).not.toContain("Claude Usage");
-  });
-
   it("drops the ADMINISTRATION heading rather than rendering it empty", () => {
     const headings = visibleNavSections(["user"], FIXTURE_PRODUCTS).map((section) => section.label);
     expect(headings).not.toContain("ADMINISTRATION");
@@ -61,8 +47,12 @@ describe("visibleNavSections", () => {
 
     const adminSection = (roles: Role[]) =>
       visibleNavSections(roles, FIXTURE_PRODUCTS).find((section) => section.label === "ADMINISTRATION");
-    expect(adminSection(["super_admin"])?.items.map((i) => i.label)).toEqual(["Users & Roles", "Claude Usage"]);
-    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual(["Claude Usage"]);
+    expect(adminSection(["super_admin"])?.items.map((i) => i.label)).toEqual(["Users & Roles"]);
+    // Claude Usage no longer lives here (ADR-047, further revised) — a
+    // plain admin (not super_admin) now has nothing left in ADMINISTRATION,
+    // so the whole heading drops for them too, same as it always has for a
+    // section left with no visible items.
+    expect(adminSection(["admin"])).toBeUndefined();
   });
 
   it("builds the PRODUCTS section from the live nav structure, not a hardcoded list", () => {
@@ -79,6 +69,28 @@ describe("visibleNavSections", () => {
   it("drops the PRODUCTS heading when there are no products yet", () => {
     const headings = visibleNavSections(["user"], []).map((section) => section.label);
     expect(headings).not.toContain("PRODUCTS");
+  });
+
+  describe("Claude Usage is not in the sidebar at all (ADR-047, further revised)", () => {
+    // /home's MemberHeader carries the one "Claude Usage" nav link now
+    // (tested in MemberHeader.test.tsx), reachable by every signed-in role
+    // alike at the same /claude-usage url. The sidebar used to carry it
+    // twice — "ADMINISTRATION → Claude Usage" for admin/super_admin and a
+    // "MY WORK → My Claude Usage" sibling for everyone else — which is
+    // exactly the two-links-one-destination confusion this removal answers.
+    it("is absent from every role's sidebar, including admin and super admin", () => {
+      for (const roles of [["guest"], ["user"], ["developer"], ["reviewer"], ["lead"], ["admin"], ["super_admin"]] as const) {
+        const labels = labelsFor([...roles]);
+        expect(labels).not.toContain("Claude Usage");
+        expect(labels).not.toContain("My Claude Usage");
+      }
+    });
+
+    it("the MY WORK section no longer exists", () => {
+      for (const roles of [["user"], ["admin"], ["super_admin"]] as const) {
+        expect(visibleNavSections([...roles], FIXTURE_PRODUCTS).map((s) => s.label)).not.toContain("MY WORK");
+      }
+    });
   });
 
   describe("AX Renewal (ADR-037, roles revised by ADR-039)", () => {
