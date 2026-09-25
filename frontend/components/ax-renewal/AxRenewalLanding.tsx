@@ -37,9 +37,9 @@ const STEPS = [
 export function AxRenewalLanding({ children }: { children: ReactNode }) {
   return (
     <div className="break-words">
-      <div className="rounded-[5px] border border-border bg-white p-8 text-center shadow-sm sm:p-12">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-          <RenewIcon className="h-7 w-7" />
+      <div className="rounded-[10px] border border-border bg-page p-8 text-center shadow-sm sm:p-12">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md">
+          <RenewIcon className="h-8 w-8" />
         </span>
         <h1 className="mt-4 text-3xl font-extrabold text-dash-ink">Plan a legacy-code renewal</h1>
         <p className="mt-3 text-lg font-medium text-dash-ink">
@@ -64,7 +64,7 @@ export function AxRenewalLanding({ children }: { children: ReactNode }) {
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {STEPS.map((step, i) => (
-            <div key={step.title} className="rounded-[5px] border border-border bg-white p-5 shadow-sm">
+            <div key={step.title} className="rounded-[10px] border border-border bg-page p-5 shadow-sm">
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
                 <step.icon className="h-5 w-5" />
               </div>

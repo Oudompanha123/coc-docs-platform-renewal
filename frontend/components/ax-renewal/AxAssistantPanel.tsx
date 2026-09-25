@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ResizeHandle } from "@/components/ax-renewal/ResizeHandle";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import {
@@ -65,7 +66,14 @@ type ChatMessage = AxRenewalChatTurn;
  * shell (see that file's comment) so a mutation made here is immediately
  * visible in the main content, not just in this panel.
  */
-export function AxAssistantPanel() {
+type AxAssistantPanelProps = {
+  /** Desktop-only drag-to-resize width, in pixels — see AxRenewalSidebar's own matching prop for why this is lifted to the layout. Optional (defaulting to the panel's original fixed width) so every existing render site/test that doesn't care about resizing is unaffected. */
+  width?: number;
+  onResizeStart?: (event: PointerEvent<HTMLDivElement>) => void;
+  isResizing?: boolean;
+};
+
+export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResizing = false }: AxAssistantPanelProps) {
   const { user } = useSession();
   const canEdit = user?.role === "admin" || user?.role === "super_admin";
   // Exact membership, not rank: an Admin does not pass this just by
@@ -288,14 +296,19 @@ export function AxAssistantPanel() {
   const suggestions = active != null ? SUGGESTIONS[active] ?? [] : [];
 
   return (
-    <aside className="hidden shrink-0 xl:block xl:w-[360px]">
+    <aside className="hidden shrink-0 xl:block" style={{ width }}>
       {/* h-[calc(100vh-32px)], not h-screen: AxRenewalStatusBar (h-8,
           border-box) now spans the full shell width as its own row below
           this one (see ax-renewal/layout.tsx), matching
           CodeRenewalPlatform.html's own two-row grid — so this stops short
           of the full viewport by that same height instead of running past
-          where the status bar starts. */}
-      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[360px] flex-col overflow-hidden border-l border-border bg-page">
+          where the status bar starts. Width is inline style, not a Tailwind
+          class, since it's a runtime drag value (see useResizableWidth). */}
+      <div
+        className="sticky top-0 relative flex h-[calc(100vh-32px)] flex-col overflow-hidden border-l border-border bg-page"
+        style={{ width }}
+      >
+        <ResizeHandle edge="left" onPointerDown={onResizeStart} isDragging={isResizing} label="Resize AX Assistant panel" />
         <div className="flex items-center gap-2 border-b border-border bg-white px-4 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
           <span className="text-xs font-bold uppercase tracking-wider text-dash-ink">AX Assistant</span>
@@ -303,7 +316,7 @@ export function AxAssistantPanel() {
             // Only rendered where a model can actually answer: a permanently
             // disabled tab would advertise a capability this deployment
             // does not have (ADR-043's whole point about the banner).
-            <div className="ml-auto flex overflow-hidden rounded-[5px] border border-border" role="tablist">
+            <div className="ml-auto flex overflow-hidden rounded-[10px] border border-border" role="tablist">
               {(["chat", "thread"] as const).map((key) => (
                 <button
                   key={key}
@@ -339,7 +352,7 @@ export function AxAssistantPanel() {
             one line in the workspace whose whole job is to be honest about
             what the assistant can do (ADR-043). */}
         {engine?.connected && useModel ? (
-          <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800">
+          <div className="mx-4 mt-3 flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
               Local model in use —{" "}
@@ -354,13 +367,13 @@ export function AxAssistantPanel() {
               // untouched and the backend could still run it. All this does is
               // stop asking, which is the only thing a web page honestly can do.
               title="Run the keyword analysis instead. The configured model stays configured."
-              className="ml-auto shrink-0 rounded-[5px] border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+              className="ml-auto shrink-0 rounded-[10px] border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
             >
               stop using
             </button>
           </div>
         ) : engine?.connected ? (
-          <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-700">
+          <div className="mx-4 mt-3 flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
               A model is available — <span className="font-semibold">not using it here</span>
@@ -368,13 +381,13 @@ export function AxAssistantPanel() {
             <button
               type="button"
               onClick={() => setUseModel(true)}
-              className="ml-auto shrink-0 rounded-[5px] border border-slate-400 px-2.5 py-0.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+              className="ml-auto shrink-0 rounded-[10px] border border-slate-400 px-2.5 py-0.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
             >
               use it
             </button>
           </div>
         ) : engine ? (
-          <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+          <div className="mx-4 mt-3 flex items-center gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
               No model connected — <span className="font-semibold">fixed commands only</span>
@@ -382,7 +395,7 @@ export function AxAssistantPanel() {
             <button
               type="button"
               onClick={() => onOpenTab("ai-engine")}
-              className="ml-auto shrink-0 rounded-[5px] border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              className="ml-auto shrink-0 rounded-[10px] border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
             >
               connect
             </button>
@@ -407,8 +420,8 @@ export function AxAssistantPanel() {
                   key={i}
                   className={
                     message.role === "you"
-                      ? "ml-8 rounded-[5px] bg-brand-purple/10 px-3 py-2 text-sm text-dash-ink"
-                      : "mr-8 rounded-[5px] border border-border bg-white px-3 py-2 text-sm text-dash-ink"
+                      ? "ml-8 rounded-[10px] bg-brand-purple/10 px-3 py-2 text-sm text-dash-ink"
+                      : "mr-8 rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-dash-ink"
                   }
                 >
                   {/* whitespace-pre-wrap: the reply is the model's own prose,
@@ -432,7 +445,7 @@ export function AxAssistantPanel() {
             const canRemove =
               user?.role === "super_admin" || (user?.id != null && user.id === comment.authorId);
             return (
-            <div key={comment.id} className="rounded-[5px] border border-border bg-white px-3 py-2 text-sm">
+            <div key={comment.id} className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold text-dash-ink">{comment.authorName}</span>
                 <span className="shrink-0 text-xs text-muted">{new Date(comment.createdAt).toLocaleString()}</span>
@@ -492,7 +505,7 @@ export function AxAssistantPanel() {
                 key={s}
                 type="button"
                 onClick={() => setText(s)}
-                className="rounded-[5px] border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-brand-purple hover:text-brand-purple"
+                className="rounded-[10px] border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-brand-purple hover:text-brand-purple"
               >
                 {s}
               </button>
@@ -534,7 +547,7 @@ export function AxAssistantPanel() {
             <button
               type="button"
               onClick={() => abortRef.current?.abort()}
-              className="rounded-[5px] border border-border px-3.5 py-2 text-sm font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+              className="rounded-[10px] border border-border px-3.5 py-2 text-sm font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
             >
               Stop
             </button>
@@ -542,7 +555,7 @@ export function AxAssistantPanel() {
             <button
               type="submit"
               disabled={busy || !text.trim()}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
             </button>

@@ -90,17 +90,13 @@ export default function AxRenewalPage() {
       {detail && active != null && picker}
 
       {loadError && (
-        <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
-          {loadError}
-        </p>
+        <div role="alert" className="flex items-start gap-3 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3">
+          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+          <p className="text-sm font-medium text-danger">{loadError}</p>
+        </div>
       )}
 
-      {detail && active == null && (
-        // Matches the reference prototype's own `renderView()` once its last
-        // tab is closed (`S.active === null`) — the same plain, unbordered
-        // note, not a card.
-        <p className="text-sm text-muted">No tab open. Pick something from the explorer.</p>
-      )}
+      {detail && active == null && <NoTabOpenState />}
 
       {detail && active != null && (
         <>
@@ -230,7 +226,7 @@ function ProjectPicker({
   }
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-4">
+    <div className="rounded-[10px] border border-border bg-page p-4">
       <div className="flex flex-wrap items-center gap-3">
         <label htmlFor="ax-project" className="text-xs font-semibold text-muted">
           Project
@@ -241,7 +237,7 @@ function ProjectPicker({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+            className="flex items-center gap-1.5 rounded-[10px] border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             New project
@@ -262,14 +258,14 @@ function ProjectPicker({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create"}
           </button>
           <button
             type="button"
             onClick={() => setCreating(false)}
-            className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
+            className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
           >
             Cancel
           </button>
@@ -311,6 +307,40 @@ function NotAnalysedYet({ what }: { what: string }) {
         Press <b className="font-semibold text-dash-ink">Run analysis</b> under Understand → Attach source, and {what}{" "}
         appears here.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Matches the reference prototype's own `renderView()` once its last tab is
+ * closed (`S.active === null`) — this is the main content area's own empty
+ * state, distinct from AxRenewalBreadcrumb's separate "no tab open" label in
+ * the tab-bar strip above, which is untouched by this.
+ *
+ * Two overlapping tab-shaped cards (a plain notch-and-body silhouette, built
+ * from div borders rather than a new SVG/image asset) plus a soft accent
+ * glow and a small cursor dot — the accent tint/border reuse the exact same
+ * blue already established for AX Renewal's active nav pill in both themes
+ * (see .ax-empty-tab-accent/.ax-empty-tab-dot in globals.css), not a new
+ * color.
+ */
+function NoTabOpenState() {
+  return (
+    <div className="flex min-h-[360px] flex-col items-center justify-center gap-4 py-12 text-center">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center" aria-hidden="true">
+        <div className="ax-empty-tab-accent absolute h-24 w-24 rounded-full blur-2xl" />
+        <div className="ax-empty-tab-back absolute left-2 top-4 h-11 w-14 rounded-[6px] border">
+          <div className="ax-empty-tab-back h-2.5 w-5 rounded-t-[6px] border-b" />
+        </div>
+        <div className="ax-empty-tab-accent absolute -left-1 top-0 h-11 w-14 rounded-[6px] border">
+          <div className="ax-empty-tab-accent h-2.5 w-5 rounded-t-[6px] border-b" />
+        </div>
+        <span className="ax-empty-tab-dot absolute bottom-2 right-1 h-2 w-2 rounded-full" />
+      </div>
+      <div>
+        <p className="text-sm font-bold text-dash-ink">No tab open</p>
+        <p className="mt-1 text-xs text-muted">Pick something from the Explorer to get started.</p>
+      </div>
     </div>
   );
 }
