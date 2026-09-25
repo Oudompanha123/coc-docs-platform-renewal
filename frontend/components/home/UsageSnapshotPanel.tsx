@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchDashboard, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
+import { fetchDashboard, type BudgetStatus, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { fill } from "@/lib/i18n/translations";
@@ -13,9 +13,9 @@ function fmt(n: number): string {
   return String(n);
 }
 
-function BudgetBar({ pct }: { pct: number }) {
+function BudgetBar({ pct, status }: { pct: number; status: BudgetStatus }) {
   const clamped = Math.min(pct, 100);
-  const color = pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-400" : "bg-brand-purple";
+  const color = status === "red" ? "bg-red-500" : status === "amber" ? "bg-amber-400" : "bg-brand-purple";
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
       <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${clamped}%` }} />
@@ -89,9 +89,10 @@ export function UsageSnapshotPanel() {
     );
   }
 
-  // Real data
-  const pct = Math.round(me.budgetPct * 100);
-  const pctColor = pct >= 100 ? "text-red-500" : pct >= 80 ? "text-amber-500" : "text-brand-purple";
+  // Real data. `budgetPct` already IS the percentage (e.g. 45 for 45%) --
+  // never multiply it by 100 again.
+  const pct = me.budgetPct;
+  const pctColor = me.budgetStatus === "red" ? "text-red-500" : me.budgetStatus === "amber" ? "text-amber-500" : "text-brand-purple";
 
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm">
@@ -120,7 +121,7 @@ export function UsageSnapshotPanel() {
 
         {me.totalTokens > 0 && (
           <div className="mt-3">
-            <BudgetBar pct={pct} />
+            <BudgetBar pct={pct} status={me.budgetStatus} />
             <p className="mt-1 text-xs text-muted">
               {fill(t.panels.tokensUsed, { used: fmt(me.totalTokens), total: fmt(me.effectiveBudgetTokens) })}
             </p>

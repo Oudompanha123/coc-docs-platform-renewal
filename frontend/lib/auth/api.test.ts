@@ -2,12 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
+  SessionExpiredError,
   changePassword,
+  createUsageToken,
   forgotPassword,
+  listUsageTokens,
   loginWithPassword,
   me,
   register,
   resendRegistrationCode,
+  revokeUsageToken,
   verifyRegistrationCode,
 } from "./api";
 
@@ -316,5 +320,84 @@ describe("changePassword", () => {
     await expect(
       changePassword("NewPassword456!", "NewPassword456!", "WrongPassword!!!"),
     ).rejects.toThrow("your current password is incorrect");
+  });
+});
+
+describe("listUsageTokens", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns the caller's own tokens, never a raw bearer value", async () => {
+    const body = [{ id: "tok-1", label: "MacBook Pro", createdAt: "2026-09-01T00:00:00Z", lastUsedAt: null }];
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await listUsageTokens();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/me/usage-tokens"),
+      expect.objectContaining({ credentials: "include" }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("throws SessionExpiredError, not a generic failure, on a 401", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 401 })));
+
+    await expect(listUsageTokens()).rejects.toBeInstanceOf(SessionExpiredError);
+  });
+});
+
+describe("createUsageToken", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("posts the label and returns the minted token, raw value included", async () => {
+    const body = { id: "tok-2", label: "My Laptop", token: "coc_abc123", createdAt: "2026-09-23T00:00:00Z" };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createUsageToken("My Laptop");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/me/usage-tokens"),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ label: "My Laptop" }) }),
+    );
+    expect(result).toEqual(body);
+  });
+
+  it("surfaces the backend's own detail on a rejected label", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ detail: "label is required" }, { ok: false, status: 400 })),
+    );
+
+    await expect(createUsageToken("   ")).rejects.toThrow("label is required");
+  });
+});
+
+describe("revokeUsageToken", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("DELETEs the one token by id", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await revokeUsageToken("tok-1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/me/usage-tokens/tok-1"),
+      expect.objectContaining({ method: "DELETE", credentials: "include" }),
+    );
+  });
+
+  it("throws SessionExpiredError on a 401", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 401 })));
+
+    await expect(revokeUsageToken("tok-1")).rejects.toBeInstanceOf(SessionExpiredError);
   });
 });

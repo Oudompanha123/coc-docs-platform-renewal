@@ -31,6 +31,22 @@ export function SectionsForm({
     onChange({ ...value, sections: moveItem(value.sections, index, direction) });
   }
 
+  function addDownload(sectionIndex: number) {
+    const section = value.sections[sectionIndex]!;
+    updateSection(sectionIndex, { downloads: [...(section.downloads ?? []), { label: "", href: "" }] });
+  }
+
+  function updateDownload(sectionIndex: number, downloadIndex: number, patch: Partial<{ label: string; href: string }>) {
+    const section = value.sections[sectionIndex]!;
+    const downloads = (section.downloads ?? []).map((d, i) => (i === downloadIndex ? { ...d, ...patch } : d));
+    updateSection(sectionIndex, { downloads });
+  }
+
+  function removeDownload(sectionIndex: number, downloadIndex: number) {
+    const section = value.sections[sectionIndex]!;
+    updateSection(sectionIndex, { downloads: (section.downloads ?? []).filter((_, i) => i !== downloadIndex) });
+  }
+
   return (
     <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-[30px] py-0">
       <FormField label="Eyebrow">
@@ -126,6 +142,46 @@ export function SectionsForm({
                   value={section.exampleCommand ?? ""}
                   onChange={(e) => updateSection(i, { exampleCommand: e.target.value })}
                 />
+              </div>
+
+              <div className="mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted">Downloads (optional)</span>
+                  <button
+                    type="button"
+                    onClick={() => addDownload(i)}
+                    className="rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-dash-ink hover:bg-page"
+                  >
+                    + Add file
+                  </button>
+                </div>
+                {(section.downloads ?? []).length > 0 && (
+                  <div className="mt-1.5 space-y-1.5">
+                    {(section.downloads ?? []).map((d, di) => (
+                      <div key={di} className="flex items-center gap-1.5">
+                        <input
+                          className={`${fieldInputClass} min-w-0 flex-1`}
+                          placeholder="Button label, e.g. fix-node-ca.ps1"
+                          value={d.label}
+                          onChange={(e) => updateDownload(i, di, { label: e.target.value })}
+                        />
+                        <input
+                          className={`${fieldInputClass} min-w-0 flex-1 font-mono`}
+                          placeholder="/downloads/fix-node-ca.ps1"
+                          value={d.href}
+                          onChange={(e) => updateDownload(i, di, { href: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeDownload(i, di)}
+                          className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}

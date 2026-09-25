@@ -113,7 +113,7 @@ people said to each other about a plan they later signed off on.
 
 ## 6. References
 
-- Related code: `backend/src/main/resources/db/migration/V43__ax_renewal_comment_soft_delete.sql`,
+- Related code: `backend/src/main/resources/db/migration/V45__ax_renewal_comment_soft_delete.sql`,
   `AxRenewalCommentRepository#findLive/#softDelete`, `AxRenewalService#deleteComment`,
   `web/AxRenewalController#deleteComment`, `config/SecurityConfig` (the DELETE matcher),
   `audit/AuditAction#AX_RENEWAL_COMMENT_DELETE`,

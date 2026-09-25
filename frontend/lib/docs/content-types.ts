@@ -36,11 +36,22 @@ export type HeroContent = {
   closingNote?: string;
 };
 
+export type DownloadLink = {
+  label: string;
+  /** Same-origin path under `public/` (e.g. `/downloads/push-usage.mjs`) —
+   *  never an external URL, so the `download` attribute reliably saves the
+   *  file instead of the browser navigating to it. */
+  href: string;
+};
+
 export type StepData = {
   title: string;
   body: string;
   command?: string;
   output?: string;
+  /** Files a reader can grab for this step — rendered as buttons below the
+   *  body text, above any command block. */
+  downloads?: DownloadLink[];
 };
 
 export type StepsContent = {
@@ -59,6 +70,10 @@ export type SectionData = {
   command?: string;
   exampleLabel?: string;
   exampleCommand?: string;
+  /** Files a reader can grab for this section — same shape and rendering as
+   *  {@link StepData.downloads}, added for sections that ship a helper script
+   *  rather than just a copyable command. */
+  downloads?: DownloadLink[];
 };
 
 export type SectionsContent = {

@@ -21,6 +21,22 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
     onChange({ ...value, steps: [...value.steps, { title: "", body: "" }] });
   }
 
+  function addDownload(stepIndex: number) {
+    const step = value.steps[stepIndex]!;
+    updateStep(stepIndex, { downloads: [...(step.downloads ?? []), { label: "", href: "" }] });
+  }
+
+  function updateDownload(stepIndex: number, downloadIndex: number, patch: Partial<{ label: string; href: string }>) {
+    const step = value.steps[stepIndex]!;
+    const downloads = (step.downloads ?? []).map((d, i) => (i === downloadIndex ? { ...d, ...patch } : d));
+    updateStep(stepIndex, { downloads });
+  }
+
+  function removeDownload(stepIndex: number, downloadIndex: number) {
+    const step = value.steps[stepIndex]!;
+    updateStep(stepIndex, { downloads: (step.downloads ?? []).filter((_, i) => i !== downloadIndex) });
+  }
+
   function moveStep(index: number, direction: -1 | 1) {
     onChange({ ...value, steps: moveItem(value.steps, index, direction) });
   }
@@ -132,6 +148,46 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
                 value={step.output ?? ""}
                 onChange={(e) => updateStep(i, { output: e.target.value })}
               />
+
+              <div className="mt-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted">Downloads (optional)</span>
+                  <button
+                    type="button"
+                    onClick={() => addDownload(i)}
+                    className="rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-dash-ink hover:bg-page"
+                  >
+                    + Add file
+                  </button>
+                </div>
+                {(step.downloads ?? []).length > 0 && (
+                  <div className="mt-1.5 space-y-1.5">
+                    {(step.downloads ?? []).map((d, di) => (
+                      <div key={di} className="flex items-center gap-1.5">
+                        <input
+                          className={`${fieldInputClass} min-w-0 flex-1`}
+                          placeholder="Button label, e.g. push-usage.mjs"
+                          value={d.label}
+                          onChange={(e) => updateDownload(i, di, { label: e.target.value })}
+                        />
+                        <input
+                          className={`${fieldInputClass} min-w-0 flex-1 font-mono`}
+                          placeholder="/downloads/push-usage.mjs"
+                          value={d.href}
+                          onChange={(e) => updateDownload(i, di, { href: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeDownload(i, di)}
+                          className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>

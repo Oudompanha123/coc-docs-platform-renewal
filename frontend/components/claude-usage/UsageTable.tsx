@@ -1,6 +1,4 @@
-import { avatarColorFor, formatLastActive, type ClaudeUsageMember, type TeamRole } from "@/lib/admin/claudeUsage";
-import { RolePill } from "./RolePill";
-import { TrackingStatusBadge } from "./TrackingStatusBadge";
+import { avatarColorFor, formatLastActive, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -16,19 +14,28 @@ function formatCost(n: number): string {
  *  users-roles/AccountsTable.tsx — different columns for this page's
  *  per-user token/cost/soft-budget data. Every figure here (totals, cost,
  *  budgetPct) is read straight off the API's period rollup, not recomputed
- *  client-side — the scaling that budgetPct depends on lives server-side. */
-export function UsageTable({
-  members,
-  onRoleChange,
-  onRemove,
-}: {
-  members: ClaudeUsageMember[];
-  onRoleChange: (member: ClaudeUsageMember, role: TeamRole) => void;
-  onRemove: (member: ClaudeUsageMember) => void;
-}) {
+ *  client-side — the scaling that budgetPct depends on lives server-side.
+ *
+ *  Reference-tool parity: only people who actually reported tokens in the
+ *  selected period appear here, same as the original tool's UserTable —
+ *  someone tracked but quiet this period simply isn't a row. Role/Remove and
+ *  budget-override management for the full roster (including anyone with no
+ *  activity this period) live in {@link TeamRosterPanel} and
+ *  {@link BudgetOverridesPanel} instead, which are period-independent. */
+export function UsageTable({ members }: { members: ClaudeUsageMember[] }) {
+  const reporting = members.filter((m) => m.totalTokens > 0);
+
+  if (reporting.length === 0) {
+    return (
+      <div className="rounded-[10px] border border-border bg-page px-4 py-8 text-center text-sm text-muted">
+        No usage reported by anyone in this period.
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-x-auto overflow-y-hidden rounded-[10px] border border-border">
-      <table className="w-full min-w-[960px] text-left text-sm">
+      <table className="w-full min-w-[820px] text-left text-sm">
         <thead>
           <tr className="border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted">
             <th className="px-4 py-3">Person</th>
@@ -38,16 +45,13 @@ export function UsageTable({
             <th className="px-4 py-3">API Cost</th>
             <th className="px-4 py-3">Soft Budget</th>
             <th className="px-4 py-3">Last Active</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Role</th>
-            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {members.map((member, index) => {
+          {reporting.map((member, index) => {
             const pct = member.budgetPct;
-            const overBudget = pct >= 100;
-            const nearBudget = pct >= 80 && !overBudget;
+            const isAmber = member.budgetStatus === "amber";
+            const isRed = member.budgetStatus === "red";
 
             return (
               <tr key={member.id} className="transition-colors hover:bg-[#f8fafc]">
@@ -65,7 +69,16 @@ export function UsageTable({
                         .toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-dash-ink">{member.displayName}</p>
+                      <p className="flex items-center gap-1.5 truncate font-semibold text-dash-ink">
+                        {member.displayName}
+                        {/* Budget status (green/amber/red), never a roster/tracking status --
+                            a nudge to hand off work before hitting the wall. */}
+                        {isRed && (
+                          <span className="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-danger">
+                            Hand off
+                          </span>
+                        )}
+                      </p>
                       <p className="truncate text-xs text-muted">{member.email}</p>
                     </div>
                   </div>
@@ -83,47 +96,16 @@ export function UsageTable({
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-20 overflow-hidden rounded-full bg-page">
                       <div
-                        className={`h-full rounded-full ${
-                          overBudget ? "bg-danger" : nearBudget ? "bg-[#e0873c]" : "bg-gradient-to-r from-brand-purple to-brand-blue"
-                        }`}
+                        className={`h-full rounded-full ${isRed ? "bg-danger" : isAmber ? "bg-[#e0873c]" : "bg-[#1f9d6b]"}`}
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
-                    <span
-                      className={`text-xs font-semibold ${
-                        overBudget ? "text-danger" : nearBudget ? "text-[#e0873c]" : "text-muted"
-                      }`}
-                    >
+                    <span className={`text-xs font-semibold ${isRed ? "text-danger" : isAmber ? "text-[#e0873c]" : "text-muted"}`}>
                       {pct}%
                     </span>
                   </div>
                 </td>
                 <td className="px-4 py-4 text-xs text-muted">{formatLastActive(member.lastActiveAt)}</td>
-                <td className="px-4 py-4">
-                  <TrackingStatusBadge status={member.status} />
-                </td>
-                <td className="px-4 py-4">
-                  <RolePill
-                    role={member.teamRole}
-                    disabled={member.status === "removed"}
-                    onChange={(role) => onRoleChange(member, role)}
-                  />
-                </td>
-                <td className="px-4 py-4 text-right">
-                  {member.status !== "removed" ? (
-                    <button
-                      type="button"
-                      onClick={() => onRemove(member)}
-                      className="inline-flex items-center rounded-full bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
-                    >
-                      Remove
-                    </button>
-                  ) : (
-                    <span className="inline-flex cursor-not-allowed items-center rounded-full bg-page px-4 py-1.5 text-sm font-semibold text-muted">
-                      Removed
-                    </span>
-                  )}
-                </td>
               </tr>
             );
           })}
