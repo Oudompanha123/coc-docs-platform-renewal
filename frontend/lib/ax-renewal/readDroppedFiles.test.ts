@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readDroppedFiles, supportsDirectoryDrop } from "./readDroppedFiles";
+import { readDroppedFiles, readPickedDirectory, supportsDirectoryDrop, supportsDirectoryPicker } from "./readDroppedFiles";
 
 /** A minimal fake implementing just the FileSystemFileEntry shape this module reads. */
 function fakeFileEntry(name: string, content = "x"): FileSystemFileEntry {
@@ -141,5 +141,89 @@ describe("skipped directories", () => {
     const files = await readDroppedFiles(itemsOf([dropped]));
 
     expect(files.map((f) => f.name)).toEqual(["distribution.ts", "build-tools.ts"]);
+  });
+});
+
+/** A minimal fake implementing just the FileSystemFileHandle shape readPickedDirectory reads. */
+function fakeFileHandle(name: string, content = "x"): FileSystemFileHandle {
+  return {
+    kind: "file",
+    name,
+    getFile: async () => new File([content], name),
+  } as unknown as FileSystemFileHandle;
+}
+
+/** A minimal fake implementing just the FileSystemDirectoryHandle shape readPickedDirectory reads — an async-iterable `entries()`, the way a real handle's is. */
+function fakeDirHandle(name: string, children: [string, FileSystemFileHandle | FileSystemDirectoryHandle][]): FileSystemDirectoryHandle {
+  return {
+    kind: "directory",
+    name,
+    entries: () =>
+      (async function* () {
+        for (const entry of children) yield entry;
+      })(),
+  } as unknown as FileSystemDirectoryHandle;
+}
+
+/**
+ * readPickedDirectory is the fix for the bug readDroppedFiles above never
+ * had: `<input webkitdirectory>`'s own FileList enumeration can come back
+ * completely empty for a folder living in a cloud-synced location (OneDrive
+ * Files On-Demand) even though the folder reads back fine here — because
+ * this reads the real filesystem one directory handle at a time, the same
+ * way the drag-and-drop walk above reads it one entry at a time, rather than
+ * through whatever internal listing the <input> element uses.
+ */
+describe("readPickedDirectory", () => {
+  it("reads a picked folder's contents recursively, with the same webkitRelativePath shape a drop produces", async () => {
+    const root = fakeDirHandle("Sample Project Portfolio", [
+      ["index.html", fakeFileHandle("index.html")],
+      ["styles.css", fakeFileHandle("styles.css")],
+      [
+        "src",
+        fakeDirHandle("src", [
+          ["app.js", fakeFileHandle("app.js")],
+          ["logo.png", fakeFileHandle("logo.png")],
+        ]),
+      ],
+    ]);
+
+    const files = await readPickedDirectory(root);
+
+    expect(files).toHaveLength(4);
+    const paths = files.map((f) => f.webkitRelativePath).sort();
+    expect(paths).toEqual([
+      "Sample Project Portfolio/index.html",
+      "Sample Project Portfolio/src/app.js",
+      "Sample Project Portfolio/src/logo.png",
+      "Sample Project Portfolio/styles.css",
+    ]);
+  });
+
+  it("skips a dependency tree the same way the drag-and-drop walk does", async () => {
+    const root = fakeDirHandle("app", [
+      ["package.json", fakeFileHandle("package.json")],
+      ["node_modules", fakeDirHandle("node_modules", [["dep.js", fakeFileHandle("dep.js")]])],
+    ]);
+
+    const files = await readPickedDirectory(root);
+
+    expect(files.map((f) => f.name)).toEqual(["package.json"]);
+  });
+});
+
+describe("supportsDirectoryPicker", () => {
+  it("is false in an environment with no showDirectoryPicker (jsdom, Firefox, Safari)", () => {
+    expect(supportsDirectoryPicker()).toBe(false);
+  });
+
+  it("is true once the browser exposes showDirectoryPicker", () => {
+    const original = (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker;
+    (window as unknown as { showDirectoryPicker: unknown }).showDirectoryPicker = async () => fakeDirHandle("x", []);
+    try {
+      expect(supportsDirectoryPicker()).toBe(true);
+    } finally {
+      (window as unknown as { showDirectoryPicker: unknown }).showDirectoryPicker = original;
+    }
   });
 });
