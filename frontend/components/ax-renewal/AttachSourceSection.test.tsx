@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { attachManifest, runAnalysis, fetchEngineStatus } = vi.hoisted(() => ({
   attachManifest: vi.fn(),
@@ -64,8 +64,43 @@ function sampleProjectFiles(): File[] {
   return files;
 }
 
+/** A minimal fake implementing just the FileSystemFileHandle shape readPickedDirectory reads. */
+function fakeFileHandle(name: string, content = "x"): FileSystemFileHandle {
+  return { kind: "file", name, getFile: async () => new File([content], name) } as unknown as FileSystemFileHandle;
+}
+
+/** A minimal fake implementing just the FileSystemDirectoryHandle shape readPickedDirectory reads. */
+function fakeDirHandle(
+  name: string,
+  children: [string, FileSystemFileHandle | FileSystemDirectoryHandle][],
+): FileSystemDirectoryHandle {
+  return {
+    kind: "directory",
+    name,
+    entries: () =>
+      (async function* () {
+        for (const entry of children) yield entry;
+      })(),
+  } as unknown as FileSystemDirectoryHandle;
+}
+
+/**
+ * Holds attachManifest's promise open so a test can inspect the transient
+ * scanning/attaching state deterministically before letting the automatic
+ * attach (Choose a different folder/Attach removed — attaching now happens
+ * on its own right after a scan) complete.
+ */
+function deferAttach(): () => void {
+  let resolve!: () => void;
+  attachManifest.mockImplementation(() => new Promise<void>((r) => (resolve = r)));
+  return () => resolve();
+}
+
 describe("AttachSourceSection", () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker;
+  });
 
   it("keeps the folder-only picker (webkitdirectory) working even when it first mounts after the session finishes loading", () => {
     // Mirrors a real page load: canEdit starts false while useSession() is
@@ -84,9 +119,11 @@ describe("AttachSourceSection", () => {
     expect(inputs[1]).not.toHaveAttribute("webkitdirectory");
   });
 
-  it("scans a picked folder and shows the same file-type breakdown, file count, and folder name the reference prototype reports", async () => {
+  it("scans a picked folder, shows the same file-type breakdown/file count/folder name the reference prototype reports, then attaches it automatically", async () => {
+    const resolveAttach = deferAttach();
+    const onChanged = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
-      <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />,
+      <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={onChanged} />,
     );
     const folderInput = container.querySelector('input[type="file"][webkitdirectory]') as HTMLInputElement;
     expect(folderInput).toBeTruthy();
@@ -110,9 +147,81 @@ describe("AttachSourceSection", () => {
 
     const nameLabel = screen.getByText("Name");
     expect(nameLabel.parentElement?.querySelector("b")?.textContent).toBe("Sample Project Portfolio");
+
+    // Reached automatically -- there is no button left to click for this.
+    expect(attachManifest).toHaveBeenCalledWith("p1", null, null, expect.objectContaining({ fileCount: 16 }));
+    expect(screen.queryByRole("button", { name: "Choose a different folder" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Attach" })).not.toBeInTheDocument();
+
+    resolveAttach();
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
+    expect(screen.queryByText("File types found")).not.toBeInTheDocument();
+  });
+
+  it("tells the user when a confirmed folder pick comes back with nothing readable, instead of silently resetting", () => {
+    const { container } = render(
+      <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />,
+    );
+    const folderInput = container.querySelector('input[type="file"][webkitdirectory]') as HTMLInputElement;
+
+    // A `change` event with an empty FileList — the same shape a cloud-synced
+    // folder (OneDrive Files On-Demand, etc.) produces when its files aren't
+    // actually downloaded to this device, distinct from the `cancel` event a
+    // real dialog dismissal fires.
+    Object.defineProperty(folderInput, "files", { value: [], configurable: true });
+    fireEvent.change(folderInput);
+
+    expect(screen.getByRole("alert").textContent).toContain("nothing readable");
+    expect(screen.queryByText("File types found")).not.toBeInTheDocument();
+  });
+
+  it('uses the File System Access API for "Choose a folder" when the browser offers it, never touching the hidden input', async () => {
+    const resolveAttach = deferAttach();
+    const root = fakeDirHandle("Sample Project Portfolio", [
+      ["index.html", fakeFileHandle("index.html")],
+      ["styles.css", fakeFileHandle("styles.css")],
+    ]);
+    const showDirectoryPicker = vi.fn().mockResolvedValue(root);
+    (window as unknown as { showDirectoryPicker: unknown }).showDirectoryPicker = showDirectoryPicker;
+
+    const { container } = render(
+      <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Choose a folder" }));
+
+    await screen.findByText("File types found");
+    expect(showDirectoryPicker).toHaveBeenCalledTimes(1);
+    const folderInput = container.querySelector('input[type="file"][webkitdirectory]') as HTMLInputElement;
+    expect(folderInput.files?.length ?? 0).toBe(0);
+    resolveAttach();
+    await waitFor(() => expect(screen.queryByText("File types found")).not.toBeInTheDocument());
+  });
+
+  it("returns quietly to empty when the File System Access picker is cancelled, the same as dismissing the classic dialog", async () => {
+    const showDirectoryPicker = vi.fn().mockRejectedValue(new DOMException("cancelled", "AbortError"));
+    (window as unknown as { showDirectoryPicker: unknown }).showDirectoryPicker = showDirectoryPicker;
+
+    render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose a folder" }));
+
+    await waitFor(() => expect(showDirectoryPicker).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("File types found")).not.toBeInTheDocument();
+  });
+
+  it("shows the same empty-pick message via the File System Access path when the picked folder has nothing readable", async () => {
+    (window as unknown as { showDirectoryPicker: unknown }).showDirectoryPicker = vi
+      .fn()
+      .mockResolvedValue(fakeDirHandle("Empty", []));
+
+    render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose a folder" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("nothing readable");
   });
 
   it("reads a dropped folder's actual contents, not the single zero-byte pseudo-file plain DataTransfer.files would give", async () => {
+    const resolveAttach = deferAttach();
     const { container } = render(
       <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />,
     );
@@ -154,6 +263,8 @@ describe("AttachSourceSection", () => {
     // The bug this guards against: without directory-entry walking, a
     // dropped folder resolves to one zero-byte, extension-less pseudo-file.
     expect(filesListedLabel.parentElement?.querySelector("b")?.textContent).not.toBe("1");
+    resolveAttach();
+    await waitFor(() => expect(screen.queryByText("File types found")).not.toBeInTheDocument());
   });
 
   it("shows the Analysis complete card with its two actions once analysis exists, matching the reference prototype's copy", () => {

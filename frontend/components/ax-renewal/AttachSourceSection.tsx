@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PaperclipIcon } from "@/components/layout/icons";
 import {
   ATTACH_STAGE_LABELS,
   buildVerification,
@@ -14,7 +13,12 @@ import {
 import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
 import { readUseModel } from "@/lib/ax-renewal/engine-preference";
-import { readDroppedFiles, supportsDirectoryDrop } from "@/lib/ax-renewal/readDroppedFiles";
+import {
+  readDroppedFiles,
+  readPickedDirectory,
+  supportsDirectoryDrop,
+  supportsDirectoryPicker,
+} from "@/lib/ax-renewal/readDroppedFiles";
 
 /** Recognized manifest filenames, matching AxRenewalService's own RUNTIME_HINTS server-side. */
 const MANIFEST_FILENAMES = [
@@ -42,6 +46,12 @@ function findManifest(files: FileList | File[]): File | null {
 }
 
 type Phase = "empty" | "picking" | "scanning" | "reviewing" | "attaching";
+
+/** Shown when a confirmed pick (folder button or drag-and-drop) comes back with no readable files — same wording either way, since the real cause is the same either way (see readDroppedFiles.ts's own doc comment on readPickedDirectory). */
+const EMPTY_PICK_MESSAGE =
+  "That folder came back with nothing readable in it. If it's inside a cloud-synced folder (OneDrive, " +
+  'Google Drive, Dropbox), make sure its files are downloaded to this device — not "available online ' +
+  'only" — then try again.';
 
 /**
  * The Attach step from CodeRenewalPlatform.html, reproduced state for state:
@@ -166,7 +176,8 @@ export function AttachSourceSection({
   async function handleFilesPicked(files: FileList | File[]) {
     stopPickClock();
     setScannedCount(files.length);
-    setPendingFile(findManifest(files));
+    const manifestFile = findManifest(files);
+    setPendingFile(manifestFile);
     setPickedStats(null);
     setPhase("scanning");
     cancelledRef.current = false;
@@ -179,7 +190,7 @@ export function AttachSourceSection({
       return;
     }
     setPickedStats(stats);
-    setPhase("reviewing");
+    await attach(stats, manifestFile);
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -188,9 +199,64 @@ export function AttachSourceSection({
     if (!files || files.length === 0) {
       stopPickClock();
       setPhase("empty");
+      // This fires on `change`, not `cancel` (a real dialog cancel never
+      // reaches here) — so the browser treated the pick as confirmed and
+      // still handed back nothing. The common real cause on Windows: the
+      // folder (or its files) lives in a cloud-synced location — OneDrive
+      // "Files On-Demand" is the classic case — and files not yet downloaded
+      // to this device don't enumerate through the picker at all, even
+      // though Explorer shows them. Silently resetting here is otherwise
+      // indistinguishable from the click having done nothing.
+      setError(EMPTY_PICK_MESSAGE);
       return;
     }
     void handleFilesPicked(files);
+  }
+
+  // The real fix for the empty-FileList problem `handleInputChange` above
+  // reports rather than just explains: `<input webkitdirectory>` builds its
+  // FileList through whatever internal enumeration Chromium uses for that
+  // element, which is where a cloud-synced folder (OneDrive Files On-Demand)
+  // can come back empty. showDirectoryPicker() reads the real filesystem one
+  // directory handle at a time — the same way drag-and-drop's
+  // webkitGetAsEntry() walk already does, which is why dragging a folder in
+  // has never shown this problem. Chrome/Edge only; Firefox and Safari fall
+  // back to the classic input below, unchanged.
+  async function chooseFolderViaFileSystemAccess() {
+    setError(null);
+    setPickWaitSecs(0);
+    setPhase("picking");
+    pickTimerRef.current = setInterval(() => setPickWaitSecs((s) => s + 1), 1000);
+    try {
+      const handle = await window.showDirectoryPicker();
+      stopPickClock();
+      const files = await readPickedDirectory(handle);
+      if (files.length === 0) {
+        setPhase("empty");
+        setError(EMPTY_PICK_MESSAGE);
+        return;
+      }
+      await handleFilesPicked(files);
+    } catch (err) {
+      stopPickClock();
+      // AbortError is a plain cancel (closing the dialog, pressing Escape) —
+      // exactly what the hidden input's own "cancel" event handles for the
+      // fallback path, so it gets the same silent, error-free return here.
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setPhase("empty");
+        return;
+      }
+      setPhase("empty");
+      setError(err instanceof Error ? err.message : "Couldn't read that folder.");
+    }
+  }
+
+  function chooseFolder() {
+    if (supportsDirectoryPicker()) {
+      void chooseFolderViaFileSystemAccess();
+    } else {
+      beginPick(folderInputRef.current);
+    }
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -217,28 +283,29 @@ export function AttachSourceSection({
     cancelledRef.current = true;
   }
 
-  function startOver() {
-    setPendingFile(null);
-    setScannedCount(0);
-    setPickedStats(null);
-    setError(null);
-    setPhase("empty");
-  }
-
+  // Attaching happens automatically right after a scan completes — there is
+  // no manual review step to confirm it from (Choose a different folder/
+  // Attach removed on direct instruction). `stats`/`manifestFile` are taken
+  // as parameters, not read back off state, because the caller only just set
+  // that state this same tick and React would not have committed it yet.
+  //
   // No recognized manifest is a fact about the project (a static site has no
   // package.json), not a reason to refuse the attach — this still records the
   // attach, just with a null filename/content, so `canEdit`'s Run analysis
   // is never blocked behind finding a manifest that was never going to exist.
-  async function handleAttach() {
+  //
+  // On failure this falls back to the empty dropzone rather than leaving the
+  // reviewing panel stranded with no button left to retry or back out from.
+  async function attach(stats: AxRenewalAttachStats, manifestFile: File | null) {
     setPhase("attaching");
     setError(null);
     try {
-      if (pendingFile) {
-        const content = await pendingFile.text();
-        const path = pendingFile.webkitRelativePath || pendingFile.name;
-        await attachManifest(detail.project.id, path, content, pickedStats);
+      if (manifestFile) {
+        const content = await manifestFile.text();
+        const path = manifestFile.webkitRelativePath || manifestFile.name;
+        await attachManifest(detail.project.id, path, content, stats);
       } else {
-        await attachManifest(detail.project.id, null, null, pickedStats);
+        await attachManifest(detail.project.id, null, null, stats);
       }
       setPendingFile(null);
       setScannedCount(0);
@@ -247,7 +314,10 @@ export function AttachSourceSection({
       await onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't attach that project.");
-      setPhase("reviewing");
+      setPendingFile(null);
+      setScannedCount(0);
+      setPickedStats(null);
+      setPhase("empty");
     }
   }
 
@@ -283,8 +353,9 @@ export function AttachSourceSection({
   const alreadyAttached = detail.project.manifestAttachedAt != null;
   const shownStats = pickedStats ?? detail.project.attachStats;
   // Stays true through "attaching" (the POST is in flight) too, not just
-  // "reviewing" — otherwise clicking Attach would unmount this panel, and
-  // the button showing "Attaching…", the instant the click handler fires.
+  // "scanning" — pickedStats isn't cleared until attach() itself finishes
+  // (success or failure), so this panel stays up for the whole automatic
+  // scan-then-attach sequence rather than disappearing partway through it.
   const reviewingOnly = pickedStats != null;
 
   return (
@@ -428,7 +499,7 @@ export function AttachSourceSection({
               <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => beginPick(folderInputRef.current)}
+                  onClick={chooseFolder}
                   className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   Choose a folder
@@ -556,32 +627,11 @@ export function AttachSourceSection({
                   scanned — attaching will record that.
                 </p>
               )}
-              {canEdit && pickedStats && (
-                <div className="flex flex-wrap justify-end gap-3 border-t border-border px-5 py-3.5">
-                  <button
-                    type="button"
-                    onClick={startOver}
-                    disabled={phase === "attaching"}
-                    className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Choose a different folder
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleAttach()}
-                    disabled={phase === "attaching"}
-                    className="flex items-center gap-1.5 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <PaperclipIcon className="h-4 w-4" />
-                    {phase === "attaching" ? "Attaching…" : "Attach"}
-                  </button>
-                </div>
-              )}
               {canEdit && !pickedStats && alreadyAttached && (
                 <div className="flex justify-end border-t border-border px-5 py-3.5">
                   <button
                     type="button"
-                    onClick={() => beginPick(folderInputRef.current)}
+                    onClick={chooseFolder}
                     className="rounded-[5px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
                   >
                     Replace source

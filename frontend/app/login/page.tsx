@@ -122,6 +122,12 @@ function LoginForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Landing on the OTP step means the credentials just passed; the next
+  // thing to type is the code, so send focus there straight away.
+  useEffect(() => {
+    if (step === "otp") document.getElementById("login-otp-code")?.focus();
+  }, [step]);
+
   // A ref, not state: guards against a second click landing between the
   // first click and the state update that disables the button (React state
   // updates are async; this check is synchronous).
@@ -304,7 +310,7 @@ function LoginForm() {
           </div>
         ) : (
           <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
-            <CodeField label="Authentication Code" value={otpCode} onChange={setOtpCode} />
+            <CodeField id="login-otp-code" label="Authentication Code" value={otpCode} onChange={setOtpCode} />
 
             <button
               type="submit"
