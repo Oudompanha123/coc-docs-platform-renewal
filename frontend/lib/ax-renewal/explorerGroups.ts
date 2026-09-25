@@ -167,11 +167,11 @@ export function buildExplorerGroups(
       icon: PlayIcon,
       items: [
         item("implementation", { locked: !analyzed }),
-        // Deferred to a later phase (ADR-037) — a local run/preview needs a
-        // real generated build to point at, which this phase does not
-        // produce. Kept visible, always locked, rather than removed, so the
-        // tree reads the same shape the prototype it replaces used.
-        item("run-locally", { locked: true }),
+        // Unlocked once the latest implementation run has actually reached
+        // applied (ADR-044) -- the real generated build Run Locally needs to
+        // point at (ADR-048). A rebuild re-locks this until the new run is
+        // itself applied, since the destination is presumed mid-change again.
+        item("run-locally", { locked: detail.latestImplementationRun?.status !== "applied" }),
       ],
     },
     {

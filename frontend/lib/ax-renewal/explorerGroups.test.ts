@@ -53,3 +53,59 @@ describe("buildExplorerGroups — Workspace group", () => {
     expect(buildExplorerGroups(null, "super_admin")).toEqual([]);
   });
 });
+
+describe("buildExplorerGroups — Build group's Run Locally lock (ADR-048)", () => {
+  function runLocallyLocked(latestImplementationRun: AxRenewalProjectDetail["latestImplementationRun"]) {
+    const groups = buildExplorerGroups({ ...BASE_DETAIL, latestImplementationRun }, "super_admin");
+    const item = groups.find((g) => g.label === "Build")?.items.find((i) => i.key === "run-locally");
+    return item?.locked;
+  }
+
+  it("stays locked with no implementation run at all", () => {
+    expect(runLocallyLocked(null)).toBe(true);
+  });
+
+  it("stays locked while a run is only awaiting review, not yet applied", () => {
+    expect(
+      runLocallyLocked({
+        id: "r1",
+        status: "awaiting_review",
+        beforeReport: null,
+        afterReport: null,
+        startedAt: "2026-01-01T00:00:00Z",
+        completedAt: null,
+        failureReason: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("unlocks once the latest run has actually reached applied", () => {
+    expect(
+      runLocallyLocked({
+        id: "r1",
+        status: "applied",
+        beforeReport: null,
+        afterReport: null,
+        startedAt: "2026-01-01T00:00:00Z",
+        completedAt: "2026-01-01T00:05:00Z",
+        failureReason: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("re-locks once a rebuild starts, even though an earlier run was applied", () => {
+    // The rebuild itself is "the latest run" now, and it is not applied yet --
+    // the destination is presumed mid-change again until it is.
+    expect(
+      runLocallyLocked({
+        id: "r2",
+        status: "generating",
+        beforeReport: null,
+        afterReport: null,
+        startedAt: "2026-01-02T00:00:00Z",
+        completedAt: null,
+        failureReason: null,
+      }),
+    ).toBe(true);
+  });
+});
