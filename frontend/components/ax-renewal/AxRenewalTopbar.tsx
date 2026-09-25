@@ -21,6 +21,9 @@ type AxRenewalTopbarProps = {
  * per `useAxRenewalProject`'s own doc comment) so it needs no prop wiring
  * through the layout — same pattern as `AxRenewalSidebar`/`AxRenewalStatusBar`.
  *
+ * The theme toggle moved to AxRenewalSidebar's own header; the
+ * notifications bell was removed entirely. Tabs stay here.
+ *
  * `sticky top-0` pins it to the top of the viewport while `main` scrolls
  * beneath it — the prototype achieves the same fixed-tabs effect with a
  * fixed-height grid shell where only `.view` scrolls, but this app's shell
@@ -54,7 +57,7 @@ export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="shrink-0 rounded-[5px] p-3 text-dash-ink transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple lg:hidden"
+          className="shrink-0 rounded-[10px] p-3 text-dash-ink transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple lg:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>
