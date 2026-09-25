@@ -17,11 +17,13 @@ vi.mock("@/lib/auth/api", async () => {
   return { ...actual, listUsageTokens, createUsageToken, revokeUsageToken };
 });
 
-const { downloadReporterConfig } = vi.hoisted(() => ({ downloadReporterConfig: vi.fn() }));
+const { downloadPersonalizedScript } = vi.hoisted(() => ({ downloadPersonalizedScript: vi.fn() }));
 vi.mock("@/lib/admin/reporterConfig", async () => {
   const actual = await vi.importActual<typeof import("@/lib/admin/reporterConfig")>("@/lib/admin/reporterConfig");
-  return { ...actual, downloadReporterConfig };
+  return { ...actual, downloadPersonalizedScript };
 });
+
+const SCRIPT_TEMPLATE = "#!/usr/bin/env node\nconst EMBEDDED_CONFIG = null;\n";
 
 const sessionUser: MeResponse = {
   id: "acct-1",
@@ -56,6 +58,10 @@ beforeEach(() => {
   // both, for every mock, spy or not.
   vi.resetAllMocks();
   listUsageTokens.mockResolvedValue([EXISTING_TOKEN]);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve(SCRIPT_TEMPLATE) }),
+  );
 });
 
 describe("DownloadConfigPanel", () => {
@@ -66,7 +72,7 @@ describe("DownloadConfigPanel", () => {
     expect(screen.queryByText(/coc_/)).not.toBeInTheDocument();
   });
 
-  it("mints a token, downloads the config built from it, and never puts the raw value in the DOM", async () => {
+  it("mints a token, fetches the script template, downloads the personalized script, and never puts the raw value in the DOM", async () => {
     const minted: MintedUsageToken = {
       id: "tok-2",
       label: "My Laptop",
@@ -84,14 +90,18 @@ describe("DownloadConfigPanel", () => {
     await user.click(screen.getByRole("button", { name: /generate & download/i }));
 
     await waitFor(() => expect(createUsageToken).toHaveBeenCalledWith("My Laptop"));
-    expect(downloadReporterConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        USER_EMAIL: "dana@example.com",
-        USER_NAME: "Dana Lee",
-        INGEST_SECRET: "coc_abcdef0123456789", // gitleaks:allow — fixture, not a credential
-      }),
+    expect(fetch).toHaveBeenCalledWith("/downloads/push-usage.mjs");
+    await waitFor(() =>
+      expect(downloadPersonalizedScript).toHaveBeenCalledWith(
+        expect.stringContaining('"INGEST_SECRET":"coc_abcdef0123456789"'), // gitleaks:allow — fixture, not a credential
+      ),
     );
+    const downloadedScript = downloadPersonalizedScript.mock.calls[0]?.[0] as string;
+    expect(downloadedScript).toContain('"USER_EMAIL":"dana@example.com"');
+    expect(downloadedScript).not.toContain("const EMBEDDED_CONFIG = null;");
+
     expect(await screen.findByText(/downloaded/i)).toBeInTheDocument();
+    expect(await screen.findByText(/treat it like a password/i)).toBeInTheDocument();
     expect(screen.queryByText("coc_abcdef0123456789")).not.toBeInTheDocument();
   });
 
@@ -105,7 +115,26 @@ describe("DownloadConfigPanel", () => {
     await user.click(screen.getByRole("button", { name: /generate & download/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't generate a token. Please try again.");
-    expect(downloadReporterConfig).not.toHaveBeenCalled();
+    expect(downloadPersonalizedScript).not.toHaveBeenCalled();
+  });
+
+  it("shows a clear error when the script template can't be fetched, without downloading a partial file", async () => {
+    createUsageToken.mockResolvedValue({
+      id: "tok-2",
+      label: "My Laptop",
+      token: "coc_abcdef0123456789", // gitleaks:allow — fixture, not a credential
+      createdAt: "2026-09-23T00:00:00Z",
+    } satisfies MintedUsageToken);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+
+    const user = userEvent.setup();
+    render(<DownloadConfigPanel />);
+    await screen.findByText("Work Desktop");
+
+    await user.click(screen.getByRole("button", { name: /generate & download/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't load the reporter script/i);
+    expect(downloadPersonalizedScript).not.toHaveBeenCalled();
   });
 
   it("revokes a token after the confirm prompt, and refreshes the list", async () => {
