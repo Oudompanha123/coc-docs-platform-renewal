@@ -250,6 +250,18 @@ export function DatabaseSection({
 
       {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
+      {!connection && changes.length === 0 && confirmation == null && (
+        <p className="mt-4 rounded-xl border border-border bg-page px-3 py-2 text-xs text-muted">
+          If this renewal doesn&apos;t use a database at all, you don&apos;t need to fill anything in above — confirm
+          this section as-is to record <strong>No database required</strong>, rather than leaving it pending.
+        </p>
+      )}
+      {!connection && changes.length === 0 && confirmation != null && (
+        <p className="mt-4 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+          Confirmed as <strong>No database required</strong> — this renewal doesn&apos;t use a database.
+        </p>
+      )}
+
       <ConfirmationBar
         section="database"
         confirmation={confirmation}

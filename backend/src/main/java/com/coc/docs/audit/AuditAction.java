@@ -122,6 +122,11 @@ public final class AuditAction {
     public static final String CLAUDE_USAGE_MEMBER_BUDGET_CHANGE = "claude_usage_member.budget_change";
     public static final String CLAUDE_USAGE_MEMBER_REMOVE = "claude_usage_member.remove";
 
+    /** An account minted or revoked its own {@code /api/ingest} bearer token (V35, ADR-047). */
+    public static final String CLAUDE_USAGE_INGEST_TOKEN_CREATE = "claude_usage_ingest_token.create";
+
+    public static final String CLAUDE_USAGE_INGEST_TOKEN_REVOKE = "claude_usage_ingest_token.revoke";
+
     /** AX Renewal actions (ADR-037) — a legacy-migration planning workspace, its plan and its implementation runs. */
     public static final String AX_RENEWAL_PROJECT_CREATE = "ax_renewal.project_create";
 
@@ -135,7 +140,19 @@ public final class AuditAction {
     public static final String AX_RENEWAL_DESTINATION_SET = "ax_renewal.destination_set";
     public static final String AX_RENEWAL_SECTION_CONFIRM = "ax_renewal.section_confirm";
     public static final String AX_RENEWAL_IMPLEMENTATION_START = "ax_renewal.implementation_start";
+    public static final String AX_RENEWAL_IMPLEMENTATION_APPROVE = "ax_renewal.implementation_approve";
+    public static final String AX_RENEWAL_IMPLEMENTATION_REJECT = "ax_renewal.implementation_reject";
     public static final String AX_RENEWAL_COMMENT_ADD = "ax_renewal.comment_add";
+
+    /**
+     * A comment hidden from a project's thread (ADR-045). Soft: the row
+     * stays, so this entry and the {@code comment_add} before it still refer
+     * to something that exists. {@code detail} carries {@code commentId} and
+     * {@code ownComment} — whether somebody removed their own remark or a
+     * {@code super_admin} removed another person's, which is the part a
+     * reader of this log will actually want to know.
+     */
+    public static final String AX_RENEWAL_COMMENT_DELETE = "ax_renewal.comment_delete";
 
     /** Target types, for the {@code target_type} column. */
     public static final String TARGET_PAGE = "page";
@@ -161,6 +178,8 @@ public final class AuditAction {
     public static final String TARGET_NAV_ITEM = "nav_item";
 
     public static final String TARGET_CLAUDE_USAGE_MEMBER = "claude_usage_member";
+
+    public static final String TARGET_CLAUDE_USAGE_INGEST_TOKEN = "claude_usage_ingest_token";
 
     public static final String TARGET_AX_RENEWAL_PROJECT = "ax_renewal_project";
 }

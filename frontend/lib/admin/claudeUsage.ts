@@ -20,6 +20,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:808
 export type TeamRole = "admin" | "member";
 export type TrackingStatus = "active" | "invited" | "removed";
 export type Period = "day" | "week" | "month";
+/** Soft-budget zone for the selected period — green/amber/red, computed server-side
+ *  from `budgetPct` (ClaudeUsageMemberUsage#budgetStatus) so the near-limit stat,
+ *  the table's progress bar, and the "hand off" nudge can never disagree. */
+export type BudgetStatus = "green" | "amber" | "red";
 
 /** One roster member, rolled up over the requested period. */
 export interface ClaudeUsageMember {
@@ -34,6 +38,8 @@ export interface ClaudeUsageMember {
   effectiveBudgetTokens: number;
   /** `totalTokens / effectiveBudgetTokens`, rounded — read this directly rather than recomputing it. */
   budgetPct: number;
+  /** Read this rather than re-deriving thresholds client-side — see {@link BudgetStatus}. */
+  budgetStatus: BudgetStatus;
   modelsUsed: string[];
   /** ISO instant of the latest report in range, or null if nothing was reported in this window. */
   lastActiveAt: string | null;

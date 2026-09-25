@@ -858,45 +858,55 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
   [contentId("usage", "setup-guide")]: {
     kind: "steps",
     eyebrow: "Setup guide",
-    heading: "Start reporting your Claude Code usage.",
+    heading: "Report your Claude Code usage to the team dashboard.",
     intro:
-      "Each teammate follows these steps once on their own machine. No server-side changes are needed after your admin deploys the backend.",
+      "Ten minutes, once per machine. The dashboard only knows what each machine tells it — nothing here reads anyone else's Anthropic account. If you don't run the reporter, you simply don't appear.",
+    calloutTone: "info",
+    calloutText:
+      "**What gets sent** — your name and email, the date, today's token counts, and which models, as daily totals only (one row per person per day). **Never sent** — prompts, code, file names, project names, per-message rows, transcripts, or anything Anthropic holds.",
     steps: [
       {
-        title: "Get the reporter files",
-        body: "Locate **`tools/claude-usage-reporter/`** in the team repository. You need: `push-usage.mjs`, `claude-usage.config.example.json`, and on Windows: `run-push-usage.cmd` + `run-push-usage.vbs`.",
+        title: "Download the script",
+        body: "No clone, no install, no build step. **Node 20 or newer**, and one rule: **the config goes in the same folder** — the script looks for it right next to itself.\n\nDownload **push-usage.mjs** below (or get it from `tools/claude-usage-reporter/` in the team repository). That is the only file you need if you get your config the fast way in the next step — grab **claude-usage.config.example.json** too only if you are filling it in by hand.\n\nSkip this and the script only asks for **USER_EMAIL** — without INGEST_URL/INGEST_SECRET it still runs, just as a local preview that sends nothing.",
+        downloads: [
+          { label: "push-usage.mjs", href: "/downloads/push-usage.mjs" },
+          { label: "claude-usage.config.example.json", href: "/downloads/claude-usage.config.example.json" },
+        ],
       },
       {
-        title: "Install Node.js",
-        body: "The reporter requires **Node.js 18 or later**. Check with `node --version` in a terminal. If the command is not found, download and install Node.js from **nodejs.org**, then restart your terminal.",
-        command: "node --version",
+        title: "Get your config",
+        body: "**Fastest** — on the dashboard, open **Claude Usage → Download Config**, label the machine (e.g. \"My Laptop\"), and click **Generate & Download**. That downloads `claude-usage.config.json` already filled in with your email, your name, the dashboard's ingest URL, and a personal token scoped to just your own account — nothing to type, nobody to ask, and you can revoke it later from the same panel if a laptop is retired.\n\n**By hand** — rename `claude-usage.config.example.json` to `claude-usage.config.json` and fill in the three values yourself. Ask whoever set up the dashboard for the shared secret (or paste in a personal token from Download Config instead of it), and leave **USER_NAME** out — the first run in a terminal asks for it once, then saves it, so scheduled runs never prompt. Environment variables of the same names override the file, if you prefer either way.",
+        command: '{\n  "USER_EMAIL": "you@company.com",\n  "USER_NAME": "Your Name",\n  "INGEST_URL": "https://your-backend.com/api/ingest",\n  "INGEST_SECRET": "<ask the team, or paste your personal token from Download Config>"\n}',
       },
       {
-        title: "Create your config file",
-        body: "Copy `claude-usage.config.example.json` → `claude-usage.config.json` in the same folder. Open the new file in any text editor and fill in the four values below.\n\n**USER_EMAIL** — your Coc Docs Platform account email, the same one you use to sign in (e.g. `you@company.com`). This is how the dashboard identifies you.\n\n**USER_NAME** — your display name as it will appear on the Claude Usage dashboard (e.g. `Sam Sophanna`).\n\n**INGEST_URL** — the backend endpoint that receives your usage data. Contact your **admin or super admin** to get this URL. It looks like `https://your-backend.com/api/ingest`.\n\n**INGEST_SECRET** — a shared secret that proves you are a trusted team member. **Contact your admin or super admin** to get this value — they hold it and share it with each teammate individually. Without it the reporter cannot send data.",
+        title: "Check it first — nothing is sent",
+        body: "A dry run prints exactly what *would* be sent and posts nothing.\n\nCompare the total against `ccusage` or `/usage` inside Claude Code. Add `--verbose` if you want to see how many files and responses it read.",
+        command: "node push-usage.mjs --dry-run",
       },
       {
-        title: "Test with a dry run",
-        body: "Open a terminal in the reporter folder and run the command below. It reads your **`~/.claude/projects`** transcripts and prints what it *would* send — without posting anything. Confirm you see today's token count in the output.",
-        command: "node push-usage.mjs --dry-run --verbose",
-      },
-      {
-        title: "Send your first report",
-        body: "Run the reporter for real. On the first interactive run it confirms your display name once and saves it, then POSTs today's token total to the backend. A success message shows the count submitted.",
+        title: "Push it",
+        body: "No flags. This is the one that actually sends.\n\nNow run it again. The dashboard must still show one row for today with the same total — the script recomputes the whole day and overwrites, so a double run changes nothing. That is the check worth doing, because it is what makes the every-10-minutes schedule safe.",
         command: "node push-usage.mjs",
+        output: "sent 428818 tokens for 2026-08-27 (Your Name <you@company.com>)",
       },
       {
-        title: "Verify in Claude Usage",
-        body: "Open **Claude Usage** from the sidebar (admin and super admin only). Your name should appear in the **per-user table** with today's token count and API-equivalent cost within a few seconds.",
+        title: "Schedule it every 10 minutes",
+        body: '**Windows** — download the two wrapper files below into the same folder as the script, then register the task so it runs the `.vbs` (not `push-usage.mjs` directly): the `.vbs` launches `run-push-usage.cmd` with no console window, and the `.cmd` runs Node and appends each result to `push-usage.log` next to it, so a scheduled run leaves a trail you can check without opening Task Scheduler. The `.cmd` assumes Node is installed at `C:\\Program Files\\nodejs\\node.exe` — open it in a text editor and fix that one line first if yours lives elsewhere.\n\n**Linux** — `crontab -e`:\n`*/10 * * * * USER_EMAIL=you@company.com INGEST_URL=https://your-backend.com/api/ingest INGEST_SECRET=xxx /usr/bin/node /home/you/push-usage.mjs`\n\n**macOS** — a plist in `~/Library/LaunchAgents/` with `StartInterval` 600 and the three values under `EnvironmentVariables`, then `launchctl load` it.',
+        downloads: [
+          { label: "run-push-usage.cmd", href: "/downloads/run-push-usage.cmd" },
+          { label: "run-push-usage.vbs", href: "/downloads/run-push-usage.vbs" },
+        ],
+        command:
+          '$action  = New-ScheduledTaskAction -Execute "wscript.exe" `\n         -Argument "C:\\claude-usage\\run-push-usage.vbs" -WorkingDirectory "C:\\claude-usage"\n$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `\n         -RepetitionInterval (New-TimeSpan -Minutes 10)\nRegister-ScheduledTask -TaskName "Claude usage report" -Action $action -Trigger $trigger `\n         -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopOnIdleEnd)',
       },
       {
-        title: "Schedule daily reporting",
-        body: "To keep the dashboard current automatically:\n\n**Windows** — open Task Scheduler, create a Daily trigger (e.g. 8 PM), and set the action to run `run-push-usage.vbs`. This runs silently with no console window.\n\n**Mac / Linux** — add a cron job: `0 20 * * * cd /path/to/reporter && node push-usage.mjs >> push-usage.log 2>&1`",
+        title: "Backfilling older days",
+        body: "By default the reporter sends **today only** — that is what the scheduled run should keep doing. If you are setting up after already using Claude Code for a while, `--days N` reports the last N days instead, so the history still sitting in your transcripts lands on the dashboard.\n\n• Today, the normal run: `node push-usage.mjs`\n• This week and last: `node push-usage.mjs --days 14`\n• The past month: `node push-usage.mjs --days 30`\n• Everything still on disk: `node push-usage.mjs --days 90`\n\nIt prints one line per day as it goes. Days with no usage are skipped rather than recorded as zero, since a zero is indistinguishable from a machine that never reported. Re-running is safe: every day is an independent upsert keyed on (you, date), so numbers are replaced rather than added.\n\n**It can only recover what is still on your machine.** The reporter reads your Claude Code transcripts in `~/.claude/projects`. Whatever has been pruned from there is gone, so a large `--days` may find fewer days than you expect. Run the backfill once, then leave the schedule on its default.\n\nOn the dashboard, the arrows either side of Day / Week / Month step back through history — that is how you look at last month once it has backfilled.",
+        command: "node push-usage.mjs --dry-run --days 30",
       },
       {
-        title: "Backfill past data (one-time)",
-        body: "To seed the dashboard with history from transcripts still on disk, run with `--days N`. The reporter skips days already submitted.",
-        command: "node push-usage.mjs --days 30",
+        title: "If it doesn't work",
+        body: "The script exits `0` on success and `1` with a one-line reason otherwise, so the scheduler's last-result column is meaningful.\n\n• **rejected (401)** — your `INGEST_SECRET` doesn't match the server's, or it was a personal token that got revoked from Download Config. Generate a fresh one and swap it in.\n• **no ingest route at…** — the URL must end in `/api/ingest`.\n• **a proxy or DLP agent is intercepting HTTPS** — a company HTTPS-inspecting proxy. Fixed once per machine — see Configuration.\n• **cannot resolve the host** — typo in the URL.",
       },
     ],
   },
@@ -908,8 +918,12 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       "Most configuration is **per-reporter** (your local `claude-usage.config.json`) or **per-session** (the time-period toggle on the Claude Usage page). There is nothing to deploy or restart.",
     sections: [
       {
+        title: "What the percentage means",
+        note: "The percentage on the Claude Usage dashboard is **not** an Anthropic limit — Pro/Max plans are rolling 5-hour windows plus a weekly cap, and no API exposes how much is left. It measures usage against a soft budget this team set for itself, to answer **\"is this person burning through more than we planned for the week?\"** For the exact remaining quota, run `/usage` inside Claude Code — that is the only exact source.",
+      },
+      {
         title: "Reporter config file",
-        note: "Copy `claude-usage.config.example.json` → `claude-usage.config.json` next to the script. Environment variables (`USER_EMAIL`, `USER_NAME`, `INGEST_URL`, `INGEST_SECRET`) override file values — useful for CI or Docker.",
+        note: "**Claude Usage → Download Config** generates and downloads this file for you, already filled in — the fastest way to get one. To build it by hand instead, copy `claude-usage.config.example.json` → `claude-usage.config.json` next to the script. Environment variables (`USER_EMAIL`, `USER_NAME`, `INGEST_URL`, `INGEST_SECRET`) override file values either way — useful for CI or Docker.",
       },
       {
         title: "Custom transcript directory",
@@ -920,12 +934,50 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
         note: "The default limit is **1.2 M tokens per person per week**. To override it for a specific person, open **Claude Usage** → scroll to **Soft budget overrides** → enter a new value next to their name. Changes take effect immediately — no redeploy needed.",
       },
       {
+        title: "Near-limit threshold",
+        note: "Each teammate's soft-budget bar is **green** below **70%**, **amber** from **70–89%**, and **red** at **90%** and above, of their effective budget for the selected period — scaled down for Day or up for Month, so the bar means the same thing whichever period is selected. **Near Limit** on the summary counts amber and red together. A red row also gets a **Hand off** tag, a nudge to hand off work before hitting the wall. None of this is an Anthropic API limit, just where this team decided to start paying attention.",
+      },
+      {
+        title: "Counted toward budget",
+        note: "Input and output tokens count toward the weekly budget and the percentage shown. Cache reads and cache writes are recorded and shown on the dashboard, but never counted toward the budget or the percentage.",
+      },
+      {
         title: "Reporting period",
         note: "The **Day / Week / Month** toggle on the Claude Usage page changes how tokens are aggregated. It is a per-session display setting — no configuration file is involved.",
       },
       {
+        title: "Reporting timezone",
+        note: "Every day boundary is computed in **Asia/Phnom_Penh**, fixed for everyone regardless of which timezone a teammate's own machine is set to. This is what makes one person's \"today\" match everyone else's on the dashboard.",
+      },
+      {
+        title: "Week starts",
+        note: "Weeks run **Monday through Sunday**, fixed for everyone — this is not configurable per team or per person.",
+      },
+      {
         title: "Adding teammates",
         note: "Any teammate who runs the reporter at least once is added to the dashboard automatically. No admin action is needed to enrol them — the dashboard picks up whoever sends data.",
+      },
+      {
+        title: "Where the rows live",
+        note: "One row per person per day, in the backend's Postgres database, upserted on **(member, date)** — a repeat report for the same day replaces that row rather than adding to it, so a double-run of the scheduled task can never double-count. Removing someone from the dashboard (Claude Usage → Remove) only hides them from view; it never deletes their history.",
+      },
+      {
+        title: "About the money figure",
+        note: "Everyone here is on a flat-rate Claude plan, so **nobody is billed these amounts**. The figure answers a different question: what would this usage have cost on the Anthropic API? Useful for seeing who is doing the heavy lifting, never actual spend. Pricing is applied per model, in the backend, at real Anthropic API rates (ADR-036) — a mixed Opus-and-Sonnet day is costed correctly rather than averaged, and a price change takes effect on the next deploy without every teammate updating their copy of the script. Cache reads and cache writes are recorded but never added to the cost figure, however large they are.",
+      },
+      {
+        title: "Company HTTPS inspection (one-off, per machine)",
+        note: "If the reporter fails with **\"a proxy or DLP agent is intercepting HTTPS\"**, your company's network re-signs HTTPS traffic with its own certificate. Windows and your browser trust it because it's installed in the Windows certificate store — but **Node ships its own trusted-authority list and doesn't read that store**, so it refuses the connection instead. The script below finds that certificate and points Node at it via `NODE_EXTRA_CA_CERTS`, set as a **real system environment variable** (Node reads it once at process start, so it can't come from `claude-usage.config.json`) — reopen your terminal before trying again. **Never set** `NODE_TLS_REJECT_UNAUTHORIZED=0` to work around this — it turns off certificate checking for every connection the reporter makes, including the one carrying your shared `INGEST_SECRET`.",
+        downloads: [{ label: "fix-node-ca.ps1", href: "/downloads/fix-node-ca.ps1" }],
+        command: "powershell -ExecutionPolicy Bypass -File fix-node-ca.ps1 -TargetHost your-backend-host",
+      },
+      {
+        title: "Backend environment",
+        note: "Only one setting is needed for ingestion to work at all: `app.claude-usage.ingest-secret`, the shared bearer secret `/api/ingest` checks — never logged, never returned by any API response. There is no separate budget, threshold, or timezone environment variable: the weekly default, the near-limit threshold, and the reporting timezone are fixed in the backend's own code, and per-person budget overrides are set through the Claude Usage UI, not an env var. Exactly where that one setting is configured operationally is still open — the backend's hosting target is deferred (ADR-012).",
+      },
+      {
+        title: "How a number gets here",
+        note: "**Your machine reads its own transcripts** — the scheduled script scans `~/.claude/projects/**/*.jsonl` on that machine only. **It sums today, deduplicating** on message id + request id — Claude Code writes one line per content block and repeats the usage object on each, so summing naively inflates totals by roughly 2.4×. **It posts the running day total** to `/api/ingest` with the shared bearer secret — the one route exempt from the backend's normal session check, since it carries its own check instead. **The row is upserted, never appended** — keyed on (member, date), and the client always sends the full day total rather than a delta, so repeats and retries converge instead of drifting. **The dashboard reads the backend's Postgres database directly** when you open Claude Usage — no separate cache step, and no credentials ever reach the browser.",
       },
     ],
   },

@@ -811,6 +811,105 @@ export async function revokeSession(sessionId: string): Promise<void> {
 }
 
 /**
+ * One `/api/ingest` bearer token the caller has minted for themselves
+ * (`claude_usage_ingest_token`, V35/ADR-047) — never carries the raw bearer
+ * value; see {@link MintedUsageToken} for the one response that does.
+ */
+export interface UsageToken {
+  id: string;
+  label: string;
+  createdAt: string;
+  /** Null until the reporter script has used it at least once. */
+  lastUsedAt: string | null;
+}
+
+/**
+ * `POST /api/v1/me/usage-tokens`'s response shape — the only place the raw
+ * bearer value ever appears. Not recoverable afterwards; {@link listUsageTokens}
+ * returns {@link UsageToken} rows with no `token` field at all. No
+ * `lastUsedAt` either: a token this response describes has, by definition,
+ * never been used yet.
+ */
+export interface MintedUsageToken {
+  id: string;
+  label: string;
+  token: string;
+  createdAt: string;
+}
+
+/** GET /api/v1/me/usage-tokens (ADR-047). Every live token the caller has minted, for the Settings/Claude Usage "usage tokens" list. */
+export async function listUsageTokens(): Promise<UsageToken[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/me/usage-tokens`, { credentials: "include" });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't load your usage tokens.");
+  }
+  return (await response.json()) as UsageToken[];
+}
+
+/**
+ * POST /api/v1/me/usage-tokens (ADR-047). Mints a new `/api/ingest` bearer
+ * token scoped to the caller's own account — restricted server-side to
+ * reporting only their own email, and re-validated against their live
+ * account (role, active status) on every use, so a role downgrade or
+ * deactivation stops it working immediately with nothing else to revoke.
+ *
+ * `label` names the machine ("MacBook Pro") so the owner can tell tokens
+ * apart in the list later; it is never a secret itself.
+ */
+export async function createUsageToken(label: string): Promise<MintedUsageToken> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/me/usage-tokens`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't generate a token. Please try again.");
+  }
+  return (await response.json()) as MintedUsageToken;
+}
+
+/**
+ * DELETE /api/v1/me/usage-tokens/{id} (ADR-047). Stops that one token
+ * working immediately, without touching any other token the caller (or
+ * anyone else) holds — the machine it was configured on will start failing
+ * with a rejected-credential error on its next scheduled push.
+ */
+export async function revokeUsageToken(id: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/me/usage-tokens/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't revoke that token. Please try again.");
+  }
+}
+
+/**
  * Thrown when the caller's Google identity is genuine but their registration
  * has not been approved yet (ADR-017).
  *
