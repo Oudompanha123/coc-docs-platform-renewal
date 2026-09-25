@@ -14,7 +14,7 @@ import {
   PlugIcon,
   RenewIcon,
   SparklesIcon,
-  TagIcon,
+  SunburstIcon,
   WarningIcon,
 } from "@/components/layout/icons";
 import type { AxRenewalProjectDetail, PlanSection } from "./api";
@@ -109,7 +109,7 @@ export const EXPLORER_META: Record<
   implementation: { label: "Implementation", icon: PlayIcon, group: "Build" },
   "run-locally": { label: "Run locally", icon: PlugIcon, group: "Build" },
   "ai-engine": { label: "AI engine", icon: SparklesIcon, group: "Workspace" },
-  "audit-trail": { label: "Audit trail", icon: TagIcon, group: "Workspace" },
+  "audit-trail": { label: "Audit trail", icon: SunburstIcon, group: "Workspace" },
 };
 
 /**

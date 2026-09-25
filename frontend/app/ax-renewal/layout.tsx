@@ -9,6 +9,7 @@ import { AxRenewalThemeSync } from "@/components/ax-renewal/AxRenewalThemeSync";
 import { AxRenewalTopbar } from "@/components/ax-renewal/AxRenewalTopbar";
 import { RequireSession } from "@/components/layout/RequireSession";
 import { AxRenewalProjectProvider } from "@/lib/ax-renewal/AxRenewalProjectContext";
+import { useResizableWidth } from "@/lib/ax-renewal/useResizableWidth";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
 
 /**
@@ -26,6 +27,26 @@ import { SessionProvider } from "@/lib/auth/SessionProvider";
  */
 function AxRenewalShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Desktop-only "hide the whole Explorer panel" toggle — separate from the
+  // mobile drawer's open/close above. Lifted here (not local to
+  // AxRenewalSidebar) since the button that triggers it lives in the
+  // always-visible icon rail, so it survives the panel collapsing to width
+  // 0 and can bring it back.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarResize = useResizableWidth({
+    storageKey: "ax-renewal-sidebar-width",
+    defaultWidth: 256,
+    min: 200,
+    max: 420,
+    direction: 1,
+  });
+  const assistantResize = useResizableWidth({
+    storageKey: "ax-renewal-assistant-width",
+    defaultWidth: 360,
+    min: 280,
+    max: 520,
+    direction: -1,
+  });
 
   return (
     <RequireSession>
@@ -40,16 +61,43 @@ function AxRenewalShell({ children }: { children: ReactNode }) {
             each ran the full viewport height beside it. Every sticky column
             below (`AxRenewalActivityBar`, `AxRenewalSidebar`,
             `AxAssistantPanel`) sizes itself to `calc(100vh-32px)` — the
-            status bar's own height — for exactly this reason. */}
-        <div data-shell="ax-renewal" className="flex min-h-screen flex-col bg-page">
-          <div className="flex-1 lg:flex">
-            <AxRenewalActivityBar />
-            <AxRenewalSidebar isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-            <div className="flex flex-1 flex-col lg:min-w-0">
+            status bar's own height — for exactly this reason.
+
+            h-screen + overflow-hidden here (not min-h-screen), so the PAGE
+            itself never scrolls — previously it did, and every column's own
+            `sticky top-0` unstuck itself once the page had scrolled further
+            than that one column's own height (worst on a tall <main>,
+            e.g. Attach source's full verification list), leaving the
+            sidebar/rail detached mid-page with blank space trailing it.
+            Each column now scrolls (or doesn't) entirely on its own within a
+            frame that itself never moves — min-h-0 on both flex wrappers
+            below is required for that: without it a flex child won't shrink
+            past its content's natural height, so `overflow-y-auto` deeper in
+            the tree (main, or AxRenewalSidebar's own nav) never actually
+            triggers. */}
+        <div data-shell="ax-renewal" className="flex h-screen flex-col overflow-hidden bg-white">
+          <div className="min-h-0 flex-1 lg:flex">
+            <AxRenewalActivityBar
+              sidebarCollapsed={sidebarCollapsed}
+              onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
+            />
+            <AxRenewalSidebar
+              isOpen={mobileNavOpen}
+              onClose={() => setMobileNavOpen(false)}
+              panelCollapsed={sidebarCollapsed}
+              width={sidebarResize.width}
+              onResizeStart={sidebarResize.startDrag}
+              isResizing={sidebarResize.isDragging}
+            />
+            <div className="flex min-h-0 flex-1 flex-col lg:min-w-0">
               <AxRenewalTopbar onMenuClick={() => setMobileNavOpen(true)} />
-              <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+              <main className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-6 sm:px-6 lg:px-8">{children}</main>
             </div>
-            <AxAssistantPanel />
+            <AxAssistantPanel
+              width={assistantResize.width}
+              onResizeStart={assistantResize.startDrag}
+              isResizing={assistantResize.isDragging}
+            />
           </div>
           <AxRenewalStatusBar />
         </div>
