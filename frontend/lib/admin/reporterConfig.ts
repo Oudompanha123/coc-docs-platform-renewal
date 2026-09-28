@@ -1,5 +1,3 @@
-import { BACKEND_URL } from "@/lib/auth/api";
-
 /**
  * Builds and downloads a **personalized `push-usage.mjs`** — the caller's own
  * copy of `frontend/public/downloads/push-usage.mjs` with its `EMBEDDED_CONFIG`
@@ -51,14 +49,22 @@ const EMBEDDED_CONFIG_MARKER = "const EMBEDDED_CONFIG = null;";
  * by the caller — this function does no I/O, so it stays trivially testable).
  * `token` is the raw bearer value `createUsageToken` returns once, at
  * creation; this function never reads or stores it beyond building this one
- * string.
+ * string. `ingestUrl` comes from that same mint response — the backend states
+ * where it is publicly reachable, so a production download can never carry a
+ * `localhost` URL baked into this bundle at build time.
  *
  * `JSON.stringify` is what makes this safe against a display name containing
  * quotes, backslashes, or other characters that would otherwise break out of
  * the generated object literal — the same reasoning any JSON-embedding-in-JS
  * step relies on.
  */
-export function buildPersonalizedScript(template: string, email: string, displayName: string, token: string): string {
+export function buildPersonalizedScript(
+  template: string,
+  email: string,
+  displayName: string,
+  token: string,
+  ingestUrl: string,
+): string {
   if (!template.includes(EMBEDDED_CONFIG_MARKER)) {
     throw new Error("push-usage.mjs template has changed shape — could not embed your config into it.");
   }
@@ -69,11 +75,16 @@ export function buildPersonalizedScript(template: string, email: string, display
     // is indistinguishable from the untouched generic template.
     throw new Error("Missing your account email or a minted token — could not personalize the script. Please try again.");
   }
+  if (!/^https?:\/\/[^/]+(\/.*)?\/api\/ingest$/.test(ingestUrl ?? "")) {
+    // An older backend that doesn't send `ingestUrl`, or a garbled one: refuse
+    // rather than ship a script whose every run fails (or posts somewhere else).
+    throw new Error("The server didn't provide a usable ingest URL — could not personalize the script.");
+  }
 
   const embedded = {
     USER_EMAIL: email,
     USER_NAME: displayName,
-    INGEST_URL: `${BACKEND_URL}/api/ingest`,
+    INGEST_URL: ingestUrl,
     INGEST_SECRET: token,
   };
 
@@ -90,6 +101,25 @@ export function buildPersonalizedScript(template: string, email: string, display
   }
 
   return script;
+}
+
+/**
+ * True when `ingestUrl` points at the reader's own machine (localhost /
+ * loopback) while the page itself was served from somewhere else — the exact
+ * production misconfiguration this download must never hand out, since the
+ * script would post to whichever PC runs it. Local development (page and
+ * backend both on localhost) is not flagged.
+ */
+export function pointsAtLoopbackFromRemotePage(ingestUrl: string, pageHostname: string): boolean {
+  const isLoopback = (host: string) =>
+    host === "localhost" || host.endsWith(".localhost") || host === "[::1]" || host === "::1" || /^127\./.test(host);
+  let ingestHost: string;
+  try {
+    ingestHost = new URL(ingestUrl).hostname;
+  } catch {
+    return false;
+  }
+  return isLoopback(ingestHost) && !isLoopback(pageHostname);
 }
 
 /**
