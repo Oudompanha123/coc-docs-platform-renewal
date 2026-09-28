@@ -73,6 +73,9 @@ public class ClaudeUsageService {
     /** Bounded so a hand-edited query cannot walk arbitrarily far into the past. */
     private static final int MIN_OFFSET = -60;
 
+    /** Days of history the personal "My Claude Usage" screen shows (ADR-052) — a fixed window, not a period picker like the admin dashboard's. */
+    static final int MY_HISTORY_DAYS = 30;
+
     private final ClaudeUsageMemberRepository members;
     private final ClaudeUsageDailyRepository daily;
     private final AuditRepository audit;
@@ -93,18 +96,29 @@ public class ClaudeUsageService {
     // Roster management
     // -----------------------------------------------------------------------
 
-    /*
-     * There is no invite(). Adding an address by hand created a row in
-     * STATUS_INVITED that did nothing until that person ran the reporter —
-     * and {@link #recordUsage} creates the row on first report anyway, so the
-     * invite was a placeholder for an event that supplies its own. Reporting
-     * is the opt-in; that was always the real rule, and this removes the
-     * second path that pretended otherwise.
-     *
-     * <p>{@link ClaudeUsageMember#STATUS_INVITED} stays: rows created before
-     * this still hold it, recordUsage still promotes them to active on a
-     * first report, and the badge still renders it.
-     */
+    /** Adds someone to the tracking roster, {@code invited} until their first report. */
+    public ClaudeUsageMember invite(String rawEmail, String rawDisplayName, String rawTeamRole, CurrentUser actor) {
+        String email = normalizeEmail(rawEmail);
+        String teamRole = normalizeTeamRole(rawTeamRole);
+
+        if (members.findByEmail(email).isPresent()) {
+            throw ApiException.conflict(email + " is already tracked on this dashboard");
+        }
+
+        String displayName = displayNameOrFallback(rawDisplayName, email);
+        ClaudeUsageMember created =
+                members.insert(email, displayName, teamRole, ClaudeUsageMember.STATUS_INVITED, actor.id());
+
+        audit.append(
+                actor.id(),
+                actor.email(),
+                AuditAction.CLAUDE_USAGE_MEMBER_INVITE,
+                AuditAction.TARGET_CLAUDE_USAGE_MEMBER,
+                created.id(),
+                json.createObjectNode().put("email", email).put("teamRole", teamRole));
+
+        return created;
+    }
 
     /** Changes the dashboard-scoped role (`admin`/`member`) — not {@code AppRole}, see {@link ClaudeUsageMember}. */
     public ClaudeUsageMember updateTeamRole(UUID id, String rawTeamRole, CurrentUser actor) {
@@ -373,6 +387,54 @@ public class ClaudeUsageService {
                 rows.stream().map(ClaudeUsageDaily::reportedAt).max(Instant::compareTo).orElse(null);
 
         return new ClaudeUsageDashboard(period, from, to, memberUsages, dailyPoints, totals, activeUsers, nearLimit, lastUpdated);
+    }
+
+    // -----------------------------------------------------------------------
+    // Personal dashboard ("My Claude Usage", ADR-052)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Everything {@code GET /api/v1/claude-usage/me} renders: the caller's
+     * own today/history, nobody else's. {@code actor} is resolved server-side
+     * from the authenticated session by the controller — there is no id or
+     * email parameter here to trust from the client (FR-USAGE-005, ADR-052).
+     */
+    public ClaudeUsageMyDashboard myDashboard(CurrentUser actor) {
+        return myDashboard(actor, LocalDate.now(REPORT_ZONE));
+    }
+
+    /** As {@link #myDashboard(CurrentUser)}, with "today" taken as a parameter so a test can fix it. */
+    ClaudeUsageMyDashboard myDashboard(CurrentUser actor, LocalDate today) {
+        String email = normalizeEmail(actor.email());
+        ClaudeUsageMember member = members.findByEmail(email).orElse(null);
+
+        LocalDate from = today.minusDays(MY_HISTORY_DAYS - 1);
+        List<ClaudeUsageDaily> rows =
+                member == null ? List.of() : daily.listInRangeForMember(member.id(), from, today);
+
+        Map<LocalDate, ClaudeUsageDaily> byDate =
+                rows.stream().collect(Collectors.toMap(ClaudeUsageDaily::usageDate, row -> row));
+
+        List<ClaudeUsageMyDashboardPoint> history = new ArrayList<>();
+        for (LocalDate d = from; !d.isAfter(today); d = d.plusDays(1)) {
+            ClaudeUsageDaily row = byDate.get(d);
+            history.add(row == null
+                    ? new ClaudeUsageMyDashboardPoint(d, 0, 0)
+                    : new ClaudeUsageMyDashboardPoint(d, row.inputTokens(), row.outputTokens()));
+        }
+
+        ClaudeUsageDaily todayRow = byDate.get(today);
+        long todayInput = todayRow == null ? 0 : todayRow.inputTokens();
+        long todayOutput = todayRow == null ? 0 : todayRow.outputTokens();
+
+        Instant lastUpdated = rows.stream().map(ClaudeUsageDaily::reportedAt).max(Instant::compareTo).orElse(null);
+        String displayName = member != null ? member.displayName() : displayNameOrFallback(actor.account().displayName(), email);
+
+        ClaudeUsageMemberUsage todayUsage =
+                member == null ? null : rollupMember(member, todayRow == null ? List.of() : List.of(todayRow), 1);
+
+        return new ClaudeUsageMyDashboard(
+                email, displayName, today, todayInput, todayOutput, history, lastUpdated, todayUsage);
     }
 
     private ClaudeUsageMemberUsage rollupMember(ClaudeUsageMember member, List<ClaudeUsageDaily> rows, long daysInRange) {

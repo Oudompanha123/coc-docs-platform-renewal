@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RequireSession } from "@/components/layout/RequireSession";
 import { RequireMemberSession } from "@/components/home/RequireMemberSession";
@@ -15,8 +16,15 @@ import { SessionProvider, useSession } from "./SessionProvider";
 const { me, signOut } = vi.hoisted(() => ({ me: vi.fn(), signOut: vi.fn() }));
 vi.mock("./api", () => ({ me, signOut }));
 
+// A single hoisted router object, not `() => ({ replace })` recreating one
+// on every call: the real `next/navigation` router is a stable reference
+// across renders (it comes from context, not re-created per call), and code
+// under test — `doSignOut`'s own `useCallback([router, user])` — is written
+// assuming exactly that. A mock that churns a new object every render would
+// silently defeat that memoization here without ever doing so in production.
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }), usePathname: () => "/overview" }));
+const router = { replace };
+vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => "/overview" }));
 
 const SIGNED_IN = {
   id: "1",
@@ -317,5 +325,54 @@ describe("signing out from a route guard", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/welcome"));
     expect(replace).not.toHaveBeenCalledWith("/login");
+  });
+});
+
+describe("context value stability (regression: 'Maximum update depth exceeded')", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /**
+   * `(shell)/layout.tsx` renders `<SessionProvider>` *inside* `ShellContent`,
+   * a `useShell()` consumer — so anything that re-renders `ShellContent`
+   * (e.g. a page calling `setHeader`) re-renders `SessionProvider` too. If
+   * `SessionProvider` handed out a fresh context object on every one of its
+   * own renders (it used to), every `useSession()` consumer — including a
+   * page that both reads the session *and* triggers a `setHeader` call —
+   * would re-render in lockstep with it forever. This reproduces exactly
+   * that re-render trigger (an unrelated parent re-render, nothing about
+   * the session itself changing) and asserts the object handed to
+   * `useSession()` stays the *same reference*, not just equal-looking.
+   */
+  it("hands out the same object reference across a re-render that changes nothing about the session", async () => {
+    me.mockResolvedValue(SIGNED_IN);
+    const seen: unknown[] = [];
+    let forceRerender: () => void = () => {
+      throw new Error("not yet mounted");
+    };
+
+    function Consumer() {
+      seen.push(useSession());
+      return null;
+    }
+
+    function Harness() {
+      const [, setTick] = useState(0);
+      forceRerender = () => setTick((t) => t + 1);
+      return (
+        <SessionProvider>
+          <Consumer />
+        </SessionProvider>
+      );
+    }
+
+    render(<Harness />);
+    await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    const afterLoad = seen[seen.length - 1];
+
+    act(() => forceRerender());
+
+    expect(seen[seen.length - 1]).toBe(afterLoad);
   });
 });

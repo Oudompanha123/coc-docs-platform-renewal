@@ -49,12 +49,48 @@ class ClaudeUsageServiceTest {
     // Roster management
     // -------------------------------------------------------------------
 
-    /*
-     * There was an Invite nest here. It went with the endpoint: the roster is
-     * filled by recordUsage on a first report, which the ReportUsage tests
-     * below still cover, including the promotion of a member left in
-     * STATUS_INVITED before the feature was removed.
-     */
+    @Nested
+    class Invite {
+
+        @Test
+        @DisplayName("refuses to invite an email that is already tracked")
+        void refusesDuplicateEmail() {
+            when(members.findByEmail("dev@cocdocs.example"))
+                    .thenReturn(Optional.of(member("dev@cocdocs.example", ClaudeUsageMember.STATUS_ACTIVE, null)));
+
+            assertThatThrownBy(() -> service.invite("Dev@CocDocs.example", null, null, ACTOR))
+                    .isInstanceOf(ApiException.class)
+                    .extracting(e -> ((ApiException) e).status())
+                    .isEqualTo(HttpStatus.CONFLICT);
+
+            verify(members, never()).insert(any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("refuses an unknown teamRole")
+        void refusesUnknownTeamRole() {
+            when(members.findByEmail(any())).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.invite("new@cocdocs.example", null, "owner", ACTOR))
+                    .isInstanceOf(ApiException.class)
+                    .extracting(e -> ((ApiException) e).status())
+                    .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("lower-cases the email, defaults the role to member, and falls back to the local part for the name")
+        void createsInvitedMember() {
+            when(members.findByEmail("new@cocdocs.example")).thenReturn(Optional.empty());
+            when(members.insert(eq("new@cocdocs.example"), eq("new"), eq(ClaudeUsageMember.ROLE_MEMBER),
+                            eq(ClaudeUsageMember.STATUS_INVITED), eq(ACTOR.id())))
+                    .thenReturn(member("new@cocdocs.example", ClaudeUsageMember.STATUS_INVITED, null));
+
+            ClaudeUsageMember created = service.invite("New@CocDocs.example", "  ", null, ACTOR);
+
+            assertThat(created.status()).isEqualTo(ClaudeUsageMember.STATUS_INVITED);
+            verify(audit).append(eq(ACTOR.id()), eq(ACTOR.email()), eq("claude_usage_member.invite"), any(), any(), any());
+        }
+    }
 
     @Nested
     class Remove {
@@ -443,6 +479,114 @@ class ClaudeUsageServiceTest {
             // Removed is not excluded from Active Users -- that stat is purely
             // period usage, matching the reference tool, which has no roster concept.
             assertThat(dashboard.activeUsers()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("My Claude Usage (ADR-052)")
+    class MyDashboard {
+
+        @Test
+        @DisplayName("reads the caller's own email from the session, not a parameter")
+        void resolvesCallerFromSession() {
+            LocalDate today = LocalDate.of(2026, 9, 17);
+            CurrentUser actor = TestCallers.user(AppRole.USER);
+            when(members.findByEmail(actor.email())).thenReturn(Optional.empty());
+
+            var dashboard = service.myDashboard(actor, today);
+
+            assertThat(dashboard.email()).isEqualTo(actor.email());
+            verify(members).findByEmail(actor.email());
+            verify(daily, never()).listInRangeForMember(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("a caller who has never reported gets an all-zero dashboard, not an error")
+        void neverReportedIsZeroNotError() {
+            LocalDate today = LocalDate.of(2026, 9, 17);
+            CurrentUser actor = TestCallers.user(AppRole.USER);
+            when(members.findByEmail(actor.email())).thenReturn(Optional.empty());
+
+            var dashboard = service.myDashboard(actor, today);
+
+            assertThat(dashboard.todayInputTokens()).isZero();
+            assertThat(dashboard.todayOutputTokens()).isZero();
+            assertThat(dashboard.todayTotalTokens()).isZero();
+            assertThat(dashboard.daily()).hasSize(ClaudeUsageService.MY_HISTORY_DAYS);
+            assertThat(dashboard.daily()).allMatch(p -> p.totalTokens() == 0);
+            assertThat(dashboard.lastUpdated()).isNull();
+        }
+
+        @Test
+        @DisplayName("today's tokens come from today's row only, not the whole history")
+        void todayIsTodaysRowOnly() {
+            LocalDate today = LocalDate.of(2026, 9, 17);
+            LocalDate yesterday = today.minusDays(1);
+            CurrentUser actor = TestCallers.user(AppRole.USER);
+            ClaudeUsageMember me = member(actor.email(), ClaudeUsageMember.STATUS_ACTIVE, null);
+            when(members.findByEmail(actor.email())).thenReturn(Optional.of(me));
+
+            ClaudeUsageDaily todayRow = new ClaudeUsageDaily(
+                    UUID.randomUUID(), me.id(), today, 300, 100, 0, 0, BigDecimal.ZERO, "Sonnet 5", Instant.now());
+            ClaudeUsageDaily yesterdayRow = new ClaudeUsageDaily(
+                    UUID.randomUUID(), me.id(), yesterday, 9_000, 9_000, 0, 0, BigDecimal.ZERO, "Sonnet 5", Instant.now());
+            when(daily.listInRangeForMember(eq(me.id()), any(), eq(today)))
+                    .thenReturn(List.of(yesterdayRow, todayRow));
+
+            var dashboard = service.myDashboard(actor, today);
+
+            assertThat(dashboard.todayInputTokens()).isEqualTo(300);
+            assertThat(dashboard.todayOutputTokens()).isEqualTo(100);
+            assertThat(dashboard.todayTotalTokens()).isEqualTo(400);
+        }
+
+        @Test
+        @DisplayName("todayUsage rolls up today's row against a one-day budget, and is null off the roster")
+        void todayUsageIsOneDayRollup() {
+            LocalDate today = LocalDate.of(2026, 9, 17);
+            CurrentUser actor = TestCallers.user(AppRole.USER);
+            ClaudeUsageMember me = member(actor.email(), ClaudeUsageMember.STATUS_ACTIVE, 700L);
+            when(members.findByEmail(actor.email())).thenReturn(Optional.of(me));
+
+            ClaudeUsageDaily todayRow = new ClaudeUsageDaily(
+                    UUID.randomUUID(), me.id(), today, 60, 40, 0, 0, new BigDecimal("1.2500"), "Sonnet 5", Instant.now());
+            ClaudeUsageDaily yesterdayRow = new ClaudeUsageDaily(
+                    UUID.randomUUID(), me.id(), today.minusDays(1), 9_000, 9_000, 0, 0, BigDecimal.TEN, "Opus 5", Instant.now());
+            when(daily.listInRangeForMember(eq(me.id()), any(), eq(today)))
+                    .thenReturn(List.of(yesterdayRow, todayRow));
+
+            var usage = service.myDashboard(actor, today).todayUsage();
+
+            assertThat(usage.totalTokens()).isEqualTo(100);
+            assertThat(usage.costUsd()).isEqualByComparingTo("1.25");
+            assertThat(usage.modelsUsed()).containsExactly("Sonnet 5");
+            assertThat(usage.effectiveBudgetTokens()).isEqualTo(100);
+            assertThat(usage.budgetPct()).isEqualTo(100);
+            assertThat(usage.budgetStatus()).isEqualTo(ClaudeUsageMemberUsage.STATUS_RED);
+
+            when(members.findByEmail(actor.email())).thenReturn(Optional.empty());
+            assertThat(service.myDashboard(actor, today).todayUsage()).isNull();
+        }
+
+        @Test
+        @DisplayName("history covers exactly the last 30 days, zero-filled for days with no report")
+        void historyIsThirtyDaysZeroFilled() {
+            LocalDate today = LocalDate.of(2026, 9, 17);
+            CurrentUser actor = TestCallers.user(AppRole.USER);
+            ClaudeUsageMember me = member(actor.email(), ClaudeUsageMember.STATUS_ACTIVE, null);
+            when(members.findByEmail(actor.email())).thenReturn(Optional.of(me));
+
+            ClaudeUsageDaily onlyRow = new ClaudeUsageDaily(
+                    UUID.randomUUID(), me.id(), today, 10, 5, 0, 0, BigDecimal.ZERO, "Sonnet 5", Instant.now());
+            when(daily.listInRangeForMember(eq(me.id()), any(), eq(today))).thenReturn(List.of(onlyRow));
+
+            var dashboard = service.myDashboard(actor, today);
+
+            assertThat(dashboard.daily()).hasSize(ClaudeUsageService.MY_HISTORY_DAYS);
+            assertThat(dashboard.daily().get(0).date()).isEqualTo(today.minusDays(ClaudeUsageService.MY_HISTORY_DAYS - 1));
+            assertThat(dashboard.daily().get(dashboard.daily().size() - 1).date()).isEqualTo(today);
+            long daysWithTokens = dashboard.daily().stream().filter(p -> p.totalTokens() > 0).count();
+            assertThat(daysWithTokens).isEqualTo(1);
         }
     }
 

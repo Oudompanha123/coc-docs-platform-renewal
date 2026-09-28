@@ -1,9 +1,18 @@
 # ADR-044: Generating and Applying Real Code Changes for AX Renewal Implementation
 
-> **Status**: PROPOSED
+> **Status**: PROPOSED, revised in part by [ADR-053](ADR-053-rebuild-replays-the-applied-result.md)
 > **Date**: 2026-09-23
 > **Approver**: PM (pending) — `CONST-PROC-01`
 > **Related ADR**: Extends [ADR-043](ADR-043-local-claude-analysis.md)'s local-only local-Claude pattern from read-only analysis to a write-capable generation step. Does not touch ADR-011 (security model) or ADR-012 (two-service split).
+>
+> **Note (ADR-053, 2026-09-28)**: Rebuild (a second or later `startImplementation`
+> call) no longer always asks the model again. Once a project has an
+> `applied` run and the confirmed plan is unchanged since, Rebuild replays
+> that run's exact generated changes into a new `awaiting_review` cycle
+> instead. The Generate mechanism this ADR describes, and Approve/Reject's
+> own preconditions, are otherwise unchanged — Replay produces the same
+> shape of run this ADR already specifies, just without a fresh model call
+> behind it.
 
 ---
 

@@ -306,6 +306,7 @@ public class NotificationFeedService {
             case AuditAction.CLAUDE_USAGE_INGEST_TOKEN_CREATE -> "Created a usage reporting token";
             case AuditAction.CLAUDE_USAGE_INGEST_TOKEN_REVOKE -> "Revoked a usage reporting token";
             case AuditAction.AX_RENEWAL_PROJECT_CREATE -> "Started an AX Renewal project";
+            case AuditAction.AX_RENEWAL_PROJECT_DELETE -> "Deleted an AX Renewal project";
             case AuditAction.AX_RENEWAL_MANIFEST_ATTACH -> "Attached a codebase manifest";
             case AuditAction.AX_RENEWAL_ANALYSIS_RUN -> "Analysed a codebase";
             case AuditAction.AX_RENEWAL_STACK_MOVE_EDIT -> "Changed a stack move target";
@@ -323,6 +324,7 @@ public class NotificationFeedService {
             case AuditAction.AX_RENEWAL_IMPLEMENTATION_APPROVE -> "Approved generated code changes";
             case AuditAction.AX_RENEWAL_IMPLEMENTATION_REJECT -> "Rejected generated code changes";
             case AuditAction.AX_RENEWAL_IMPLEMENTATION_CANCEL -> "Cancelled a running renewal implementation";
+            case AuditAction.AX_RENEWAL_IMPLEMENTATION_REPLAY -> "Reused a previous rebuild's exact result";
             case AuditAction.AX_RENEWAL_COMMENT_ADD -> "Commented on a renewal project";
             case AuditAction.AX_RENEWAL_COMMENT_DELETE -> "Removed a comment from a renewal project";
             case AuditAction.AX_RENEWAL_RUN_LOCALLY_START -> "Started a local run of a renewed project";

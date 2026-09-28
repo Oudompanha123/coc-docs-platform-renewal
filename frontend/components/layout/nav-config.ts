@@ -85,9 +85,15 @@ const STATIC_SECTIONS: NavSection[] = [
       // content; granting roles is a different kind of authority. Listing
       // "admin" here showed them a link to a page that 403s on every request.
       { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
-      // admin and super_admin: unlike Users & Roles, this page is a
-      // team-wide usage/cost monitor, not an account-authority tool, so it
-      // sits at the same floor as everything else an admin manages.
+      // Re-added here on direct developer instruction (ADR-052, further
+      // revised again): a super_admin/admin browsing an ADMINISTRATION page
+      // like /users-roles had no direct way to jump to the team dashboard
+      // without first going back to /home for MemberHeader's own "Claude
+      // Usage" link (added in the prior revision, still there — this is an
+      // additional path, not a replacement of it). `/my-claude-usage` (the
+      // personal view) is deliberately not listed here: it is never what an
+      // admin/super_admin reaches from this sidebar, same distinction
+      // MemberHeader's own role-branched link already draws.
       { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
     ],
   },

@@ -22,13 +22,19 @@ function formatCost(n: number): string {
  *  budget-override management for the full roster (including anyone with no
  *  activity this period) live in {@link TeamRosterPanel} and
  *  {@link BudgetOverridesPanel} instead, which are period-independent. */
-export function UsageTable({ members }: { members: ClaudeUsageMember[] }) {
+export function UsageTable({
+  members,
+  emptyMessage = "No usage reported by anyone in this period.",
+}: {
+  members: ClaudeUsageMember[];
+  emptyMessage?: string;
+}) {
   const reporting = members.filter((m) => m.totalTokens > 0);
 
   if (reporting.length === 0) {
     return (
       <div className="rounded-[10px] border border-border bg-page px-4 py-8 text-center text-sm text-muted">
-        No usage reported by anyone in this period.
+        {emptyMessage}
       </div>
     );
   }

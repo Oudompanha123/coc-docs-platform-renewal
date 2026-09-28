@@ -222,35 +222,49 @@ AX Renewal's **Run analysis** matches keywords against the attached manifest
 and says so. On a machine with Claude Code installed it can do the real thing
 instead — the backend runs your own `claude` binary as a subprocess (ADR-043).
 
-Two settings in `backend/.env.local`, both optional:
+One setting in `backend/.env.local`:
 
 ```
 APP_AXRENEWAL_CLAUDECLIPATH=C:/Users/you/.local/bin/claude.exe
-APP_AXRENEWAL_SOURCEPATH=D:/work/the-legacy-project
 ```
 
-The first turns it on. Without the second the model reads only the stored
-dependency manifest — real reasoning about real content, but it has not seen
-your code; with it, `--add-dir` points it at the folder and it reads the
-source. The assistant panel's banner tells you which of the two you are
-getting, so you never have to guess.
+That turns it on. It is not enough by itself to read your actual source,
+though — see below.
 
 **Why this can't be a deployment setting.** What makes it work is that the
 backend, the CLI, your signed-in seat and the source folder are all one
 computer. The deployed instance has none of them, so it keeps the keyword
-stub — and the browser cannot supply `APP_AXRENEWAL_SOURCEPATH` for you
-either, because the File API deliberately hides absolute paths from a web
-page.
-
-The names look odd because they are the form Spring binds directly onto
+stub. The name looks odd because it is the form Spring binds directly onto
 `app.ax-renewal.*`. Everything else here (`MAIL_HOST`, `S3_*`) is mapped in
-`application.yml`; these two are not, so turning the feature on touches only
+`application.yml`; this one is not, so turning the feature on touches only
 your own file.
 
 **When it doesn't work**, it falls back to the keyword stub rather than
-failing your request, and logs why at WARN — a mistyped path, a timeout after
-three minutes, a non-zero exit. If Run analysis seems to do nothing new,
-that log line names the reason.
+failing your request, and logs why at WARN — a missing binary, a timeout
+after three minutes, a non-zero exit. If Run analysis seems to do nothing
+new, that log line names the reason.
+
+**The legacy project's path is typed in, not configured (ADR-052).** There
+used to be a second setting here, `APP_AXRENEWAL_SOURCEPATH`, that named one
+fixed folder for the whole backend to read from — removed, because it was
+only ever right for one person's own checkout of one project: the moment a
+second team member ran the same backend against their own checkout, or you
+switched to a different legacy project, it was silently wrong. Instead, **Run
+analysis** and **Start implementation** each have their own "Your legacy
+project's path on this machine" field. Type a path there and it is used for
+that one call — `--add-dir` points the CLI at it (Run analysis) or it is
+copied into a disposable staging folder to generate into (Start
+implementation, ADR-044). Nothing here is sent anywhere until you press the
+button; the backend never persists it either. Your browser remembers what
+you typed per project, so you do not retype it every time, but it lives only
+in that browser — a teammate's session, or your own on a different machine,
+starts blank. A bad path is refused immediately (400) rather than silently
+falling back to the keyword stub, since typing one is a deliberate action
+that deserves a real answer.
+
+The assistant chat (ADR-046) does not have this field yet and stays
+manifest-only for now — a deliberate, temporary gap recorded as a follow-up
+in ADR-052, not an oversight.
 
 ## The settings that are not obvious
 
