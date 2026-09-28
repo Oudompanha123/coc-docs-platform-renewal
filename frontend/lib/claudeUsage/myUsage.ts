@@ -1,3 +1,4 @@
+import type { ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 import { AuthApiError, SessionExpiredError } from "@/lib/auth/api";
 
 /**
@@ -33,6 +34,8 @@ export interface MyClaudeUsageDashboard {
   todayTotalTokens: number;
   daily: MyClaudeUsagePoint[];
   lastUpdated: string | null;
+  /** The caller's own row rolled up over today, same shape as an admin per-user row; null until they first report. */
+  todayUsage: ClaudeUsageMember | null;
 }
 
 /** The caller's own dashboard. */

@@ -1,4 +1,3 @@
-import { CheckCircleIcon } from "@/components/layout/icons";
 import { DEFAULT_SOFT_BUDGET_TOKENS, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 
 function formatDefault(n: number): string {
@@ -64,14 +63,6 @@ export function BudgetOverridesPanel({
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-        <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
-        <p className="text-sm text-dash-ink">
-          Overrides take effect immediately across this dashboard — there is nothing else to configure or
-          redeploy.
-        </p>
       </div>
     </div>
   );

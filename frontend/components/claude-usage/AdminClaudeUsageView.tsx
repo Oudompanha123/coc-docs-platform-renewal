@@ -11,7 +11,7 @@ import {
   WarningIcon,
 } from "@/components/layout/icons";
 import { BudgetOverridesPanel } from "@/components/claude-usage/BudgetOverridesPanel";
-import { DownloadConfigPanel } from "@/components/claude-usage/DownloadConfigPanel";
+import { InviteTeammateModal } from "@/components/claude-usage/InviteTeammateModal";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
 import { TeamRosterPanel } from "@/components/claude-usage/TeamRosterPanel";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
@@ -19,9 +19,9 @@ import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { UsageTable } from "@/components/claude-usage/UsageTable";
 import {
   fetchDashboard,
+  inviteMember,
   removeMember,
   updateMemberBudget,
-  updateMemberRole,
   type ClaudeUsageDashboard,
   type ClaudeUsageMember,
   type Period,
@@ -80,6 +80,7 @@ export function AdminClaudeUsageView() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<ClaudeUsageMember | null>(null);
 
   const reload = useCallback(async () => {
@@ -113,8 +114,10 @@ export function AdminClaudeUsageView() {
     }
   }
 
-  function handleRoleChange(member: ClaudeUsageMember, teamRole: TeamRole) {
-    void withActionError(() => updateMemberRole(member.id, teamRole).then(() => undefined));
+  async function handleInvite(email: string, teamRole: TeamRole) {
+    // Left to throw: InviteTeammateModal shows the error itself and stays open.
+    await inviteMember(email, teamRole);
+    await reload();
   }
 
   function handleBudgetOverrideChange(member: ClaudeUsageMember, tokens: number | null) {
@@ -182,17 +185,17 @@ export function AdminClaudeUsageView() {
           </span>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setInviteOpen(true)}
+          className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+          </svg>
+          Invite teammate
+        </button>
       </div>
-
-      <div className="mt-4 flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-        <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
-        <p className="text-sm text-dash-ink">
-          Token counts and API-equivalent cost below are <span className="font-semibold">soft-budget estimates</span>,
-          not a real invoice or a hard usage limit — actual billing depends on the plan and models each person uses.
-        </p>
-      </div>
-
-      <DownloadConfigPanel />
 
       {loadError && (
         <div role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
@@ -256,11 +259,13 @@ export function AdminClaudeUsageView() {
             <UsageTable members={members} />
           </div>
 
-          <TeamRosterPanel members={members} onRoleChange={handleRoleChange} onRemove={handleRemove} />
+          <TeamRosterPanel members={members} onRemove={handleRemove} />
 
           <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
         </>
       )}
+
+      {inviteOpen && <InviteTeammateModal onClose={() => setInviteOpen(false)} onInvite={handleInvite} />}
 
       {removeTarget && (
         <RemoveMemberModal

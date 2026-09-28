@@ -10,8 +10,9 @@ vi.mock("@/lib/auth/useCurrentUser", () => ({
   useCurrentUser: () => ({ name: "Dana Lee", role: "User", initials: "DL", avatarUrl: null }),
 }));
 
+const { sessionRole } = vi.hoisted(() => ({ sessionRole: { current: "user" as string } }));
 vi.mock("@/lib/auth/SessionProvider", () => ({
-  useSession: () => ({ user: { role: "user" }, signOut: vi.fn(), isSigningOut: false }),
+  useSession: () => ({ user: { role: sessionRole.current }, signOut: vi.fn(), isSigningOut: false }),
 }));
 
 vi.mock("@/lib/notify/useNotifications", () => ({
@@ -33,6 +34,7 @@ const PRODUCTS: NavProduct[] = [{ key: "jex3-0", label: "Jex3.0", icon: "layers"
 
 beforeEach(() => {
   pathname.current = "/home";
+  sessionRole.current = "user";
 });
 
 describe("MemberHeader — Claude Usage link (ADR-052 v1.6: its own page again, not a section on /home)", () => {
@@ -66,5 +68,24 @@ describe("MemberHeader — Claude Usage link (ADR-052 v1.6: its own page again, 
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
 
     expect(screen.queryByText("Open Dashboard")).not.toBeInTheDocument();
+  });
+
+  it("points admin/super_admin at the team dashboard (/claude-usage) instead of the personal view", () => {
+    for (const role of ["admin", "super_admin"]) {
+      sessionRole.current = role;
+      const { unmount } = render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
+
+      expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveAttribute("href", "/claude-usage");
+
+      unmount();
+    }
+  });
+
+  it("marks the admin's Claude Usage link active on /claude-usage, not /my-claude-usage", () => {
+    sessionRole.current = "super_admin";
+    pathname.current = "/claude-usage";
+    render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
+
+    expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveClass("border-brand-purple", "text-ink");
   });
 });
