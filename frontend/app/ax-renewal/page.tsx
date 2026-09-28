@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
+import { GlobeIcon, PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { ModuleCouplingDiagram, SystemContextDiagram } from "@/components/ax-renewal/ArchitectureDiagrams";
@@ -21,12 +21,16 @@ import { formatBytes, languageBreakdown, type FileLayoutEntry } from "@/lib/ax-r
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import {
+  cancelImplementation,
   confirmSection,
   connectDatabase,
   createProject,
+  fetchRunLocallyStatus,
   reopenSection,
   setDestination,
   startImplementation,
+  startRunLocally,
+  stopRunLocally,
   updateArchitecture,
   updateDatabasePlan,
   updatePages,
@@ -34,6 +38,7 @@ import {
   type AxRenewalFixedBy,
   type AxRenewalProject,
   type AxRenewalProjectDetail,
+  type AxRenewalRunLocallyStatus,
   type PlanSection,
 } from "@/lib/ax-renewal/api";
 
@@ -85,17 +90,13 @@ export default function AxRenewalPage() {
       {detail && active != null && picker}
 
       {loadError && (
-        <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
-          {loadError}
-        </p>
+        <div role="alert" className="flex items-start gap-3 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3">
+          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+          <p className="text-sm font-medium text-danger">{loadError}</p>
+        </div>
       )}
 
-      {detail && active == null && (
-        // Matches the reference prototype's own `renderView()` once its last
-        // tab is closed (`S.active === null`) — the same plain, unbordered
-        // note, not a card.
-        <p className="text-sm text-muted">No tab open. Pick something from the explorer.</p>
-      )}
+      {detail && active == null && <NoTabOpenState />}
 
       {detail && active != null && (
         <>
@@ -178,7 +179,7 @@ export default function AxRenewalPage() {
           {active === "implementation" && (
             <ImplementationPanel detail={detail} canConfirm={canConfirm} onChanged={refresh} />
           )}
-          {active === "run-locally" && <RunLocallyPanel />}
+          {active === "run-locally" && <RunLocallyPanel detail={detail} canConfirm={canConfirm} />}
           {active === "ai-engine" && <AiEnginePanel />}
           {active === "audit-trail" && user?.role === "super_admin" && (
             <AuditTrailPanel projectId={detail.project.id} />
@@ -225,7 +226,7 @@ function ProjectPicker({
   }
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-4">
+    <div className="rounded-[10px] border border-border bg-page p-4">
       <div className="flex flex-wrap items-center gap-3">
         <label htmlFor="ax-project" className="text-xs font-semibold text-muted">
           Project
@@ -236,7 +237,7 @@ function ProjectPicker({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+            className="flex items-center gap-1.5 rounded-[10px] border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             New project
@@ -257,14 +258,14 @@ function ProjectPicker({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create"}
           </button>
           <button
             type="button"
             onClick={() => setCreating(false)}
-            className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
+            className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
           >
             Cancel
           </button>
@@ -306,6 +307,40 @@ function NotAnalysedYet({ what }: { what: string }) {
         Press <b className="font-semibold text-dash-ink">Run analysis</b> under Understand → Attach source, and {what}{" "}
         appears here.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Matches the reference prototype's own `renderView()` once its last tab is
+ * closed (`S.active === null`) — this is the main content area's own empty
+ * state, distinct from AxRenewalBreadcrumb's separate "no tab open" label in
+ * the tab-bar strip above, which is untouched by this.
+ *
+ * Two overlapping tab-shaped cards (a plain notch-and-body silhouette, built
+ * from div borders rather than a new SVG/image asset) plus a soft accent
+ * glow and a small cursor dot — the accent tint/border reuse the exact same
+ * blue already established for AX Renewal's active nav pill in both themes
+ * (see .ax-empty-tab-accent/.ax-empty-tab-dot in globals.css), not a new
+ * color.
+ */
+function NoTabOpenState() {
+  return (
+    <div className="flex min-h-[360px] flex-col items-center justify-center gap-4 py-12 text-center">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center" aria-hidden="true">
+        <div className="ax-empty-tab-accent absolute h-24 w-24 rounded-full blur-2xl" />
+        <div className="ax-empty-tab-back absolute left-2 top-4 h-11 w-14 rounded-[6px] border">
+          <div className="ax-empty-tab-back h-2.5 w-5 rounded-t-[6px] border-b" />
+        </div>
+        <div className="ax-empty-tab-accent absolute -left-1 top-0 h-11 w-14 rounded-[6px] border">
+          <div className="ax-empty-tab-accent h-2.5 w-5 rounded-t-[6px] border-b" />
+        </div>
+        <span className="ax-empty-tab-dot absolute bottom-2 right-1 h-2 w-2 rounded-full" />
+      </div>
+      <div>
+        <p className="text-sm font-bold text-dash-ink">No tab open</p>
+        <p className="mt-1 text-xs text-muted">Pick something from the Explorer to get started.</p>
+      </div>
     </div>
   );
 }
@@ -900,6 +935,15 @@ function OutputPanel({
     <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Output</h3>
       <p className="mt-1 text-xs text-muted">Where the renewed project would be written.</p>
+      {kind === "filesystem_path" && (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          Unlike the source path in AI engine, this one is shared for the whole project, not set per machine —
+          whoever clicks Approve or Run Locally writes to or reads from exactly this path on <em>their own</em>{" "}
+          computer. On a team where more than one person does that, it only behaves consistently if this path
+          actually exists (or can be created) the same way on each of those machines — e.g. the same drive letter
+          mapped to the same real folder, or everyone treating one particular machine as the one that approves/runs.
+        </p>
+      )}
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <select
@@ -960,6 +1004,7 @@ function ImplementationPanel({
   onChanged: () => Promise<void>;
 }) {
   const [starting, setStarting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const run = detail.latestImplementationRun;
@@ -1010,6 +1055,23 @@ function ImplementationPanel({
     }
   }
 
+  // Kills the real process on the backend's own machine (ADR-049) — the run
+  // moves on to "cancelled" a moment later, once the kill actually unblocks
+  // it, picked up by the same poll that already watches "generating".
+  async function handleCancel() {
+    if (!run) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      await cancelImplementation(detail.project.id, run.id);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't cancel the rebuild.");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-[5px] border border-border bg-white p-5">
@@ -1039,17 +1101,29 @@ function ImplementationPanel({
         {run && (
           <div className="mt-4 rounded-xl border border-border bg-page p-4 text-sm">
             {isActive ? (
-              <div className="flex items-center gap-3">
-                <span
-                  className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
-                  aria-hidden="true"
-                />
-                <div>
-                  <p className="font-semibold text-dash-ink">
-                    {run.status === "generating" ? "Rebuilding…" : "Applying…"}
-                  </p>
-                  <p className="text-xs text-muted">{elapsedSecs}s elapsed</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="font-semibold text-dash-ink">
+                      {run.status === "generating" ? "Rebuilding…" : "Applying…"}
+                    </p>
+                    <p className="text-xs text-muted">{elapsedSecs}s elapsed</p>
+                  </div>
                 </div>
+                {canConfirm && run.status === "generating" && (
+                  <button
+                    type="button"
+                    onClick={() => void handleCancel()}
+                    disabled={cancelling}
+                    className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {cancelling ? "Cancelling…" : "Cancel"}
+                  </button>
+                )}
               </div>
             ) : (
               <p className="font-semibold text-dash-ink">Status: {run.status.replace(/_/g, " ")}</p>
@@ -1065,6 +1139,9 @@ function ImplementationPanel({
             {run.status === "applying" && <p className="mt-2 text-dash-ink">Copying the approved changes into the destination…</p>}
             {run.status === "failed" && run.failureReason && (
               <p className="mt-2 text-danger">{run.failureReason}</p>
+            )}
+            {run.status === "cancelled" && (
+              <p className="mt-2 text-dash-ink">Cancelled — nothing was written to the destination.</p>
             )}
             {(run.status === "completed" || run.status === "applied" || run.status === "rejected") &&
               run.afterReport && <p className="mt-2 text-dash-ink">{String(run.afterReport.note ?? "")}</p>}
@@ -1089,15 +1166,150 @@ function ImplementationPanel({
   );
 }
 
-function RunLocallyPanel() {
+/** Statuses the backend is still actively working on — polled the same way ImplementationPanel polls a Generate/Apply run. */
+const RUN_LOCALLY_POLLING_STATUSES = new Set<AxRenewalRunLocallyStatus["status"]>(["starting", "running"]);
+
+function RunLocallyPanel({ detail, canConfirm }: { detail: AxRenewalProjectDetail; canConfirm: boolean }) {
+  // The exact "a real generated build to point at" precondition the tab has
+  // always been locked behind (ADR-048) -- Approve (ADR-044) is what makes
+  // this true. A rebuild started since re-locks it, since the destination is
+  // presumed mid-change again.
+  const unlocked = detail.latestImplementationRun?.status === "applied";
+
+  const [status, setStatus] = useState<AxRenewalRunLocallyStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const logRef = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    if (!unlocked) return;
+    let cancelled = false;
+    void fetchRunLocallyStatus(detail.project.id).then((s) => {
+      if (!cancelled) setStatus(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [unlocked, detail.project.id]);
+
+  useEffect(() => {
+    if (!unlocked || !status || !RUN_LOCALLY_POLLING_STATUSES.has(status.status)) return;
+    const id = setInterval(() => void fetchRunLocallyStatus(detail.project.id).then(setStatus), 1500);
+    return () => clearInterval(id);
+  }, [unlocked, status, detail.project.id]);
+
+  // A live log a person is meant to watch scroll, not one they have to
+  // manually scroll down to catch up with.
+  useEffect(() => {
+    logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+  }, [status?.log.length]);
+
+  const active = status != null && RUN_LOCALLY_POLLING_STATUSES.has(status.status);
+
+  async function handleStart() {
+    setBusy(true);
+    setError(null);
+    try {
+      setStatus(await startRunLocally(detail.project.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't start the local dev server.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleStop() {
+    setBusy(true);
+    setError(null);
+    try {
+      setStatus(await stopRunLocally(detail.project.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't stop the local dev server.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!unlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-[5px] border border-border bg-white p-16 text-center">
+        <PlugIcon className="h-8 w-8 text-muted" />
+        <p className="mt-3 text-sm font-semibold text-dash-ink">Not available yet</p>
+        <p className="mt-1 max-w-sm text-xs text-muted">
+          Run Locally needs a real, applied build to point at — confirm the Plan and approve an Implementation run
+          first. This unlocks the moment one reaches <span className="font-medium text-dash-ink">applied</span>.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center rounded-[5px] border border-border bg-white p-16 text-center">
-      <PlugIcon className="h-8 w-8 text-muted" />
-      <p className="mt-3 text-sm font-semibold text-dash-ink">Not available in this phase</p>
-      <p className="mt-1 max-w-sm text-xs text-muted">
-        A local run and preview needs a real generated build to point at, which this phase does not produce. Planned
-        for a later phase, once implementation does real code generation.
-      </p>
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold text-dash-ink">Run locally</h3>
+          {canConfirm && (
+            <button
+              type="button"
+              onClick={() => void (active ? handleStop() : handleStart())}
+              disabled={busy}
+              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? (active ? "Stopping…" : "Starting…") : active ? "Stop" : "Start"}
+            </button>
+          )}
+        </div>
+        <p className="mt-1.5 text-xs text-muted">
+          Runs this project&apos;s own <code>npm install &amp;&amp; npm run dev</code> as a background process on
+          this machine, and shows its real output below — nothing here is simulated or estimated.
+        </p>
+
+        {status && (
+          <div className="mt-3 flex items-center gap-3">
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                status.status === "running"
+                  ? "bg-brand-purple"
+                  : status.status === "starting"
+                    ? "animate-pulse bg-amber-400"
+                    : status.status === "failed"
+                      ? "bg-danger"
+                      : "bg-muted"
+              }`}
+              aria-hidden="true"
+            />
+            <span className="text-xs font-semibold text-dash-ink">{status.status}</span>
+            {status.startedAt && (
+              <span className="text-xs text-muted">
+                since {new Date(status.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+        )}
+
+        {status?.url && (
+          <a
+            href={status.url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-purple hover:underline"
+          >
+            <GlobeIcon className="h-4 w-4" />
+            Open {status.url}
+          </a>
+        )}
+      </div>
+
+      {status && status.log.length > 0 && (
+        <pre
+          ref={logRef}
+          className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-[5px] border border-border bg-[#0b0d12] p-4 font-mono text-xs leading-relaxed text-[#c9d1d9]"
+        >
+          {status.log.join("\n")}
+        </pre>
+      )}
+
+      {error && <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">{error}</p>}
     </div>
   );
 }

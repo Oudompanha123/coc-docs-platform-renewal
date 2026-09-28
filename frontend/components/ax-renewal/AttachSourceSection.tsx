@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CheckCircleIcon,
+  ChevronRightIcon,
+  DocumentIcon,
+  PaperclipIcon,
+  SparklesIcon,
+  WarningIcon,
+} from "@/components/layout/icons";
+import {
   ATTACH_STAGE_LABELS,
   buildVerification,
   computeAttachStats,
@@ -381,7 +389,7 @@ export function AttachSourceSection({
       )}
 
       {phase === "picking" && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center gap-3">
             <span
               className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
@@ -402,7 +410,7 @@ export function AttachSourceSection({
                 stopPickClock();
                 setPhase("empty");
               }}
-              className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+              className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
             >
               Back
             </button>
@@ -411,7 +419,7 @@ export function AttachSourceSection({
       )}
 
       {phase === "scanning" && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-dash-ink">Attaching</h3>
             <span className="text-xs text-muted">manifest only — no source is parsed</span>
@@ -465,7 +473,7 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={cancelScan}
-              className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
+              className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
             >
               Cancel
             </button>
@@ -490,36 +498,39 @@ export function AttachSourceSection({
                 setDragOver(false);
               }}
               onDrop={handleDrop}
-              className={`rounded-[5px] border-2 border-dashed p-12 text-center transition-colors ${
-                dragOver ? "border-brand-purple bg-brand-purple/5" : "border-border bg-white"
+              className={`rounded-[10px] border-2 border-dashed p-12 text-center transition-colors ${
+                dragOver ? "border-brand-purple bg-brand-purple/5" : "border-border bg-page"
               }`}
             >
-              <p className="text-base font-semibold text-dash-ink">Attach the project you want renewed</p>
+              <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <PaperclipIcon className="h-4 w-4" />
+              </span>
+              <p className="mt-3 text-base font-semibold text-dash-ink">Attach the project you want renewed</p>
               <p className="mt-1 text-sm text-muted">Drag a folder here, or choose one. It is opened read only.</p>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={chooseFolder}
-                  className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   Choose a folder
                 </button>
                 <button
                   type="button"
                   onClick={() => beginPick(filesInputRef.current)}
-                  className="rounded-[5px] border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+                  className="rounded-[10px] border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
                 >
                   Choose files
                 </button>
               </div>
             </div>
           ) : (
-            <div className="rounded-[5px] border border-border bg-white p-5">
+            <div className="rounded-[10px] border border-border bg-page p-5">
               <p className="text-sm text-muted">Nothing attached yet.</p>
             </div>
           )}
 
-          <div className="rounded-[5px] border border-border bg-white p-5">
+          <div className="rounded-[10px] border border-border bg-page p-5">
             <h3 className="text-sm font-bold text-dash-ink">Attaching does not analyse</h3>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">
               Attaching reads the manifest only — the file list, the sizes, the dependency file and a handful of
@@ -534,7 +545,7 @@ export function AttachSourceSection({
       {(reviewingOnly || (alreadyAttached && phase !== "picking" && phase !== "scanning")) && (
         <>
           {shownStats && (
-            <div className="rounded-[5px] border border-border bg-white p-5">
+            <div className="rounded-[10px] border border-border bg-page p-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-dash-ink">File types found</h3>
                 <span className="text-xs text-muted">
@@ -548,7 +559,7 @@ export function AttachSourceSection({
                   .map(([ext, count]) => (
                     <span
                       key={ext}
-                      className="rounded-md border border-border bg-page px-2.5 py-1 font-mono text-xs text-dash-ink"
+                      className="rounded-full border border-border bg-page px-2.5 py-1 font-mono text-xs text-dash-ink"
                     >
                       .{ext} <b className="font-bold">{count}</b>
                     </span>
@@ -564,8 +575,15 @@ export function AttachSourceSection({
           )}
 
           {shownStats && (
-            <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-              <div className="flex items-center gap-2 border-b border-border bg-page px-5 py-3">
+            <div className="overflow-hidden rounded-[10px] border border-border bg-page">
+              <div className="relative flex items-center gap-2 border-b border-border bg-page px-5 py-3">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+                />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                  <DocumentIcon className="h-4 w-4" />
+                </span>
                 <h3 className="text-sm font-bold text-dash-ink">{pickedStats ? "Reviewing" : "Attached"}</h3>
                 <span className="ml-auto text-xs text-muted">
                   {pickedStats ? "not yet attached" : "manifest only"}
@@ -586,7 +604,7 @@ export function AttachSourceSection({
                   },
                   { label: "state", value: detail.analysis ? "analysed" : "not analysed" },
                 ].map((cell) => (
-                  <div key={cell.label} className="bg-white p-3.5">
+                  <div key={cell.label} className="bg-page p-3.5">
                     <b className="block text-xl font-bold tracking-tight text-dash-ink">{cell.value}</b>
                     <span className="text-xs text-muted">{cell.label}</span>
                   </div>
@@ -632,7 +650,7 @@ export function AttachSourceSection({
                   <button
                     type="button"
                     onClick={chooseFolder}
-                    className="rounded-[5px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+                    className="rounded-[10px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
                   >
                     Replace source
                   </button>
@@ -642,9 +660,12 @@ export function AttachSourceSection({
           )}
 
           {shownStats && (
-            <div className="rounded-[5px] border border-border bg-white p-5">
+            <div className="rounded-[10px] border border-border bg-page p-5">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-dash-ink">Verification</h3>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
+                  <CheckCircleIcon className="h-6 w-6 shrink-0 text-emerald-500" />
+                  Verification
+                </h3>
                 <span className="text-xs text-muted">
                   {buildVerification(shownStats).filter((r) => r.status === "ok").length} passed ·{" "}
                   {buildVerification(shownStats).filter((r) => r.status === "warn").length} to note
@@ -653,17 +674,21 @@ export function AttachSourceSection({
               <div className="mt-3 divide-y divide-border">
                 {buildVerification(shownStats).map((row) => (
                   <div key={row.title} className="flex items-start gap-3 py-2.5">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        row.status === "ok" ? "bg-brand-purple/10 text-brand-purple" : "bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {row.status === "ok" ? "✓" : "!"}
-                    </span>
-                    <span>
+                    {row.status === "ok" ? (
+                      <CheckCircleIcon className="mt-0.5 h-6 w-6 shrink-0 text-emerald-500" />
+                    ) : (
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+                        <WarningIcon className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-dash-ink">{row.title}</span>
                       <span className="block text-xs text-muted">{row.detail}</span>
                     </span>
+                    {/* Decorative only — every row here already shows everything it
+                        has (title + detail), there's no drill-down destination to
+                        wire this to yet. */}
+                    <ChevronRightIcon className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                   </div>
                 ))}
               </div>
@@ -680,8 +705,17 @@ export function AttachSourceSection({
       {analyzing && <AnalysisProgress engineLabel={engineLabel} onStop={stopAnalysis} />}
 
       {detail.analysis ? (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Analysis complete</h3>
+        <div className="relative overflow-hidden rounded-[10px] border border-border bg-page p-5">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+          />
+          <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-base font-bold text-white">
+              ✓
+            </span>
+            Analysis complete
+          </h3>
           <p className="mt-1.5 text-sm text-dash-ink">
             Codebase, architecture, pages and findings are open in the explorer.
           </p>
@@ -691,7 +725,7 @@ export function AttachSourceSection({
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[10px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis again"}
               </button>
@@ -699,22 +733,27 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=understand-architecture`)}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open architecture
             </button>
           </div>
         </div>
       ) : (
-        <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-dash-ink">Run analysis</h3>
+            <h3 className="flex items-center gap-3 text-sm font-bold text-dash-ink">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <SparklesIcon className="h-4 w-4" />
+              </span>
+              Run analysis
+            </h3>
             {canEdit && (
               <button
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis"}
               </button>

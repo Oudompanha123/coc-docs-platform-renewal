@@ -9,7 +9,7 @@ import type { AxRenewalProject } from "@/lib/ax-renewal/api";
  * same interaction pattern as DocsHeaderSwitcher (ref + mousedown listener
  * for click-outside, role="listbox"/"option"), reused here instead of the
  * browser's own default <select> rendering, which couldn't carry this app's
- * card/button styling (rounded-[5px], brand-purple accents).
+ * card/button styling (rounded-[10px], brand-purple accents).
  */
 export function ProjectSwitcher({
   projects,
@@ -54,7 +54,7 @@ export function ProjectSwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex min-w-[220px] items-center justify-between gap-2 rounded-[5px] border border-border bg-white px-3 py-1.5 text-sm font-medium text-dash-ink transition-colors hover:bg-page focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
+        className="flex min-w-[220px] items-center justify-between gap-2 rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm font-medium text-dash-ink transition-colors hover:bg-page focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
       >
         <span className="truncate">{active?.name ?? "No projects yet"}</span>
         {list.length > 0 && (
@@ -66,7 +66,7 @@ export function ProjectSwitcher({
         <div
           role="listbox"
           aria-labelledby="ax-project"
-          className="absolute left-0 top-full z-10 mt-1 max-h-72 min-w-[220px] overflow-y-auto rounded-[5px] border border-border bg-white py-1 shadow-lg"
+          className="absolute left-0 top-full z-10 mt-1 max-h-72 min-w-[220px] overflow-y-auto rounded-[10px] border border-border bg-white py-1 shadow-lg"
         >
           {list.map((p) => {
             const isActive = p.id === projectId;

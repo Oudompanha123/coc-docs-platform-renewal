@@ -1,10 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { FolderIcon, GearIcon, LayersIcon, PlayIcon } from "@/components/layout/icons";
-import { UserAvatar } from "@/components/layout/UserAvatar";
-import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { ChevronLeftIcon, ChevronRightIcon, ClockIcon, FolderIcon, LayersIcon, PlayIcon, RenewIcon } from "@/components/layout/icons";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 
@@ -19,7 +16,7 @@ const GROUPS: { icon: typeof FolderIcon; label: string; defaultKey: AxRenewalExp
   { icon: FolderIcon, label: "Understand", defaultKey: "attach", gatedByAnalysis: false },
   { icon: LayersIcon, label: "Plan", defaultKey: "old-new", gatedByAnalysis: true },
   { icon: PlayIcon, label: "Build", defaultKey: "implementation", gatedByAnalysis: true },
-  { icon: GearIcon, label: "Workspace", defaultKey: "ai-engine", gatedByAnalysis: false },
+  { icon: ClockIcon, label: "Workspace", defaultKey: "ai-engine", gatedByAnalysis: false },
 ];
 
 const GROUP_OF: Record<AxRenewalExplorerKey, string> = {
@@ -39,11 +36,16 @@ const GROUP_OF: Record<AxRenewalExplorerKey, string> = {
   "audit-trail": "Workspace",
 };
 
-export function AxRenewalActivityBar() {
+export function AxRenewalActivityBar({
+  sidebarCollapsed,
+  onToggleSidebar,
+}: {
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { projectId, detail } = useAxRenewalProjectContext();
-  const currentUser = useCurrentUser();
   const active = resolveActiveSection(searchParams.get("section"));
   const activeGroup = active != null ? GROUP_OF[active] : null;
   const analyzed = detail?.analysis != null;
@@ -59,7 +61,18 @@ export function AxRenewalActivityBar() {
           this one, instead of running only under the main content — so
           this stops short of the full viewport by exactly that height
           rather than overlapping it. */}
-      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[52px] flex-col items-center gap-1 bg-sidebar py-3">
+      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[52px] flex-col items-center gap-[20px] bg-sidebar py-3">
+        {/* Purely decorative app mark — the avatar (the one real, functional
+            user element) now lives in the wide Explorer panel's own footer
+            instead, alongside the name/role/settings row the reference
+            shows there; keeping a second one here as well would just be a
+            real duplicate, not a style choice. */}
+        <span
+          aria-hidden="true"
+          className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md"
+        >
+          <RenewIcon className="h-5 w-5" />
+        </span>
         {GROUPS.map((group) => {
           const isActive = group.label === activeGroup;
           const locked = group.gatedByAnalysis && !analyzed;
@@ -74,30 +87,32 @@ export function AxRenewalActivityBar() {
               aria-label={group.label}
               aria-current={isActive}
               aria-disabled={locked}
-              className={`relative flex h-10 w-10 items-center justify-center rounded-[5px] transition-colors ${
+              className={`relative flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors ${
                 locked
                   ? "cursor-not-allowed text-sidebar-muted opacity-30"
                   : isActive
-                    ? "bg-sidebar-hover text-white"
-                    : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+                    ? "bg-sidebar-hover text-brand-purple"
+                    : "text-sidebar-muted hover:bg-sidebar-hover hover:text-dash-ink"
               }`}
             >
               {isActive && !locked && (
                 <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-brand-purple" aria-hidden="true" />
               )}
-              <group.icon className="h-[18px] w-[18px]" />
+              <group.icon className="h-[30px] w-[30px]" />
             </button>
           );
         })}
 
-        <div className="mt-auto">
-          <UserAvatar
-            avatarUrl={currentUser?.avatarUrl ?? null}
-            initials={currentUser?.initials ?? "?"}
-            name={currentUser?.name ?? "Guest"}
-            className={`h-8 w-8 ${AVATAR_GRADIENTS.purple}`}
-          />
-        </div>
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          title={sidebarCollapsed ? "Show Explorer" : "Hide Explorer"}
+          aria-label={sidebarCollapsed ? "Show Explorer panel" : "Hide Explorer panel"}
+          aria-pressed={sidebarCollapsed}
+          className="mt-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-purple/10 text-brand-purple transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
+        >
+          {sidebarCollapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
+        </button>
       </div>
     </aside>
   );

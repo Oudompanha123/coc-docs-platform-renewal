@@ -36,7 +36,7 @@ export function OldToNewDiagram({
       <text x={oldX + columnWidth / 2} y={20} textAnchor="middle" fontSize={11} fontWeight={700} fill="#9c4620">
         OLD — running today
       </text>
-      <text x={newX + columnWidth / 2} y={20} textAnchor="middle" fontSize={11} fontWeight={700} fill={COLOR.purple}>
+      <text x={newX + columnWidth / 2} y={20} textAnchor="middle" fontSize={11} fontWeight={700} fill="#3574f0">
         NEW — the planned target
       </text>
       {rows.map((l, i) => {
