@@ -108,6 +108,9 @@ export const translations = {
       notOnRoster: "You are not yet on the tracking roster. Add yourself in Claude Usage to see your stats here.",
       loadError: "Couldn’t load usage data right now.",
       openUsage: "Open Claude Usage →",
+      today: "Today",
+      noPersonalUsage: "No usage reported yet. Run the reporter script to see your stats here.",
+      openMyUsage: "Open My Usage →",
     },
     footer: {
       product: "Product",
@@ -219,6 +222,9 @@ export const translations = {
       notOnRoster: "아직 추적 명단에 등록되지 않았습니다. Claude Usage에서 본인을 추가하면 여기서 통계를 확인할 수 있습니다.",
       loadError: "현재 사용량 데이터를 불러올 수 없습니다.",
       openUsage: "Claude Usage 열기 →",
+      today: "오늘",
+      noPersonalUsage: "아직 보고된 사용량이 없습니다. 리포터 스크립트를 실행하면 여기서 통계를 확인할 수 있습니다.",
+      openMyUsage: "내 사용량 열기 →",
     },
     footer: {
       product: "제품",
@@ -330,6 +336,9 @@ export const translations = {
       notOnRoster: "អ្នកមិនទាន់នៅក្នុងបញ្ជីតាមដានទេ។ បន្ថែមខ្លួនអ្នកនៅក្នុង Claude Usage ដើម្បីមើលស្ថិតិ",
       loadError: "មិនអាចផ្ទុកទិន្នន័យការប្រើប្រាស់នៅពេលនេះ",
       openUsage: "បើក Claude Usage →",
+      today: "ថ្ងៃនេះ",
+      noPersonalUsage: "មិនទាន់មានទិន្នន័យការប្រើប្រាស់នៅឡើយទេ។ រត់ស្គ្រីបរបាយការណ៍ដើម្បីមើលស្ថិតិរបស់អ្នកនៅទីនេះ",
+      openMyUsage: "បើកការប្រើប្រាស់របស់ខ្ញុំ →",
     },
     footer: {
       product: "ផលិតផល",

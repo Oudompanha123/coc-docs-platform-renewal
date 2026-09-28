@@ -1,28 +1,91 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { DocStep } from "./DocStep";
 import { DocsCallout } from "./DocsCallout";
 import { DocsCodeBlock } from "./DocsCodeBlock";
 import { DownloadIcon } from "@/components/layout/icons";
 import { ICON_MAP } from "@/lib/docs/icon-map";
 import type { DocContent, DownloadLink } from "@/lib/docs/content-types";
+import { useSession } from "@/lib/auth/SessionProvider";
+import { createUsageToken } from "@/lib/auth/api";
+import { autoLabel, buildPersonalizedScript, downloadPersonalizedScript, GENERIC_TEMPLATE_URL } from "@/lib/admin/reporterConfig";
 
-/** Plain `<a download>` links, not a fetch-and-save button: these are static
- *  files under `public/downloads/`, so the browser can save them without a
- *  round trip through the app. */
+/**
+ * Plain `<a download>` links for every file except one: `push-usage.mjs`
+ * (`GENERIC_TEMPLATE_URL`) gets the same treatment `DownloadConfigPanel`
+ * gives it (Claude Usage / Home) when the reader is signed in — mint a
+ * token, fetch the template, embed their own config, download the result —
+ * instead of the raw generic file, so this setup guide's own download link
+ * doesn't hand out a script missing `USER_EMAIL` the way the plain static
+ * link used to. Signed-out readers (this page needs no session to view) and
+ * every other download here are untouched: a plain static file, same as
+ * always — the only thing that could fetch it with no browser at all (a CI
+ * job's `curl`) never runs this component's `onClick` regardless.
+ */
 function DownloadLinks({ downloads }: { downloads: DownloadLink[] }) {
+  const { status, user } = useSession();
+  const [busyHref, setBusyHref] = useState<string | null>(null);
+  const [errorHref, setErrorHref] = useState<string | null>(null);
+
+  async function personalizeAndDownload(href: string) {
+    if (!user?.email) return;
+    setBusyHref(href);
+    setErrorHref(null);
+    try {
+      const minted = await createUsageToken(autoLabel());
+      // no-store: substituted into on every click, so a cached stale copy
+      // of the template must never be served in its place.
+      const templateRes = await fetch(href, { cache: "no-store" });
+      if (!templateRes.ok) {
+        throw new Error("template fetch failed");
+      }
+      const template = await templateRes.text();
+      const script = buildPersonalizedScript(
+        template,
+        user.email,
+        user.displayName ?? user.email.split("@")[0]!,
+        minted.token,
+      );
+      downloadPersonalizedScript(script);
+    } catch {
+      setErrorHref(href);
+    } finally {
+      setBusyHref(null);
+    }
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {downloads.map((d, i) => (
-        <a
-          key={`${d.href}-${i}`}
-          href={d.href}
-          download
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow"
-        >
-          <DownloadIcon className="h-3.5 w-3.5" />
-          {d.label}
-        </a>
-      ))}
+    <div className="flex flex-wrap items-center gap-2">
+      {downloads.map((d, i) => {
+        const personalizable = d.href === GENERIC_TEMPLATE_URL && status === "authenticated" && Boolean(user?.email);
+        return (
+          <a
+            key={`${d.href}-${i}`}
+            href={d.href}
+            download
+            aria-busy={busyHref === d.href}
+            onClick={
+              personalizable
+                ? (e) => {
+                    e.preventDefault();
+                    void personalizeAndDownload(d.href);
+                  }
+                : undefined
+            }
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow aria-busy:cursor-wait aria-busy:opacity-60"
+          >
+            <DownloadIcon className="h-3.5 w-3.5" />
+            {busyHref === d.href ? "Preparing…" : d.label}
+          </a>
+        );
+      })}
+      {errorHref && (
+        <p role="alert" className="w-full text-xs text-danger">
+          Couldn&apos;t personalize that download — try again, or use the plain file below and configure it by hand.
+        </p>
+      )}
     </div>
   );
 }

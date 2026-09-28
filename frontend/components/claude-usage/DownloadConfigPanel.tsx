@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircleIcon, DownloadIcon, TrashIcon, WarningIcon } from "@/components/layout/icons";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { createUsageToken, listUsageTokens, revokeUsageToken, type UsageToken } from "@/lib/auth/api";
-import { buildPersonalizedScript, downloadPersonalizedScript, personalizedScriptFileName } from "@/lib/admin/reporterConfig";
-
-/** Where the generic, unpersonalized template lives — same file this panel fills in. */
-const SCRIPT_TEMPLATE_URL = "/downloads/push-usage.mjs";
+import {
+  autoLabel,
+  buildPersonalizedScript,
+  downloadPersonalizedScript,
+  GENERIC_TEMPLATE_URL,
+  personalizedScriptFileName,
+} from "@/lib/admin/reporterConfig";
 
 function formatDate(iso: string): string {
   const when = new Date(iso);
@@ -29,11 +32,23 @@ function formatDate(iso: string): string {
  * into component state, never rendered, and `listUsageTokens` (used for the
  * list below) never carries it back from the server either.
  *
- * Only reachable at `admin`+ rank today: `POST /api/v1/me/usage-tokens`
- * (`ClaudeUsageIngestTokenService.MIN_ROLE`) mints a token only for its own
- * caller, and only admin/super_admin may call it — a plain member still
- * needs a shared secret or a token an admin hands them, same as before this
- * panel existed.
+ * Reachable at any signed-in (`user`+) rank (ADR-053, widened from
+ * `admin`+): `POST /api/v1/me/usage-tokens` (`ClaudeUsageIngestTokenService.MIN_ROLE`)
+ * mints a token only for its own caller, so self-minting never lets one
+ * account act as another. Rendered only here (`AdminClaudeUsageView`, the
+ * team dashboard) now — removed from `MyClaudeUsageSection` (`/my-claude-usage`'s
+ * personal view) on direct developer instruction. A non-admin account
+ * self-minting a token still works: the setup guide's own `push-usage.mjs`
+ * download link (`ContentRenderer`) personalizes it the same way at any
+ * signed-in rank, just from a different page.
+ *
+ * True one click: no label to type first — the trigger is styled and
+ * labeled like the plain static download links elsewhere in the docs (e.g.
+ * `ContentRenderer`'s `DownloadLinks`), not a form, even though it still
+ * runs the mint → fetch → embed → download sequence behind it. `autoLabel()`
+ * fills in a dated placeholder so "Your tokens" below still has something
+ * to tell entries apart by; nothing here stops a machine from being
+ * re-downloaded (and its old token revoked) as often as wanted.
  */
 export function DownloadConfigPanel() {
   const { user } = useSession();
@@ -42,7 +57,6 @@ export function DownloadConfigPanel() {
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
 
-  const [label, setLabel] = useState("");
   const [generating, setGenerating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [downloadedLabel, setDownloadedLabel] = useState<string | null>(null);
@@ -64,18 +78,19 @@ export function DownloadConfigPanel() {
     void reload();
   }, [reload]);
 
-  async function handleGenerate(e: FormEvent) {
-    e.preventDefault();
-    if (!user?.email) return;
+  async function handleDownload() {
+    if (!user?.email || generating) return;
 
-    const trimmed = label.trim() || "Reporter script";
     setGenerating(true);
     setActionError(null);
     setDownloadedLabel(null);
     try {
-      const minted = await createUsageToken(trimmed);
+      const minted = await createUsageToken(autoLabel());
 
-      const templateRes = await fetch(SCRIPT_TEMPLATE_URL);
+      // no-store: this template is substituted into on every click, so a
+      // browser- or proxy-cached stale copy (e.g. from before this file last
+      // changed) must never be served in its place.
+      const templateRes = await fetch(GENERIC_TEMPLATE_URL, { cache: "no-store" });
       if (!templateRes.ok) {
         throw new Error("Couldn't load the reporter script to personalize. Please try again.");
       }
@@ -91,7 +106,6 @@ export function DownloadConfigPanel() {
       downloadPersonalizedScript(script);
 
       setDownloadedLabel(minted.label);
-      setLabel("");
       await reload();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Couldn't generate a token. Please try again.");
@@ -125,25 +139,17 @@ export function DownloadConfigPanel() {
         type in: download it and run <code className="rounded bg-page px-1 py-0.5 text-[11px]">node push-usage.mjs</code>.
       </p>
 
-      <form onSubmit={handleGenerate} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder='Label this machine, e.g. "My Laptop"'
-          maxLength={80}
-          disabled={generating}
-          className="w-full flex-1 rounded-xl border border-border px-3 py-2 text-sm text-dash-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:opacity-60 sm:w-auto"
-        />
+      <div className="mt-4">
         <button
-          type="submit"
+          type="button"
+          onClick={() => void handleDownload()}
           disabled={generating || !user?.email}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
         >
-          <DownloadIcon className="h-4 w-4" />
-          {generating ? "Generating…" : "Generate & Download"}
+          <DownloadIcon className="h-3.5 w-3.5" />
+          {generating ? "Generating…" : "push-usage.mjs"}
         </button>
-      </form>
+      </div>
 
       {downloadedLabel && (
         <div role="status" className="mt-3 flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
@@ -184,7 +190,7 @@ export function DownloadConfigPanel() {
             {listError}
           </p>
         ) : tokens.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">No tokens yet — generate one above.</p>
+          <p className="mt-2 text-sm text-muted">No tokens yet — download push-usage.mjs above to mint one.</p>
         ) : (
           <div className="mt-2 divide-y divide-border">
             {tokens.map((token) => (

@@ -270,6 +270,14 @@ export function MemberHeader({
             )}
           </div>
 
+          {/* Claude Usage — its own page again (ADR-052 v1.6, revising
+              v1.5's embedded-section-on-/home design): `/my-claude-usage`
+              renders `MyClaudeUsageSection` directly rather than the caller
+              scrolling to a section on /home. A real navigation, not a
+              scroll intercept. */}
+          <Link href="/my-claude-usage" className={navLinkClass(pathname === "/my-claude-usage")}>
+            Claude Usage
+          </Link>
         </nav>
 
         {/* Right-side chrome */}
