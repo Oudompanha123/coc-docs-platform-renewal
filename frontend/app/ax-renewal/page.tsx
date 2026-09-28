@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GlobeIcon, PlugIcon, PlusIcon, WarningIcon } from "@/components/layout/icons";
+import { GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { ModuleCouplingDiagram, SystemContextDiagram } from "@/components/ax-renewal/ArchitectureDiagrams";
@@ -13,7 +13,7 @@ import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
 import { GeneratedChangesReview } from "@/components/ax-renewal/GeneratedChangesReview";
 import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
-import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
+import { ProjectPicker } from "@/components/ax-renewal/ProjectPicker";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
 import { Tabs, type Tab } from "@/components/settings/Tabs";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -24,8 +24,8 @@ import {
   cancelImplementation,
   confirmSection,
   connectDatabase,
-  createProject,
   fetchRunLocallyStatus,
+  listProjects,
   reopenSection,
   setDestination,
   startImplementation,
@@ -36,7 +36,6 @@ import {
   updatePages,
   updateStackMove,
   type AxRenewalFixedBy,
-  type AxRenewalProject,
   type AxRenewalProjectDetail,
   type AxRenewalRunLocallyStatus,
   type PlanSection,
@@ -73,6 +72,23 @@ export default function AxRenewalPage() {
       onCreated={(created) => {
         setProjects((prev) => (prev ? [created, ...prev] : [created]));
         goTo(created.id);
+      }}
+      onDeleted={() => {
+        // Re-fetched from the server, not a local filter — and awaited
+        // before navigating, so `projects` already excludes the deleted row
+        // by the time clearing `project=` lets useAxRenewalProject fall back
+        // to `projects[0]`. Otherwise that fallback could briefly land back
+        // on the very id that just 404s.
+        void (async () => {
+          try {
+            setProjects(await listProjects());
+          } catch {
+            // Best-effort refresh only — the delete itself already
+            // succeeded and was reported; a failed follow-up list refresh
+            // is not a reason to show a second error for the same click.
+          }
+          router.push("/ax-renewal");
+        })();
       }}
     />
   );
@@ -186,92 +202,6 @@ export default function AxRenewalPage() {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function ProjectPicker({
-  projects,
-  projectId,
-  canEdit,
-  onSelect,
-  onCreated,
-}: {
-  projects: AxRenewalProject[] | null;
-  projectId: string | null;
-  canEdit: boolean;
-  onSelect: (id: string) => void;
-  onCreated: (project: AxRenewalProject) => void;
-}) {
-  const [creating, setCreating] = useState(false);
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const created = await createProject(name.trim(), null);
-      onCreated(created);
-      setName("");
-      setCreating(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't create that project.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="rounded-[10px] border border-border bg-page p-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="ax-project" className="text-xs font-semibold text-muted">
-          Project
-        </label>
-        <ProjectSwitcher projects={projects} projectId={projectId} onSelect={onSelect} />
-
-        {canEdit && !creating && (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[10px] border border-dashed border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
-          >
-            <PlusIcon className="h-3.5 w-3.5" />
-            New project
-          </button>
-        )}
-      </div>
-
-      {creating && (
-        <form onSubmit={(e) => void handleCreate(e)} className="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Project name"
-            required
-            className="rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {busy ? "Creating…" : "Create"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCreating(false)}
-            className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
-          >
-            Cancel
-          </button>
-        </form>
-      )}
-      {error && <p role="alert" className="mt-2 text-xs font-medium text-danger">{error}</p>}
     </div>
   );
 }
@@ -935,6 +865,15 @@ function OutputPanel({
     <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Output</h3>
       <p className="mt-1 text-xs text-muted">Where the renewed project would be written.</p>
+      {kind === "filesystem_path" && (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          Unlike the source path in AI engine, this one is shared for the whole project, not set per machine —
+          whoever clicks Approve or Run Locally writes to or reads from exactly this path on <em>their own</em>{" "}
+          computer. On a team where more than one person does that, it only behaves consistently if this path
+          actually exists (or can be created) the same way on each of those machines — e.g. the same drive letter
+          mapped to the same real folder, or everyone treating one particular machine as the one that approves/runs.
+        </p>
+      )}
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <select
