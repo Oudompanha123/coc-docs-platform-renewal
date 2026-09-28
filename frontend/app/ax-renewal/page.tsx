@@ -20,10 +20,12 @@ import { useSession } from "@/lib/auth/SessionProvider";
 import { formatBytes, languageBreakdown, type FileLayoutEntry } from "@/lib/ax-renewal/attachStats";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
+import { readSourcePathOverride, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 import {
   cancelImplementation,
   confirmSection,
   connectDatabase,
+  fetchEngineStatus,
   fetchRunLocallyStatus,
   listProjects,
   reopenSection,
@@ -35,6 +37,7 @@ import {
   updateDatabasePlan,
   updatePages,
   updateStackMove,
+  type AxRenewalEngineStatus,
   type AxRenewalFixedBy,
   type AxRenewalProjectDetail,
   type AxRenewalRunLocallyStatus,
@@ -930,6 +933,24 @@ function ImplementationPanel({
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const run = detail.latestImplementationRun;
 
+  // Same per-project, per-browser path Attach source offers (ADR-052) — read
+  // independently here rather than shared state, so setting it in either
+  // place is reflected the next time this panel mounts. Only offered where a
+  // local model actually answers at all; the placeholder path this project
+  // takes without one never looks at it.
+  const [engine, setEngine] = useState<AxRenewalEngineStatus | null>(null);
+  useEffect(() => {
+    void fetchEngineStatus().then(setEngine);
+  }, []);
+  const [sourcePath, setSourcePath] = useState("");
+  useEffect(() => {
+    setSourcePath(readSourcePathOverride(detail.project.id));
+  }, [detail.project.id]);
+  function handleSourcePathChange(value: string) {
+    setSourcePath(value);
+    writeSourcePathOverride(detail.project.id, value);
+  }
+
   const allConfirmed = (["stack_move", "architecture", "pages", "database"] as PlanSection[]).every(
     (s) => detail.confirmations[s] != null,
   );
@@ -967,7 +988,7 @@ function ImplementationPanel({
     setStarting(true);
     setError(null);
     try {
-      await startImplementation(detail.project.id);
+      await startImplementation(detail.project.id, sourcePath);
       await onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start implementation.");
@@ -999,6 +1020,28 @@ function ImplementationPanel({
         <h3 className="text-sm font-bold text-dash-ink">Implementation</h3>
         {!readyToStart && (
           <p className="mt-2 text-xs text-muted">Confirm all four plan sections and set a destination before starting.</p>
+        )}
+
+        {canConfirm && engine?.connected && !isActive && (
+          <div className="mt-3">
+            <label htmlFor="ax-implementation-source-path" className="text-xs font-semibold text-muted">
+              Your legacy project&apos;s path on this machine
+            </label>
+            <p className="mt-1 text-xs text-muted">
+              Needed to generate real code changes — without it, this still records the confirmed plan but writes
+              nothing.
+            </p>
+            <input
+              id="ax-implementation-source-path"
+              value={sourcePath}
+              onChange={(e) => handleSourcePathChange(e.target.value)}
+              disabled={starting}
+              placeholder="e.g. C:\Users\you\projects\legacy-app"
+              spellCheck={false}
+              autoComplete="off"
+              className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 font-mono text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
         )}
 
         {canConfirm && !isActive && (
@@ -1070,6 +1113,12 @@ function ImplementationPanel({
               <p className="mt-1 text-dash-ink">{run.afterReport.filesApplied} file(s) written to the destination.</p>
             )}
 
+            {run.status === "awaiting_review" && run.beforeReport?.mode === "replay" && (
+              <p className="mt-2 text-dash-ink">
+                This reproduces the exact result already approved for this project — the confirmed plan hasn&rsquo;t
+                changed, so nothing was generated again.
+              </p>
+            )}
             {run.status === "awaiting_review" && (
               <GeneratedChangesReview
                 projectId={detail.project.id}

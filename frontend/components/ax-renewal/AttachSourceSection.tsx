@@ -20,7 +20,7 @@ import {
 } from "@/lib/ax-renewal/attachStats";
 import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
-import { readUseModel } from "@/lib/ax-renewal/engine-preference";
+import { readSourcePathOverride, readUseModel, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 import {
   readDroppedFiles,
   readPickedDirectory,
@@ -100,13 +100,25 @@ export function AttachSourceSection({
   useEffect(() => {
     void fetchEngineStatus().then(setEngine);
   }, []);
+  // One team member's own legacy checkout, per project, remembered only in
+  // this browser (ADR-051) — never assumed to be the same folder the
+  // backend's own app.ax-renewal.source-path points at, and never sent
+  // anywhere until Run analysis is actually pressed.
+  const [sourcePath, setSourcePath] = useState("");
+  useEffect(() => {
+    setSourcePath(readSourcePathOverride(detail.project.id));
+  }, [detail.project.id]);
+  function handleSourcePathChange(value: string) {
+    setSourcePath(value);
+    writeSourcePathOverride(detail.project.id, value);
+  }
   const engineLabel = !engine
     ? "checking the analyser"
     : !engine.connected
       ? "keyword match — no model connected"
       : !readUseModel()
         ? "keyword match — model available but not in use"
-        : engine.readsSource
+        : sourcePath.trim() || engine.readsSource
           ? "local model — reading your source"
           : "local model — manifest only";
   const [scannedCount, setScannedCount] = useState(0);
@@ -340,7 +352,7 @@ export function AttachSourceSection({
     try {
       // Read at click time, so toggling it in the assistant panel takes
       // effect on the next run without this component having to subscribe.
-      await runAnalysis(detail.project.id, controller.signal, readUseModel());
+      await runAnalysis(detail.project.id, controller.signal, readUseModel(), sourcePath);
       await onChanged();
     } catch (err) {
       // A deliberate Stop leaves no error behind: nothing was changed, and
@@ -695,6 +707,34 @@ export function AttachSourceSection({
             </div>
           )}
         </>
+      )}
+
+      {/* Only offered once a local model actually answers Run analysis at
+          all (ADR-051) — with none connected, the keyword stub ignores this
+          entirely, and showing it anyway would promise something this
+          deployment cannot do. Remembered per project, per browser
+          (engine-preference.ts); never sent anywhere until Run analysis is
+          pressed, and the backend does not persist it either. */}
+      {canEdit && engine?.connected && (
+        <div className="rounded-[10px] border border-border bg-page p-4">
+          <label htmlFor="ax-source-path" className="text-xs font-semibold text-muted">
+            Your legacy project&apos;s path on this machine (optional)
+          </label>
+          <p className="mt-1 text-xs text-muted">
+            Leave blank to use this deployment&apos;s configured default, if it has one. Typing a path here reads
+            <em> your</em> checkout instead, for this run only — nothing is saved on the server.
+          </p>
+          <input
+            id="ax-source-path"
+            value={sourcePath}
+            onChange={(e) => handleSourcePathChange(e.target.value)}
+            disabled={analyzing}
+            placeholder="e.g. C:\Users\you\projects\legacy-app"
+            spellCheck={false}
+            autoComplete="off"
+            className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 font-mono text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+          />
+        </div>
       )}
 
       {/* Above the cards, not instead of them. Replacing them would hide

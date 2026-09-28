@@ -15,6 +15,7 @@ const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 import { AttachSourceSection } from "./AttachSourceSection";
+import * as enginePreference from "@/lib/ax-renewal/engine-preference";
 import type { AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 
 function detailFixture(
@@ -100,6 +101,59 @@ describe("AttachSourceSection", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => {
     delete (window as unknown as { showDirectoryPicker?: unknown }).showDirectoryPicker;
+  });
+
+  describe("the source path override (ADR-051)", () => {
+    // Spies on engine-preference.ts's own export rather than seeding real
+    // localStorage -- this sandbox's Storage polyfill does not reliably
+    // implement getItem/setItem (see that module's own test file), and
+    // reading storage correctly is that module's job, unit tested there.
+    // What belongs here is only that this component reads it on mount and
+    // renders what it returns. Restored after each test so the override
+    // cannot leak into a later test in this file.
+    afterEach(() => vi.restoreAllMocks());
+
+    it("is not offered when no model is connected", async () => {
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: false, readsSource: false });
+      render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+
+      await waitFor(() => expect(fetchEngineStatus).toHaveBeenCalled());
+      expect(screen.queryByLabelText(/legacy project's path/)).not.toBeInTheDocument();
+    });
+
+    it("is not offered to somebody who cannot edit", async () => {
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: false });
+      render(<AttachSourceSection detail={detailFixture()} canEdit={false} onChanged={vi.fn()} />);
+
+      await waitFor(() => expect(fetchEngineStatus).toHaveBeenCalled());
+      expect(screen.queryByLabelText(/legacy project's path/)).not.toBeInTheDocument();
+    });
+
+    it("prefills from what engine-preference.ts reports for this project", async () => {
+      vi.spyOn(enginePreference, "readSourcePathOverride").mockReturnValue("C:\\legacy\\app");
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: false });
+      render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+
+      expect(await screen.findByLabelText(/legacy project's path/)).toHaveValue("C:\\legacy\\app");
+    });
+
+    it("sends the typed override with the next Run analysis", async () => {
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: false });
+      render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+
+      const input = await screen.findByLabelText(/legacy project's path/);
+      fireEvent.change(input, { target: { value: "/home/dev/legacy-app" } });
+      expect(input).toHaveValue("/home/dev/legacy-app");
+
+      fireEvent.click(screen.getByRole("button", { name: "Run analysis" }));
+
+      expect(runAnalysis).toHaveBeenCalledWith(
+        "p1",
+        expect.any(AbortSignal),
+        true,
+        "/home/dev/legacy-app",
+      );
+    });
   });
 
   it("keeps the folder-only picker (webkitdirectory) working even when it first mounts after the session finishes loading", () => {
@@ -289,8 +343,10 @@ describe("AttachSourceSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Run analysis again" }));
     // Second argument is the AbortSignal behind Stop; the third is whether
-    // this browser wants the configured model used (ADR-043).
-    expect(runAnalysis).toHaveBeenCalledWith("p1", expect.any(AbortSignal), true);
+    // this browser wants the configured model used (ADR-043); the fourth is
+    // this browser's remembered source path override for this project,
+    // empty here since nothing was typed (ADR-051).
+    expect(runAnalysis).toHaveBeenCalledWith("p1", expect.any(AbortSignal), true, "");
 
     fireEvent.click(screen.getByRole("button", { name: "Open architecture" }));
     expect(push).toHaveBeenCalledWith("/ax-renewal?project=p1&section=understand-architecture");

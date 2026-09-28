@@ -93,7 +93,20 @@ export function ProjectPicker({
           </button>
         )}
 
-        {canEdit && active && <DeleteProjectControl project={active} onDeleted={handleProjectDeleted} />}
+        {/* key={active.id}, not just a prop -- once a delete succeeds, the
+            parent re-fetches the project list and clears the `project=`
+            query param, which can land on a *different* remaining project
+            rather than none at all. Without the key, React would keep
+            reusing this same component instance for that new project,
+            stale `busy`/`confirming` state and all: the popup would stay
+            stuck showing "Deleting…" forever, now for the wrong project,
+            with Cancel disabled right along with it. The key makes "which
+            project is active" changing look like an unmount+remount to
+            React, which resets that state the same way it already resets
+            cleanly when active becomes null entirely. */}
+        {canEdit && active && (
+          <DeleteProjectControl key={active.id} project={active} onDeleted={handleProjectDeleted} />
+        )}
       </div>
 
       {creating && (
