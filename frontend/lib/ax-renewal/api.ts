@@ -265,6 +265,18 @@ export function fetchProjectDetail(projectId: string): Promise<AxRenewalProjectD
 }
 
 /**
+ * Deletes a project outright (ADR-051) — every row that hangs off it
+ * (analysis, plan, confirmations, comments, implementation runs) cascades
+ * away with it on the backend. Refused with a 409 while an implementation
+ * run is still active or a local dev server is still running for this
+ * project; `request` surfaces that as its `detail` message, not a generic
+ * failure.
+ */
+export function deleteProject(projectId: string): Promise<void> {
+  return request<void>(`/projects/${projectId}`, { method: "DELETE" });
+}
+
+/**
  * `filename`/`content` are null when the attached folder had no recognized
  * dependency manifest — a static site with no `package.json` is still a
  * legitimate project to attach, so this records the attach either way.
