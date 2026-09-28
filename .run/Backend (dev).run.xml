@@ -1,0 +1,39 @@
+<component name="ProjectRunConfigurationManager">
+  <!--
+    Spring Boot backend for backend/.
+
+    Checked in for the same reason as Frontend (dev): a run configuration that
+    only exists on one machine is the problem this project already had with
+    database schemas.
+
+    Unlike the frontend, Spring Boot does NOT read a .env file by itself, so
+    this needs the EnvFile plugin (net.ashald.envfile). Without it the
+    <EXTENSION> block below is ignored, every DB_* variable falls back to the
+    application.yml default, and the app silently lands in cocdocs_dev — the
+    shared schema — instead of your own. That is exactly how another
+    developer's V28-V32 ended up blocking a dev checkout on 2026-09-21.
+
+    Install: Settings > Plugins > Marketplace > "EnvFile".
+
+    IS_IGNORE_MISSING_FILES is false on purpose: a missing backend/.env.local
+    should stop the run, not quietly start against someone else's schema.
+  -->
+  <configuration default="false" name="Backend (dev)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="false">
+    <module name="docs-platform-backend" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.coc.docs.DocsPlatformApplication" />
+    <EXTENSION ID="net.ashald.envfile">
+      <option name="IS_ENABLED" value="true" />
+      <option name="IS_SUBST" value="false" />
+      <option name="IS_PATH_MACRO_SUPPORTED" value="false" />
+      <option name="IS_IGNORE_MISSING_FILES" value="false" />
+      <option name="IS_ENABLE_EXPERIMENTAL_INTEGRATIONS" value="false" />
+      <ENTRIES>
+        <ENTRY IS_ENABLED="true" PARSER="runconfig" />
+        <ENTRY IS_ENABLED="true" PARSER="env" PATH="backend/.env.local" />
+      </ENTRIES>
+    </EXTENSION>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -18,7 +18,13 @@ import { AdminApiError, NotPermittedError } from "@/lib/admin/accounts";
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 export type TeamRole = "admin" | "member";
-export type TrackingStatus = "active" | "invited" | "removed";
+/**
+ * A roster row is active or removed, and nothing else. The third value,
+ * `invited`, went with the invite feature — V36 deleted the stranded rows and
+ * dropped it from the database's own check constraint, so the backend can no
+ * longer send it.
+ */
+export type TrackingStatus = "active" | "removed";
 export type Period = "day" | "week" | "month";
 /** Soft-budget zone for the selected period — green/amber/red, computed server-side
  *  from `budgetPct` (ClaudeUsageMemberUsage#budgetStatus) so the near-limit stat,
@@ -89,10 +95,23 @@ export interface ClaudeUsageDashboard {
   lastUpdated: string | null;
 }
 
+/** The roster mutations, all of which live under `/admin` and need that floor. */
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return requestAt(`${BACKEND_URL}/api/v1/admin/claude-usage${path}`, init);
+}
+
+/**
+ * One fetch, for a URL the caller gives in full.
+ *
+ * Split out because the dashboard read is no longer under `/admin` — it is open
+ * to every signed-in role and scoped server-side — while everything else here
+ * still is. One body, two prefixes, rather than two copies of the error
+ * handling that would drift.
+ */
+async function requestAt<T>(url: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_URL}/api/v1/admin/claude-usage${path}`, {
+    response = await fetch(url, {
       credentials: "include",
       headers: init?.body ? { "Content-Type": "application/json" } : undefined,
       ...init,
@@ -102,7 +121,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new NotPermittedError("Only an admin or super admin can view Claude usage.");
+    // Reached for the roster mutations, which are admin-only. The dashboard
+    // read refuses nobody with a session — it answers with their own row.
+    throw new NotPermittedError("Only an admin or super admin can change Claude usage tracking.");
   }
 
   if (!response.ok) {
@@ -123,9 +144,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-/** The dashboard for one period. `offset` is 0 or negative — periods back from the current one. */
+/**
+ * The dashboard for one period. `offset` is 0 or negative — periods back from
+ * the current one.
+ *
+ * Not under `/admin`, unlike everything else in this file: an admin sees the
+ * whole team and every other role sees only their own row, and the backend
+ * decides which from the session (`ClaudeUsageService.dashboardFor`). There is
+ * no scope argument here because there is none on the route.
+ */
 export function fetchDashboard(period: Period, offset = 0): Promise<ClaudeUsageDashboard> {
-  return request<ClaudeUsageDashboard>(`?period=${period}&offset=${offset}`);
+  return requestAt(`${BACKEND_URL}/api/v1/claude-usage?period=${period}&offset=${offset}`);
 }
 
 /**
