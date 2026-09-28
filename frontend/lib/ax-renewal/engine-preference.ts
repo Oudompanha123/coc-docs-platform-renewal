@@ -48,3 +48,38 @@ export function writeUseModel(useModel: boolean): void {
     // session; only the memory of it across reloads is lost.
   }
 }
+
+/**
+ * One team member's own legacy checkout, per project (ADR-054).
+ *
+ * <p>Keyed by project id, unlike {@link #readUseModel}/{@link #writeUseModel}
+ * — two different projects attached on the same machine are two different
+ * folders, so remembering one path globally would silently offer the wrong
+ * one the next time somebody switches projects. Per-browser for the same
+ * reason the model preference above is: this path only ever means anything
+ * on the machine that typed it, the same reasoning `app.ax-renewal.source-path`
+ * itself was built on (ADR-043) — nothing here is sent anywhere until a Run
+ * analysis call includes it, and the backend does not persist it either.
+ */
+const SOURCE_PATH_PREFIX = "coc-ax-renewal-source-path:";
+
+/** Empty string when nothing was remembered, or storage cannot be read — never null, so callers can bind it straight to an input's value. */
+export function readSourcePathOverride(projectId: string): string {
+  try {
+    return localStorage.getItem(SOURCE_PATH_PREFIX + projectId) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Stores this project's path, or forgets it when cleared. Silently does nothing where storage is unavailable — the run still honours whatever was typed. */
+export function writeSourcePathOverride(projectId: string, sourcePath: string): void {
+  try {
+    const trimmed = sourcePath.trim();
+    if (trimmed === "") localStorage.removeItem(SOURCE_PATH_PREFIX + projectId);
+    else localStorage.setItem(SOURCE_PATH_PREFIX + projectId, trimmed);
+  } catch {
+    // Same degradation as writeUseModel: this session still works, only the
+    // memory of it across reloads is lost.
+  }
+}
