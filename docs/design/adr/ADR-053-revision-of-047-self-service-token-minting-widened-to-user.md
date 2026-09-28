@@ -13,13 +13,13 @@ That left a real gap the setup guide had to call out explicitly: a plain `user`-
 The developer asked directly, in-session, to close this: any signed-in account should be able to click Download and have it work, not just admin/super_admin.
 
 - **Related requirements**: FR-USAGE-002 (unchanged), extended here to cover self-service minting at every rank rather than admin+ only.
-- **Related risks**: minting stays scoped per-account (ADR-047's own design — `ClaudeUsageIngestController.authorize` requires the token owner's email to equal the request's `email`), so widening *who* may mint does not widen *what* a token can do. The risk this ADR actually takes on is a larger population of standing credentials to revoke if a member's account is compromised — mitigated by the existing re-check-on-every-use behavior (a deactivated or demoted account's token stops working immediately, V35's own guarantee) and the existing revoke panel.
+- **Related risks**: minting stays scoped per-account (ADR-047's own design — `ClaudeUsageIngestController.authorize` requires the token owner's email to equal the request's `email`), so widening *who* may mint does not widen *what* a token can do. The risk this ADR actually takes on is a larger population of standing credentials to revoke if a member's account is compromised — mitigated by the existing re-check-on-every-use behavior (a deactivated or demoted account's token stops working immediately, V35's own guarantee). ~~and the existing revoke panel~~ — that panel (`DownloadConfigPanel`'s "Your tokens" list) no longer exists; see the negative consequence recorded below.
 
 ## Decision
 
 `ClaudeUsageIngestTokenService.MIN_ROLE` moves from `AppRole.ADMIN` to `AppRole.USER` — the floor for both minting/listing/revoking (`POST`/`GET`/`DELETE /api/v1/me/usage-tokens/**`, `SecurityConfig`) and for a token resolving at all (`resolve`, checked live on every `/api/ingest` call). `USER` is the lowest *real* member rank (`guest < user < developer < reviewer < lead < admin < super_admin`) — a `guest` (ADR-017's pending/unapproved rank) still cannot mint or use one.
 
-`DownloadConfigPanel` (unchanged itself) was, for a time, rendered from two places instead of one — `AdminClaudeUsageView` and `MyClaudeUsageSection` — but a later same-session change removed it from `MyClaudeUsageSection` again, on direct developer instruction (see "Not part of this ADR's lasting shape" below). It renders only from `AdminClaudeUsageView` (`/claude-usage`, admin/super_admin) today.
+`DownloadConfigPanel` (unchanged itself, until its removal below) was, for a time, rendered from two places instead of one — `AdminClaudeUsageView` and `MyClaudeUsageSection` — but a same-session change removed it from `MyClaudeUsageSection` again, on direct developer instruction (see "Not part of this ADR's lasting shape" below). A further, later change removed it from `AdminClaudeUsageView` too, and deleted the component and its test file outright: `DownloadConfigPanel.tsx` no longer exists anywhere in this codebase. The one-click UI now lives exclusively in `ContentRenderer`'s `DownloadLinks` (the setup guide's `push-usage.mjs` download link, personalizing for any signed-in rank) — see "Not part of this ADR's lasting shape" for that surface's own history.
 
 ### Not part of this ADR's lasting shape
 
@@ -54,11 +54,13 @@ The setup guide (`content-store.ts`) drops its "admin/super_admin only" framing 
 
 - More standing credentials to exist across the fleet (one per machine per member, not just per admin), which is more rows in `claude_usage_ingest_token` and a larger set to consider in any future bulk-revoke tooling — no such tooling exists today for either population, so this is a difference of degree, not a new gap.
 - `V35`'s own migration comment is now stale in exactly the dimension this ADR changes ("each admin / super_admin"), on top of the "ADR-042" staleness ADR-047 already recorded. A reader of the raw SQL alone would get the authorization story wrong; ADR-INDEX.md and this ADR are the correction path.
+- **There is now no UI anywhere in the app to list or revoke a previously-minted token.** `DownloadConfigPanel` was the only screen that called `GET`/`DELETE /api/v1/me/usage-tokens`, and it has been deleted outright (on direct developer instruction, same as its two prior removals from `MyClaudeUsageSection` and then `AdminClaudeUsageView`). The backend endpoints and `frontend/lib/auth/api.ts`'s `listUsageTokens`/`revokeUsageToken` client functions are untouched and still work — a token can still be revoked via a direct API call — but nobody can do it by clicking anything today. Not raised as a follow-up item below because it was a direct instruction, not an oversight; flagged here so it isn't mistaken for one later.
 
 ### Required follow-up
 
 - [ ] Formal PM sign-off, per the caveat this document's Status line states, same pattern ADR-035/ADR-047/ADR-050 used.
 - [ ] Consider a follow-up migration comment or `ADR-INDEX.md` note correcting V35's SQL comment's authorization story, same open item ADR-047 already left (§ "Required follow-up").
+- [ ] Decide whether a revoke-token UI should exist somewhere (Settings? the setup guide page?) now that `DownloadConfigPanel` is gone — an explicit product decision, not assumed here.
 
 ## References
 
@@ -66,8 +68,8 @@ The setup guide (`content-store.ts`) drops its "admin/super_admin only" framing 
 - `backend/src/main/java/com/coc/docs/config/SecurityConfig.java` — `/api/v1/me/usage-tokens/**` floor
 - `backend/src/test/java/com/coc/docs/claudeusage/ClaudeUsageIngestTokenServiceTest.java`, `backend/src/test/java/com/coc/docs/web/SecurityRulesTest.java` — updated role-floor assertions
 - `frontend/components/claude-usage/MyClaudeUsageSection.tsx` — briefly rendered `DownloadConfigPanel`, removed again same session (see "Not part of this ADR's lasting shape")
-- `frontend/components/docs/ContentRenderer.tsx` — the surviving non-admin self-mint UI path (setup guide's own download link)
-- `frontend/components/claude-usage/DownloadConfigPanel.tsx` — doc comment updated, component itself unchanged
+- `frontend/components/docs/ContentRenderer.tsx` — the surviving, only remaining self-mint UI path (setup guide's own download link)
+- `frontend/components/claude-usage/DownloadConfigPanel.tsx` — deleted, along with its test file; see the negative consequence recorded above
 - `frontend/lib/docs/content-store.ts` — setup guide's rank-gated wording removed
 - ADR-047 (per-account ingest tokens — the decision this revises), ADR-050 (single-file script), ADR-017 (guest/approval gate), ADR-052 (personal Claude Usage dashboard, where `MyClaudeUsageSection` lives)
 
@@ -79,6 +81,7 @@ The setup guide (`content-store.ts`) drops its "admin/super_admin only" framing 
 |------|------|------|--------|
 | 2026-09-28 | 1.0 | Initial draft, implemented same session on direct developer instruction | Claude Sonnet 5 |
 | 2026-09-28 | 1.1 | `DownloadConfigPanel` removed from `MyClaudeUsageSection` again, on direct developer instruction — kept only on `AdminClaudeUsageView`. The widened `MIN_ROLE` this ADR is actually about is unaffected; only the UI surface changed. Decision/References updated to match | Claude Sonnet 5 |
+| 2026-09-28 | 1.2 | `DownloadConfigPanel` removed from `AdminClaudeUsageView` too, on direct developer instruction, and deleted outright (dead component, no remaining caller) along with its test file. New negative consequence and follow-up item recorded: no revoke-token UI exists anywhere now. `MIN_ROLE` and every backend endpoint are unaffected | Claude Sonnet 5 |
 
 ---
 

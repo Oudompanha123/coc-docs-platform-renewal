@@ -274,8 +274,20 @@ export function MemberHeader({
               v1.5's embedded-section-on-/home design): `/my-claude-usage`
               renders `MyClaudeUsageSection` directly rather than the caller
               scrolling to a section on /home. A real navigation, not a
-              scroll intercept. */}
-          <Link href="/my-claude-usage" className={navLinkClass(pathname === "/my-claude-usage")}>
+              scroll intercept.
+
+              Role-branched target, not the url itself: admin/super_admin
+              go to `/claude-usage` (the team-wide roster, `AdminClaudeUsageView`)
+              — the same `canManage` check "Open Dashboard" above already
+              uses — since without this, no nav link anywhere reaches that
+              page at all (the sidebar has had none since ADR-047 v1.2, and
+              this link used to be the one path admin/super_admin also had
+              to their own personal view, not the team one). Everyone else
+              still goes to their personal `/my-claude-usage`. */}
+          <Link
+            href={canManage ? "/claude-usage" : "/my-claude-usage"}
+            className={navLinkClass(canManage ? pathname === "/claude-usage" : pathname === "/my-claude-usage")}
+          >
             Claude Usage
           </Link>
         </nav>

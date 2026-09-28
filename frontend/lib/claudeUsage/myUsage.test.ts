@@ -31,6 +31,7 @@ describe("My Claude Usage client (ADR-052)", () => {
     todayTotalTokens: 150,
     daily: [],
     lastUpdated: null,
+    todayUsage: null,
   };
 
   it("sends the request with the session cookie, and no id of any kind", async () => {
