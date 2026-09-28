@@ -4,6 +4,7 @@ import {
   avatarColorFor,
   fetchDashboard,
   formatLastActive,
+  inviteMember,
   removeMember,
   updateMemberBudget,
   updateMemberRole,
@@ -85,6 +86,27 @@ describe("Claude Usage admin client", () => {
 
       await expect(fetchDashboard("week")).rejects.toThrow(
         "Couldn't reach the server. Check your connection and try again.",
+      );
+    });
+  });
+
+  describe("inviteMember", () => {
+    it("POSTs email and teamRole as JSON", async () => {
+      respondWith(201, { id: "1", email: "a@cocdocs.example" });
+
+      await inviteMember("a@cocdocs.example", "admin", "A");
+
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toMatch(/\/api\/v1\/admin\/claude-usage\/members$/);
+      expect(init).toMatchObject({ method: "POST" });
+      expect(JSON.parse(init.body)).toEqual({ email: "a@cocdocs.example", teamRole: "admin", displayName: "A" });
+    });
+
+    it("surfaces a duplicate-email conflict as a readable message", async () => {
+      respondWith(409, { detail: "a@cocdocs.example is already tracked on this dashboard" });
+
+      await expect(inviteMember("a@cocdocs.example", "member")).rejects.toThrow(
+        "a@cocdocs.example is already tracked on this dashboard",
       );
     });
   });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BarChartIcon, PulseIcon, RenewIcon } from "@/components/layout/icons";
 import { MyUsageHistoryChart } from "@/components/claude-usage/MyUsageHistoryChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
+import { UsageTable } from "@/components/claude-usage/UsageTable";
 import { fetchMyUsage, type MyClaudeUsageDashboard, type MyClaudeUsagePoint } from "@/lib/claudeUsage/myUsage";
 
 function formatTokensFull(n: number): string {
@@ -22,10 +23,6 @@ function formatLastUpdated(iso: string | null): string {
 /** Sum of the trailing `days` entries of a chronologically-ordered (oldest → newest) history. */
 function sumLastDays(daily: MyClaudeUsagePoint[], days: number): number {
   return daily.slice(-days).reduce((sum, point) => sum + point.totalTokens, 0);
-}
-
-function sumTokens(daily: MyClaudeUsagePoint[], pick: (point: MyClaudeUsagePoint) => number): number {
-  return daily.reduce((sum, point) => sum + pick(point), 0);
 }
 
 /**
@@ -68,10 +65,6 @@ export function MyClaudeUsageSection() {
   const daily = dashboard?.daily ?? [];
   const weekTotal = sumLastDays(daily, 7);
   const monthTotal = sumLastDays(daily, 30);
-  const monthInput = sumTokens(daily, (p) => p.inputTokens);
-  const monthOutput = sumTokens(daily, (p) => p.outputTokens);
-  const monthAll = monthInput + monthOutput;
-  const inputPct = monthAll > 0 ? Math.round((monthInput / monthAll) * 100) : 0;
 
   return (
     <div>
@@ -112,24 +105,11 @@ export function MyClaudeUsageSection() {
           </div>
 
           <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="text-sm font-bold text-dash-ink">Input vs. output, last 30 days</h3>
-              {monthAll > 0 && (
-                <p className="text-xs font-semibold text-muted">
-                  {formatTokensFull(monthInput)} in ({inputPct}%) · {formatTokensFull(monthOutput)} out ({100 - inputPct}%)
-                </p>
-              )}
-            </div>
-            <div className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-page">
-              {monthAll > 0 ? (
-                <>
-                  <div className="h-full bg-brand-purple" style={{ width: `${inputPct}%` }} />
-                  <div className="h-full bg-brand-blue" style={{ width: `${100 - inputPct}%` }} />
-                </>
-              ) : (
-                <div className="h-full w-full" />
-              )}
-            </div>
+            <h3 className="mb-4 text-sm font-bold text-dash-ink">My usage today</h3>
+            <UsageTable
+              members={dashboard?.todayUsage ? [dashboard.todayUsage] : []}
+              emptyMessage="You haven't reported any usage today."
+            />
           </div>
 
           <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">

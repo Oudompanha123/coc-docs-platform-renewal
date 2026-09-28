@@ -35,6 +35,7 @@ describe("UsageSnapshotPanel — non-admin (ADR-052)", () => {
       todayTotalTokens: 150,
       daily: [],
       lastUpdated: "2026-09-25T08:00:00Z",
+      todayUsage: null,
     });
 
     render(<UsageSnapshotPanel />);
@@ -53,6 +54,7 @@ describe("UsageSnapshotPanel — non-admin (ADR-052)", () => {
       todayTotalTokens: 0,
       daily: [],
       lastUpdated: null,
+      todayUsage: null,
     });
 
     render(<UsageSnapshotPanel />);
@@ -71,6 +73,7 @@ describe("UsageSnapshotPanel — non-admin (ADR-052)", () => {
       todayTotalTokens: 1_000,
       daily: [],
       lastUpdated: "2026-09-25T08:00:00Z",
+      todayUsage: null,
     });
 
     render(<UsageSnapshotPanel />);
@@ -102,6 +105,7 @@ describe("UsageSnapshotPanel — admin", () => {
       activeUsers: 0,
       nearLimit: 0,
       lastUpdated: null,
+      todayUsage: null,
     });
 
     render(<UsageSnapshotPanel />);
