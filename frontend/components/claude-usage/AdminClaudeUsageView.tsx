@@ -58,9 +58,9 @@ function rangeLabel(period: Period, offset: number, from: string, to: string): s
 
 /**
  * Claude Code Usage — the team-wide view at `/claude-usage` (ADR-035),
- * admin/super_admin only. The personal view lives as a section embedded
- * directly on `/home` instead (`components/claude-usage/MyClaudeUsageSection.tsx`,
- * ADR-047, further revised), so this component is unconditionally the whole
+ * admin/super_admin only. The personal view lives at its own route,
+ * `/my-claude-usage` instead (`components/claude-usage/MyClaudeUsageSection.tsx`,
+ * ADR-047 v1.6), so this component is unconditionally the whole
  * of `/claude-usage`. Backed by ClaudeUsageService: real roster and usage
  * rows, ingested at `POST /api/ingest`. Content/structure is modeled on a
  * separate internal usage-dashboard tool, but styled with Coc Docs

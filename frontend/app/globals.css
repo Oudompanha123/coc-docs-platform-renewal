@@ -110,7 +110,7 @@
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-muted {
-  color: #a79fc9;
+  color: #8a93a8;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-muted {
@@ -190,6 +190,477 @@
   box-shadow: 0 20px 40px rgb(0 0 0 / 55%), 0 8px 16px rgb(0 0 0 / 40%);
 }
 
+/* True-black dark theme, AX Renewal only (ax-renewal-black-theme.png) —
+   more specific than the shared :is(admin, ax-renewal, home) block above,
+   so these win for this shell without touching admin/home's navy dark
+   theme. Every selector reuses a combination of classes each element
+   already carries (bg-white + its own sticky/border pairing for the title
+   bar, bg-sidebar + w-[52px] to tell the icon rail from the Explorer
+   panel) rather than adding new ones, since this only retunes existing
+   surface tokens. Borders, text colors, shadows, and status colors are
+   untouched — the shared block above still supplies those. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] {
+  --color-page: #161616;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"].bg-white,
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-white {
+  background-color: #1c1c1c;
+}
+
+/* Flat IDE-authentic color scheme, dark theme only, replacing the gradient
+   treatment entirely (supersedes an earlier "refined gradient" pass — this
+   mockup goes further and drops gradients altogether). Every rule below
+   overrides background-image directly rather than Tailwind's own
+   --tw-gradient-from/--tw-gradient-to: those are registered via @property
+   in Tailwind v4's generated @layer properties block, and empirically (not
+   assumed) resist being overridden from outside its utilities layer even
+   with !important and a much higher-specificity selector — confirmed by
+   direct testing (isolated reproductions without @property involved
+   override those two variables cleanly; only the real, compiled page
+   resists it). background-image itself carries no such registration, so a
+   plain higher-specificity rule works normally.
+
+   Card icon badges (Project Information, Verification, Attached, Analysis
+   complete/Run analysis, the landing page's hero/step badges — every
+   to-br gradient EXCEPT the two excluded below, which get their own,
+   different flat treatment) — #2d3548 flat slate, #8ab4f8 icon color
+   (inherited via currentColor, same as the gradient version's text-white
+   did), 6px radius. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-br.from-brand-purple.to-brand-blue:not(.mb-2):not(.rounded-md) {
+  background-image: none;
+  background-color: #2d3548;
+  color: #8ab4f8;
+  border-radius: 6px;
+}
+
+/* Rail logo mark — the only to-br gradient combined with mb-2. Flat brand
+   blue, not the slate card-badge tone above, no shadow. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-br.from-brand-purple.to-brand-blue.mb-2 {
+  background-image: none;
+  background-color: #3574f0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+/* Section label icon-badge squares (UNDERSTAND/PLAN/BUILD/WORKSPACE) — the
+   only to-br gradient combined with rounded-md (18px). Removed entirely in
+   BOTH themes per direct instruction (not dark-scoped, unlike every other
+   rule in this block) — label text alone carries the row now. */
+[data-shell="ax-renewal"] .bg-gradient-to-br.from-brand-purple.to-brand-blue.rounded-md {
+  display: none;
+}
+
+/* Primary buttons (Open architecture, Run analysis, the send button, every
+   other bg-gradient-to-r action button) — the only to-r gradient NOT also
+   carrying shadow-md (that's the active nav pill, handled separately
+   below). Flat brand blue, 4px radius, no glow shadow. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue:not(.shadow-md) {
+  background-image: none;
+  background-color: #3574f0;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+/* Active sidebar nav item — was a full gradient pill, now a tinted
+   background with a flat left-border accent, matching a real IDE's active
+   list-item convention instead of a marketing-style pill. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md {
+  background-image: none;
+  background-color: rgba(53, 116, 240, 0.16);
+  border-left: 2px solid #3574f0;
+  box-shadow: none;
+}
+
+/* Avatar circle — AVATAR_GRADIENTS.purple is a shared arbitrary-value class
+   used app-wide, so it can't be scoped here directly (see the
+   ax-renewal-avatar marker class added in AxRenewalSidebar.tsx for why). */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .ax-renewal-avatar {
+  background-image: none;
+  background-color: #3574f0;
+}
+
+/* Active tab's top accent border — previously color-coded per group
+   (brown for Understand/"old system", purple for Plan/Build, muted for
+   Workspace, via AxRenewalTabBar's own accentColor()); flattened to one
+   uniform brand blue here rather than touching that function, since this
+   is a plain background-color override with no @property involved. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .absolute.inset-x-0.top-0.h-\[2px\] {
+  background-color: #3574f0;
+}
+
+/* Ghost/secondary buttons (Run analysis again, Choose a different folder,
+   and every other outlined action button sharing this same structure) —
+   button.border-border, excluding the to-r/to-br gradient classes (which
+   still identify primary buttons by name even though their rendered
+   gradient is overridden above), rather than a bare .border-border, which
+   would also catch card borders throughout the file. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] button.border-border:not(.bg-gradient-to-r):not(.bg-gradient-to-br) {
+  border-color: #3d4451;
+  border-radius: 4px;
+}
+
+[data-shell="ax-renewal"] button.border-border:not(.bg-gradient-to-r):not(.bg-gradient-to-br) {
+  border-color: #d5d8e0;
+  border-radius: 4px;
+}
+
+/* ---- Light theme mirror of the flat IDE scheme above ---- */
+
+[data-shell="ax-renewal"] .bg-gradient-to-br.from-brand-purple.to-brand-blue:not(.mb-2):not(.rounded-md) {
+  background-image: none;
+  background-color: #eaf1fe;
+  color: #2563eb;
+  border-radius: 6px;
+}
+
+[data-shell="ax-renewal"] .bg-gradient-to-br.from-brand-purple.to-brand-blue.mb-2 {
+  background-image: none;
+  background-color: #2563eb;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+[data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue:not(.shadow-md) {
+  background-image: none;
+  background-color: #2563eb;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+[data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md {
+  background-image: none;
+  background-color: #eaf1fe;
+  border-left: 2px solid #2563eb;
+  box-shadow: none;
+}
+
+[data-shell="ax-renewal"] .ax-renewal-avatar {
+  background-image: none;
+  background-color: #2563eb;
+}
+
+[data-shell="ax-renewal"] .absolute.inset-x-0.top-0.h-\[2px\] {
+  background-color: #2563eb;
+}
+
+/* Same broad remaining-purple-accent flattening as dark theme's
+   text-brand-purple/bg-brand-purple rules, reusing the same blue every
+   other light-theme element above uses, for consistency. */
+[data-shell="ax-renewal"] .text-brand-purple {
+  color: #2563eb;
+}
+
+[data-shell="ax-renewal"] .bg-brand-purple {
+  background-color: #2563eb;
+}
+
+[data-shell="ax-renewal"] .text-brand-purple.tracking-wider {
+  color: #6b7280;
+}
+
+/* <main> specifically — pixel-sampled from a VS Code dark editor pane
+   reference (consistent #121314 across seven independent sample points).
+   Tag+class beats the plain .bg-white rule above, which stays #1c1c1c for
+   every other card/shell surface sharing that class. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] main.bg-white {
+  background-color: #121314;
+}
+
+/* AxRenewalTopbar is the only bg-white element combining sticky/top-0/z-10
+   with a bottom border — everything else that combination could match
+   (AxRenewalStatusBar) anchors to the opposite edge (bottom-0/border-t). */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .sticky.top-0.z-10.border-b.border-border.bg-white {
+  background-color: #000000;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar.w-\[52px\] {
+  background-color: #0a0a0a;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar:not(.w-\[52px\]) {
+  background-color: #111111;
+}
+
+/* Light-theme card background (ax-renewal only), pixel-sampled from the
+   reference — --color-page's utility (.bg-page) references var() rather
+   than baking a literal, confirmed by the dark-mode --color-page override
+   further down already working, so a plain variable reassignment is
+   enough here too (no class-level override needed, unlike bg-sidebar). */
+[data-shell="ax-renewal"] {
+  --color-page: #fafafc;
+}
+
+/* AX Assistant panel is the only bg-page element with a left border
+   (border-l) rather than the top/bottom borders every other bg-page
+   surface uses — a distinct, slightly different light tone from the
+   general card background above, per the reference's own pixel sample. */
+[data-shell="ax-renewal"] .bg-page.border-l {
+  background-color: #f8f9fa;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-page.border-l {
+  background-color: #161616;
+}
+
+/* Light-theme Explorer panel + icon rail (ax-renewal) — previously
+   permanently dark regardless of theme; this reference shows a light panel
+   matching the rest of the app's light theme. Same baked-token pitfall as
+   the rest of this file (see the big comment above .bg-white): --color-*
+   reassignment alone does nothing here, since bg-sidebar/text-sidebar-muted
+   already compile to literal values, so these target the classes directly.
+   Lower specificity than the true-black .bg-sidebar.w-[52px] /
+   .bg-sidebar:not(.w-[52px]) rules above, so dark mode is unaffected. */
+[data-shell="ax-renewal"] .bg-sidebar {
+  background-color: #ffffff;
+}
+
+/* Explorer panel specifically (not the icon rail, which gets its own color
+   below) — a distinct, slightly different light tone per the reference's
+   own pixel sample. More specific than the plain .bg-sidebar rule above,
+   so it wins for the panel only. */
+[data-shell="ax-renewal"] .bg-sidebar:not(.w-\[52px\]) {
+  background-color: #f4f5fba1;
+}
+
+/* Icon rail specifically, light theme only — dark theme keeps its own
+   #0a0a0a true-black value further up, untouched. */
+[data-shell="ax-renewal"] .bg-sidebar.w-\[52px\] {
+  background-color: #eef0f8;
+}
+
+/* AxRenewalStatusBar (the only <footer> in this shell) — pixel-sampled
+   solid indigo from the reference, light theme only; specificity here
+   (0,2,1) is well below the existing dark-mode .bg-white rule (0,4,0)
+   above, so dark mode's own #1c1c1c treatment is untouched. `color` on the
+   footer itself covers the base text via inheritance without touching the
+   conditional .text-brand-purple highlight spans, which keep their own
+   color as before. */
+[data-shell="ax-renewal"] footer.bg-white {
+  background-color: #4438c9;
+  color: rgb(255 255 255 / 92%);
+}
+
+/* Dark theme keeps the identical indigo bar rather than falling back to
+   the general .bg-white dark card tone (#1c1c1c) — the plain rule above
+   has no theme guard of its own, but the broader dark-mode .bg-white rule
+   elsewhere in this file is MORE specific (four classes vs. this rule's
+   footer+two classes) and would otherwise win. Explicit dark-scoped copy,
+   same values as light, at higher specificity than that general rule. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] footer.bg-white {
+  background-color: #4438c9;
+  color: rgb(255 255 255 / 92%);
+}
+
+/* The status bar's own "confirmed/analysed/connected" highlight spans reuse
+   .text-brand-purple, which reads fine on a white bar but nearly vanishes
+   against this same-family indigo background (confirmed via screenshot —
+   "analysed"/"no database required" were barely legible). Scoped to just
+   this footer, not every other .text-brand-purple use in the app, and
+   reuses the emerald already established as this app's "good/confirmed"
+   color (the Verification checkmarks) rather than inventing a new one.
+
+   Dark-scoped copy required here too: the general dark-theme
+   .text-brand-purple rule (four classes deep) is MORE specific than this
+   footer-scoped one (footer+three classes) despite this being the more
+   targeted selector, so without an explicit dark version at matching
+   specificity, dark theme silently fell back to the general rule's flat
+   blue instead of this footer's own emerald — same text in both themes
+   now, as requested. */
+[data-shell="ax-renewal"] footer.bg-white .text-brand-purple {
+  color: #6ee7b7;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] footer.bg-white .text-brand-purple {
+  color: #6ee7b7;
+}
+
+/* AxRenewalActivityBar's own <aside> wrapper (distinct from the inner rail
+   div targeted above) had no background of its own before — light theme
+   only, per the reference; dark mode is restored to transparent below so
+   nothing leaks behind the true-black rail. */
+[data-shell="ax-renewal"] .w-\[52px\].shrink-0.lg\:block {
+  background-color: #f8f9fa;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .w-\[52px\].shrink-0.lg\:block {
+  background-color: transparent;
+}
+
+[data-shell="ax-renewal"] .bg-sidebar-hover,
+[data-shell="ax-renewal"] .hover\:bg-sidebar-hover:hover {
+  background-color: #e1e1e1;
+}
+
+[data-shell="ax-renewal"] .text-sidebar-muted {
+  /* This task's own exact value (#6b7280) — very close to, but not
+     identical to, an earlier #6b6b80. */
+  color: #6b7280;
+}
+
+[data-shell="ax-renewal"] .border-white\/10 {
+  border-color: #ececf2;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .border-white\/10 {
+  border-color: #332e4d;
+}
+
+/* Icon rail's own inner div — dark theme only; light theme never had a
+   border-right here, so no light-mode rule is needed to remove one. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar.w-\[52px\] {
+  border-right: 1px solid #332e4d;
+}
+
+/* Explorer panel itself (not just its nav list) — dark theme only; light
+   theme never had a border-right here either. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar:not(.w-\[52px\]) {
+  border-right: 1px solid rgb(51, 46, 77);
+}
+
+/* text-dash-ink/.text-muted are GLOBAL tokens (#16141f / #6b6b80, used
+   across the whole app, not just ax-renewal) — pixel-sampled reference
+   values differ slightly (#14152c / #6b7095, confirmed consistently
+   across five separate heading/value-text samples for dash-ink), so
+   these are scoped overrides here rather than changing the shared token
+   and affecting admin/home too. */
+[data-shell="ax-renewal"] .text-dash-ink {
+  color: #14152c;
+}
+
+[data-shell="ax-renewal"] .text-muted {
+  color: #6b7095;
+}
+
+/* Active sidebar nav item's text — still the literal text-white class left
+   over from the gradient-pill era. Fine in dark theme (its active
+   background stays dark enough for white text to read), but in light
+   theme the background is now a pale tint (#eaf1fe) where white text is
+   nearly invisible — confirmed by the reference itself, which shows dark
+   ink (#14152c, the same as every other heading/value text) for this
+   label, not white.
+
+   This plain rule has no theme guard, so on its own it would win in BOTH
+   themes (caught by testing — .text-white's own specificity is far below
+   this compound selector regardless of data-theme). The dark-scoped rule
+   right after it explicitly restores white for dark, at higher
+   specificity, exactly like every other light/dark pair in this file. */
+[data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md.text-white {
+  color: #14152c;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md.text-white {
+  color: #ffffff;
+}
+
+/* AX Assistant panel's "model connected" banner text/button/message-bubble
+   family (all three share text-emerald-800) — pixel-sampled from the
+   LIGHT-theme reference only (no dark-theme reference exists for this
+   element), lower confidence than the other corrections here (a single
+   darkest-pixel scan, likely catching an anti-aliased edge rather than
+   solid ink) but a large enough gap from Tailwind's stock emerald-800
+   (#065f46) to report and correct rather than dismiss. Light-theme only,
+   same reasoning as the active-pill text above: without an explicit dark
+   restore, this plain rule would otherwise leak into dark theme too,
+   where nothing confirms it's actually wrong. */
+[data-shell="ax-renewal"] .text-emerald-800 {
+  color: #419265;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .text-emerald-800 {
+  color: #065f46;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar-hover,
+:root[data-theme="dark"] [data-shell="ax-renewal"] .hover\:bg-sidebar-hover:hover {
+  background-color: #211d33;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .text-sidebar-muted {
+  /* Supersedes an earlier VS-Code-sampled #bfbfbf with this mockup's own
+     exact value — covers sub-item row text and (via currentColor
+     inheritance, since nav icons carry no color class of their own) nav
+     item icons. */
+  color: #8a93a8;
+}
+
+/* Every other remaining accent use of brand-purple, dark theme — the
+   status bar's "analysed"/"confirmed" labels, checkmarks, badges, hover
+   states, the AX Assistant's Chat/Thread active-tab background, the rail's
+   active-item indicator stripe, progress bars, the unread dot — all still
+   purple after the gradient-flattening pass, since none of them used a
+   gradient class. One flat blue, matching the rest of this theme, instead
+   of leaving purple as a second accent color alongside it. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .text-brand-purple {
+  color: #3574f0;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .bg-brand-purple {
+  background-color: #3574f0;
+}
+
+/* Section label text (UNDERSTAND/PLAN/BUILD/WORKSPACE) — these use
+   text-brand-purple, not text-sidebar-muted, as their base color (unique
+   combo: only this button pairs text-brand-purple with tracking-wider).
+   More specific than the general text-brand-purple rule above, so this
+   #8a93a8 wins here specifically, now that the icon-badge square in front
+   of it is gone. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] .text-brand-purple.tracking-wider {
+  color: #8a93a8;
+}
+
+/* "No tab open" empty-state illustration (main content area) — the front
+   tab/glow reuse the exact same accent-tint pair already established for
+   the active nav pill (#eaf1fe / #2563eb light, rgba(53,116,240,0.16) /
+   #3574f0 dark), just applied to two new elements nothing else already
+   targets, not a new color. */
+[data-shell="ax-renewal"] .ax-empty-tab-back {
+  border-color: #b0b0ff;
+  background-color: #e2e2fb;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .ax-empty-tab-back {
+  border-color: #9989ef;
+  background-color: #161616;
+}
+
+[data-shell="ax-renewal"] .ax-empty-tab-accent {
+  border-color: #2563eb;
+  background-color: #eaf1fe;
+}
+
+[data-shell="ax-renewal"] .ax-empty-tab-dot {
+  background-color: #2563eb;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .ax-empty-tab-accent {
+  border-color: #3574f0;
+  background-color: rgba(53, 116, 240, 0.16);
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .ax-empty-tab-dot {
+  background-color: #3574f0;
+}
+
+/* Explorer sidebar / AX Assistant panel drag-to-resize handle — hover and
+   active-drag both show the same highlight (data-dragging keeps it lit if
+   the pointer briefly outruns the 8px hit-area during a fast drag). Reuses
+   the same flat blue every other AX Renewal hover/active state uses. */
+[data-shell="ax-renewal"] .ax-resize-handle:hover .ax-resize-bar,
+[data-shell="ax-renewal"] .ax-resize-handle[data-dragging] .ax-resize-bar {
+  background-color: #2563eb;
+}
+
+[data-shell="ax-renewal"] .ax-resize-handle:hover .ax-resize-chevrons,
+[data-shell="ax-renewal"] .ax-resize-handle[data-dragging] .ax-resize-chevrons {
+  opacity: 1;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] .ax-resize-handle:hover .ax-resize-bar,
+:root[data-theme="dark"] [data-shell="ax-renewal"] .ax-resize-handle[data-dragging] .ax-resize-bar {
+  background-color: #3574f0;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -231,6 +702,45 @@ html {
 
 *::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* AX Renewal's <main> column now scrolls its own content (see layout.tsx's
+   h-screen/overflow-hidden shell) — explicit here rather than relying on
+   `html`'s scrollbar-width: thin above, since that property inherits and
+   support for it is inconsistent enough across engines that a directly
+   overflowing element is worth pinning down on its own. */
+[data-shell="ax-renewal"] main {
+  scrollbar-width: thin;
+}
+
+[data-shell="ax-renewal"] main::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Explorer panel's nav list specifically — same smaller scrollbar treatment
+   as <main> above, applied here since the request named this element on
+   its own rather than every scrollable area globally. */
+[data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto {
+  scrollbar-width: thin;
+}
+
+[data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Dark theme only — the global #ccc thumb reads as a light-gray smudge
+   against this panel's near-black background, so this reuses the same
+   muted-slate tone already used for this exact element's own border-right
+   (#332e4d) rather than inventing a new dark value. Light theme keeps the
+   default #ccc, which already reads fine there. */
+:root[data-theme="dark"] [data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto {
+  scrollbar-color: #332e4d transparent;
+}
+
+:root[data-theme="dark"] [data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #332e4d;
 }
 
 /* Tailwind v4 resolves @theme color tokens to a static literal at build

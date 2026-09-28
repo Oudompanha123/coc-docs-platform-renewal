@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PaperclipIcon } from "@/components/layout/icons";
+import {
+  CheckCircleIcon,
+  ChevronRightIcon,
+  DocumentIcon,
+  PaperclipIcon,
+  SparklesIcon,
+  WarningIcon,
+} from "@/components/layout/icons";
 import {
   ATTACH_STAGE_LABELS,
   buildVerification,
@@ -14,7 +21,12 @@ import {
 import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
 import { readUseModel } from "@/lib/ax-renewal/engine-preference";
-import { readDroppedFiles, supportsDirectoryDrop } from "@/lib/ax-renewal/readDroppedFiles";
+import {
+  readDroppedFiles,
+  readPickedDirectory,
+  supportsDirectoryDrop,
+  supportsDirectoryPicker,
+} from "@/lib/ax-renewal/readDroppedFiles";
 
 /** Recognized manifest filenames, matching AxRenewalService's own RUNTIME_HINTS server-side. */
 const MANIFEST_FILENAMES = [
@@ -42,6 +54,12 @@ function findManifest(files: FileList | File[]): File | null {
 }
 
 type Phase = "empty" | "picking" | "scanning" | "reviewing" | "attaching";
+
+/** Shown when a confirmed pick (folder button or drag-and-drop) comes back with no readable files — same wording either way, since the real cause is the same either way (see readDroppedFiles.ts's own doc comment on readPickedDirectory). */
+const EMPTY_PICK_MESSAGE =
+  "That folder came back with nothing readable in it. If it's inside a cloud-synced folder (OneDrive, " +
+  'Google Drive, Dropbox), make sure its files are downloaded to this device — not "available online ' +
+  'only" — then try again.';
 
 /**
  * The Attach step from CodeRenewalPlatform.html, reproduced state for state:
@@ -166,7 +184,8 @@ export function AttachSourceSection({
   async function handleFilesPicked(files: FileList | File[]) {
     stopPickClock();
     setScannedCount(files.length);
-    setPendingFile(findManifest(files));
+    const manifestFile = findManifest(files);
+    setPendingFile(manifestFile);
     setPickedStats(null);
     setPhase("scanning");
     cancelledRef.current = false;
@@ -179,7 +198,7 @@ export function AttachSourceSection({
       return;
     }
     setPickedStats(stats);
-    setPhase("reviewing");
+    await attach(stats, manifestFile);
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -188,9 +207,64 @@ export function AttachSourceSection({
     if (!files || files.length === 0) {
       stopPickClock();
       setPhase("empty");
+      // This fires on `change`, not `cancel` (a real dialog cancel never
+      // reaches here) — so the browser treated the pick as confirmed and
+      // still handed back nothing. The common real cause on Windows: the
+      // folder (or its files) lives in a cloud-synced location — OneDrive
+      // "Files On-Demand" is the classic case — and files not yet downloaded
+      // to this device don't enumerate through the picker at all, even
+      // though Explorer shows them. Silently resetting here is otherwise
+      // indistinguishable from the click having done nothing.
+      setError(EMPTY_PICK_MESSAGE);
       return;
     }
     void handleFilesPicked(files);
+  }
+
+  // The real fix for the empty-FileList problem `handleInputChange` above
+  // reports rather than just explains: `<input webkitdirectory>` builds its
+  // FileList through whatever internal enumeration Chromium uses for that
+  // element, which is where a cloud-synced folder (OneDrive Files On-Demand)
+  // can come back empty. showDirectoryPicker() reads the real filesystem one
+  // directory handle at a time — the same way drag-and-drop's
+  // webkitGetAsEntry() walk already does, which is why dragging a folder in
+  // has never shown this problem. Chrome/Edge only; Firefox and Safari fall
+  // back to the classic input below, unchanged.
+  async function chooseFolderViaFileSystemAccess() {
+    setError(null);
+    setPickWaitSecs(0);
+    setPhase("picking");
+    pickTimerRef.current = setInterval(() => setPickWaitSecs((s) => s + 1), 1000);
+    try {
+      const handle = await window.showDirectoryPicker();
+      stopPickClock();
+      const files = await readPickedDirectory(handle);
+      if (files.length === 0) {
+        setPhase("empty");
+        setError(EMPTY_PICK_MESSAGE);
+        return;
+      }
+      await handleFilesPicked(files);
+    } catch (err) {
+      stopPickClock();
+      // AbortError is a plain cancel (closing the dialog, pressing Escape) —
+      // exactly what the hidden input's own "cancel" event handles for the
+      // fallback path, so it gets the same silent, error-free return here.
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setPhase("empty");
+        return;
+      }
+      setPhase("empty");
+      setError(err instanceof Error ? err.message : "Couldn't read that folder.");
+    }
+  }
+
+  function chooseFolder() {
+    if (supportsDirectoryPicker()) {
+      void chooseFolderViaFileSystemAccess();
+    } else {
+      beginPick(folderInputRef.current);
+    }
   }
 
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -217,28 +291,29 @@ export function AttachSourceSection({
     cancelledRef.current = true;
   }
 
-  function startOver() {
-    setPendingFile(null);
-    setScannedCount(0);
-    setPickedStats(null);
-    setError(null);
-    setPhase("empty");
-  }
-
+  // Attaching happens automatically right after a scan completes — there is
+  // no manual review step to confirm it from (Choose a different folder/
+  // Attach removed on direct instruction). `stats`/`manifestFile` are taken
+  // as parameters, not read back off state, because the caller only just set
+  // that state this same tick and React would not have committed it yet.
+  //
   // No recognized manifest is a fact about the project (a static site has no
   // package.json), not a reason to refuse the attach — this still records the
   // attach, just with a null filename/content, so `canEdit`'s Run analysis
   // is never blocked behind finding a manifest that was never going to exist.
-  async function handleAttach() {
+  //
+  // On failure this falls back to the empty dropzone rather than leaving the
+  // reviewing panel stranded with no button left to retry or back out from.
+  async function attach(stats: AxRenewalAttachStats, manifestFile: File | null) {
     setPhase("attaching");
     setError(null);
     try {
-      if (pendingFile) {
-        const content = await pendingFile.text();
-        const path = pendingFile.webkitRelativePath || pendingFile.name;
-        await attachManifest(detail.project.id, path, content, pickedStats);
+      if (manifestFile) {
+        const content = await manifestFile.text();
+        const path = manifestFile.webkitRelativePath || manifestFile.name;
+        await attachManifest(detail.project.id, path, content, stats);
       } else {
-        await attachManifest(detail.project.id, null, null, pickedStats);
+        await attachManifest(detail.project.id, null, null, stats);
       }
       setPendingFile(null);
       setScannedCount(0);
@@ -247,7 +322,10 @@ export function AttachSourceSection({
       await onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't attach that project.");
-      setPhase("reviewing");
+      setPendingFile(null);
+      setScannedCount(0);
+      setPickedStats(null);
+      setPhase("empty");
     }
   }
 
@@ -283,8 +361,9 @@ export function AttachSourceSection({
   const alreadyAttached = detail.project.manifestAttachedAt != null;
   const shownStats = pickedStats ?? detail.project.attachStats;
   // Stays true through "attaching" (the POST is in flight) too, not just
-  // "reviewing" — otherwise clicking Attach would unmount this panel, and
-  // the button showing "Attaching…", the instant the click handler fires.
+  // "scanning" — pickedStats isn't cleared until attach() itself finishes
+  // (success or failure), so this panel stays up for the whole automatic
+  // scan-then-attach sequence rather than disappearing partway through it.
   const reviewingOnly = pickedStats != null;
 
   return (
@@ -310,7 +389,7 @@ export function AttachSourceSection({
       )}
 
       {phase === "picking" && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center gap-3">
             <span
               className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
@@ -331,7 +410,7 @@ export function AttachSourceSection({
                 stopPickClock();
                 setPhase("empty");
               }}
-              className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+              className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
             >
               Back
             </button>
@@ -340,7 +419,7 @@ export function AttachSourceSection({
       )}
 
       {phase === "scanning" && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-dash-ink">Attaching</h3>
             <span className="text-xs text-muted">manifest only — no source is parsed</span>
@@ -394,7 +473,7 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={cancelScan}
-              className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
+              className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
             >
               Cancel
             </button>
@@ -419,36 +498,39 @@ export function AttachSourceSection({
                 setDragOver(false);
               }}
               onDrop={handleDrop}
-              className={`rounded-[5px] border-2 border-dashed p-12 text-center transition-colors ${
-                dragOver ? "border-brand-purple bg-brand-purple/5" : "border-border bg-white"
+              className={`rounded-[10px] border-2 border-dashed p-12 text-center transition-colors ${
+                dragOver ? "border-brand-purple bg-brand-purple/5" : "border-border bg-page"
               }`}
             >
-              <p className="text-base font-semibold text-dash-ink">Attach the project you want renewed</p>
+              <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <PaperclipIcon className="h-4 w-4" />
+              </span>
+              <p className="mt-3 text-base font-semibold text-dash-ink">Attach the project you want renewed</p>
               <p className="mt-1 text-sm text-muted">Drag a folder here, or choose one. It is opened read only.</p>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
-                  onClick={() => beginPick(folderInputRef.current)}
-                  className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  onClick={chooseFolder}
+                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   Choose a folder
                 </button>
                 <button
                   type="button"
                   onClick={() => beginPick(filesInputRef.current)}
-                  className="rounded-[5px] border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+                  className="rounded-[10px] border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
                 >
                   Choose files
                 </button>
               </div>
             </div>
           ) : (
-            <div className="rounded-[5px] border border-border bg-white p-5">
+            <div className="rounded-[10px] border border-border bg-page p-5">
               <p className="text-sm text-muted">Nothing attached yet.</p>
             </div>
           )}
 
-          <div className="rounded-[5px] border border-border bg-white p-5">
+          <div className="rounded-[10px] border border-border bg-page p-5">
             <h3 className="text-sm font-bold text-dash-ink">Attaching does not analyse</h3>
             <p className="mt-1.5 text-xs leading-relaxed text-muted">
               Attaching reads the manifest only — the file list, the sizes, the dependency file and a handful of
@@ -463,7 +545,7 @@ export function AttachSourceSection({
       {(reviewingOnly || (alreadyAttached && phase !== "picking" && phase !== "scanning")) && (
         <>
           {shownStats && (
-            <div className="rounded-[5px] border border-border bg-white p-5">
+            <div className="rounded-[10px] border border-border bg-page p-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-dash-ink">File types found</h3>
                 <span className="text-xs text-muted">
@@ -477,7 +559,7 @@ export function AttachSourceSection({
                   .map(([ext, count]) => (
                     <span
                       key={ext}
-                      className="rounded-md border border-border bg-page px-2.5 py-1 font-mono text-xs text-dash-ink"
+                      className="rounded-full border border-border bg-page px-2.5 py-1 font-mono text-xs text-dash-ink"
                     >
                       .{ext} <b className="font-bold">{count}</b>
                     </span>
@@ -493,8 +575,15 @@ export function AttachSourceSection({
           )}
 
           {shownStats && (
-            <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-              <div className="flex items-center gap-2 border-b border-border bg-page px-5 py-3">
+            <div className="overflow-hidden rounded-[10px] border border-border bg-page">
+              <div className="relative flex items-center gap-2 border-b border-border bg-page px-5 py-3">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+                />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                  <DocumentIcon className="h-4 w-4" />
+                </span>
                 <h3 className="text-sm font-bold text-dash-ink">{pickedStats ? "Reviewing" : "Attached"}</h3>
                 <span className="ml-auto text-xs text-muted">
                   {pickedStats ? "not yet attached" : "manifest only"}
@@ -515,7 +604,7 @@ export function AttachSourceSection({
                   },
                   { label: "state", value: detail.analysis ? "analysed" : "not analysed" },
                 ].map((cell) => (
-                  <div key={cell.label} className="bg-white p-3.5">
+                  <div key={cell.label} className="bg-page p-3.5">
                     <b className="block text-xl font-bold tracking-tight text-dash-ink">{cell.value}</b>
                     <span className="text-xs text-muted">{cell.label}</span>
                   </div>
@@ -556,33 +645,12 @@ export function AttachSourceSection({
                   scanned — attaching will record that.
                 </p>
               )}
-              {canEdit && pickedStats && (
-                <div className="flex flex-wrap justify-end gap-3 border-t border-border px-5 py-3.5">
-                  <button
-                    type="button"
-                    onClick={startOver}
-                    disabled={phase === "attaching"}
-                    className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Choose a different folder
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleAttach()}
-                    disabled={phase === "attaching"}
-                    className="flex items-center gap-1.5 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <PaperclipIcon className="h-4 w-4" />
-                    {phase === "attaching" ? "Attaching…" : "Attach"}
-                  </button>
-                </div>
-              )}
               {canEdit && !pickedStats && alreadyAttached && (
                 <div className="flex justify-end border-t border-border px-5 py-3.5">
                   <button
                     type="button"
-                    onClick={() => beginPick(folderInputRef.current)}
-                    className="rounded-[5px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+                    onClick={chooseFolder}
+                    className="rounded-[10px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
                   >
                     Replace source
                   </button>
@@ -592,9 +660,12 @@ export function AttachSourceSection({
           )}
 
           {shownStats && (
-            <div className="rounded-[5px] border border-border bg-white p-5">
+            <div className="rounded-[10px] border border-border bg-page p-5">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-dash-ink">Verification</h3>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
+                  <CheckCircleIcon className="h-6 w-6 shrink-0 text-emerald-500" />
+                  Verification
+                </h3>
                 <span className="text-xs text-muted">
                   {buildVerification(shownStats).filter((r) => r.status === "ok").length} passed ·{" "}
                   {buildVerification(shownStats).filter((r) => r.status === "warn").length} to note
@@ -603,17 +674,21 @@ export function AttachSourceSection({
               <div className="mt-3 divide-y divide-border">
                 {buildVerification(shownStats).map((row) => (
                   <div key={row.title} className="flex items-start gap-3 py-2.5">
-                    <span
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        row.status === "ok" ? "bg-brand-purple/10 text-brand-purple" : "bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {row.status === "ok" ? "✓" : "!"}
-                    </span>
-                    <span>
+                    {row.status === "ok" ? (
+                      <CheckCircleIcon className="mt-0.5 h-6 w-6 shrink-0 text-emerald-500" />
+                    ) : (
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+                        <WarningIcon className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-dash-ink">{row.title}</span>
                       <span className="block text-xs text-muted">{row.detail}</span>
                     </span>
+                    {/* Decorative only — every row here already shows everything it
+                        has (title + detail), there's no drill-down destination to
+                        wire this to yet. */}
+                    <ChevronRightIcon className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
                   </div>
                 ))}
               </div>
@@ -630,8 +705,17 @@ export function AttachSourceSection({
       {analyzing && <AnalysisProgress engineLabel={engineLabel} onStop={stopAnalysis} />}
 
       {detail.analysis ? (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Analysis complete</h3>
+        <div className="relative overflow-hidden rounded-[10px] border border-border bg-page p-5">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+          />
+          <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-base font-bold text-white">
+              ✓
+            </span>
+            Analysis complete
+          </h3>
           <p className="mt-1.5 text-sm text-dash-ink">
             Codebase, architecture, pages and findings are open in the explorer.
           </p>
@@ -641,7 +725,7 @@ export function AttachSourceSection({
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[10px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis again"}
               </button>
@@ -649,22 +733,27 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=understand-architecture`)}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open architecture
             </button>
           </div>
         </div>
       ) : (
-        <div className="rounded-[5px] border border-border bg-white p-5">
+        <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-dash-ink">Run analysis</h3>
+            <h3 className="flex items-center gap-3 text-sm font-bold text-dash-ink">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <SparklesIcon className="h-4 w-4" />
+              </span>
+              Run analysis
+            </h3>
             {canEdit && (
               <button
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis"}
               </button>

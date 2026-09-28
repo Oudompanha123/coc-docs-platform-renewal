@@ -4,7 +4,7 @@ import { BACKEND_URL } from "@/lib/auth/api";
  * Builds and downloads a **personalized `push-usage.mjs`** — the caller's own
  * copy of `frontend/public/downloads/push-usage.mjs` with its `EMBEDDED_CONFIG`
  * marker filled in, so the one file downloaded here is the only file the
- * reporter needs (ADR-048, revising ADR-044's separate `claude-usage.config.json`
+ * reporter needs (ADR-051, revising ADR-050's separate `claude-usage.config.json`
  * download). Every value comes from either the signed-in caller's own session
  * or a token they just minted themselves (`createUsageToken`) — nothing is
  * typed in, and there is no companion config file to place next to it.
@@ -16,6 +16,27 @@ import { BACKEND_URL } from "@/lib/auth/api";
 /** Fixed — this is the file the reporter setup guide tells people to run. */
 export function personalizedScriptFileName(): string {
   return "push-usage.mjs";
+}
+
+/**
+ * Where the generic, unpersonalized template lives — the one path every
+ * "download push-usage.mjs" trigger in the app fetches and embeds into,
+ * whether that's `DownloadConfigPanel` (Claude Usage / Home) or the docs
+ * setup guide's own download link (`ContentRenderer`). Kept here, not
+ * re-hardcoded at each call site, so the two can't silently drift apart.
+ */
+export const GENERIC_TEMPLATE_URL = "/downloads/push-usage.mjs";
+
+/**
+ * A machine never has to be named to mint a token for it — the label is only
+ * ever a display convenience for telling entries apart in "Your tokens"
+ * (`DownloadConfigPanel`), and is renameable in effect by revoking and
+ * re-downloading. Dated rather than numbered so two tokens minted the same
+ * day are still told apart from their "Last used" timestamps, not a
+ * meaningless counter.
+ */
+export function autoLabel(): string {
+  return `Machine — ${new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 }
 
 /**
@@ -41,6 +62,13 @@ export function buildPersonalizedScript(template: string, email: string, display
   if (!template.includes(EMBEDDED_CONFIG_MARKER)) {
     throw new Error("push-usage.mjs template has changed shape — could not embed your config into it.");
   }
+  if (!email || !token) {
+    // A caller reaching this point with a blank email/token is itself a bug
+    // upstream (a session that hasn't loaded yet, a mint response missing its
+    // token) — failing loudly here beats silently downloading a script that
+    // is indistinguishable from the untouched generic template.
+    throw new Error("Missing your account email or a minted token — could not personalize the script. Please try again.");
+  }
 
   const embedded = {
     USER_EMAIL: email,
@@ -49,7 +77,19 @@ export function buildPersonalizedScript(template: string, email: string, display
     INGEST_SECRET: token,
   };
 
-  return template.replace(EMBEDDED_CONFIG_MARKER, `const EMBEDDED_CONFIG = ${JSON.stringify(embedded)};`);
+  const script = template.replace(EMBEDDED_CONFIG_MARKER, `const EMBEDDED_CONFIG = ${JSON.stringify(embedded)};`);
+
+  // Defense in depth, not redundant with the checks above: proves the
+  // replace actually took and round-trips to the exact email given, rather
+  // than trusting a string `.replace()` call blindly. Catches a future
+  // template edit that duplicates or subtly renames the marker, or any other
+  // drift between this function and the file it edits, as a loud error
+  // instead of a download nobody notices is still the generic script.
+  if (script.includes(EMBEDDED_CONFIG_MARKER) || !script.includes(JSON.stringify(email))) {
+    throw new Error("Couldn't verify your email was embedded in the script. Please try again.");
+  }
+
+  return script;
 }
 
 /**

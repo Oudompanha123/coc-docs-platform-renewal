@@ -57,7 +57,7 @@ export function AnalysisProgress({
       : { label: "Waiting for the analyser", detail: "A model reading real source takes a minute or two." };
 
   return (
-    <div className="rounded-[5px] border border-border bg-white">
+    <div className="rounded-[10px] border border-border bg-white">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <h3 className="text-sm font-bold text-dash-ink">Analysing</h3>
         <span className="text-xs text-muted">{engineLabel}</span>
@@ -80,7 +80,7 @@ export function AnalysisProgress({
           <button
             type="button"
             onClick={onStop}
-            className="mt-4 rounded-[5px] border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+            className="mt-4 rounded-[10px] border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
           >
             Stop
           </button>

@@ -10,7 +10,7 @@
  *
  * If this copy came from Coc Docs → Claude Code Usage → "Download push-usage.mjs",
  * EMBEDDED_CONFIG below is already filled in with your email, name, the dashboard's
- * ingest URL, and a personal ingest token minted just for you (ADR-044/ADR-048) —
+ * ingest URL, and a personal ingest token minted just for you (ADR-050/ADR-051) —
  * nothing else to configure. Just run it.
  *
  * A generic copy (from the setup guide, or a teammate's repo) has EMBEDDED_CONFIG

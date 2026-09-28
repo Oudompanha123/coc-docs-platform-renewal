@@ -270,31 +270,12 @@ export function MemberHeader({
             )}
           </div>
 
-          {/* Claude Usage — a section on this same page, not a separate
-              route (ADR-047, further revised: back to living directly on
-              /home, in MyClaudeUsageSection). Still a `next/link` `<Link>`
-              (Next's own lint requires it for an internal href), but its
-              `onClick` intercepts the click and scrolls to the section
-              directly rather than letting Link navigate — there is nowhere
-              to navigate to, scrolling is the whole interaction, and this
-              is smoother than the browser's own instant hash jump. The
-              `href` stays a full, absolute path (not a bare
-              `#my-claude-usage`) so the link still resolves correctly from
-              a devtools/screen-reader context or a background-tab open,
-              and still works with JavaScript disabled (a real navigation
-              to /home#my-claude-usage, landing on the section via the
-              browser's own hash handling). */}
-          <Link
-            href="/home#my-claude-usage"
-            onClick={(e) => {
-              const target = document.getElementById("my-claude-usage");
-              if (target) {
-                e.preventDefault();
-                target.scrollIntoView({ behavior: "smooth", block: "start" });
-              }
-            }}
-            className={navLinkClass(false)}
-          >
+          {/* Claude Usage — its own page again (ADR-047 v1.6, revising
+              v1.5's embedded-section-on-/home design): `/my-claude-usage`
+              renders `MyClaudeUsageSection` directly rather than the caller
+              scrolling to a section on /home. A real navigation, not a
+              scroll intercept. */}
+          <Link href="/my-claude-usage" className={navLinkClass(pathname === "/my-claude-usage")}>
             Claude Usage
           </Link>
         </nav>

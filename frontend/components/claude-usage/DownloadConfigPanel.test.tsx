@@ -72,11 +72,19 @@ describe("DownloadConfigPanel", () => {
     expect(screen.queryByText(/coc_/)).not.toBeInTheDocument();
   });
 
+  it("is a true one-click download — no label to type in first", async () => {
+    render(<DownloadConfigPanel />);
+    await screen.findByText("Work Desktop");
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^push-usage\.mjs$/i })).toBeInTheDocument();
+  });
+
   it("mints a token, fetches the script template, downloads the personalized script, and never puts the raw value in the DOM", async () => {
     const minted: MintedUsageToken = {
       id: "tok-2",
       label: "My Laptop",
-      token: "coc_abcdef0123456789",
+      token: "coc_abcdef0123456789", // gitleaks:allow — fixture, not a credential
       createdAt: "2026-09-23T00:00:00Z",
     };
     createUsageToken.mockResolvedValue(minted);
@@ -86,11 +94,12 @@ describe("DownloadConfigPanel", () => {
     render(<DownloadConfigPanel />);
     await screen.findByText("Work Desktop");
 
-    await user.type(screen.getByPlaceholderText(/label this machine/i), "My Laptop");
-    await user.click(screen.getByRole("button", { name: /generate & download/i }));
+    await user.click(screen.getByRole("button", { name: /^push-usage\.mjs$/i }));
 
-    await waitFor(() => expect(createUsageToken).toHaveBeenCalledWith("My Laptop"));
-    expect(fetch).toHaveBeenCalledWith("/downloads/push-usage.mjs");
+    // No label typed anywhere — a one-click download still needs *some*
+    // label for "Your tokens" to show, so it's auto-generated.
+    await waitFor(() => expect(createUsageToken).toHaveBeenCalledWith(expect.stringMatching(/^Machine — /)));
+    expect(fetch).toHaveBeenCalledWith("/downloads/push-usage.mjs", { cache: "no-store" });
     await waitFor(() =>
       expect(downloadPersonalizedScript).toHaveBeenCalledWith(
         expect.stringContaining('"INGEST_SECRET":"coc_abcdef0123456789"'),
@@ -112,7 +121,7 @@ describe("DownloadConfigPanel", () => {
     render(<DownloadConfigPanel />);
     await screen.findByText("Work Desktop");
 
-    await user.click(screen.getByRole("button", { name: /generate & download/i }));
+    await user.click(screen.getByRole("button", { name: /^push-usage\.mjs$/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't generate a token. Please try again.");
     expect(downloadPersonalizedScript).not.toHaveBeenCalled();
@@ -131,7 +140,7 @@ describe("DownloadConfigPanel", () => {
     render(<DownloadConfigPanel />);
     await screen.findByText("Work Desktop");
 
-    await user.click(screen.getByRole("button", { name: /generate & download/i }));
+    await user.click(screen.getByRole("button", { name: /^push-usage\.mjs$/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't load the reporter script/i);
     expect(downloadPersonalizedScript).not.toHaveBeenCalled();

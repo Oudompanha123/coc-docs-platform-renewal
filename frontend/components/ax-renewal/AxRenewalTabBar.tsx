@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { EXPLORER_META, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { XIcon } from "@/components/layout/icons";
 
@@ -26,13 +27,60 @@ function accentColor(group: string): string {
  * caller (it decides which neighboring tab becomes active).
  */
 export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTabBarProps) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  // Plain mousedown/mousemove drag-to-scroll — with no visible scrollbar to
+  // grab, click-drag on the strip itself is the only mouse affordance left
+  // besides the wheel, and a plain div has no such behavior on its own (a
+  // mousedown+drag just starts a text selection instead, as it would on any
+  // element). `moved` distinguishes an actual drag from a plain click, so a
+  // real tab-select/close click still fires normally when nothing dragged.
+  const dragRef = useRef<{ startX: number; startScrollLeft: number; moved: boolean } | null>(null);
+  const wasDraggingRef = useRef(false);
+
   // Nothing to show here once every tab is closed — AxRenewalBreadcrumb
   // (rendered directly below this by AxRenewalTopbar) is the single "no tab
   // open" message for this whole area; a second one here just duplicated it.
   if (tabs.length === 0) return null;
 
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    dragRef.current = { startX: e.pageX, startScrollLeft: scroller.scrollLeft, moved: false };
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    const scroller = scrollerRef.current;
+    if (!drag || !scroller) return;
+    const delta = e.pageX - drag.startX;
+    if (Math.abs(delta) > 3) drag.moved = true;
+    scroller.scrollLeft = drag.startScrollLeft - delta;
+  }
+
+  function endDrag() {
+    if (dragRef.current) wasDraggingRef.current = dragRef.current.moved;
+    dragRef.current = null;
+  }
+
+  // Capture phase, so a drag suppresses the tab's own onSelect/onClose click
+  // before it fires — a plain click (no movement) is left alone.
+  function handleClickCapture(e: React.MouseEvent) {
+    if (wasDraggingRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      wasDraggingRef.current = false;
+    }
+  }
+
   return (
-    <div className="flex flex-1 overflow-x-auto border-b border-border bg-page">
+    <div
+      ref={scrollerRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={endDrag}
+      onMouseLeave={endDrag}
+      onClickCapture={handleClickCapture}
+      className="no-scrollbar flex flex-1 cursor-grab select-none overflow-x-auto border-b border-border bg-page active:cursor-grabbing">
       {tabs.map((key) => {
         const meta = EXPLORER_META[key];
         const isActive = key === active;
@@ -54,7 +102,7 @@ export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTa
               type="button"
               onClick={() => onClose(key)}
               aria-label={`Close ${meta.label}`}
-              className={`shrink-0 rounded-[5px] p-0.5 text-muted opacity-0 transition-opacity hover:bg-page hover:text-dash-ink group-hover:opacity-100 ${
+              className={`shrink-0 rounded-[10px] p-0.5 text-muted opacity-0 transition-opacity hover:bg-page hover:text-dash-ink group-hover:opacity-100 ${
                 isActive ? "opacity-100" : ""
               }`}
             >

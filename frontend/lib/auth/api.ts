@@ -812,7 +812,7 @@ export async function revokeSession(sessionId: string): Promise<void> {
 
 /**
  * One `/api/ingest` bearer token the caller has minted for themselves
- * (`claude_usage_ingest_token`, V35/ADR-044) — never carries the raw bearer
+ * (`claude_usage_ingest_token`, V35/ADR-050) — never carries the raw bearer
  * value; see {@link MintedUsageToken} for the one response that does.
  */
 export interface UsageToken {
@@ -837,7 +837,7 @@ export interface MintedUsageToken {
   createdAt: string;
 }
 
-/** GET /api/v1/me/usage-tokens (ADR-044). Every live token the caller has minted, for the Settings/Claude Usage "usage tokens" list. */
+/** GET /api/v1/me/usage-tokens (ADR-050). Every live token the caller has minted, for the Settings/Claude Usage "usage tokens" list. */
 export async function listUsageTokens(): Promise<UsageToken[]> {
   let response: Response;
   try {
@@ -855,7 +855,7 @@ export async function listUsageTokens(): Promise<UsageToken[]> {
 }
 
 /**
- * POST /api/v1/me/usage-tokens (ADR-044). Mints a new `/api/ingest` bearer
+ * POST /api/v1/me/usage-tokens (ADR-050). Mints a new `/api/ingest` bearer
  * token scoped to the caller's own account — restricted server-side to
  * reporting only their own email, and re-validated against their live
  * account (role, active status) on every use, so a role downgrade or
@@ -886,7 +886,7 @@ export async function createUsageToken(label: string): Promise<MintedUsageToken>
 }
 
 /**
- * DELETE /api/v1/me/usage-tokens/{id} (ADR-044). Stops that one token
+ * DELETE /api/v1/me/usage-tokens/{id} (ADR-050). Stops that one token
  * working immediately, without touching any other token the caller (or
  * anyone else) holds — the machine it was configured on will start failing
  * with a rejected-credential error on its next scheduled push.

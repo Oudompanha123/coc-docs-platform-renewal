@@ -35,45 +35,31 @@ beforeEach(() => {
   pathname.current = "/home";
 });
 
-describe("MemberHeader — Claude Usage link (ADR-047, further revised: a section on /home, not a route)", () => {
-  it("renders a Claude Usage link, next to Home and Products, pointing at the on-page section as a real href", () => {
+describe("MemberHeader — Claude Usage link (ADR-047 v1.6: its own page again, not a section on /home)", () => {
+  it("renders a Claude Usage link, next to Home and Products, pointing at its own route", () => {
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
 
     const link = screen.getByRole("link", { name: "Claude Usage" });
-    // A real, absolute href — not a bare "#my-claude-usage" — so the link
-    // still resolves correctly without JavaScript, from a background-tab
-    // open, or read out of context by a screen reader.
-    expect(link).toHaveAttribute("href", "/home#my-claude-usage");
+    expect(link).toHaveAttribute("href", "/my-claude-usage");
     // Same nav row as Home/Products, not the right-side icon cluster.
     expect(screen.getByRole("link", { name: "Home" }).parentElement).toBe(link.parentElement);
   });
 
-  it("smooth-scrolls to the section instead of navigating, when it's present on the page", () => {
-    const section = document.createElement("div");
-    section.id = "my-claude-usage";
-    document.body.appendChild(section);
-    const scrollIntoView = vi.fn();
-    section.scrollIntoView = scrollIntoView;
-
+  it("is a real navigation — no click-time scroll interception left over from the on-page-section design", () => {
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
     const link = screen.getByRole("link", { name: "Claude Usage" });
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
     const prevented = !link.dispatchEvent(event);
 
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
-    expect(prevented).toBe(true);
-
-    section.remove();
+    // Not prevented: the browser's own navigation to the href runs.
+    expect(prevented).toBe(false);
   });
 
-  it("falls back to a normal navigation when the section isn't on the page", () => {
+  it("is marked active when already on /my-claude-usage", () => {
+    pathname.current = "/my-claude-usage";
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-    const link = screen.getByRole("link", { name: "Claude Usage" });
-    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
-    const prevented = !link.dispatchEvent(event);
 
-    // Not prevented: the browser's own navigation to the href is left to run.
-    expect(prevented).toBe(false);
+    expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveClass("border-brand-purple", "text-ink");
   });
 
   it("does not render any admin-only navigation for a plain user", () => {

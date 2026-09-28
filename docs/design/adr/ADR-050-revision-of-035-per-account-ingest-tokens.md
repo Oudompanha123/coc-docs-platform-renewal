@@ -1,4 +1,9 @@
-# ADR-044: Per-account `/api/ingest` tokens, alongside the shared secret — revision of ADR-035 Decision 2
+# ADR-050: Per-account `/api/ingest` tokens, alongside the shared secret — revision of ADR-035 Decision 2
+
+> Drafted and implemented as "ADR-044", then "ADR-047"; renumbered to 050 on
+> merging `origin/dev`, whose own unrelated ADR-044 (Generate and Apply code
+> changes) and ADR-047 (an independently-developed personal claude-usage
+> dashboard) had already taken both slots — see this ADR's own Change History.
 
 ## Status
 
@@ -57,10 +62,11 @@ that orphaned schema rather than replacing it: **V35 required no changes.**
 1. **The shared secret** (`ClaudeUsageProperties.ingestSecret`) — unchanged,
    unscoped, may report as any email. Kept for any deployment already
    configured with it; not removed, not deprecated.
-2. **A per-account token** (`claude_usage_ingest_token`, V35) — minted by an
-   `admin`/`super_admin` from `POST /api/v1/me/usage-tokens`, restricted to
-   reporting only its own account's email, and re-validated against the live
-   `account` row on every use.
+2. **A per-account token** (`claude_usage_ingest_token`, V35) — minted by
+   ~~an `admin`/`super_admin`~~ **any signed-in (`user`+) account (widened by
+   ADR-052)** from `POST /api/v1/me/usage-tokens`, restricted to reporting
+   only its own account's email, and re-validated against the live `account`
+   row on every use.
 
 ### Key choices
 
@@ -71,18 +77,22 @@ that orphaned schema rather than replacing it: **V35 required no changes.**
   as *any* email." A per-account token cannot.
 - **Live re-check, not a stored snapshot.** `ClaudeUsageIngestTokenService.resolve`
   reloads the account on every `/api/ingest` call and requires it to both
-  `canSignIn()` and hold at least `ADMIN` rank — matching V35's own column
-  comments ("Role is re-checked on every ingest request... so a role
-  downgrade or deactivation takes effect immediately without revoking tokens
-  explicitly"). A deactivated or demoted admin's token stops working the
-  moment that happens, with nothing else to update.
-- **Minted by `ADMIN`+, matching V35's stated design** ("each admin /
+  `canSignIn()` and hold at least ~~`ADMIN`~~ **`USER` (ADR-052)** rank —
+  matching V35's own column comments ("Role is re-checked on every ingest
+  request... so a role downgrade or deactivation takes effect immediately
+  without revoking tokens explicitly"). A deactivated or demoted account's
+  token stops working the moment that happens, with nothing else to update.
+- ~~**Minted by `ADMIN`+, matching V35's stated design** ("each admin /
   super_admin generates their own token"), not opened to every `USER` —
   `SecurityConfig` floors `/api/v1/me/usage-tokens/**` there. A plain member
   can still be *given* a token to configure (an admin could hand one out the
   same way the shared secret is today), but cannot self-mint one — narrower
   than ADR-035's original "someone's machine choosing to report is the
-  opt-in" framing, which this ADR does not otherwise revisit.
+  opt-in" framing, which this ADR does not otherwise revisit.~~ — **widened
+  to every `USER`+ account in a follow-up session, ADR-052**: `SecurityConfig`
+  now floors `/api/v1/me/usage-tokens/**` at `USER`, matching ADR-035's
+  original "someone's machine choosing to report is the opt-in" framing this
+  ADR had originally narrowed.
 - **`POST /api/ingest` moves from `503` to `401` when nothing is configured.**
   ADR-035's `ClaudeUsageIngestController` returned `503 usage ingestion is
   not configured on this deployment` when the shared secret was unset,
@@ -199,6 +209,8 @@ that orphaned schema rather than replacing it: **V35 required no changes.**
 |------|------|------|--------|
 | 2026-09-23 | 1.0 | Initial draft, implemented same session on direct developer instruction | Claude Sonnet 5 |
 | 2026-09-23 | 1.1 | Frontend follow-up shipped (`DownloadConfigPanel`) — checked off in Required follow-up; "Not done here"/Negative sections updated to match | Claude Sonnet 5 |
+| 2026-09-28 | 1.2 | Renumbered 044 → 047 → 050 on merging `origin/dev`, whose own unrelated ADR-044/047 landed first — content otherwise unchanged | Claude Sonnet 5 |
+| 2026-09-28 | 1.3 | Self-service minting widened from `ADMIN`+ to `USER`+ in the same session — see ADR-052; Decision/Key choices annotated to match, original text kept struck through rather than rewritten | Claude Sonnet 5 |
 
 ---
 

@@ -111,3 +111,44 @@ function readAllEntries(reader: FileSystemDirectoryReader): Promise<FileSystemEn
     readBatch();
   });
 }
+
+/** True in every browser that offers `showDirectoryPicker` (Chrome, Edge — not Firefox or Safari, which fall back to `<input webkitdirectory>`). */
+export function supportsDirectoryPicker(): boolean {
+  return typeof window !== "undefined" && "showDirectoryPicker" in window;
+}
+
+/**
+ * Reads a folder chosen via the File System Access API (`showDirectoryPicker`)
+ * into the same flat `File[]` shape `readDroppedFiles` produces for a
+ * drag-and-dropped folder — same recursive walk, same skip list, same
+ * `webkitRelativePath` convention — so a folder chosen this way is scanned
+ * identically either way.
+ *
+ * Exists because `<input webkitdirectory>`'s own FileList enumeration can
+ * come back completely empty for a folder that reads back fine here and via
+ * drag-and-drop's `webkitGetAsEntry()` walk — a cloud-synced folder (OneDrive
+ * Files On-Demand is the common case) whose files aren't fully downloaded to
+ * this device is the known real-world trigger. Both this and the
+ * drag-and-drop path read the real filesystem one directory handle/entry at a
+ * time; only the `<input>`'s own built-in enumeration goes through whatever
+ * internal listing Chromium uses for that element, which is where the gap is.
+ */
+export async function readPickedDirectory(handle: FileSystemDirectoryHandle): Promise<File[]> {
+  return readDirectoryHandle(handle, `${handle.name}/`);
+}
+
+async function readDirectoryHandle(handle: FileSystemDirectoryHandle, prefix: string): Promise<File[]> {
+  const results: File[] = [];
+  for await (const [name, child] of handle.entries()) {
+    if (child.kind === "file") {
+      const file = await (child as FileSystemFileHandle).getFile();
+      // Same reasoning as readFileEntry above: give this File the same
+      // webkitRelativePath shape an <input webkitdirectory> pick produces.
+      Object.defineProperty(file, "webkitRelativePath", { value: `${prefix}${name}`, configurable: true });
+      results.push(file);
+    } else if (!isSkippedDirectory(name)) {
+      results.push(...(await readDirectoryHandle(child as FileSystemDirectoryHandle, `${prefix}${name}/`)));
+    }
+  }
+  return results;
+}

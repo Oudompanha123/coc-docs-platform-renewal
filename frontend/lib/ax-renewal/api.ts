@@ -169,7 +169,8 @@ export type AxRenewalImplementationStatus =
   | "awaiting_review"
   | "applying"
   | "applied"
-  | "rejected";
+  | "rejected"
+  | "cancelled";
 
 export interface AxRenewalImplementationRun {
   id: string;
@@ -391,6 +392,18 @@ export function rejectImplementation(projectId: string, runId: string): Promise<
   });
 }
 
+/**
+ * Stops a run that is still generating — kills the real process on the
+ * backend's own machine. The run's status flips to `cancelled` a moment
+ * later, once the killed process actually unblocks; the existing poll for
+ * `generating` picks that up, this call does not wait for it.
+ */
+export function cancelImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/cancel`, {
+    method: "POST",
+  });
+}
+
 export function addComment(projectId: string, body: string): Promise<AxRenewalComment> {
   return request<AxRenewalComment>(`/projects/${projectId}/comments`, {
     method: "POST",
@@ -506,4 +519,32 @@ export interface AxRenewalEngineStatus {
   connected: boolean;
   /** Whether the model sees the source, or only the stored dependency manifest. */
   readsSource: boolean;
+}
+
+export type AxRenewalRunLocallyState = "starting" | "running" | "stopped" | "failed";
+
+/**
+ * Live status of the Run Locally dev server (ADR-048) — in-memory on the
+ * backend, never persisted, so this is the whole state there is to know.
+ * `log` is the process's own real combined stdout/stderr, a rolling window,
+ * never a summary. `url` is null until the process's own output announces
+ * it is ready.
+ */
+export interface AxRenewalRunLocallyStatus {
+  status: AxRenewalRunLocallyState;
+  log: string[];
+  url: string | null;
+  startedAt: string | null;
+}
+
+export function fetchRunLocallyStatus(projectId: string): Promise<AxRenewalRunLocallyStatus> {
+  return request<AxRenewalRunLocallyStatus>(`/projects/${projectId}/run-locally/status`);
+}
+
+export function startRunLocally(projectId: string): Promise<AxRenewalRunLocallyStatus> {
+  return request<AxRenewalRunLocallyStatus>(`/projects/${projectId}/run-locally/start`, { method: "POST" });
+}
+
+export function stopRunLocally(projectId: string): Promise<AxRenewalRunLocallyStatus> {
+  return request<AxRenewalRunLocallyStatus>(`/projects/${projectId}/run-locally/stop`, { method: "POST" });
 }

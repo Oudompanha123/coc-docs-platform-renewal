@@ -29,14 +29,21 @@ function sumTokens(daily: MyClaudeUsagePoint[], pick: (point: MyClaudeUsagePoint
 }
 
 /**
- * "My Claude Usage" — a section embedded directly on `/home` (ADR-047,
- * further revised), not a separate route. `/claude-usage` is
- * admin/super_admin-only again, unconditionally — see
+ * "My Claude Usage" — rendered by its own route, `/my-claude-usage`
+ * (ADR-047 v1.6), not embedded on `/home` any more. `/claude-usage` is a
+ * separate, admin/super_admin-only page — see
  * `app/(shell)/claude-usage/page.tsx`.
  *
  * Every caller sees only its own rows here, read from `GET
  * /api/v1/claude-usage/me`, which the backend resolves from the session —
  * there is nothing on this page that could ask for anyone else's usage.
+ *
+ * Does **not** render `DownloadConfigPanel` (removed on direct developer
+ * instruction) — `AdminClaudeUsageView` is the only place that panel still
+ * appears. A plain member self-minting a token still works end to end: the
+ * setup guide's own `push-usage.mjs` download link (`ContentRenderer`,
+ * ADR-052) personalizes it the same way, for any signed-in rank, without
+ * this section's help.
  */
 export function MyClaudeUsageSection() {
   const [dashboard, setDashboard] = useState<MyClaudeUsageDashboard | null>(null);
