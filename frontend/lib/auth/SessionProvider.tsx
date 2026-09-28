@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { me, signOut as signOutRequest, type MeResponse } from "./api";
 import { takeIdToken } from "./idTokenMemory";
 import { unregisterThisDevice } from "@/lib/notify/push";
@@ -122,11 +122,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     router.replace(destination);
   }, [router, user]);
 
-  return (
-    <SessionContext.Provider value={{ status, user, signOut: doSignOut, isSigningOut, refresh: load }}>
-      {children}
-    </SessionContext.Provider>
+  // Memoized for the same reason ShellContext's own `value` is (see its
+  // comment): an un-memoized object here is a *new* reference on every
+  // render of this provider, which forces every useSession() consumer to
+  // re-render too — including ones that, as a side effect of re-rendering,
+  // change state that re-renders this provider's own parent, which
+  // re-renders this provider, producing yet another new object. That loop
+  // is exactly what "Maximum update depth exceeded" was: `(shell)/layout.tsx`
+  // renders this provider *inside* `ShellContent`, a `useShell()` consumer,
+  // so a page that both calls `useSession()` and (via `AppShell`) calls the
+  // shell's `setHeader` closed the circle the moment anything here handed
+  // out a fresh object for no real reason.
+  const value = useMemo(
+    () => ({ status, user, signOut: doSignOut, isSigningOut, refresh: load }),
+    [status, user, doSignOut, isSigningOut, load],
   );
+
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 export function useSession(): SessionValue {
