@@ -8,14 +8,22 @@
  * It never reads anyone else's account and never talks to Anthropic. Every teammate
  * runs their own copy; the dashboard is the union of what people choose to send.
  *
- * Config (env vars, or a claude-usage.config.json next to this script):
+ * If this copy came from Coc Docs → Claude Code Usage → "Download push-usage.mjs",
+ * EMBEDDED_CONFIG below is already filled in with your email, name, the dashboard's
+ * ingest URL, and a personal ingest token minted just for you (ADR-047/ADR-050) —
+ * nothing else to configure. Just run it.
+ *
+ * A generic copy (from the setup guide, or a teammate's repo) has EMBEDDED_CONFIG
+ * set to null and falls back to env vars, then a claude-usage.config.json next to
+ * this script — the manual path, still supported for CI/Docker/automation:
  *   USER_EMAIL     your identity on the dashboard, e.g. you@company.com
  * Only needed to actually report (the authenticated send to the dashboard) —
  * without them the script still runs, same as --dry-run: local preview only:
  *   INGEST_URL     the Coc Docs Platform backend's ingest route, e.g.
  *                  http://localhost:8080/api/ingest (local dev) or
  *                  https://<your-backend-host>/api/ingest once deployed
- *   INGEST_SECRET  the shared bearer secret (app.claude-usage.ingest-secret
+ *   INGEST_SECRET  a personal token (Claude Code Usage → Download push-usage.mjs)
+ *                  or the shared bearer secret (app.claude-usage.ingest-secret
  *                  on the backend) — ask whoever holds it
  * Optional:
  *   USER_NAME             the name shown on the dashboard, e.g. "Socheat Hun"
@@ -78,8 +86,16 @@ function fail(message) {
 }
 
 // ---------------------------------------------------------------- config
+//
+// CREDENTIAL FILE — if EMBEDDED_CONFIG below is not null, this copy is
+// personal to you and carries your own Coc Docs ingest token. Do not commit
+// it to git, paste it into chat/tickets, or share it with a teammate — it
+// authorizes reporting usage as your account (scoped to it, so leaking it
+// cannot post as anyone else, but revoke and re-download from Claude Code
+// Usage → Download push-usage.mjs if it ever does leak).
+const EMBEDDED_CONFIG = null;
 
-/** Env wins; the JSON file is the fallback so a teammate can set it up once, by hand. */
+/** Env wins, then the embedded personal config (if this copy has one), then the JSON file. */
 function loadConfig() {
   let fromFile = {};
   const configPath = path.join(HERE, 'claude-usage.config.json');
@@ -92,7 +108,7 @@ function loadConfig() {
     }
   }
 
-  const pick = (key) => process.env[key] ?? fromFile[key];
+  const pick = (key) => process.env[key] ?? EMBEDDED_CONFIG?.[key] ?? fromFile[key];
   const config = {
     userEmail: String(pick('USER_EMAIL') ?? '').trim().toLowerCase(),
     userName: String(pick('USER_NAME') ?? '').trim(),
@@ -109,8 +125,9 @@ function loadConfig() {
 
   if (!config.userEmail) {
     fail(
-      'missing config: USER_EMAIL. Set it as an env var or in ' +
-        'claude-usage.config.json (copy claude-usage.config.example.json).',
+      'missing config: USER_EMAIL. Get a copy of this script already filled in for ' +
+        'you from Coc Docs → Claude Code Usage → "Download push-usage.mjs", or set ' +
+        'USER_EMAIL as an env var / in a claude-usage.config.json next to this script.',
     );
   }
   if (!config.userEmail.includes('@')) {
@@ -300,7 +317,7 @@ function explainNetworkError(error, url) {
       'a proxy or DLP agent on this machine is intercepting HTTPS and Node does not ' +
       'trust its certificate. Export that root CA and set NODE_EXTRA_CA_CERTS to it ' +
       '(see the README, Troubleshooting). Do not disable certificate checking — this ' +
-      'request carries the shared ingest secret.'
+      'request carries your ingest secret.'
     );
   }
   if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {

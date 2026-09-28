@@ -935,6 +935,15 @@ function OutputPanel({
     <div className="rounded-[5px] border border-border bg-white p-5">
       <h3 className="text-sm font-bold text-dash-ink">Output</h3>
       <p className="mt-1 text-xs text-muted">Where the renewed project would be written.</p>
+      {kind === "filesystem_path" && (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          Unlike the source path in AI engine, this one is shared for the whole project, not set per machine —
+          whoever clicks Approve or Run Locally writes to or reads from exactly this path on <em>their own</em>{" "}
+          computer. On a team where more than one person does that, it only behaves consistently if this path
+          actually exists (or can be created) the same way on each of those machines — e.g. the same drive letter
+          mapped to the same real folder, or everyone treating one particular machine as the one that approves/runs.
+        </p>
+      )}
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <select
