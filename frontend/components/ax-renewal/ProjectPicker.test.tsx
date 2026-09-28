@@ -136,6 +136,54 @@ describe("ProjectPicker", () => {
       expect(await screen.findByRole("status")).toHaveTextContent("Project deleted successfully");
     });
 
+    it("regression: does not stay stuck on 'Deleting…' once a different project becomes active afterward", async () => {
+      // What the real page does on a successful delete: re-fetch the
+      // project list and clear the `project=` query param, which can land
+      // on a *different* remaining project rather than none at all. Without
+      // a `key` tying the confirm popup to the project it is about, React
+      // would keep reusing the same popup instance — including its stale
+      // `busy`/`confirming` state — for whatever project is active now.
+      vi.mocked(deleteProject).mockResolvedValue(undefined);
+      const { rerender } = render(
+        <ProjectPicker
+          projects={[project()]}
+          projectId="p1"
+          canEdit={true}
+          onSelect={vi.fn()}
+          onCreated={vi.fn()}
+          onDeleted={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+      fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
+      await waitFor(() => expect(deleteProject).toHaveBeenCalledWith("p1"));
+
+      const otherProject = project({ id: "p2", name: "Another Project" });
+      rerender(
+        <ProjectPicker
+          projects={[otherProject]}
+          projectId="p2"
+          canEdit={true}
+          onSelect={vi.fn()}
+          onCreated={vi.fn()}
+          onDeleted={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByText("Deleting…")).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      const freshButton = screen.getByRole("button", { name: "Delete project" });
+      expect(freshButton).toBeEnabled();
+
+      // And it works correctly for the new project, not stuck on the old one.
+      fireEvent.click(freshButton);
+      const newDialog = screen.getByRole("dialog", { name: "Delete project" });
+      expect(newDialog).toHaveTextContent("Another Project");
+      fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
+      await waitFor(() => expect(deleteProject).toHaveBeenCalledWith("p2"));
+    });
+
     it("says so when the server refuses, and does not report success", async () => {
       vi.mocked(deleteProject).mockRejectedValue(
         new Error("cancel or resolve the active implementation run before deleting this project"),
