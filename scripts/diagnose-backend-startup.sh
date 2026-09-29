@@ -151,6 +151,8 @@ public class HistoryCheck {
         while (r.next()) {
           String v = r.getString(1), desc = r.getString(2), script = r.getString(3);
           boolean okRow = r.getBoolean(4);
+          // A Flyway-created schema records its own creation with a null version.
+          if (v == null) continue;
           seen.add(v);
           String file = local.get(v);
           if (file == null) {
@@ -184,8 +186,12 @@ fi
 echo
 echo "5. IntelliJ run configuration"
 
-if grep -rqs 'net.ashald.envfile' .idea/runConfigurations 2>/dev/null \
-   && grep -rqs '.env.local' .idea/runConfigurations 2>/dev/null; then
+# .run/ is where this project keeps them -- the shareable location JetBrains
+# reads, which survives an .idea wipe. .idea/runConfigurations is the older
+# location, still checked so an existing setup is not reported as missing.
+RC_DIRS=""
+for d in .run .idea/runConfigurations; do [ -d "$d" ] && RC_DIRS="$RC_DIRS $d"; done
+if [ -n "$RC_DIRS" ] && grep -rqs 'net.ashald.envfile' $RC_DIRS 2>/dev/null && grep -rqs '.env.local' $RC_DIRS 2>/dev/null; then
   ok "A run configuration loads backend/.env.local."
 else
   note "No committed run configuration loads backend/.env.local."

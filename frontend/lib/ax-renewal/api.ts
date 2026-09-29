@@ -300,13 +300,23 @@ export function attachManifest(
  * request rather than only hiding the progress panel -- with a local model
  * reading real source this call can be in flight for minutes, and a Stop
  * button that leaves it running would be a lie about what it did.
+ *
+ * `sourcePath` is one caller's own legacy checkout, typed in for this one
+ * run — there is no backend-configured default left to fall back to
+ * (ADR-055 revises ADR-054): omitted or blank means manifest-only. Never
+ * stored anywhere by this call; the backend does not persist it either.
+ * `URLSearchParams` handles the encoding a real filesystem path needs
+ * (backslashes, colons, spaces) — string interpolation would not.
  */
 export function runAnalysis(
   projectId: string,
   signal?: AbortSignal,
   useModel = true,
+  sourcePath?: string,
 ): Promise<AxRenewalAnalysis> {
-  return request<AxRenewalAnalysis>(`/projects/${projectId}/analysis/run?useModel=${useModel}`, {
+  const params = new URLSearchParams({ useModel: String(useModel) });
+  if (sourcePath && sourcePath.trim()) params.set("sourcePath", sourcePath.trim());
+  return request<AxRenewalAnalysis>(`/projects/${projectId}/analysis/run?${params.toString()}`, {
     method: "POST",
     signal,
   });
@@ -381,8 +391,23 @@ export function reopenSection(projectId: string, section: PlanSection): Promise<
   return request<void>(`/projects/${projectId}/plan/${section}/reopen`, { method: "POST" });
 }
 
-export function startImplementation(projectId: string): Promise<AxRenewalImplementationRun> {
-  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/start`, { method: "POST" });
+/**
+ * `sourcePath` is one caller's own legacy checkout to generate from — only
+ * consulted once every other precondition for real generation already holds
+ * (a model configured, a filesystem destination, a concrete confirmed plan);
+ * ignored otherwise, same as `runAnalysis`'s own override (ADR-055).
+ */
+export function startImplementation(
+  projectId: string,
+  sourcePath?: string,
+): Promise<AxRenewalImplementationRun> {
+  const params = new URLSearchParams();
+  if (sourcePath && sourcePath.trim()) params.set("sourcePath", sourcePath.trim());
+  const query = params.toString();
+  return request<AxRenewalImplementationRun>(
+    `/projects/${projectId}/implementation/start${query ? `?${query}` : ""}`,
+    { method: "POST" },
+  );
 }
 
 /** The files a Generate run actually found different, once it reaches `awaiting_review` (ADR-044). */
@@ -460,6 +485,12 @@ export interface AxRenewalChatReply {
  * Takes a signal for the same reason `runAnalysis` does: a local model
  * reading real source can take a while, and a Stop button that left the
  * request running would be lying.
+ *
+ * Manifest-only for now (ADR-055): the backend's request shape has room for
+ * a `sourcePath` the same way `runAnalysis`/`startImplementation` take one,
+ * but nothing here sends it yet — deliberately out of this pass's scope,
+ * left for a follow-up decision rather than wiring up a third source-path
+ * input nobody asked for.
  */
 export function chatWithAssistant(
   projectId: string,

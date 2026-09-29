@@ -55,7 +55,12 @@ describe("Claude Usage admin client", () => {
       await fetchDashboard("month", -1);
 
       const [url, init] = fetchMock.mock.calls[0]!;
-      expect(url).toMatch(/\/api\/v1\/admin\/claude-usage\?period=month&offset=-1$/);
+      // Not under /admin, unlike every other call in this file: the read is
+      // open to any signed-in role and scoped server-side to what they may
+      // see. The path is the assertion — routing it back under /admin would
+      // silently lock a plain user out again.
+      expect(url).toMatch(/\/api\/v1\/claude-usage\?period=month&offset=-1$/);
+      expect(url).not.toMatch(/\/admin\//);
       expect(init).toMatchObject({ credentials: "include" });
     });
 
