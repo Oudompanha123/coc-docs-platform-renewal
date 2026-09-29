@@ -5,7 +5,9 @@ import {
   approveImplementation,
   fetchGeneratedChanges,
   rejectImplementation,
+  runTests,
   type AxRenewalGeneratedChange,
+  type AxRenewalTestRunResult,
 } from "@/lib/ax-renewal/api";
 
 /**
@@ -31,6 +33,13 @@ export function GeneratedChangesReview({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Running tests against a disposable copy (ADR-060 Phase 2) — never the
+  // live destination, so nothing here can conflict with Approve/Reject
+  // above; a real result or an honest refusal, shown as-is.
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<AxRenewalTestRunResult | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +79,19 @@ export function GeneratedChangesReview({
       setActionError(err instanceof Error ? err.message : "Couldn't reject this run.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleRunTests() {
+    setTesting(true);
+    setTestError(null);
+    setTestResult(null);
+    try {
+      setTestResult(await runTests(projectId, runId));
+    } catch (err) {
+      setTestError(err instanceof Error ? err.message : "Couldn't run tests for this change.");
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -132,6 +154,50 @@ export function GeneratedChangesReview({
         <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
           {actionError}
         </p>
+      )}
+
+      {canConfirm && (
+        <div>
+          <button
+            type="button"
+            onClick={() => void handleRunTests()}
+            disabled={testing}
+            className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {testing ? "Running tests…" : "Run tests"}
+          </button>
+          <p className="mt-1 text-xs text-muted">
+            Against a disposable copy of this exact proposal — never the live destination.
+          </p>
+          {testError && (
+            <p role="alert" className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+              {testError}
+            </p>
+          )}
+          {testResult && !testResult.executed && (
+            <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {testResult.note}
+            </p>
+          )}
+          {testResult && testResult.executed && (
+            <div
+              className={`mt-2 rounded-xl border px-3 py-2 text-xs ${
+                testResult.exitCode === 0
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                  : "border-danger/30 bg-danger/10 text-danger"
+              }`}
+            >
+              <p className="font-semibold">
+                {testResult.exitCode === 0 ? "Tests passed" : `Tests failed (exit code ${testResult.exitCode})`}
+              </p>
+              {testResult.output.length > 0 && (
+                <pre className="mt-1.5 max-h-56 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px]">
+                  {testResult.output.join("\n")}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {canConfirm && (

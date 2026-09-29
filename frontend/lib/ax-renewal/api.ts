@@ -198,9 +198,15 @@ export type AxRenewalImplementationStatus =
   | "rejected"
   | "cancelled";
 
+export type AxRenewalRunKind = "plan" | "error_fix" | "ui_change";
+
 export interface AxRenewalImplementationRun {
   id: string;
-  status: AxRenewalImplementationStatus;
+  status: AxRenewalImplementationStatus | "reverted";
+  /** plan (a confirmed Plan carried out), error_fix (an approved Run Locally fix) or ui_change (a natural-language UI change) — ADR-060 Phase 2. */
+  runKind: AxRenewalRunKind;
+  /** The real captured failure log or the person's own UI-change description — null for a plan run, which rebuilds its own prompt instead. */
+  instruction: string | null;
   beforeReport: Record<string, unknown> | null;
   afterReport: Record<string, unknown> | null;
   startedAt: string;
@@ -467,6 +473,67 @@ export function cancelImplementation(projectId: string, runId: string): Promise<
   });
 }
 
+/**
+ * Applies (Generate → Review) an AI-suggested fix for the project's current
+ * Run Locally failure (ADR-060 Phase 2) — the natural next step after
+ * asking the assistant to explain a failure, once a suggestion looks right.
+ * Still writes nothing until the resulting run is reviewed and approved,
+ * same as every other Generate run (ADR-044); refused (409) unless the
+ * latest Run Locally attempt actually failed right now.
+ */
+export function startErrorFixImplementation(projectId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/error-fix/start`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Generates a natural-language UI change against the renewed project's own
+ * UI (ADR-060 Phase 2) — never this admin app's own UI. Same
+ * Generate → Review → Apply flow as every other implementation run.
+ */
+export function startUiChangeImplementation(
+  projectId: string,
+  description: string,
+): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/ui-change/start`, {
+    method: "POST",
+    body: JSON.stringify({ description }),
+  });
+}
+
+/** One test run's real result — see `AxRenewalTestRunner.Result` on the backend for the exact "executed or honestly refused" shape this mirrors. */
+export interface AxRenewalTestRunResult {
+  executed: boolean;
+  exitCode: number | null;
+  output: string[];
+  note: string | null;
+}
+
+/**
+ * Runs the destination's own {@code test} script against a fresh, disposable
+ * copy of this run's staged changes — never the live destination (ADR-060
+ * Phase 2). Only meaningful while the run is still {@code awaiting_review}.
+ */
+export function runTests(projectId: string, runId: string): Promise<AxRenewalTestRunResult> {
+  return request<AxRenewalTestRunResult>(`/projects/${projectId}/implementation/${runId}/run-tests`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Undoes one specific applied run (ADR-060 §revert) — restores every file it
+ * touched to its own real recorded prior content (a created file is deleted
+ * instead). Refused (409) unless this run is still the current latest
+ * applied one, since a newer applied run may have touched the same files
+ * again since.
+ */
+export function revertImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
+  return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/revert`, {
+    method: "POST",
+  });
+}
+
 export function addComment(projectId: string, body: string): Promise<AxRenewalComment> {
   return request<AxRenewalComment>(`/projects/${projectId}/comments`, {
     method: "POST",
@@ -616,4 +683,17 @@ export function startRunLocally(projectId: string): Promise<AxRenewalRunLocallyS
 
 export function stopRunLocally(projectId: string): Promise<AxRenewalRunLocallyStatus> {
   return request<AxRenewalRunLocallyStatus>(`/projects/${projectId}/run-locally/stop`, { method: "POST" });
+}
+
+/**
+ * AI Error Assistant, phase 1 (ADR-060) — asks the local Claude Code
+ * installation to explain the current Run Locally failure in plain language
+ * and, where it can, name a specific file to fix. Read-only: the backend
+ * refuses this with a 409 unless the latest attempt is actually `failed`, and
+ * nothing this call does ever writes to the project's files (that is a
+ * deliberately separate, not-yet-built capability — ADR-060 §Open Items).
+ * Shares its response shape with {@link chatWithAssistant}.
+ */
+export function explainRunLocallyFailure(projectId: string): Promise<AxRenewalChatReply> {
+  return request<AxRenewalChatReply>(`/projects/${projectId}/run-locally/explain`, { method: "POST" });
 }
