@@ -31,6 +31,17 @@ export function actualTimeOrNull(check: HrmsAttendanceCheck): string | null {
   return actual === "" || actual === "00:00" ? null : actual;
 }
 
+/**
+ * The rows a name search matches — shared by {@link AttendanceTable}'s own
+ * filtering and the Export button, so a file downloaded mid-search cannot
+ * hold more than the table beside it shows (same reasoning as
+ * `export-users.ts`'s own filtered export).
+ */
+export function filterAttendanceRows(rows: HrmsAttendanceRow[], search: string): HrmsAttendanceRow[] {
+  const q = search.trim().toLowerCase();
+  return q.length === 0 ? rows : rows.filter((r) => r.name.toLowerCase().includes(q));
+}
+
 export interface AttendanceStats {
   totalScheduled: number;
   onTime: number;
