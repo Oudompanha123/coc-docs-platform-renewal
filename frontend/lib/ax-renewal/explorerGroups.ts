@@ -32,6 +32,7 @@ export type AxRenewalExplorerKey =
   | "codebase"
   | "understand-architecture"
   | "findings"
+  | "understand-pages"
   | "old-new"
   | "stack-move"
   | "plan-architecture"
@@ -100,6 +101,11 @@ export const EXPLORER_META: Record<
   codebase: { label: "Codebase", icon: ArticleIcon, group: "Understand" },
   "understand-architecture": { label: "Architecture", icon: NodesIcon, group: "Understand" },
   findings: { label: "Findings", icon: WarningIcon, group: "Understand" },
+  // Same icon as Plan's "pages" (the old->new route mapping editor) -- same
+  // pairing already used for Architecture's two leaves -- but a different
+  // concern entirely: this one browses what analysis detected on the current
+  // system, one page at a time, read only; it has nothing to save.
+  "understand-pages": { label: "Pages", icon: DocumentIcon, group: "Understand" },
   "old-new": { label: "Old → New", icon: RenewIcon, group: "Plan" },
   "stack-move": { label: "Stack move", icon: LayersIcon, group: "Plan", section: "stack_move" },
   "plan-architecture": { label: "Architecture", icon: NodesIcon, group: "Plan", section: "architecture" },
@@ -147,6 +153,10 @@ export function buildExplorerGroups(
         item("codebase", { locked: !analyzed }),
         item("understand-architecture", { locked: !analyzed }),
         item("findings", { locked: !analyzed, count: analyzed ? detail.analysis!.findings.length : undefined }),
+        item("understand-pages", {
+          locked: !analyzed,
+          count: analyzed ? detail.analysis!.pagesDetected.length : undefined,
+        }),
       ],
     },
     {

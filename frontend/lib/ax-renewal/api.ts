@@ -61,8 +61,34 @@ export interface AxRenewalAnalysis {
    * diagram.
    */
   moduleCoupling: AxRenewalModuleCoupling;
+  /**
+   * Exactly one entry per `runningOnToday` layer, every time a connected
+   * local model ran — `[]` on the keyword-stub path or a manifest-only run
+   * (ADR-059, revising ADR-043's "never recommend a target stack" rule).
+   * Backs Plan → Stack move's "AI recommends" hint: shown alongside the
+   * target field, never written into it on its own — a person reviews it
+   * and can accept, pick one of `alternativeTargets`, or ignore it and type
+   * their own.
+   */
+  recommendedStackMove: AxRenewalStackRecommendation[];
   modelConnected: boolean;
   analyzedAt: string;
+}
+
+export interface AxRenewalStackRecommendation {
+  /** Repeats one `runningOnToday[].label` exactly, so it can be matched back to that row. */
+  layerKey: string;
+  /**
+   * A real, specific successor when the model was confident, or `null` when
+   * it was not — a null is a complete, honest answer for this layer, not a
+   * gap to fill in some other way. Never guessed or fabricated to avoid
+   * showing `null`.
+   */
+  recommendedTarget: string | null;
+  /** Zero or more other reasonable choices — real technologies only, `[]` when none were worth naming (always `[]` when `recommendedTarget` is `null`). */
+  alternativeTargets: string[];
+  /** Grounded reasoning either way — why this successor, or why nothing was confident enough to name. */
+  why: string;
 }
 
 export interface AxRenewalIndexedStats {
