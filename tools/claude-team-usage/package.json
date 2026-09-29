@@ -1,0 +1,30 @@
+{
+  "name": "claude-team-usage",
+  "version": "0.1.0",
+  "description": "Report your own Claude Code token usage to the Coc Docs team dashboard.",
+  "type": "module",
+  "bin": {
+    "claude-team-usage": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/cli.test.js test/config.test.js test/parity.test.js"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "cocDocs": {
+    "server": "https://docs.lovedev.me"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "usage",
+    "cli"
+  ],
+  "license": "UNLICENSED"
+}
