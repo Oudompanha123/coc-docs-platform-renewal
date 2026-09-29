@@ -68,6 +68,7 @@ describe("ContentRenderer's push-usage.mjs download link", () => {
       label: "Machine — Sep 28",
       token: "coc_abcdef0123456789", // gitleaks:allow — fixture, not a credential
       createdAt: "2026-09-28T00:00:00Z",
+      ingestUrl: "http://localhost:8080/api/ingest",
     });
 
     const user = userEvent.setup();

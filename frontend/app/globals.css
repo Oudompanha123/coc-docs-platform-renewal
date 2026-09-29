@@ -718,6 +718,18 @@ html {
   height: 6px;
 }
 
+/* Admin shell's own <main> — now scrolls its own content the same way (see
+   app/(shell)/layout.tsx's h-screen/overflow-hidden shell), same smaller
+   scrollbar treatment as AX Renewal's <main> above. */
+[data-shell="admin"] main {
+  scrollbar-width: thin;
+}
+
+[data-shell="admin"] main::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
 /* Explorer panel's nav list specifically — same smaller scrollbar treatment
    as <main> above, applied here since the request named this element on
    its own rather than every scrollable area globally. */

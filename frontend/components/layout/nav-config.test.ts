@@ -40,6 +40,23 @@ describe("visibleNavSections", () => {
     expect(labelsFor(null)).not.toContain("Users & Roles");
   });
 
+  // Claude Usage's own visibility rules are covered in more depth by the
+  // dedicated "Claude Usage in ADMINISTRATION" describe block below —
+  // not duplicated here.
+  it("shows Attendance to an admin and a super admin", () => {
+    expect(labelsFor(["admin"])).toContain("Attendance");
+    expect(labelsFor(["super_admin"])).toContain("Attendance");
+  });
+
+  it("hides Attendance from an ordinary user and a guest", () => {
+    expect(labelsFor(["user"])).not.toContain("Attendance");
+    expect(labelsFor(["guest"])).not.toContain("Attendance");
+  });
+
+  it("hides Attendance while the session is still loading", () => {
+    expect(labelsFor(null)).not.toContain("Attendance");
+  });
+
   it("drops the ADMINISTRATION heading rather than rendering it empty", () => {
     const headings = visibleNavSections(["user"], FIXTURE_PRODUCTS).map((section) => section.label);
     expect(headings).not.toContain("ADMINISTRATION");
@@ -47,11 +64,15 @@ describe("visibleNavSections", () => {
 
     const adminSection = (roles: Role[]) =>
       visibleNavSections(roles, FIXTURE_PRODUCTS).find((section) => section.label === "ADMINISTRATION");
-    expect(adminSection(["super_admin"])?.items.map((i) => i.label)).toEqual(["Users & Roles", "Claude Usage"]);
-    // A plain admin (not super_admin) sees Claude Usage but not Users &
-    // Roles — the section survives with just the one item, rather than
-    // dropping entirely the way it did before Claude Usage lived here again.
-    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual(["Claude Usage"]);
+    expect(adminSection(["super_admin"])?.items.map((i) => i.label)).toEqual([
+      "Users & Roles",
+      "Attendance",
+      "Claude Usage",
+    ]);
+    // A plain admin (not super_admin) sees Attendance and Claude Usage but
+    // not Users & Roles — the section survives with just those two items,
+    // rather than dropping entirely.
+    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual(["Attendance", "Claude Usage"]);
   });
 
   it("builds the PRODUCTS section from the live nav structure, not a hardcoded list", () => {
