@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HrmsAttendanceRow } from "@/lib/notify/activity";
-import { actualTimeOrNull, computeAttendanceStats, statusKind } from "./stats";
+import { actualTimeOrNull, computeAttendanceStats, filterAttendanceRows, statusKind } from "./stats";
 
 function check(scheduled: string, actual: string, status: string) {
   return { scheduled, actual, status };
@@ -49,6 +49,22 @@ describe("actualTimeOrNull", () => {
 
   it("treats an empty actual (the parser's own no-arrow fallback) as missing", () => {
     expect(actualTimeOrNull(check("17:00", "", "Missed Check-Out"))).toBeNull();
+  });
+});
+
+describe("filterAttendanceRows", () => {
+  const rows = [row("Svay Kong", "Normal", "Normal"), row("In Thythavarak", "Normal", "Normal")];
+
+  it("returns every row for an empty search", () => {
+    expect(filterAttendanceRows(rows, "")).toEqual(rows);
+  });
+
+  it("matches case- and whitespace-insensitively against the name", () => {
+    expect(filterAttendanceRows(rows, "  THYTHAVARAK  ")).toEqual([rows[1]]);
+  });
+
+  it("is empty when nobody matches", () => {
+    expect(filterAttendanceRows(rows, "nobody")).toEqual([]);
   });
 });
 
