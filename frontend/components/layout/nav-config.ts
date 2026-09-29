@@ -3,6 +3,7 @@ import type { NavProduct } from "@/lib/docs/nav-api";
 import type { IconComponent } from "./icons";
 import {
   BarChartIcon,
+  CalendarCheckIcon,
   DatabaseIcon,
   DocumentIcon,
   FolderIcon,
@@ -85,6 +86,9 @@ const STATIC_SECTIONS: NavSection[] = [
       // content; granting roles is a different kind of authority. Listing
       // "admin" here showed them a link to a page that 403s on every request.
       { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
+      // admin and super_admin, same reasoning as Claude Usage below: this is
+      // a read-only HRMS attendance view, not account authority.
+      { label: "Attendance", href: "/attendance", icon: CalendarCheckIcon, roles: ["admin", "super_admin"] },
       // Re-added here on direct developer instruction (ADR-052, further
       // revised again): a super_admin/admin browsing an ADMINISTRATION page
       // like /users-roles had no direct way to jump to the team dashboard

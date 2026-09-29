@@ -311,7 +311,7 @@ class HrmsNotificationServiceTest {
         @DisplayName("a plain user sees only the row their account is linked to")
         void plainUserSeesOnlyTheirOwnRow() {
             var user = caller(com.coc.docs.account.AppRole.USER);
-            when(accounts.hrmsNameOf(user.id())).thenReturn(Optional.of("Ken Vantha"));
+            when(accounts.hrmsNameOf(user.id())).thenReturn(Optional.of("Ken Vantha"));  // explicit override still wins
 
             var content = armed().reportFor(9L, user).orElseThrow().content();
 
@@ -447,6 +447,98 @@ class HrmsNotificationServiceTest {
 
             assertThat(content.rows()).hasSize(1);
             verify(mailbox).htmlBodyOf("msg-9");
+        }
+
+        @Test
+        @DisplayName("that fallback stores what it parsed, so the next read needs no mailbox")
+        void fallbackBackfillsTheStore() {
+            when(repository.findById(9L)).thenReturn(Optional.of(saved()));
+            when(contents.findByNotificationId(org.mockito.ArgumentMatchers.eq(9L), any(), any()))
+                    .thenReturn(Optional.empty());
+            when(mailbox.htmlBodyOf("msg-9")).thenReturn(Optional.of(HTML));
+
+            serviceWith(configured()).report(9L);
+
+            ArgumentCaptor<HrmsMailContent> stored = ArgumentCaptor.forClass(HrmsMailContent.class);
+            verify(contents).save(org.mockito.ArgumentMatchers.eq(9L), stored.capture());
+            assertThat(stored.getValue().department()).isEqualTo("COOCON Department");
+            assertThat(stored.getValue().rows()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("a store that fails does not fail the read -- the caller asked for a report, not a write")
+        void aFailedBackfillStillServesTheReport() {
+            when(repository.findById(9L)).thenReturn(Optional.of(saved()));
+            when(contents.findByNotificationId(org.mockito.ArgumentMatchers.eq(9L), any(), any()))
+                    .thenReturn(Optional.empty());
+            when(mailbox.htmlBodyOf("msg-9")).thenReturn(Optional.of(HTML));
+            org.mockito.Mockito.doThrow(new IllegalStateException("disk on fire"))
+                    .when(contents)
+                    .save(org.mockito.ArgumentMatchers.anyLong(), any());
+
+            assertThat(serviceWith(configured()).report(9L)).isPresent();
+        }
+    }
+
+    /*
+     * ReportsForDate backs the admin Attendance page (unscoped — that route
+     * sits at the admin floor, not the per-caller one ReportScope covers
+     * above), and reuses StoredBody's own stored-first/mailbox-fallback path
+     * per arrival rather than a separate rule.
+     */
+    @Nested
+    @DisplayName("every department's report for a date")
+    class ReportsForDate {
+
+        private static final LocalDate DAY = LocalDate.of(2026, 9, 7);
+
+        private static HrmsNotification notification(long id, String messageId) {
+            return new HrmsNotification(
+                    id, messageId, "Attendance on 07-Sep-2026", DAY, Instant.parse("2026-09-07T05:02:00Z"));
+        }
+
+        @Test
+        @DisplayName("never opens a mailbox while disabled")
+        void disabledFetchesNothing() {
+            when(repository.byReportDate(DAY)).thenReturn(List.of(notification(1, "<a@hrms>")));
+
+            assertThat(serviceWith(properties(false, "someone@gmail.com", "hrms@example.com")).reportsForDate(DAY))
+                    .isEmpty();
+            verifyNoInteractions(mailbox);
+        }
+
+        @Test
+        @DisplayName("fetches one body per arrival recorded for that date")
+        void fetchesEveryArrival() {
+            when(repository.byReportDate(DAY)).thenReturn(List.of(notification(1, "<a@hrms>"), notification(2, "<b@hrms>")));
+            when(mailbox.htmlBodyOf("<a@hrms>")).thenReturn(Optional.of("<html><body>COOCON</body></html>"));
+            when(mailbox.htmlBodyOf("<b@hrms>")).thenReturn(Optional.of("<html><body>Engineering</body></html>"));
+
+            assertThat(serviceWith(configured()).reportsForDate(DAY)).hasSize(2);
+        }
+
+        /**
+         * A body that has gone from the mailbox between polling and viewing is
+         * left out, not treated as a failure of the whole date — the same
+         * "empty means not available now" contract {@link #report} already
+         * has, applied per-item instead of to the one result.
+         */
+        @Test
+        @DisplayName("silently drops an arrival whose body is no longer available")
+        void dropsUnavailableBody() {
+            when(repository.byReportDate(DAY)).thenReturn(List.of(notification(1, "<a@hrms>"), notification(2, "<b@hrms>")));
+            when(mailbox.htmlBodyOf("<a@hrms>")).thenReturn(Optional.of("<html><body>COOCON</body></html>"));
+            when(mailbox.htmlBodyOf("<b@hrms>")).thenReturn(Optional.empty());
+
+            assertThat(serviceWith(configured()).reportsForDate(DAY)).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("no arrivals for the date is an empty list, not an error")
+        void noArrivalsIsEmpty() {
+            when(repository.byReportDate(DAY)).thenReturn(List.of());
+
+            assertThat(serviceWith(configured()).reportsForDate(DAY)).isEmpty();
         }
     }
 }

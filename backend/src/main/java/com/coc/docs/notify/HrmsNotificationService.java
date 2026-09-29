@@ -229,10 +229,73 @@ public class HrmsNotificationService {
         if (!properties.usable()) {
             return Optional.empty();
         }
-        return mailbox
+        Optional<HrmsMailContent> fetched = mailbox
                 .htmlBodyOf(notification.messageId())
                 .map(html -> HrmsReportParser.parse(
                         notification.subject(), notification.reportDate(), html));
+
+        // Backfill: a report recorded before V49 is stored the first time
+        // somebody opens it, so the fallback heals itself instead of being a
+        // permanent second path. Only reports someone actually looked at are
+        // stored, which is a narrower widening than walking the whole table
+        // would be -- ADR-057's cost arrives gradually and only for reports
+        // that were going to be read anyway.
+        //
+        // Failing to store must not fail the read: the caller asked for a
+        // report, not for a write, and they have already got one.
+        fetched.ifPresent(content -> {
+            try {
+                contents.save(notification.id(), content);
+            } catch (RuntimeException e) {
+                log.warn("HRMS: served report {} from the mailbox but could not store it: {}",
+                        notification.id(), e.getMessage());
+            }
+        });
+        return fetched;
+    }
+
+    /**
+     * Every report recorded for one calendar date — normally one per
+     * department, on the day HRMS sends more than one. Backs the admin
+     * Attendance page's date+department picker, which needs to know what
+     * departments exist for a date before a person can even choose one;
+     * there is no cheaper, metadata-only way to learn a report's department
+     * (see {@link HrmsReportParser#parse} — it is only known once a body is
+     * parsed).
+     *
+     * <p>Unscoped, unlike {@link #reportFor} — this exists only for the
+     * admin Attendance page, already floored at {@code admin} in {@code
+     * SecurityConfig}, so it hands back the mail as sent rather than
+     * narrowing per caller the way a lower-floored route would have to.
+     *
+     * <p>An arrival whose content is unavailable (never stored, and now gone
+     * from the mailbox or unreachable) is silently left out rather than
+     * failing the whole date — the same "empty means not available now"
+     * contract as {@link #report}, just applied per-item instead of to the
+     * one result.
+     */
+    public List<HrmsMailContent> reportsForDate(LocalDate date) {
+        return repository.byReportDate(date).stream().flatMap(n -> contentOf(n).stream()).toList();
+    }
+
+    /**
+     * One notification's content, stored body first (V49, ADR-057) and the
+     * mailbox only as the pre-V49 fallback — the same order {@link #report}
+     * uses, just factored out so {@link #reportsForDate} can call it once per
+     * arrival without duplicating the fallback logic.
+     */
+    private Optional<HrmsMailContent> contentOf(HrmsNotification notification) {
+        Optional<HrmsMailContent> stored =
+                contents.findByNotificationId(notification.id(), notification.subject(), notification.reportDate());
+        if (stored.isPresent()) {
+            return stored;
+        }
+        if (!properties.usable()) {
+            return Optional.empty();
+        }
+        return mailbox
+                .htmlBodyOf(notification.messageId())
+                .map(html -> HrmsReportParser.parse(notification.subject(), notification.reportDate(), html));
     }
 
     /**
@@ -271,11 +334,20 @@ public class HrmsNotificationService {
         if (caller != null && caller.isAtLeast(AppRole.ADMIN)) {
             return full.map(content -> new ScopedReport(content, false, true));
         }
-        String mine = caller == null
+        String explicitName = caller == null
                 ? null
                 : accounts.hrmsNameOf(caller.id()).orElse(null);
-        boolean linked = mine != null && !mine.isBlank();
-        return full.map(content -> new ScopedReport(content.onlyRowsNamed(mine), true, linked));
+        String email = caller == null ? null : caller.email();
+
+        return full.map(content -> {
+            HrmsMailContent mine = content.onlyRowsFor(explicitName, email);
+            // "Linked" now means the caller could be resolved to a row at all,
+            // by either route. It stopped meaning "an admin typed a name" when
+            // the address became the primary key: an account with no
+            // hrms_name is the normal case, not an unconfigured one.
+            boolean linked = (explicitName != null && !explicitName.isBlank()) || !mine.rows().isEmpty();
+            return new ScopedReport(mine, true, linked);
+        });
     }
 
     /**

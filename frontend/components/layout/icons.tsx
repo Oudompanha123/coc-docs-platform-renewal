@@ -563,3 +563,14 @@ export function PaperclipIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** The Attendance page's header glyph — a calendar with a confirmed day. */
+export function CalendarCheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 3v4M16 3v4M3.5 9.5h17" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="m8.5 14.5 2.2 2.2 4.8-4.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
