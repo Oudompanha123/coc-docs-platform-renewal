@@ -121,6 +121,11 @@ storage — is read at startup, so `docker compose up -d` is enough.
 
 ### `APP_PUBLIC_URL` (backend) — the URL baked into downloaded reporter scripts
 
+The `claude-team-usage` CLI saves the same URL when it signs in (ADR-060), and
+refuses to sign in if the backend reports a localhost URL. The CLI's own default
+server is set separately, at publish time, in `tools/claude-team-usage/package.json`
+→ `cocDocs.server` (`https://<PUBLIC_DOMAIN>`).
+
 The personalized `push-usage.mjs` a member downloads embeds this deployment's
 `/api/ingest` URL, and the **backend** decides it (`PublicIngestUrl`), not the
 frontend bundle. Pass the backend container `APP_PUBLIC_URL=https://<PUBLIC_DOMAIN>`

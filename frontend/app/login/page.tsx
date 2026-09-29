@@ -22,6 +22,7 @@ import { GoogleSignInCancelledError, isGoogleSignInConfigured, signInWithGoogleV
 import { rememberIdToken, takeIdToken } from "@/lib/auth/idTokenMemory";
 import { keycloakLogoutUrl } from "@/lib/auth/keycloakLogout";
 import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutcome";
+import { safeNextPath } from "@/lib/auth/cliAuthorize";
 
 /** Where a signed-in account lands. A temporary password buys entry to
  *  exactly one place regardless of role (see the comment at each call
@@ -62,6 +63,12 @@ function postLoginDestination(account: AuthenticatedAccount): string {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // ?next= is honoured for one destination only — the claude-team-usage CLI's
+  // authorize page (ADR-060) — and never ahead of a forced password change.
+  // safeNextPath rejects everything else, so this is not an open redirect.
+  const nextPath = safeNextPath(searchParams.get("next"));
+  const destinationFor = (account: AuthenticatedAccount) =>
+    !account.mustChangePassword && nextPath ? nextPath : postLoginDestination(account);
   // The account-invite and reset-password emails link back here with
   // ?email=<address> so the person only has to type their (temporary)
   // password, not the address the email was already sent to.
@@ -157,7 +164,7 @@ function LoginForm() {
       // place: Create New Password. Everything else refuses this session
       // until that happens, so sending it anywhere else would just bounce.
       setIsRedirecting(true);
-      router.push(postLoginDestination(account));
+      router.push(destinationFor(account));
     } catch (err) {
       if (err instanceof MfaRequiredError) {
         // Not a refusal: the password was correct. Switch to the OTP step
@@ -187,7 +194,7 @@ function LoginForm() {
       const account = await verifyMfaLogin(otpCode);
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
       setIsRedirecting(true);
-      router.push(postLoginDestination(account));
+      router.push(destinationFor(account));
     } catch (err) {
       setOtpError(err instanceof Error ? err.message : "Couldn't verify that code. Please try again.");
     } finally {
@@ -222,7 +229,7 @@ function LoginForm() {
       // invited by email can also arrive here later via Google, and the
       // temporary password still has to be replaced first either way.
       setIsRedirecting(true);
-      router.push(postLoginDestination(account));
+      router.push(destinationFor(account));
     } catch (err) {
       if (err instanceof GoogleSignInCancelledError) {
         // The user closed Google's prompt themselves — not a failure.

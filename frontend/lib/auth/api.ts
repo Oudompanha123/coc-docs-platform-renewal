@@ -894,6 +894,34 @@ export async function createUsageToken(label: string): Promise<MintedUsageToken>
 }
 
 /**
+ * POST /api/v1/me/usage-tokens/cli-authorizations (ADR-060). The signed-in
+ * caller approves the claude-team-usage CLI waiting on this machine. Returns
+ * a one-time, two-minute code bound to the CLI's PKCE challenge — not a
+ * token: the CLI still has to prove it holds the matching verifier before
+ * the backend mints anything.
+ */
+export async function createCliAuthorization(codeChallenge: string, device: string): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/me/usage-tokens/cli-authorizations`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codeChallenge, device }),
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError((await readErrorDetail(response)) ?? "Couldn't authorize the CLI. Please try again.");
+  }
+  return ((await response.json()) as { code: string }).code;
+}
+
+/**
  * DELETE /api/v1/me/usage-tokens/{id} (ADR-047). Stops that one token
  * working immediately, without touching any other token the caller (or
  * anyone else) holds — the machine it was configured on will start failing

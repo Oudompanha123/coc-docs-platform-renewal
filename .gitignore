@@ -43,3 +43,6 @@ env.*.local
 # Backend log output (logback-spring.xml).
 logs/
 backend/logs/
+
+# npm pack output (tools/claude-team-usage) — build artifacts, never source.
+*.tgz
