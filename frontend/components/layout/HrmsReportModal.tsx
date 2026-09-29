@@ -105,21 +105,20 @@ export function HrmsReportModal({
             <p className="py-10 text-center text-sm text-muted">{error}</p>
           ) : !report ? (
             <p className="py-10 text-center text-sm text-muted">Reading the report…</p>
-          ) : report.scopedToViewer && !report.viewerLinked ? (
-            // Not the same as a parser failure, and it used to say it was.
-            // A plain user sees only their own row, which needs their account
-            // linked to the name HRMS uses for them; unlinked, there is
-            // nothing to show and HRMS has done nothing wrong.
-            <p className="py-10 text-center text-sm text-muted">
-              Your account isn&apos;t linked to an attendance record yet, so there is nothing
-              here for you. An administrator can link it.
-            </p>
           ) : report.rows.length === 0 && report.details.length === 0 ? (
-            // Told apart from "nobody was late" on purpose: an empty table
-            // would read as a clean day rather than as a parser that lost.
-            // Reachable for a linked user too -- they simply are not in this
-            // report -- but the wording stays, because a linked caller with no
-            // row is genuinely indistinguishable from a parse that found none.
+            // Three different causes of "no rows", and they are not
+            // interchangeable:
+            //
+            //   scoped   -- this report simply has no line for the caller. The
+            //               match is on their email address, so there is
+            //               nothing for them to configure and nothing for an
+            //               administrator to link; saying otherwise sent
+            //               people looking for a setting that no longer
+            //               decides this.
+            //   unscoped -- an admin sees the mail as sent, so an empty table
+            //               means the parser lost. Told apart from "nobody was
+            //               late" on purpose: a confident empty table would
+            //               read as a clean day.
             <p className="py-10 text-center text-sm text-muted">
               {report.scopedToViewer
                 ? "No attendance for you in this report."
