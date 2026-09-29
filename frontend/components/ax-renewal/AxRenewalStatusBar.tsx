@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
+import { fetchEngineStatus, type AxRenewalEngineStatus } from "@/lib/ax-renewal/api";
 
 /**
  * A slim summary bar across the bottom of the AX Renewal shell, mirroring the
@@ -25,6 +27,16 @@ import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectCon
 export function AxRenewalStatusBar() {
   const { user } = useSession();
   const { detail } = useAxRenewalProjectContext();
+
+  // Project-independent (the same `GET /engine` AttachSourceSection/
+  // AxAssistantPanel already call), so this fetches once per mount rather
+  // than per project. Was hardcoded to the single word "no model" below,
+  // regardless of whether this deployment actually has one configured —
+  // this is what makes it honest instead.
+  const [engine, setEngine] = useState<AxRenewalEngineStatus | null>(null);
+  useEffect(() => {
+    void fetchEngineStatus().then(setEngine);
+  }, []);
 
   if (!detail) {
     return (
@@ -69,7 +81,9 @@ export function AxRenewalStatusBar() {
       <span className="ml-auto">
         {detail.latestImplementationRun ? detail.latestImplementationRun.status : "idle"}
       </span>
-      <span>no model</span>
+      <span className={engine?.connected ? "text-brand-purple" : ""}>
+        {!engine ? "checking model" : engine.connected ? "local model" : "no model"}
+      </span>
       {user?.displayName && (
         <span>
           {user.displayName} · {user.role ?? ""}

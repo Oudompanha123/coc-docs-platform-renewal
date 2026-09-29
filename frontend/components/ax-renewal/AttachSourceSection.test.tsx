@@ -346,7 +346,13 @@ describe("AttachSourceSection", () => {
       modelConnected: false,
       analyzedAt: "2026-01-02T00:00:00Z",
     };
-    render(<AttachSourceSection detail={detailFixture({}, analysis)} canEdit={true} onChanged={vi.fn()} />);
+    render(
+      <AttachSourceSection
+        detail={detailFixture({ manifestAttachedAt: "2026-01-01T00:00:00Z" }, analysis)}
+        canEdit={true}
+        onChanged={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("Analysis complete")).toBeInTheDocument();
     expect(
@@ -370,5 +376,50 @@ describe("AttachSourceSection", () => {
     expect(screen.getByRole("heading", { name: "Run analysis" })).toBeInTheDocument();
     expect(screen.queryByText("Analysis complete")).not.toBeInTheDocument();
     expect(screen.queryByText("Open architecture")).not.toBeInTheDocument();
+  });
+
+  describe("refusing to run analysis on a project with nothing to read", () => {
+    it("alerts and does not call the API when nothing was ever attached and no path was typed", () => {
+      // detailFixture()'s own default: manifestAttachedAt null, nothing picked.
+      render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Run analysis" }));
+
+      expect(runAnalysis).not.toHaveBeenCalled();
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /attach this project's folder|provide your legacy project's path/i,
+      );
+    });
+
+    it("proceeds once a folder has been attached, even with no path typed", async () => {
+      runAnalysis.mockResolvedValue({});
+      render(
+        <AttachSourceSection
+          detail={detailFixture({ manifestAttachedAt: "2026-01-01T00:00:00Z" })}
+          canEdit={true}
+          onChanged={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Run analysis" }));
+
+      await waitFor(() => expect(runAnalysis).toHaveBeenCalledWith("p1", expect.any(AbortSignal), true, ""));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("proceeds once a legacy path has been typed, even with nothing attached", async () => {
+      runAnalysis.mockResolvedValue({});
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: false });
+      render(<AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />);
+
+      const input = await screen.findByLabelText(/legacy project's path/);
+      fireEvent.change(input, { target: { value: "/home/dev/legacy-app" } });
+      fireEvent.click(screen.getByRole("button", { name: "Run analysis" }));
+
+      await waitFor(() =>
+        expect(runAnalysis).toHaveBeenCalledWith("p1", expect.any(AbortSignal), true, "/home/dev/legacy-app"),
+      );
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
   });
 });
