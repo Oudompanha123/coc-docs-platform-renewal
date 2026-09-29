@@ -50,32 +50,26 @@ INSERT INTO docs_content (product_key, slug, kind, body) VALUES (
   '{
     "eyebrow": "Setup guide",
     "heading": "Get the dashboard reporting real numbers.",
-    "intro": "Five steps from connecting data to trusting what you see.",
+    "intro": "Install one command, sign in once in your browser, and your usage reports itself.",
     "calloutTone": "info",
-    "calloutText": "Step 1 requires your admin to share the ingest secret with you — if you are waiting on that, you can still complete steps 2, 3, and 4 first and fill in the secret later. Step 5 (inviting teammates) requires admin or super_admin role on this platform.",
+    "calloutText": "You need Node.js 18.18 or newer (Claude Code already requires it). Nothing to download, copy, or configure — the first scan signs you in through this site. Step 4 (inviting teammates) requires admin or super_admin role on this platform.",
     "steps": [
       {
-        "title": "Get your two environment variables",
-        "body": "You need two values before you can run the reporter script.\n\nCOC_INGEST_URL is the backend API endpoint — replace the host with wherever your platform is deployed:\n\n  https://<your-platform-host>/api/ingest\n\nCOC_INGEST_SECRET is a shared bearer token set by whoever deployed the backend (it lives in the server config, not the UI). Ask your admin for the value. Never commit it to version control.\n\nCannot reach your admin right now? You can still complete steps 2 and 4 while you wait — just leave the secret placeholder and fill it in once you receive it.",
-        "command": null,
+        "title": "Install the CLI",
+        "body": "Install claude-team-usage from npm. It reads only this machine''s own Claude Code transcripts (~/.claude/projects) and never talks to Anthropic.",
+        "command": "npm install -g claude-team-usage",
         "output": null
       },
       {
-        "title": "Download the reporter script",
-        "body": "Save the script to a folder on your machine. It reads from the Claude Code local usage log and POSTs the day''s token totals to the platform.",
-        "command": "curl -o ~/scripts/report-claude-usage.sh https://platform.coc.internal/scripts/report-claude-usage.sh\nchmod +x ~/scripts/report-claude-usage.sh",
-        "output": null
-      },
-      {
-        "title": "Configure and run it once",
-        "body": "Set the two environment variables from Step 1 and do a manual run to confirm data reaches the dashboard before automating. Replace the values below with the ones your admin gave you.",
-        "command": "export COC_INGEST_URL=\"https://<your-platform-host>/api/ingest\"\nexport COC_INGEST_SECRET=\"paste-your-secret-here\"\n~/scripts/report-claude-usage.sh",
-        "output": "Reported 2026-09-18: input=148320 output=41200 cache_read=0 cost_usd=0.0891\nOK"
+        "title": "Run your first scan",
+        "body": "The first time, your browser opens Coc Docs. Sign in as usual and click Authorize — the terminal then finishes by itself. Your personal token is saved on this machine and reports for your account only. You can see and revoke every connected machine on My Claude Usage.",
+        "command": "claude-team-usage scan",
+        "output": "Opening your browser to sign in to Coc Docs…\nsigned in as Your Name <you@company.com>\nscanning ~/.claude/projects for 2026-09-29 (Asia/Phnom_Penh)\n  2026-09-29  41,562 tokens  ✓ created\nsent 41,562 tokens for 2026-09-29"
       },
       {
         "title": "Schedule it to run daily",
-        "body": "Add a cron job that fires once a day — end of day works best so the numbers are complete. The script is idempotent: running it twice on the same day overwrites, not doubles, the row.",
-        "command": "crontab -e\n# Add this line (runs at 23:30 every day):\n30 23 * * * COC_INGEST_URL=\"...\" COC_INGEST_SECRET=\"...\" ~/scripts/report-claude-usage.sh",
+        "body": "Later runs need no browser and no input, so a scheduled task works as-is. Running it twice on the same day overwrites, not doubles, that day''s row. To backfill history still on disk, run once with --days 30.",
+        "command": "# Windows (Task Scheduler):\nschtasks /Create /TN \"Claude Usage Push\" /SC DAILY /ST 23:30 /TR \"cmd /c claude-team-usage scan\"\n\n# macOS / Linux (crontab -e):\n30 23 * * * claude-team-usage scan",
         "output": null
       },
       {
@@ -95,7 +89,7 @@ INSERT INTO docs_content (product_key, slug, kind, body) VALUES (
   '{
     "eyebrow": "Configuration",
     "heading": "Manage your team''s usage settings.",
-    "intro": "Roles, budgets, the ingest secret, and reporting periods — everything configurable on the Claude Usage dashboard.",
+    "intro": "Roles, budgets, connected machines, and reporting periods — everything configurable on the Claude Usage dashboard.",
     "sections": [
       {
         "title": "Roles",
@@ -108,8 +102,8 @@ INSERT INTO docs_content (product_key, slug, kind, body) VALUES (
         "command": null
       },
       {
-        "title": "Ingest secret",
-        "note": "The shared bearer token that reporter scripts use to submit daily usage data. If compromised, click Rotate secret — a new secret is generated immediately and the old one stops working with no grace period. Never commit it to version control; pass it as an environment variable or store it in your machine''s keychain.",
+        "title": "Connected machines",
+        "note": "Each teammate''s claude-team-usage CLI holds a personal token, created when they click Authorize in the browser. It can only report usage for that person''s own account. My Claude Usage → Connected machines lists every one; Revoke stops that machine immediately. A deactivated or downgraded account''s tokens stop working on their next use, with nothing to revoke by hand.",
         "command": null
       },
       {
