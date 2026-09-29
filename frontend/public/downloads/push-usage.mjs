@@ -214,6 +214,14 @@ function num(value) {
  * of the same assistant response repeats that response's full usage object. Summing
  * every line double-counts badly - measured 2.36x against a real transcript set. So
  * dedupe on message.id + requestId, one charge per API response, the way ccusage does.
+ *
+ * Which line of a response counts matters too: a response streamed across several
+ * content blocks can log an early line with a partial output_tokens (stop_reason
+ * null) before the final one. Keeping the first line seen undercounted output
+ * (measured: 30 responses, 19.6k output tokens on one machine), so each response
+ * keeps the largest value seen per category — the final count, which is what
+ * Claude Code's own /usage totals. Input and cache counts never differ between
+ * lines of one response, so this changes output only.
  */
 function collectDays(projectsDir, dates) {
   const wanted = new Set(dates);
@@ -222,14 +230,17 @@ function collectDays(projectsDir, dates) {
   const files = findTranscripts(projectsDir).filter((file) => touchedRecently(file, cutoffMs));
   debug(`scanning ${files.length} recently-touched transcript(s) in ${projectsDir}`);
 
-  const seen = new Set();
-  // One bucket per day. A message id is unique across the whole scan, so `seen`
-  // stays global rather than per-day.
+  // One entry per API response (message.id|requestId), merged across all its
+  // lines before anything is summed. A message id is unique across the whole
+  // scan, so this stays global rather than per-day. Lines with neither id
+  // can't be matched to each other and each count once, as before.
+  const responses = new Map();
+  const unkeyed = [];
   const days = new Map();
   const bucketFor = (date) => {
     if (!days.has(date)) {
       days.set(date, {
-        totals: { input: 0, output: 0, cache_read: 0, cache_creation: 0 },
+        totals: { input: 0, output: 0, cache_read: 0, cache_creation: 0, cache_creation_1h: 0 },
         byModel: {},
         counted: 0,
       });
@@ -265,34 +276,51 @@ function collectDays(projectsDir, dates) {
       const day = ymd(new Date(entry.timestamp));
       if (!wanted.has(day)) continue;
 
-      const key = `${entry.message?.id ?? ''}|${entry.requestId ?? ''}`;
-      if (key !== '|') {
-        if (seen.has(key)) continue;
-        seen.add(key);
-      }
-
-      const slot = bucketFor(day);
       const model = String(entry.message?.model ?? 'unknown');
-      const bucket = (slot.byModel[model] ??= {
-        input: 0,
-        output: 0,
-        cache_read: 0,
-        cache_creation: 0,
-      });
-
       const add = {
         input: num(usage.input_tokens),
         output: num(usage.output_tokens),
         cache_read: num(usage.cache_read_input_tokens),
         cache_creation: num(usage.cache_creation_input_tokens),
+        // The part of cache_creation written with the 1-hour TTL, which
+        // prices at 2x input instead of 5-minute's 1.25x — Claude Code writes
+        // almost all of its cache this way, so without it the dashboard's
+        // cost understates (ADR-054). Already inside cache_creation, never
+        // added on top of it.
+        cache_creation_1h: num(usage.cache_creation?.ephemeral_1h_input_tokens),
       };
-      for (const k of Object.keys(add)) {
-        slot.totals[k] += add[k];
-        bucket[k] += add[k];
+
+      const key = `${entry.message?.id ?? ''}|${entry.requestId ?? ''}`;
+      if (key === '|') {
+        unkeyed.push({ day, model, add });
+        continue;
       }
-      slot.counted++;
-      counted++;
+      const prior = responses.get(key);
+      if (!prior) {
+        // Day and model come from the first line; every line of one
+        // response shares them.
+        responses.set(key, { day, model, add });
+      } else {
+        for (const k of Object.keys(add)) prior.add[k] = Math.max(prior.add[k], add[k]);
+      }
     }
+  }
+
+  for (const { day, model, add } of [...responses.values(), ...unkeyed]) {
+    const slot = bucketFor(day);
+    const bucket = (slot.byModel[model] ??= {
+      input: 0,
+      output: 0,
+      cache_read: 0,
+      cache_creation: 0,
+      cache_creation_1h: 0,
+    });
+    for (const k of Object.keys(add)) {
+      slot.totals[k] += add[k];
+      bucket[k] += add[k];
+    }
+    slot.counted++;
+    counted++;
   }
 
   debug(`counted ${counted} response(s), skipped ${skipped} unreadable line(s)`);
@@ -469,6 +497,7 @@ async function main() {
             output: Math.round(t.output),
             cacheRead: Math.round(t.cache_read),
             cacheCreation: Math.round(t.cache_creation),
+            cacheCreation1h: Math.round(Math.min(t.cache_creation_1h, t.cache_creation)),
           },
         ]),
       );
