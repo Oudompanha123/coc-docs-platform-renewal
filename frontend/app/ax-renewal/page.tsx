@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
+import { ChevronLeftIcon, ChevronRightIcon, GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { ModuleCouplingDiagram, SystemContextDiagram } from "@/components/ax-renewal/ArchitectureDiagrams";
@@ -126,6 +126,7 @@ export default function AxRenewalPage() {
           {active === "codebase" && <CodebasePanel detail={detail} />}
           {active === "understand-architecture" && <UnderstandArchitecturePanel detail={detail} />}
           {active === "findings" && <FindingsPanel detail={detail} />}
+          {active === "understand-pages" && <UnderstandPagesPanel detail={detail} />}
           {active === "old-new" && <OldNewPanel detail={detail} />}
 
           {active === "stack-move" && (
@@ -525,6 +526,7 @@ function HonestlyUnavailable({ reason }: { reason: string }) {
 }
 
 function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetail }) {
+  const router = useRouter();
   const analysis = detail.analysis;
   const attachStats = detail.project.attachStats;
   const [archTab, setArchTab] = useState<string>("context");
@@ -540,73 +542,111 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
   const hasContext = runtime != null || framework != null || fileLayout.length > 0;
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
-      <p className="mt-1 text-xs text-muted">How the current system is put together, from what analysis found.</p>
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
+        <p className="mt-1 text-xs text-muted">How the current system is put together, from what analysis found.</p>
 
-      <div className="mt-4 space-y-4">
-        {analysis && !analysis.modelConnected && <NoModelBanner />}
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
 
-        {!analysis ? (
-          <NotAnalysedYet what="the detected architecture" />
-        ) : (
-          <>
-            <Tabs tabs={ARCHITECTURE_TABS} active={archTab} onChange={setArchTab} />
+          {!analysis ? (
+            <NotAnalysedYet what="the detected architecture" />
+          ) : (
+            <>
+              <Tabs tabs={ARCHITECTURE_TABS} active={archTab} onChange={setArchTab} />
 
-            {archTab === "context" &&
-              (hasContext ? (
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-border bg-page p-3">
-                    <SystemContextDiagram
-                      runtime={runtime}
-                      framework={framework}
-                      fileLayout={fileLayout}
-                      routeCount={routeCount}
+              {archTab === "context" &&
+                (hasContext ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border bg-page p-3">
+                      <SystemContextDiagram
+                        runtime={runtime}
+                        framework={framework}
+                        fileLayout={fileLayout}
+                        routeCount={routeCount}
+                      />
+                    </div>
+                    <ArchExplainer
+                      what="Everything detected so far runs as one process — the browser talks to it directly, and the directories shown are real ones the attach step or analysis actually found inside it."
+                      why="A fuller picture (data stores, external services this talks to) needs more than static analysis can honestly tell — either a connected model reading further, or someone confirming what else the system depends on."
                     />
                   </div>
-                  <ArchExplainer
-                    what="Everything detected so far runs as one process — the browser talks to it directly, and the directories shown are real ones the attach step or analysis actually found inside it."
-                    why="A fuller picture (data stores, external services this talks to) needs more than static analysis can honestly tell — either a connected model reading further, or someone confirming what else the system depends on."
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
-              ))}
+                ) : (
+                  <p className="text-sm text-muted">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
+                ))}
 
-            {archTab === "sequence" && (
-              <HonestlyUnavailable reason="Seeing what actually happens on one request — which queries run, how long each step takes — means running the application with real traffic and measuring it. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
-            )}
+              {archTab === "sequence" && (
+                <HonestlyUnavailable reason="Seeing what actually happens on one request — which queries run, how long each step takes — means running the application with real traffic and measuring it. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
+              )}
 
-            {archTab === "coupling" &&
-              (hasCoupling ? (
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-border bg-page p-3">
-                    <ModuleCouplingDiagram coupling={coupling} />
+              {archTab === "coupling" &&
+                (hasCoupling ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border bg-page p-3">
+                      <ModuleCouplingDiagram coupling={coupling} />
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-muted">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-sm border border-danger bg-danger/10" /> hub — imported by
+                        several modules
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 bg-danger" /> circular dependency
+                      </span>
+                    </div>
+                    <ArchExplainer
+                      what="Which files import which, as actually traced by the connected model reading source — not every file in the project, just the ones it judged central enough to report."
+                      why="A hub means many other files depend on its behavior, so it needs to become an injected dependency before anything around it can be tested in isolation. A cycle means neither file involved can be moved or replaced on its own until it's broken."
+                    />
                   </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-muted">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm border border-danger bg-danger/10" /> hub — imported by
-                      several modules
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-0.5 w-4 bg-danger" /> circular dependency
-                    </span>
-                  </div>
-                  <ArchExplainer
-                    what="Which files import which, as actually traced by the connected model reading source — not every file in the project, just the ones it judged central enough to report."
-                    why="A hub means many other files depend on its behavior, so it needs to become an injected dependency before anything around it can be tested in isolation. A cycle means neither file involved can be moved or replaced on its own until it's broken."
-                  />
-                </div>
-              ) : (
-                <HonestlyUnavailable reason="Tracing real imports between files needs a connected local model actually reading the source (source-path configured, not just the manifest) — this project hasn't reported one yet." />
-              ))}
+                ) : (
+                  <HonestlyUnavailable reason="Tracing real imports between files needs a connected local model actually reading the source (source-path configured, not just the manifest) — this project hasn't reported one yet." />
+                ))}
 
-            {archTab === "deploy" && (
-              <HonestlyUnavailable reason="How this project actually reaches production — build steps, hosting, rollback — isn't visible from its source code at all. That has to come from a person who runs the deploy, not from analysis." />
-            )}
-          </>
-        )}
+              {archTab === "deploy" && (
+                <HonestlyUnavailable reason="How this project actually reaches production — build steps, hosting, rollback — isn't visible from its source code at all. That has to come from a person who runs the deploy, not from analysis." />
+              )}
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Matches the reference prototype's own closing panel in vArch(), shown
+          under every tab rather than just one of them — general guidance
+          about how to use what is above, not a fifth diagram. "Order follows
+          the coupling graph" only asserted once there is a real coupling
+          graph to follow; the database/framing points are true regardless of
+          which tab found what. */}
+      {analysis && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Read this before choosing a target stack</h3>
+          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm text-dash-ink">
+            <li>
+              A slow request or a tangled import graph isn&apos;t fixed by switching frameworks alone — both need a
+              change in shape, which is what the rest of Plan sets up.
+            </li>
+            <li>
+              {hasCoupling
+                ? "The order of the move follows what Module coupling actually found above — break any cycle and extract any hub before what depends on it — not preference."
+                : "Once Module coupling has something to report, let that — not preference — set the order the move happens in."}
+            </li>
+            <li>
+              The database stays where it is throughout the renewal — old and new code read the same schema; see{" "}
+              <span className="font-medium">Plan → Database</span> for what, if anything, is changing there.
+            </li>
+          </ul>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=stack-move`)}
+              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            >
+              Open the stack move
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -697,6 +737,218 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Best-effort cross-reference of one detected page against the directories/
+ * files analysis actually saw (`fileLayout` — the same real, counted data
+ * Understand → Codebase's own "File layout" card shows), used by the "Files"
+ * card below. Matches on the page's own path segments ("/products/:id" →
+ * "products"), case-insensitively, against each entry's directory and
+ * filenames — a real filter over real data, but a guess about relevance all
+ * the same, since analysis reports no actual route-to-file mapping today.
+ */
+function relatedFilePaths(path: string, fileLayout: FileLayoutEntry[]): string[] {
+  const tokens = path
+    .toLowerCase()
+    .split(/[/:._-]+/)
+    .filter((t) => t.length > 2);
+  if (tokens.length === 0) return [];
+  const matches: string[] = [];
+  for (const entry of fileLayout) {
+    for (const file of entry.files) {
+      const full = entry.dir ? `${entry.dir}/${file}` : file;
+      if (tokens.some((t) => full.toLowerCase().includes(t))) {
+        matches.push(full);
+      }
+    }
+  }
+  return matches;
+}
+
+/**
+ * Understand → Pages, following CodeRenewalPlatform.html's `vPage()` layout —
+ * browse every route/screen analysis actually detected, one at a time, read
+ * only (this is what analysis found on the *current* system; mapping each to
+ * where it goes next is Plan → Pages, a separate, editable table), through
+ * the same four cards the reference prototype shows for one: Page view,
+ * Processing flow, Files, Issues on this page.
+ *
+ * Two of those stay honest rather than reproducing the reference's fixed
+ * demo content: its screen preview is a hand-built mockup of one fictional
+ * e-commerce page, meaningless (and actively misleading) against an
+ * arbitrary attached project, so Page view here shows the page's own
+ * detected path and purpose inside the same browser-chrome frame instead of
+ * a fabricated render; Processing flow's per-step millisecond timings need a
+ * real, instrumented run against live traffic to produce honestly (same
+ * reason Architecture → Request lifecycle stays a `HonestlyUnavailable`
+ * notice, not invented numbers). Files and Issues on this page are both real
+ * data, cross-referenced against this one page — but both best-effort text
+ * matches, not a route-to-file or finding-to-page mapping analysis actually
+ * reports, so a short list (or none) is an honest answer, not a gap.
+ */
+function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
+  const analysis = detail.analysis;
+  const pages = analysis?.pagesDetected ?? [];
+  const [index, setIndex] = useState(0);
+  // Clamps rather than trusting stale state, in case a re-run of analysis
+  // came back with fewer pages than the one that was selected before.
+  const current = pages.length === 0 ? null : (pages[Math.min(index, pages.length - 1)] ?? null);
+  const safeIndex = pages.length === 0 ? 0 : Math.min(index, pages.length - 1);
+
+  const attachFileLayout = detail.project.attachStats?.fileLayout ?? [];
+  const fileLayout: FileLayoutEntry[] = attachFileLayout.length > 0 ? attachFileLayout : (analysis?.fileLayout ?? []);
+  const matchedFiles = current ? relatedFilePaths(current.path, fileLayout) : [];
+
+  const relatedFindings = current
+    ? (analysis?.findings ?? []).filter((f) => f.where.includes(current.path))
+    : [];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[5px] border border-border bg-white p-5">
+        <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
+        <p className="mt-1 text-xs text-muted">Every route or screen analysis actually detected, one at a time.</p>
+
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
+
+          {!analysis ? (
+            <NotAnalysedYet what="every page it detected" />
+          ) : pages.length === 0 ? (
+            <p className="text-sm text-muted">No pages or routes were detected.</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+                <button
+                  type="button"
+                  onClick={() => setIndex(safeIndex - 1)}
+                  disabled={safeIndex === 0}
+                  className="flex min-w-0 items-center gap-1 rounded-[5px] border border-border px-2.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeftIcon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{safeIndex > 0 ? pages[safeIndex - 1]!.path : "first"}</span>
+                </button>
+                <span className="shrink-0 font-mono text-xs text-muted">
+                  {safeIndex + 1} / {pages.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIndex(safeIndex + 1)}
+                  disabled={safeIndex === pages.length - 1}
+                  className="flex min-w-0 items-center gap-1 rounded-[5px] border border-border px-2.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span className="truncate">{safeIndex < pages.length - 1 ? pages[safeIndex + 1]!.path : "last"}</span>
+                  <ChevronRightIcon className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {pages.map((p, i) => (
+                  <button
+                    key={`${p.path}-${i}`}
+                    type="button"
+                    aria-current={i === safeIndex ? "true" : undefined}
+                    onClick={() => setIndex(i)}
+                    className={`rounded-full border px-2.5 py-1 font-mono text-xs transition-colors ${
+                      i === safeIndex
+                        ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
+                        : "border-border text-muted hover:bg-page"
+                    }`}
+                  >
+                    {p.path}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {analysis && current && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-[5px] border border-border bg-white p-5">
+            <h3 className="text-sm font-bold text-dash-ink">Page view</h3>
+            <div className="mt-3 overflow-hidden rounded-xl border border-border">
+              <div className="border-b border-border bg-page px-3 py-2 font-mono text-xs text-muted">
+                {current.path}
+              </div>
+              <div className="bg-white p-4">
+                <p className="text-sm text-dash-ink">{current.purpose}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              A rendered screenshot needs a real, running instance of the page — this shows what analysis actually
+              read about it instead of a fabricated one.
+            </p>
+          </div>
+
+          <div className="rounded-[5px] border border-border bg-white p-5">
+            <h3 className="text-sm font-bold text-dash-ink">Processing flow</h3>
+            <div className="mt-3">
+              <HonestlyUnavailable reason="Seeing what actually happens on one request to this page — which queries run, how long each step takes — means running the application with real traffic and measuring it, the same as Architecture → Request lifecycle. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {analysis && current && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-dash-ink">Files</h3>
+            {matchedFiles.length > 0 && <span className="text-xs text-muted">{matchedFiles.length}</span>}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            A best-effort text match against the directories and files Understand → Codebase already saw — analysis
+            doesn&apos;t report which files implement which page, so this is worth checking, not a guarantee.
+          </p>
+          <div className="mt-3">
+            {matchedFiles.length === 0 ? (
+              <p className="text-sm text-muted">Nothing in what analysis saw matched this page&apos;s path.</p>
+            ) : (
+              <div className="space-y-1 font-mono text-xs text-dash-ink">
+                {matchedFiles.map((f) => (
+                  <p key={f}>{f}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {analysis && current && (
+        <div className="rounded-[5px] border border-border bg-white p-5">
+          <h3 className="text-sm font-bold text-dash-ink">Issues on this page</h3>
+          <p className="mt-1 text-xs text-muted">
+            Findings whose location mentions <span className="font-mono">{current.path}</span> — most findings
+            don&apos;t name a specific page, so a shorter list here (or none) is the honest answer, not a gap. The
+            full list is under Understand → Findings.
+          </p>
+          <div className="mt-3">
+            {relatedFindings.length === 0 ? (
+              <p className="text-sm text-muted">Nothing found that names this page specifically.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {relatedFindings.map((f, i) => (
+                  <li key={i} className="flex items-start gap-3 py-2.5">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${severityBadgeClasses(f.severity)}`}
+                    >
+                      {f.severity === "info" ? "·" : "!"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-dash-ink">{f.what}</span>
+                      <span className="mt-0.5 block font-mono text-xs text-muted">{f.where}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
     </div>

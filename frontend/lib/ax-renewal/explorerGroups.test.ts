@@ -54,6 +54,55 @@ describe("buildExplorerGroups — Workspace group", () => {
   });
 });
 
+describe("buildExplorerGroups — Understand group's Pages item", () => {
+  function pagesItem(analysis: AxRenewalProjectDetail["analysis"]) {
+    const groups = buildExplorerGroups({ ...BASE_DETAIL, analysis }, "super_admin");
+    return groups.find((g) => g.label === "Understand")?.items.find((i) => i.key === "understand-pages");
+  }
+
+  it("stays locked with no undefined count before analysis has ever run", () => {
+    const item = pagesItem(null);
+    expect(item?.locked).toBe(true);
+    expect(item?.count).toBeUndefined();
+  });
+
+  it("unlocks and shows a real count — even zero — once analysis has run", () => {
+    const item = pagesItem({
+      stackDetected: {},
+      findings: [],
+      pagesDetected: [],
+      indexed: {},
+      runningOnToday: [],
+      fileLayout: [],
+      moduleCoupling: {},
+      recommendedStackMove: [],
+      modelConnected: true,
+      analyzedAt: "2026-01-01T00:00:00Z",
+    });
+    expect(item?.locked).toBe(false);
+    expect(item?.count).toBe(0);
+  });
+
+  it("counts every page analysis actually detected", () => {
+    const item = pagesItem({
+      stackDetected: {},
+      findings: [],
+      pagesDetected: [
+        { path: "/products", purpose: "Product listing" },
+        { path: "/checkout", purpose: "Checkout flow" },
+      ],
+      indexed: {},
+      runningOnToday: [],
+      fileLayout: [],
+      moduleCoupling: {},
+      recommendedStackMove: [],
+      modelConnected: true,
+      analyzedAt: "2026-01-01T00:00:00Z",
+    });
+    expect(item?.count).toBe(2);
+  });
+});
+
 describe("buildExplorerGroups — Build group's Run Locally lock (ADR-048)", () => {
   function runLocallyLocked(latestImplementationRun: AxRenewalProjectDetail["latestImplementationRun"]) {
     const groups = buildExplorerGroups({ ...BASE_DETAIL, latestImplementationRun }, "super_admin");

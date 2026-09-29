@@ -210,6 +210,18 @@ export function AttachSourceSection({
       return;
     }
     setPickedStats(stats);
+    // A browser never hands back a picked or dropped folder's real location
+    // on disk -- no `File.path`, and neither `webkitRelativePath` nor
+    // `FileSystemDirectoryHandle.name` carry a drive letter or parent
+    // directory, by design (the same sandboxing that keeps a web page from
+    // fingerprinting your filesystem layout). The folder's own name is the
+    // closest thing to "the path" a pick or drop can actually produce, so it
+    // prefills the field below rather than leaving the user to retype what
+    // they just selected. Never overwrites a path already typed for this
+    // project -- that one is presumably more complete than a bare name.
+    if (!sourcePath.trim() && stats.rootFolderName) {
+      handleSourcePathChange(stats.rootFolderName);
+    }
     await attach(stats, manifestFile);
   }
 
@@ -733,6 +745,8 @@ export function AttachSourceSection({
             Your legacy project&apos;s path on this machine (optional)
           </label>
           <p className="mt-1 text-xs text-muted">
+            Choosing or dragging a folder above fills this in with that folder&apos;s name — a browser never
+            exposes its full location on disk, so add the rest of the path yourself if it needs to be exact.
             Leave blank to use this deployment&apos;s configured default, if it has one. Typing a path here reads
             <em> your</em> checkout instead, for this run only — nothing is saved on the server.
           </p>

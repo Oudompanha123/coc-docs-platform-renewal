@@ -24,6 +24,7 @@ const GROUP_OF: Record<AxRenewalExplorerKey, string> = {
   codebase: "Understand",
   "understand-architecture": "Understand",
   findings: "Understand",
+  "understand-pages": "Understand",
   "old-new": "Plan",
   "stack-move": "Plan",
   "plan-architecture": "Plan",
