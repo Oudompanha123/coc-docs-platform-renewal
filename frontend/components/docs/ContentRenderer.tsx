@@ -10,7 +10,13 @@ import { ICON_MAP } from "@/lib/docs/icon-map";
 import type { DocContent, DownloadLink } from "@/lib/docs/content-types";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { createUsageToken } from "@/lib/auth/api";
-import { autoLabel, buildPersonalizedScript, downloadPersonalizedScript, GENERIC_TEMPLATE_URL } from "@/lib/admin/reporterConfig";
+import {
+  autoLabel,
+  buildPersonalizedScript,
+  downloadPersonalizedScript,
+  GENERIC_TEMPLATE_URL,
+  pointsAtLoopbackFromRemotePage,
+} from "@/lib/admin/reporterConfig";
 
 /**
  * Plain `<a download>` links for every file except one: `push-usage.mjs`
@@ -35,6 +41,12 @@ function DownloadLinks({ downloads }: { downloads: DownloadLink[] }) {
     setErrorHref(null);
     try {
       const minted = await createUsageToken(autoLabel());
+      if (pointsAtLoopbackFromRemotePage(minted.ingestUrl, window.location.hostname)) {
+        // Backend is misconfigured (no APP_PUBLIC_URL, and the request reached
+        // it as localhost) — a script built from this would post to the
+        // user's own PC. Fail visibly instead.
+        throw new Error("ingest URL points at localhost from a non-local page");
+      }
       // no-store: substituted into on every click, so a cached stale copy
       // of the template must never be served in its place.
       const templateRes = await fetch(href, { cache: "no-store" });
@@ -47,6 +59,7 @@ function DownloadLinks({ downloads }: { downloads: DownloadLink[] }) {
         user.email,
         user.displayName ?? user.email.split("@")[0]!,
         minted.token,
+        minted.ingestUrl,
       );
       downloadPersonalizedScript(script);
     } catch {

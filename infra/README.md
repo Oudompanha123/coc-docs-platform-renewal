@@ -119,6 +119,17 @@ is the single easiest thing to get wrong here, which is why it is called out in
 Everything else — database, Keycloak, mail, Firebase server credentials,
 storage — is read at startup, so `docker compose up -d` is enough.
 
+### `APP_PUBLIC_URL` (backend) — the URL baked into downloaded reporter scripts
+
+The personalized `push-usage.mjs` a member downloads embeds this deployment's
+`/api/ingest` URL, and the **backend** decides it (`PublicIngestUrl`), not the
+frontend bundle. Pass the backend container `APP_PUBLIC_URL=https://<PUBLIC_DOMAIN>`
+(base URL only, no `/api`). If it is unset, the backend uses the host and
+`X-Forwarded-Proto` that nginx forwards, which also comes out as
+`https://<PUBLIC_DOMAIN>/api/ingest`. Setting it removes the guesswork. A
+malformed value stops the backend from starting. Local development needs
+nothing: the URL comes out as `http://localhost:8080/api/ingest`.
+
 ## Optional pieces
 
 **AX Renewal analysis is deliberately not one of these.** `Run analysis` uses a

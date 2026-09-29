@@ -96,9 +96,6 @@ function loadConfig() {
     userName: String(pick('USER_NAME') ?? '').trim(),
     ingestUrl: String(pick('INGEST_URL') ?? '').trim(),
     ingestSecret: String(pick('INGEST_SECRET') ?? '').trim(),
-    // Optional. Only needed when the deployment sits behind Vercel Deployment
-    // Protection: the dashboard stays private to the team while this script is still
-    // allowed to post. Vercel calls it "Protection Bypass for Automation".
     bypassToken: String(pick('VERCEL_AUTOMATION_BYPASS_SECRET') ?? '').trim(),
     projectsDir:
       String(pick('CLAUDE_PROJECTS_DIR') ?? '').trim() ||

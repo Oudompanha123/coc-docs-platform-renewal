@@ -345,6 +345,18 @@ export function AttachSourceSection({
   const analysisAbortRef = useRef<AbortController | null>(null);
 
   async function handleAnalyze() {
+    // Nothing to analyze at all on a brand-new project: no folder was ever
+    // selected or dragged onto Attach source, and nobody typed a path into
+    // the field below either. Caught here, before a request exists to
+    // answer with an empty stackDetected and nothing else — the same
+    // "explain before dialing out" the confirmed-plan blank check on Start
+    // implementation already does for the same reason.
+    if (!alreadyAttached && !sourcePath.trim()) {
+      setError(
+        "Attach this project's folder above, or provide your legacy project's path, before running analysis.",
+      );
+      return;
+    }
     const controller = new AbortController();
     analysisAbortRef.current = controller;
     setAnalyzing(true);

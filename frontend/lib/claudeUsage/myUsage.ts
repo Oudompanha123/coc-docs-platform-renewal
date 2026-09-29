@@ -24,6 +24,44 @@ export interface MyClaudeUsagePoint {
   totalTokens: number;
 }
 
+/**
+ * One model's usage over the selected window (ADR-058) — the same four
+ * categories Claude Code's own usage page shows, kept separate rather than
+ * folded into input/output. `costUsd` is priced server-side per model.
+ */
+export interface MyClaudeUsageModel {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  costUsd: number;
+}
+
+/** One (day, model) row of the "Recent Usage" table — reports are daily, so there is no time of day. */
+export interface MyClaudeUsageDayModel extends MyClaudeUsageModel {
+  date: string;
+}
+
+/** The windows `GET /api/v1/claude-usage/me?days=` accepts; anything else falls back to 7 server-side. */
+export type MyUsageRangeDays = 1 | 7 | 30;
+
+/** "Usage by Model" over the last `rangeDays` days. The totals are the sum of `byModel`. */
+export interface MyClaudeUsageBreakdown {
+  rangeDays: number;
+  from: string;
+  to: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  costUsd: number;
+  /** The same-length window just before `from`, for "from previous N days". */
+  previousCostUsd: number;
+  byModel: MyClaudeUsageModel[];
+  recent: MyClaudeUsageDayModel[];
+}
+
 /** Everything the "My Claude Usage" screen renders, read together in one call. */
 export interface MyClaudeUsageDashboard {
   email: string;
@@ -36,13 +74,14 @@ export interface MyClaudeUsageDashboard {
   lastUpdated: string | null;
   /** The caller's own row rolled up over today, same shape as an admin per-user row; null until they first report. */
   todayUsage: ClaudeUsageMember | null;
+  usage: MyClaudeUsageBreakdown;
 }
 
-/** The caller's own dashboard. */
-export async function fetchMyUsage(): Promise<MyClaudeUsageDashboard> {
+/** The caller's own dashboard, with "Usage by Model" over the last `days` days. */
+export async function fetchMyUsage(days: MyUsageRangeDays = 7): Promise<MyClaudeUsageDashboard> {
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_URL}/api/v1/claude-usage/me`, { credentials: "include" });
+    response = await fetch(`${BACKEND_URL}/api/v1/claude-usage/me?days=${days}`, { credentials: "include" });
   } catch {
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
   }
