@@ -8,7 +8,8 @@ import { AttendanceDepartmentSelect } from "@/components/attendance/AttendanceDe
 import { AttendanceStatCard } from "@/components/attendance/AttendanceStatCard";
 import { AttendanceTable } from "@/components/attendance/AttendanceTable";
 import { fetchAttendanceReports, type HrmsAttendanceReport } from "@/lib/admin/attendance";
-import { computeAttendanceStats } from "@/lib/attendance/stats";
+import { downloadAttendanceXlsx } from "@/lib/attendance/export-attendance";
+import { computeAttendanceStats, filterAttendanceRows } from "@/lib/attendance/stats";
 import { todayIso } from "@/lib/attendance/dates";
 
 export default function AttendancePage() {
@@ -62,6 +63,15 @@ export default function AttendancePage() {
 
   const stats = useMemo(() => computeAttendanceStats(selectedReport?.rows ?? []), [selectedReport]);
 
+  // What Export writes: the rows the table beside it currently shows, not
+  // the whole department — a file that ignored an in-progress search would
+  // be a surprise the moment anyone searched first (same reasoning as the
+  // Users & Roles page's own `exportable`).
+  const exportableRows = useMemo(
+    () => (selectedReport ? filterAttendanceRows(selectedReport.rows, search) : []),
+    [selectedReport, search],
+  );
+
   return (
     <AppShell
       pageTitle="Attendance"
@@ -78,8 +88,14 @@ export default function AttendancePage() {
             <AttendanceDepartmentSelect departments={knownDepartments} value={department} onChange={setDepartment} />
             <button
               type="button"
-              // TODO: export
-              className="flex items-center gap-2 rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              onClick={() => selectedReport && downloadAttendanceXlsx(selectedReport.department, date, exportableRows)}
+              disabled={exportableRows.length === 0}
+              title={
+                exportableRows.length === 0
+                  ? "Nothing to export — no one matches the current search"
+                  : `Download ${exportableRows.length} record${exportableRows.length === 1 ? "" : "s"} as an Excel file`
+              }
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
             >
               <DownloadIcon className="h-4 w-4" />
               Export

@@ -1,7 +1,7 @@
 "use client";
 
 import type { HrmsAttendanceCheck, HrmsAttendanceReport } from "@/lib/notify/activity";
-import { actualTimeOrNull } from "@/lib/attendance/stats";
+import { actualTimeOrNull, filterAttendanceRows } from "@/lib/attendance/stats";
 import { InitialsAvatar } from "./InitialsAvatar";
 import { StatusPill } from "./StatusPill";
 
@@ -37,8 +37,7 @@ export function AttendanceTable({
   search: string;
   onSearchChange: (value: string) => void;
 }) {
-  const q = search.trim().toLowerCase();
-  const rows = q.length === 0 ? report.rows : report.rows.filter((r) => r.name.toLowerCase().includes(q));
+  const rows = filterAttendanceRows(report.rows, search);
 
   // A department's schedule is uniform across its rows in every report seen
   // so far — the footer takes the first row's scheduled times as
