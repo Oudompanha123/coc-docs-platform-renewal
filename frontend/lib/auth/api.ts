@@ -835,6 +835,14 @@ export interface MintedUsageToken {
   label: string;
   token: string;
   createdAt: string;
+  /**
+   * This deployment's absolute `/api/ingest` URL, decided by the backend
+   * (`PublicIngestUrl`: `APP_PUBLIC_URL`, else the host the request reached).
+   * The personalized `push-usage.mjs` embeds exactly this — never a value
+   * derived from the build-time `NEXT_PUBLIC_BACKEND_URL`, whose silent
+   * `localhost` fallback is what used to leak into production downloads.
+   */
+  ingestUrl: string;
 }
 
 /** GET /api/v1/me/usage-tokens (ADR-047). Every live token the caller has minted, for the Settings/Claude Usage "usage tokens" list. */

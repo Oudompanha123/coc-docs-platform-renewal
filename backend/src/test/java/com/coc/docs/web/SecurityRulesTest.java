@@ -63,7 +63,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  * TM-018, TM-019
  */
 @WebMvcTest
-@Import({SecurityConfig.class, ProblemResponses.class, SecurityRulesTest.Beans.class})
+@Import({SecurityConfig.class, ProblemResponses.class, SecurityRulesTest.Beans.class, PublicIngestUrl.class})
 class SecurityRulesTest {
 
     @Autowired MockMvc mvc;
@@ -613,20 +613,21 @@ class SecurityRulesTest {
     @DisplayName("Claude Usage (ADR-035)")
     class ClaudeUsagePath {
 
-        @Test
-        void the_dashboard_refuses_a_plain_user() throws Exception {
-            // Falls through to the generic /api/v1/admin/** rule (admin
-            // floor) rather than carrying a floor of its own — this is a
-            // usage/cost monitor, not account authority (FR-AUTH-008 is
-            // about AppRole; team_role here is unrelated to it).
-            mvc.perform(get("/api/v1/admin/claude-usage").with(as(AppRole.USER)))
-                    .andExpect(status().isForbidden());
-        }
+        /*
+         * This nest asserted the dashboard refused a plain user, because the
+         * route sat under /api/v1/admin/**. It moved to /api/v1/claude-usage
+         * so a user could read their OWN row, and the tests moved with it.
+         * What must not move is the write side: the two are asserted together
+         * below, because opening a read and opening a write look identical in
+         * a diff and are not the same thing at all.
+         */
 
         @Test
-        void the_dashboard_admits_an_admin() throws Exception {
-            org.mockito.Mockito.when(claudeUsageService.dashboard(
-                            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt()))
+        void the_dashboard_admits_a_plain_user() throws Exception {
+            org.mockito.Mockito.when(claudeUsageService.dashboardFor(
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.anyInt()))
                     .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageDashboard(
                             "week",
                             java.time.LocalDate.now(),
@@ -638,7 +639,46 @@ class SecurityRulesTest {
                             0,
                             null));
 
-            mvc.perform(get("/api/v1/admin/claude-usage").with(as(AppRole.ADMIN)))
+            // Admitted, and then narrowed: ClaudeUsageService.dashboardFor
+            // gives them their own row only. The filter chain's job is to let
+            // them reach it; the scoping is asserted in ClaudeUsageServiceTest.
+            mvc.perform(get("/api/v1/claude-usage").with(as(AppRole.USER)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void the_roster_mutations_still_refuse_a_plain_user() throws Exception {
+            // The half that did not move. Reading your own usage is not a
+            // licence to change somebody's dashboard role, budget or tracking.
+            mvc.perform(patch("/api/v1/admin/claude-usage/members/" + java.util.UUID.randomUUID())
+                            .with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"teamRole\":\"admin\"}"))
+                    .andExpect(status().isForbidden());
+
+            mvc.perform(post("/api/v1/admin/claude-usage/members/" + java.util.UUID.randomUUID() + "/remove")
+                            .with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void the_dashboard_admits_an_admin() throws Exception {
+            org.mockito.Mockito.when(claudeUsageService.dashboardFor(
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.anyInt()))
+                    .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageDashboard(
+                            "week",
+                            java.time.LocalDate.now(),
+                            java.time.LocalDate.now(),
+                            List.of(),
+                            List.of(),
+                            new com.coc.docs.claudeusage.ClaudeUsageTotals(0, 0, 0, 0, java.math.BigDecimal.ZERO),
+                            0,
+                            0,
+                            null));
+
+            mvc.perform(get("/api/v1/claude-usage").with(as(AppRole.ADMIN)))
                     .andExpect(status().isOk());
         }
 
@@ -646,8 +686,10 @@ class SecurityRulesTest {
         void the_dashboard_admits_a_super_admin_too() throws Exception {
             // Not a fixed floor above admin (unlike /admin/accounts) — both
             // roles manage this roster.
-            org.mockito.Mockito.when(claudeUsageService.dashboard(
-                            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt()))
+            org.mockito.Mockito.when(claudeUsageService.dashboardFor(
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.anyInt()))
                     .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageDashboard(
                             "week",
                             java.time.LocalDate.now(),
@@ -659,13 +701,13 @@ class SecurityRulesTest {
                             0,
                             null));
 
-            mvc.perform(get("/api/v1/admin/claude-usage").with(as(AppRole.SUPER_ADMIN)))
+            mvc.perform(get("/api/v1/claude-usage").with(as(AppRole.SUPER_ADMIN)))
                     .andExpect(status().isOk());
         }
 
         @Test
         void the_dashboard_refuses_a_caller_with_no_session() throws Exception {
-            mvc.perform(get("/api/v1/admin/claude-usage")).andExpect(status().isUnauthorized());
+            mvc.perform(get("/api/v1/claude-usage")).andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -695,9 +737,12 @@ class SecurityRulesTest {
         void my_dashboard_admits_a_plain_user() throws Exception {
             // The whole point of ADR-052: unlike the team-wide roster above
             // (ADMIN floor), a plain user reads their own usage here.
-            org.mockito.Mockito.when(claudeUsageService.myDashboard(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito.when(claudeUsageService.myDashboard(
+                            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt()))
                     .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageMyDashboard(
-                            "user@example.com", "Test", java.time.LocalDate.now(), 0, 0, List.of(), null, null));
+                            "user@example.com", "Test", java.time.LocalDate.now(), 0, 0, List.of(), null, null,
+                            com.coc.docs.claudeusage.ClaudeUsageMyDashboard.ModelBreakdown.empty(
+                                    7, java.time.LocalDate.now(), java.time.LocalDate.now())));
 
             mvc.perform(get("/api/v1/claude-usage/me").with(as(AppRole.USER)))
                     .andExpect(status().isOk());
@@ -705,9 +750,12 @@ class SecurityRulesTest {
 
         @Test
         void my_dashboard_admits_an_admin_too() throws Exception {
-            org.mockito.Mockito.when(claudeUsageService.myDashboard(org.mockito.ArgumentMatchers.any()))
+            org.mockito.Mockito.when(claudeUsageService.myDashboard(
+                            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt()))
                     .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageMyDashboard(
-                            "admin@example.com", "Test", java.time.LocalDate.now(), 0, 0, List.of(), null, null));
+                            "admin@example.com", "Test", java.time.LocalDate.now(), 0, 0, List.of(), null, null,
+                            com.coc.docs.claudeusage.ClaudeUsageMyDashboard.ModelBreakdown.empty(
+                                    7, java.time.LocalDate.now(), java.time.LocalDate.now())));
 
             mvc.perform(get("/api/v1/claude-usage/me").with(as(AppRole.ADMIN)))
                     .andExpect(status().isOk());
@@ -743,6 +791,46 @@ class SecurityRulesTest {
                     .thenReturn(List.of());
 
             mvc.perform(get("/api/v1/me/usage-tokens").with(as(AppRole.ADMIN))).andExpect(status().isOk());
+        }
+
+        private void stubMint() {
+            java.util.UUID id = java.util.UUID.randomUUID();
+            org.mockito.Mockito.when(claudeUsageIngestTokenService.create(
+                            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
+                    .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageIngestTokenService.MintedToken(
+                            new com.coc.docs.claudeusage.ClaudeUsageIngestToken(
+                                    id, java.util.UUID.randomUUID(), "hash", "Laptop",
+                                    java.time.Instant.now(), null, null),
+                            "coc_fixture")); // gitleaks:allow — fixture, not a credential
+        }
+
+        @Test
+        void minting_a_token_returns_the_local_ingest_url_in_development() throws Exception {
+            // The personalized push-usage.mjs embeds this verbatim (ADR-050).
+            stubMint();
+
+            mvc.perform(post("http://localhost:8080/api/v1/me/usage-tokens").with(as(AppRole.USER))
+                            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                            .content("{\"label\":\"Laptop\"}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                            .jsonPath("$.token").value("coc_fixture"))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                            .jsonPath("$.ingestUrl").value("http://localhost:8080/api/ingest"));
+        }
+
+        @Test
+        void minting_a_token_behind_the_tls_proxy_returns_the_public_https_url_not_localhost() throws Exception {
+            stubMint();
+
+            mvc.perform(post("https://docs.example.com/api/v1/me/usage-tokens").with(as(AppRole.USER))
+                            .with(r -> { r.setScheme("http"); r.setServerPort(80); r.setSecure(false); return r; })
+                            .header("X-Forwarded-Proto", "https")
+                            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                            .content("{\"label\":\"Laptop\"}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                            .jsonPath("$.ingestUrl").value("https://docs.example.com/api/ingest"));
         }
     }
 

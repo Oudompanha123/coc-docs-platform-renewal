@@ -32,6 +32,19 @@ describe("My Claude Usage client (ADR-052)", () => {
     daily: [],
     lastUpdated: null,
     todayUsage: null,
+    usage: {
+      rangeDays: 7,
+      from: "2026-09-19",
+      to: "2026-09-25",
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      costUsd: 0,
+      previousCostUsd: 0,
+      byModel: [],
+      recent: [],
+    },
   };
 
   it("sends the request with the session cookie, and no id of any kind", async () => {
@@ -40,8 +53,17 @@ describe("My Claude Usage client (ADR-052)", () => {
     await fetchMyUsage();
 
     const [url, init] = fetchMock.mock.calls[0]!;
-    expect(url).toMatch(/\/api\/v1\/claude-usage\/me$/);
+    expect(url).toMatch(/\/api\/v1\/claude-usage\/me\?days=7$/);
     expect(init).toMatchObject({ credentials: "include" });
+  });
+
+  it("asks for the chosen window, and only a window — never whose usage", async () => {
+    respondWith(200, DASHBOARD);
+
+    await fetchMyUsage(30);
+
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toMatch(/\/api\/v1\/claude-usage\/me\?days=30$/);
   });
 
   it("returns the parsed dashboard", async () => {

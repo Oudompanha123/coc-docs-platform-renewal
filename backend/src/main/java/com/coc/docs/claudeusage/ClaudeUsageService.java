@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  * ({@link ClaudeUsagePricing}), not a single blended rate (ADR-036, revision
  * of ADR-035 decision 4).
  *
- * <p>// req: FR-USAGE-001, FR-USAGE-002, FR-USAGE-003, NFR-SEC-PII, ADR-035, ADR-036
+ * <p>// req: FR-USAGE-001, FR-USAGE-002, FR-USAGE-003, NFR-SEC-PII, ADR-035, ADR-036, ADR-058
  */
 @Service
 public class ClaudeUsageService {
@@ -76,18 +76,38 @@ public class ClaudeUsageService {
     /** Days of history the personal "My Claude Usage" screen shows (ADR-052) — a fixed window, not a period picker like the admin dashboard's. */
     static final int MY_HISTORY_DAYS = 30;
 
+    /** The "Usage by Model" windows the personal screen offers (ADR-058) — today, last 7 days, last 30 days. */
+    static final Set<Integer> MY_RANGE_DAYS = Set.of(1, 7, 30);
+
+    /** Used when the requested window is not one of {@link #MY_RANGE_DAYS} — a read gets a sane answer, not a 400. */
+    static final int MY_DEFAULT_RANGE_DAYS = 7;
+
+    /**
+     * Model name for a day reported before per-model rows existed (V49,
+     * ADR-058): its totals and cost are real, but which model they belong to
+     * was never stored. Shown as its own entry rather than dropped, so the
+     * by-model figures always add up to the day totals.
+     */
+    public static final String UNATTRIBUTED_MODEL = "unattributed";
+
+    /** Per-model cost is kept at this scale — finer than the daily column's 4, so a cheap model's fraction of a cent survives. */
+    private static final int MODEL_COST_SCALE = 6;
+
     private final ClaudeUsageMemberRepository members;
     private final ClaudeUsageDailyRepository daily;
+    private final ClaudeUsageDailyModelRepository dailyModels;
     private final AuditRepository audit;
     private final ObjectMapper json;
 
     public ClaudeUsageService(
             ClaudeUsageMemberRepository members,
             ClaudeUsageDailyRepository daily,
+            ClaudeUsageDailyModelRepository dailyModels,
             AuditRepository audit,
             ObjectMapper json) {
         this.members = members;
         this.daily = daily;
+        this.dailyModels = dailyModels;
         this.audit = audit;
         this.json = json;
     }
@@ -248,8 +268,12 @@ public class ClaudeUsageService {
         }
         if (byModel != null) {
             for (ClaudeUsageModelTokens t : byModel.values()) {
-                if (t.input() < 0 || t.output() < 0 || t.cacheReadTokens() < 0 || t.cacheCreationTokens() < 0) {
+                if (t.input() < 0 || t.output() < 0 || t.cacheReadTokens() < 0 || t.cacheCreationTokens() < 0
+                        || t.cacheCreation1hTokens() < 0) {
                     throw ApiException.badRequest("byModel token counts must not be negative");
+                }
+                if (t.cacheCreation1hTokens() > t.cacheCreationTokens()) {
+                    throw ApiException.badRequest("byModel cacheCreation1h must not exceed cacheCreation");
                 }
             }
         }
@@ -265,9 +289,10 @@ public class ClaudeUsageService {
                     ClaudeUsageMember.STATUS_ACTIVE,
                     null);
         } else {
-            if (ClaudeUsageMember.STATUS_INVITED.equals(member.status())) {
-                members.updateStatus(member.id(), ClaudeUsageMember.STATUS_ACTIVE);
-            }
+            // No promotion step any more: a row reaches this table by reporting,
+            // so it is already active. The branch that lifted an 'invited' row
+            // went with the invite endpoint and the status itself (V36).
+            //
             // A removed member is never silently reactivated by a new report —
             // status only ever changes in the direction an admin chose here.
             if (rawDisplayName != null && !rawDisplayName.isBlank()) {
@@ -285,7 +310,36 @@ public class ClaudeUsageService {
         BigDecimal cost = costFor(byModel);
 
         boolean created = daily.upsert(member.id(), date, input, output, cacheRead, cacheCreation, cost, models);
+        // Same transaction, same "whole day replaces whole day" rule as the
+        // upsert above (ADR-058) — the per-model rows can never drift from
+        // the totals they break down, and a replay never adds a second set.
+        dailyModels.replaceDay(member.id(), date, modelRowsFor(member.id(), date, byModel));
         return new IngestOutcome(created ? IngestOutcome.CREATED : IngestOutcome.UPDATED);
+    }
+
+    /** One row per model that actually consumed tokens, each priced on its own (ADR-058). */
+    private static List<ClaudeUsageDailyModel> modelRowsFor(
+            UUID memberId, LocalDate date, Map<String, ClaudeUsageModelTokens> byModel) {
+        if (byModel == null || byModel.isEmpty()) {
+            return List.of();
+        }
+        List<ClaudeUsageDailyModel> rows = new ArrayList<>();
+        for (Map.Entry<String, ClaudeUsageModelTokens> entry : byModel.entrySet()) {
+            String model = entry.getKey() == null ? "" : entry.getKey().trim();
+            ClaudeUsageModelTokens t = entry.getValue();
+            if (model.isEmpty()
+                    || t.input() + t.output() + t.cacheReadTokens() + t.cacheCreationTokens() == 0) {
+                continue;
+            }
+            BigDecimal cost = ClaudeUsagePricing.costFor(
+                            model, t.input(), t.output(), t.cacheReadTokens(), t.cacheCreationTokens(),
+                            t.cacheCreation1hTokens())
+                    .setScale(MODEL_COST_SCALE, RoundingMode.HALF_UP);
+            rows.add(new ClaudeUsageDailyModel(
+                    memberId, date, model, t.input(), t.output(), t.cacheReadTokens(), t.cacheCreationTokens(),
+                    t.cacheCreation1hTokens(), cost));
+        }
+        return rows;
     }
 
     /**
@@ -306,7 +360,8 @@ public class ClaudeUsageService {
         for (Map.Entry<String, ClaudeUsageModelTokens> entry : byModel.entrySet()) {
             ClaudeUsageModelTokens t = entry.getValue();
             total = total.add(ClaudeUsagePricing.costFor(
-                    entry.getKey(), t.input(), t.output(), t.cacheReadTokens(), t.cacheCreationTokens()));
+                    entry.getKey(), t.input(), t.output(), t.cacheReadTokens(), t.cacheCreationTokens(),
+                    t.cacheCreation1hTokens()));
         }
         return total.setScale(COST_SCALE, RoundingMode.HALF_UP);
     }
@@ -338,7 +393,34 @@ public class ClaudeUsageService {
      * query deserves a sane answer, not an error page.
      */
     public ClaudeUsageDashboard dashboard(String rawPeriod, int rawOffset) {
-        return dashboard(rawPeriod, rawOffset, LocalDate.now(REPORT_ZONE));
+        return dashboard(rawPeriod, rawOffset, LocalDate.now(REPORT_ZONE), null);
+    }
+
+    /**
+     * The dashboard, scoped to what {@code caller} may see.
+     *
+     * <p><b>An {@code admin} and above sees the team; everyone else sees only
+     * their own row.</b> A plain {@code user} is on this roster because they
+     * ran the reporter, and their own tokens and cost are theirs to look at —
+     * but what a colleague costs is not something this product decided to tell
+     * them. That is the same shape {@code NotificationFeedService} already uses
+     * for the activity feed: one route, and the scope decided here from the
+     * session rather than from anything the caller sends.
+     *
+     * <p>The scope is applied by filtering the roster and the daily rows before
+     * the rollup, not by trimming the finished dashboard. Totals, the chart,
+     * "active users", "near limit" and "last updated" are all derived from
+     * those two lists, so narrowing the inputs narrows every figure at once —
+     * there is no second code path that could disagree, and no number that
+     * silently keeps counting people the caller cannot see.
+     *
+     * <p>Someone who has never run the reporter has no roster row, and gets an
+     * empty dashboard rather than an error: nothing has gone wrong, they simply
+     * have no usage yet.
+     */
+    public ClaudeUsageDashboard dashboardFor(CurrentUser caller, String rawPeriod, int rawOffset) {
+        boolean wholeTeam = caller.role().isAtLeast(com.coc.docs.account.AppRole.ADMIN);
+        return dashboard(rawPeriod, rawOffset, LocalDate.now(REPORT_ZONE), wholeTeam ? null : caller.email());
     }
 
     /**
@@ -347,7 +429,16 @@ public class ClaudeUsageService {
      * with the calendar. Mirrors the reference tool's own {@code rollup(rows,
      * period, today, offset)} signature for exactly this reason.
      */
+    /** The whole team, at a fixed "today". The period/range tests' entry point. */
     ClaudeUsageDashboard dashboard(String rawPeriod, int rawOffset, LocalDate today) {
+        return dashboard(rawPeriod, rawOffset, today, null);
+    }
+
+    /**
+     * @param onlyEmail when non-null, the one member this dashboard is about —
+     *     see {@link #dashboardFor}. Null means the whole team.
+     */
+    ClaudeUsageDashboard dashboard(String rawPeriod, int rawOffset, LocalDate today, String onlyEmail) {
         String period = PERIODS.contains(rawPeriod) ? rawPeriod : "week";
         int offset = Math.max(MIN_OFFSET, Math.min(0, rawOffset));
 
@@ -357,6 +448,19 @@ public class ClaudeUsageService {
 
         List<ClaudeUsageMember> roster = members.list();
         List<ClaudeUsageDaily> rows = daily.listInRange(from, to);
+
+        // The one place the scope is applied. Everything below is computed from
+        // these two lists, so narrowing them here narrows the member table, the
+        // chart, the totals and both counters together — rather than leaving a
+        // "3 tracked" that quietly counts people the caller cannot see.
+        if (onlyEmail != null) {
+            String email = normalizeEmail(onlyEmail);
+            roster = roster.stream()
+                    .filter(member -> email.equals(member.email()))
+                    .toList();
+            Set<UUID> visible = roster.stream().map(ClaudeUsageMember::id).collect(Collectors.toSet());
+            rows = rows.stream().filter(row -> visible.contains(row.memberId())).toList();
+        }
 
         Map<UUID, List<ClaudeUsageDaily>> rowsByMember =
                 rows.stream().collect(Collectors.groupingBy(ClaudeUsageDaily::memberId));
@@ -399,12 +503,17 @@ public class ClaudeUsageService {
      * from the authenticated session by the controller — there is no id or
      * email parameter here to trust from the client (FR-USAGE-005, ADR-052).
      */
-    public ClaudeUsageMyDashboard myDashboard(CurrentUser actor) {
-        return myDashboard(actor, LocalDate.now(REPORT_ZONE));
+    public ClaudeUsageMyDashboard myDashboard(CurrentUser actor, int rangeDays) {
+        return myDashboard(actor, LocalDate.now(REPORT_ZONE), rangeDays);
     }
 
-    /** As {@link #myDashboard(CurrentUser)}, with "today" taken as a parameter so a test can fix it. */
+    /** As {@link #myDashboard(CurrentUser, int)} over the default window. */
     ClaudeUsageMyDashboard myDashboard(CurrentUser actor, LocalDate today) {
+        return myDashboard(actor, today, MY_DEFAULT_RANGE_DAYS);
+    }
+
+    /** As {@link #myDashboard(CurrentUser, int)}, with "today" taken as a parameter so a test can fix it. */
+    ClaudeUsageMyDashboard myDashboard(CurrentUser actor, LocalDate today, int rawRangeDays) {
         String email = normalizeEmail(actor.email());
         ClaudeUsageMember member = members.findByEmail(email).orElse(null);
 
@@ -433,8 +542,81 @@ public class ClaudeUsageService {
         ClaudeUsageMemberUsage todayUsage =
                 member == null ? null : rollupMember(member, todayRow == null ? List.of() : List.of(todayRow), 1);
 
+        int rangeDays = MY_RANGE_DAYS.contains(rawRangeDays) ? rawRangeDays : MY_DEFAULT_RANGE_DAYS;
+        ClaudeUsageMyDashboard.ModelBreakdown breakdown = member == null
+                ? ClaudeUsageMyDashboard.ModelBreakdown.empty(rangeDays, today.minusDays(rangeDays - 1), today)
+                : modelBreakdown(member.id(), today, rangeDays);
+
         return new ClaudeUsageMyDashboard(
-                email, displayName, today, todayInput, todayOutput, history, lastUpdated, todayUsage);
+                email, displayName, today, todayInput, todayOutput, history, lastUpdated, todayUsage, breakdown);
+    }
+
+    /**
+     * "Usage by Model" for the last {@code rangeDays} days (ADR-058): each
+     * model's four token categories kept separate and priced on its own, the
+     * window's totals as their sum, and the window before it for the "from
+     * previous N days" comparison — one query per table covering both windows.
+     *
+     * <p>A day in either window that has a {@code claude_usage_daily} row
+     * but no per-model rows (reported before V49) contributes an {@link
+     * #UNATTRIBUTED_MODEL} entry built from that row, so totals here always
+     * equal what the daily rows say.
+     */
+    private ClaudeUsageMyDashboard.ModelBreakdown modelBreakdown(UUID memberId, LocalDate today, int rangeDays) {
+        LocalDate from = today.minusDays(rangeDays - 1);
+        LocalDate previousFrom = from.minusDays(rangeDays);
+
+        List<ClaudeUsageDailyModel> rows =
+                new ArrayList<>(dailyModels.listInRangeForMember(memberId, previousFrom, today));
+        Set<LocalDate> attributedDays =
+                rows.stream().map(ClaudeUsageDailyModel::usageDate).collect(Collectors.toSet());
+        for (ClaudeUsageDaily day : daily.listInRangeForMember(memberId, previousFrom, today)) {
+            boolean hasTokens =
+                    day.inputTokens() + day.outputTokens() + day.cacheReadTokens() + day.cacheCreationTokens() > 0;
+            if (hasTokens && !attributedDays.contains(day.usageDate())) {
+                rows.add(new ClaudeUsageDailyModel(
+                        memberId, day.usageDate(), UNATTRIBUTED_MODEL, day.inputTokens(), day.outputTokens(),
+                        day.cacheReadTokens(), day.cacheCreationTokens(), 0, day.costUsd()));
+            }
+        }
+
+        List<ClaudeUsageDailyModel> inRange =
+                rows.stream().filter(r -> !r.usageDate().isBefore(from)).toList();
+        BigDecimal previousCost = rows.stream()
+                .filter(r -> r.usageDate().isBefore(from))
+                .map(ClaudeUsageDailyModel::costUsd)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<String, ClaudeUsageMyDashboard.ModelUsage> byModel = new LinkedHashMap<>();
+        for (ClaudeUsageDailyModel r : inRange) {
+            byModel.merge(r.model(), ClaudeUsageMyDashboard.ModelUsage.of(r), ClaudeUsageMyDashboard.ModelUsage::plus);
+        }
+        List<ClaudeUsageMyDashboard.ModelUsage> models = new ArrayList<>(byModel.values());
+        models.sort((a, b) -> b.costUsd().compareTo(a.costUsd()));
+
+        long input = 0;
+        long output = 0;
+        long cacheRead = 0;
+        long cacheCreation = 0;
+        BigDecimal cost = BigDecimal.ZERO;
+        for (ClaudeUsageMyDashboard.ModelUsage m : models) {
+            input += m.inputTokens();
+            output += m.outputTokens();
+            cacheRead += m.cacheReadTokens();
+            cacheCreation += m.cacheCreationTokens();
+            cost = cost.add(m.costUsd());
+        }
+
+        List<ClaudeUsageDailyModel> recent = inRange.stream()
+                .sorted((a, b) -> {
+                    int byDate = b.usageDate().compareTo(a.usageDate());
+                    return byDate != 0 ? byDate : b.costUsd().compareTo(a.costUsd());
+                })
+                .toList();
+
+        return new ClaudeUsageMyDashboard.ModelBreakdown(
+                rangeDays, from, today, new ClaudeUsageTotals(input, output, cacheRead, cacheCreation, cost),
+                previousCost, models, recent);
     }
 
     private ClaudeUsageMemberUsage rollupMember(ClaudeUsageMember member, List<ClaudeUsageDaily> rows, long daysInRange) {

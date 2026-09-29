@@ -124,6 +124,18 @@ export interface HrmsAttendanceReport {
   details: HrmsMailDetail[];
   /** The sender's "do not reply" footer, worth keeping when read outside a mail client. */
   note: string;
+  /**
+   * Whether `rows` was narrowed to the signed-in caller's own attendance.
+   * False for an admin and above, who get the mail as it was sent.
+   */
+  scopedToViewer: boolean;
+  /**
+   * Whether the caller's account is linked to a name in the mail
+   * (`account.hrms_name`). Lets the UI tell an unlinked account apart from a
+   * report the parser failed on — both arrive as zero rows, and showing
+   * "HRMS changed its layout" for the first blames the wrong system.
+   */
+  viewerLinked: boolean;
 }
 
 /**
