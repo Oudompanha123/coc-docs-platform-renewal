@@ -9,7 +9,7 @@ import type {
   AxRenewalStackRecommendation,
 } from "@/lib/ax-renewal/api";
 
-type Row = { layerKey: string; oldTarget: string; newTarget: string };
+export type Row = { layerKey: string; oldTarget: string; newTarget: string };
 
 /**
  * The one recommendation, if any, a connected local model made for this
@@ -101,6 +101,22 @@ function toRows(layers: AxRenewalStackLayer[], analysis: AxRenewalAnalysis | nul
   return suggestRows(analysis);
 }
 
+/**
+ * Whether `rows` still matches what is actually persisted (`toRows(layers,
+ * analysis)`, recomputed fresh — never a snapshot taken once at mount).
+ * Confirming this section records a sign-off on the *persisted* layers, not
+ * on whatever is currently sitting typed/picked in this component's own
+ * state — so a caller who picked a target pill (which only ever updates this
+ * local state) and went straight to Confirm without pressing Save stack move
+ * first would otherwise confirm the plan as it stood *before* that pick.
+ */
+export function sameRows(a: Row[], b: Row[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((r, i) => r.layerKey === b[i]?.layerKey && r.oldTarget === b[i]?.oldTarget && r.newTarget === b[i]?.newTarget)
+  );
+}
+
 export function StackMoveSection({
   layers,
   analysis,
@@ -129,6 +145,10 @@ export function StackMoveSection({
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Recomputed fresh every render, never taken as a one-time snapshot — see
+  // sameRows's own doc comment for why this matters for Confirm below.
+  const hasUnsavedChanges = !sameRows(rows, toRows(layers, analysis));
+
   function updateRow(index: number, field: "oldTarget" | "newTarget", value: string) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
   }
@@ -152,6 +172,15 @@ export function StackMoveSection({
   }
 
   async function handleConfirm() {
+    // Confirming records a sign-off on what is actually persisted, not on
+    // whatever is currently picked/typed here — refuse rather than silently
+    // confirming a plan that no longer matches what is on screen.
+    if (hasUnsavedChanges) {
+      setError(
+        "Save stack move first — the choices below haven't been saved yet, so confirming now would sign off on the previous plan, not this one.",
+      );
+      return;
+    }
     setConfirmBusy(true);
     setError(null);
     try {
@@ -174,9 +203,12 @@ export function StackMoveSection({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[5px] border border-border bg-white p-5">
-        <h3 className="text-sm font-bold text-dash-ink">Stack Move</h3>
-        <p className="mt-1 text-xs text-muted">
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="border-b border-border bg-page px-5 py-3">
+          <h3 className="text-sm font-bold text-dash-ink">Stack Move</h3>
+        </div>
+        <div className="p-5">
+        <p className="text-xs text-muted">
           For each <strong>architectural layer</strong>, record what it runs on today and what it should move to.
           Pick one of the buttons below, type your own, or leave it on &ldquo;stay on current&rdquo;. Where a
           connected local model has a confident recommendation for a layer, it appears as one of those buttons —
@@ -202,7 +234,12 @@ export function StackMoveSection({
         {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
         {canEdit && (
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex items-center justify-between gap-3">
+            {hasUnsavedChanges ? (
+              <p className="text-xs font-medium text-amber-700">Unsaved changes — save before confirming.</p>
+            ) : (
+              <span />
+            )}
             <button
               type="button"
               onClick={() => void handleSave()}
@@ -222,16 +259,18 @@ export function StackMoveSection({
           onConfirm={() => void handleConfirm()}
           onReopen={onReopen}
         />
+        </div>
       </div>
 
       {rows.length > 0 && (
         <>
-          <div className="rounded-[5px] border border-border bg-white p-5">
-            <div className="flex items-center justify-between">
+          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+            <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
               <h3 className="text-sm font-bold text-dash-ink">The move</h3>
               <span className="text-xs text-muted">{movingCount} of {rows.length} layers change</span>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-border">
+            <div className="p-5">
+            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-border">
               {[
                 { label: "layers moving", value: movingCount },
                 { label: "AI recommendations", value: recommendedCount },
@@ -243,15 +282,17 @@ export function StackMoveSection({
                 </div>
               ))}
             </div>
+            </div>
           </div>
 
-          <div className="rounded-[5px] border border-border bg-white p-5">
-            <div className="flex items-center justify-between">
+          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+            <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
               <h3 className="text-sm font-bold text-dash-ink">Old → new</h3>
               <span className="text-xs text-muted">pick a target; everything downstream follows</span>
             </div>
 
-            <div className="mt-3 divide-y divide-border">
+            <div className="p-5">
+            <div className="divide-y divide-border">
               {rows.map((row, i) => {
                 const status = recommendationStatus(row.layerKey, analysis);
                 const aiOptions =
@@ -336,6 +377,7 @@ export function StackMoveSection({
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         </>

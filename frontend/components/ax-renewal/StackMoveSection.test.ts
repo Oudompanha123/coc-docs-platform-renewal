@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findRecommendation, recommendationStatus, suggestRows } from "./StackMoveSection";
+import { findRecommendation, recommendationStatus, sameRows, suggestRows } from "./StackMoveSection";
 import type { AxRenewalAnalysis, AxRenewalStackRecommendation } from "@/lib/ax-renewal/api";
 
 function analysisOf(overrides: Partial<AxRenewalAnalysis>): AxRenewalAnalysis {
@@ -185,5 +185,34 @@ describe("recommendationStatus", () => {
       kind: "unavailable",
       reason: expect.stringContaining("didn't have enough evidence"),
     });
+  });
+});
+
+describe("sameRows", () => {
+  // The guard behind "Confirm refuses when there are unsaved changes": a
+  // caller who picked a target pill (updating only the component's own
+  // state) and went straight to Confirm, without pressing Save stack move
+  // first, must not have that confirmed against the plan as it stood before
+  // that pick — this is the exact comparison that catches it.
+  it("is true for two lists with identical rows, in the same order", () => {
+    const rows = [
+      { layerKey: "Runtime", oldTarget: "Node 12", newTarget: "Node 22 LTS" },
+      { layerKey: "Language", oldTarget: "JavaScript", newTarget: "" },
+    ];
+    expect(sameRows(rows, [...rows])).toBe(true);
+  });
+
+  it("is false once a row's newTarget differs — the exact shape a picked-but-unsaved pill leaves behind", () => {
+    const persisted = [{ layerKey: "Runtime", oldTarget: "Node 12", newTarget: "" }];
+    const picked = [{ layerKey: "Runtime", oldTarget: "Node 12", newTarget: "Node 22 LTS" }];
+    expect(sameRows(picked, persisted)).toBe(false);
+  });
+
+  it("is false when the lists have different lengths", () => {
+    expect(sameRows([{ layerKey: "Runtime", oldTarget: "Node 12", newTarget: "" }], [])).toBe(false);
+  });
+
+  it("is true for two empty lists", () => {
+    expect(sameRows([], [])).toBe(true);
   });
 });
