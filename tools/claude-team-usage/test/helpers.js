@@ -168,6 +168,7 @@ export function writeTranscript(projectsDir, rel, lines) {
   const file = path.join(projectsDir, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, lines.join('\n') + '\n');
+  return file;
 }
 
 /** The JSON array --dry-run prints on stdout. */

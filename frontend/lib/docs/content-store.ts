@@ -1,10 +1,11 @@
 import type { DocContent } from "./content-types";
 
-/** The 5 products with real seed content today. Products created later
+/** The 5 original products with real seed content. Products created later
  *  through the nav-editing UI are plain strings — see nav-api.ts's
- *  `NavProduct` — and never have a SEED_CONTENT entry, which is fine:
+ *  `NavProduct` — and usually have no SEED_CONTENT entry, which is fine:
  *  getContent's fallback chain ends in `undefined` ("not written") for
- *  those, same as any never-edited item. */
+ *  those, same as any never-edited item. `ax-renewal-docs` is the one
+ *  exception, seeded below alongside its nav items (V55). */
 export type ProductKey = "jex3-0" | "jex2-0" | "coach" | "team" | "usage";
 
 export function contentId(productKey: string, slug: string): string {
@@ -976,6 +977,247 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       {
         title: "How a number gets here",
         note: "**Your machine reads its own transcripts** — the scheduled script scans `~/.claude/projects/**/*.jsonl` on that machine only. **It sums today, deduplicating** on message id + request id — Claude Code writes one line per content block and repeats the usage object on each, so summing naively inflates totals by roughly 2.4×. **It posts the running day total** to `/api/ingest` with a bearer credential (a personal token or the shared secret) — the one route exempt from the backend's normal session check, since it carries its own check instead. **The row is upserted, never appended** — keyed on (member, date), and the client always sends the full day total rather than a delta, so repeats and retries converge instead of drifting. **The dashboard reads the backend's Postgres database directly** when you open Claude Usage — no separate cache step, and no credentials ever reach the browser.",
+      },
+    ],
+  },
+  // AX Renewal — reader docs for the developer workspace at /ax-renewal.
+  // Keyed "ax-renewal-docs", not "ax-renewal": that key is the workspace's
+  // own static route (reserved in NavService, V54/V55).
+  [contentId("ax-renewal-docs", "")]: {
+    kind: "hero",
+    heading: "AX Renewal",
+    tagline: "Plan a legacy-code renewal — and sign it off before anything is built.",
+    subline: "Attach, analyze, plan, build.",
+    ctaLabel: "Quick start",
+    ctaHref: "/docs/ax-renewal-docs/quick-start",
+    eyebrow: "Overview",
+    sectionHeading: "Nothing moves to the next stage until it's agreed.",
+    sectionIntro:
+      "AX Renewal is a workspace for migrating a legacy codebase to a new stack. You **attach** an existing project, **analyze** it, agree a **four-section plan** with a recorded sign-off, and only then **build** — with every generated change reviewed before it is written anywhere.",
+    features: [
+      {
+        icon: "document",
+        title: "Attach and analyze",
+        description:
+          "Point AX Renewal at a legacy project folder. It reads the **dependency manifest** and file statistics — never your source files — then analysis fills in the codebase summary, architecture, findings and detected pages.",
+      },
+      {
+        icon: "layers",
+        title: "A four-section plan",
+        description:
+          "**Stack move**, **Architecture**, **Pages** and **Database** are each saved and confirmed separately. Editing a confirmed section clears its confirmation, so the plan you build from is always the plan that was signed off.",
+      },
+      {
+        icon: "sparkles",
+        title: "Reviewed code generation",
+        description:
+          "With a local Claude Code model connected, AX Renewal generates the renewed code into a folder you choose. Every proposed file is shown for **review**, can be **tested** on a disposable copy, and is written only after **Approve and apply**.",
+      },
+      {
+        icon: "shield",
+        title: "Separated sign-off",
+        description:
+          "Admins draft the plan; only a **Super Admin** or an account with the **Developer** role can confirm it, start a build, or approve changes. Key actions are recorded in the project's **Audit trail**.",
+      },
+    ],
+    closingNote:
+      "Where to find it\n• Open it from the admin sidebar: **DEVELOPER → AX Renewal**. It opens in a new browser tab.\n• Available to accounts with the **Admin**, **Super Admin** or **Developer** role.\n• AX Renewal never edits the legacy system itself — it reads it, plans the move, and writes the renewed code to a separate destination.",
+  },
+  [contentId("ax-renewal-docs", "quick-start")]: {
+    kind: "steps",
+    eyebrow: "Quick start",
+    heading: "From a legacy folder to a signed-off plan.",
+    intro: "Seven steps from creating a project to starting the first build.",
+    calloutTone: "info",
+    calloutText:
+      "Steps 2–4 and 6 need the **Admin** or **Super Admin** role. Step 5's confirmations and step 7 need a **Super Admin** or an account with the **Developer** role. A Super Admin can do every step alone.",
+    steps: [
+      {
+        title: "Open AX Renewal",
+        body: "In the admin sidebar, choose **DEVELOPER → AX Renewal**. The workspace opens in a new tab with the **Explorer** on the left, the **AX Assistant** on the right, and a status bar along the bottom.",
+      },
+      {
+        title: "Create a project",
+        body: "Click **+ New project**, enter a **Project name**, then **Create**. Use the **Project** dropdown to switch between projects later.",
+      },
+      {
+        title: "Attach the source",
+        body: "Open **Understand → Attach source** and click **Choose a folder**, **Choose files**, or drag the project folder in. A quick scan runs in your browser (file list, size, file types, entry point, safety checks) and the source is attached automatically.\n\nOnly the dependency manifest is uploaded — one of `package.json`, `composer.json`, `requirements.txt`, `pyproject.toml`, `pom.xml`, `build.gradle`, `Gemfile`, `go.mod` or `Cargo.toml`. A project without one can still be attached.",
+      },
+      {
+        title: "Run analysis",
+        body: "Click **Run analysis**. When it finishes you'll see **Analysis complete**, and the rest of the Explorer unlocks: **Codebase**, **Architecture**, **Findings**, **Pages**, every **Plan** section, and **Build → Implementation**.",
+      },
+      {
+        title: "Agree the four plan sections",
+        body: "Work through **Plan → Stack move**, **Architecture**, **Pages** and **Database**. In each, make your edits, click **Save**, then **Confirm** it. A section can't be confirmed while it has unsaved changes. The status bar shows your progress as **N/4 confirmed**.",
+      },
+      {
+        title: "Set where the code goes",
+        body: "Open **Plan → Output**, choose a destination kind — **Git repository**, **Filesystem path** or **Other** — enter the **Target (repo URL or path)** and an optional **Branch**, then **Save destination**. Choose **Filesystem path** if you want AX Renewal to generate and apply code.",
+      },
+      {
+        title: "Start implementation",
+        body: "Open **Build → Implementation** and click **Start implementation**. The button stays disabled until all four sections are confirmed and a destination is set. See **Workflow** for what happens next.",
+      },
+    ],
+  },
+  [contentId("ax-renewal-docs", "how-to-use")]: {
+    kind: "sections",
+    eyebrow: "How to use",
+    heading: "Everyday tasks in the workspace.",
+    intro: "Once a project is attached and analyzed, these are the things you'll do most often.",
+    sections: [
+      {
+        title: "Finding your way around",
+        note: "The activity bar on the far left has four groups: **Understand** (read-only results of analysis), **Plan** (the sections you edit and confirm), **Build** (Implementation and Run locally) and **Workspace** (AI engine and, for Super Admins, the Audit trail). Pick an item in the **Explorer** to open it as a tab. Items that aren't available yet show a **locked** pill — hover it to see what to do first, such as **Attach the source first** or **Run analysis first**.",
+      },
+      {
+        title: "Editing and confirming a plan section",
+        note: "Each Plan section has its own **Save** button and a confirm bar at the bottom. Save your edits first — **Unsaved changes — save before confirming.** — then click **Confirm <Section>**. The breadcrumb chip changes from **draft** to **confirmed**, and the bar records when it was confirmed and by which role. To change a confirmed section, click **Reopen**, or simply save a new edit: saving always clears that section's confirmation.",
+      },
+      {
+        title: "Choosing the target stack",
+        note: "In **Plan → Stack move**, each detected layer gets a row. Pick one of the AI-recommended options, choose **stay on <current>**, or **type your own target**. Recommendations are only ever suggestions — nothing is applied until you pick it and **Save stack move**. When there's no recommendation for a layer, the row says why.",
+      },
+      {
+        title: "Planning the database",
+        note: "In **Plan → Database**, record the existing database's **Engine**, **Host**, **Port**, **Database name** and **Schema name** with **Save connection metadata** — no credential is stored, and this never opens a live connection. Under **Planned changes**, add columns or indexes with a table name and a reason. If the renewal needs no database changes, you can confirm the section empty.",
+      },
+      {
+        title: "Using the AX Assistant",
+        note: "The right-hand panel's **Thread** accepts short commands as well as comments. Anything that isn't a command is saved as a comment on the project for your teammates. You can remove your own comments; comments can't be edited. When a local model is connected, the **Chat** tab lets you ask questions about the project — chat is not saved and never changes the project.",
+        command:
+          "confirm stack move\nconfirm all\nreopen database\nrun analysis\nstart implementation\nopen findings",
+      },
+      {
+        title: "Reviewing generated changes",
+        note: "When a build finishes generating, **Build → Implementation** lists every proposed file as a create, modify or delete, with its before and after content. Click **Run tests** to test the proposal against a disposable copy — never the live destination. Then choose **Approve and apply** to write all of the files, or **Reject** to discard them. Approval covers the whole run.",
+      },
+      {
+        title: "Running the renewed project",
+        note: "After a run is applied, open **Build → Run locally** and click **Start**. AX Renewal runs `npm install && npm run dev` in the destination folder (it needs a `package.json` with a `dev` script), shows the live log, and links to the running app. Click **Stop** when you're done. The process doesn't survive a backend restart.",
+      },
+      {
+        title: "Fixing an error",
+        note: "If the local run fails, Run locally offers **Ask AI to explain this** for a plain-language explanation, and **Generate a fix** to start a fix run. A fix goes through the same review, test and **Approve and apply** steps as any other build.",
+      },
+      {
+        title: "Asking for a UI change",
+        note: "While the latest run is applied, use **Describe a UI change** — colors, layout, fonts, spacing, component styles — then **Generate this change**. It changes the renewed project's UI only, never AX Renewal itself, and is reviewed like any other run.",
+      },
+      {
+        title: "Undoing a build",
+        note: "**Revert this run** is available on the most recently applied run and restores the destination to how it was before that run was applied.",
+      },
+      {
+        title: "Deleting a project",
+        note: "Choose **Delete project** and confirm with **Yes, delete**. Its findings, plan, comments and implementation history are removed permanently. A project can't be deleted while a build is running or its local server is started.",
+      },
+    ],
+  },
+  [contentId("ax-renewal-docs", "key-features")]: {
+    kind: "sections",
+    eyebrow: "Key features",
+    heading: "What AX Renewal does for a migration.",
+    intro: "Each feature below is available in the workspace today. Features marked as needing a model require the local Claude Code engine (see **AI engine** at the end).",
+    sections: [
+      {
+        title: "Safe source attach",
+        note: "Attaching reads the manifest and file statistics only — the source is **read only, never modified**. A **Verification** card checks that files are readable, whether a manifest and lockfile are present, whether any credentials appear in the source, whether build output is committed, and the largest file.",
+      },
+      {
+        title: "Codebase analysis",
+        note: "Analysis produces a **Codebase** summary (files, file types, runtime, detected frameworks), **Languages**, a **File layout**, and an **Architecture** view with a system-context diagram. With a model connected it also fills in indexed counts and module coupling. Without one, analysis falls back to a clearly labelled keyword match against the manifest.",
+      },
+      {
+        title: "Findings mapped to the plan",
+        note: "**Findings** lists what analysis found, worst first, as risk, warn or info. It also groups them by what will resolve them: **Fixed by the stack move**, **Fixed by the database plan**, **Fixed by the architecture**, or **Needs a decision from you**.",
+      },
+      {
+        title: "Detected pages",
+        note: "**Understand → Pages** walks through each detected route with its purpose, related files and issues. **Plan → Pages** is where you map each old route to its new one.",
+      },
+      {
+        title: "AI stack-move recommendations",
+        note: "Needs a model. For every detected layer, the model suggests a target with alternatives and a rationale, shown as options on the Stack move row. You always choose — nothing is applied automatically.",
+      },
+      {
+        title: "Old → New overview",
+        note: "A read-only side-by-side of the system running today and the planned target, including **What does not change**: the database, the URLs and the old system.",
+      },
+      {
+        title: "Gated confirmations",
+        note: "The four plan sections are confirmed individually, and a build can't start until all four are confirmed and a destination is set. If a section changes after a build, all four must be reconfirmed before the next **Rebuild**.",
+      },
+      {
+        title: "Review before apply",
+        note: "Needs a model and a **Filesystem path** destination. Generated code is shown file by file and nothing is written until **Approve and apply**. **Run tests** checks the exact proposal on a disposable copy first. Git repository and Other destinations record the signed-off plan only.",
+      },
+      {
+        title: "Exact rebuilds",
+        note: "If the plan hasn't changed since the last applied build, **Rebuild** reproduces that exact approved result instead of generating a new one, and still asks for review.",
+      },
+      {
+        title: "Run locally and Error Assistant",
+        note: "Start the renewed project's dev server from the workspace and watch its log. When it fails, **Ask AI to explain this** explains the error and **Generate a fix** proposes a reviewed fix.",
+      },
+      {
+        title: "UI customization",
+        note: "Needs a model. Describe a visual change to the renewed project's UI and get it as a reviewed, testable, revertible run.",
+      },
+      {
+        title: "Comments and commands",
+        note: "The **AX Assistant** thread keeps the project's comments for the team and accepts commands such as `confirm all` or `open database`, checked against your role.",
+      },
+      {
+        title: "Audit trail",
+        note: "Super Admin only. Records project creation and deletion, attach, analysis, plan edits, confirmations, destination changes, every build action and comments — with who did it and when. Chat and error explanations are not recorded.",
+      },
+      {
+        title: "AI engine",
+        note: "The AI features use a **Claude Code CLI installed on the same machine as the backend**. Each teammate sets this up on their own machine; **Workspace → AI engine** shows whether it's connected. Install it, find its path, set `APP_AXRENEWAL_CLAUDECLIPATH` in `backend/.env.local` to that path, then restart the backend.",
+        command: "npm install -g @anthropic-ai/claude-code\nwhere claude    # Windows\nwhich claude    # macOS / Linux",
+      },
+    ],
+  },
+  [contentId("ax-renewal-docs", "workflow")]: {
+    kind: "steps",
+    eyebrow: "Workflow",
+    heading: "Attach, analyze, plan, build.",
+    intro:
+      "Every AX Renewal project follows the same path. Each stage unlocks the next, so implementation only ever starts from a plan that has been agreed.",
+    calloutTone: "warning",
+    calloutText:
+      "Code is only generated and applied for a **Filesystem path** destination with a local model connected. Otherwise, **Start implementation** records the signed-off plan so it can be carried out manually.",
+    steps: [
+      {
+        title: "Attach",
+        body: "Attach the legacy project's folder under **Understand → Attach source**. Until a source is attached, only Attach source is available.",
+      },
+      {
+        title: "Analyze",
+        body: "**Run analysis** reads the attached project and unlocks the rest of **Understand**, all of **Plan**, and **Build → Implementation**. You can run it again at any time with **Run analysis again**.",
+      },
+      {
+        title: "Plan and confirm",
+        body: "Agree the four plan sections in order — **Stack move**, **Architecture**, **Pages**, **Database** — saving and confirming each. Admins draft; a Super Admin or an account with the Developer role confirms. Saving a change to a confirmed section returns it to draft.",
+      },
+      {
+        title: "Set the destination",
+        body: "Under **Plan → Output**, record where the renewed code goes. A filesystem path is resolved on the machine of whoever runs the build.",
+      },
+      {
+        title: "Generate",
+        body: "**Start implementation** is enabled once all four sections are confirmed and a destination is set. Generation can take up to 20 minutes and can be cancelled. Only one run can be active per project at a time.",
+      },
+      {
+        title: "Review, test and approve",
+        body: "The run pauses at **awaiting review**. Inspect each proposed file, optionally **Run tests**, then **Approve and apply** or **Reject**. Nothing is written to the destination before approval.",
+      },
+      {
+        title: "Run and refine",
+        body: "Once **applied**, start the project under **Build → Run locally**. From here you can fix errors with **Generate a fix**, request a **UI change**, or **Revert this run** — each one goes back through review and approval.",
       },
     ],
   },

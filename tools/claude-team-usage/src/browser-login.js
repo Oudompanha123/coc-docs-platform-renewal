@@ -65,8 +65,38 @@ const page = (title, text) =>
   '<body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:90vh;color:#16141f">' +
   `<div style="max-width:28rem;text-align:center"><h1 style="font-size:1.25rem">${title}</h1><p>${text}</p></div>`;
 
+/**
+ * Where the success page sends the tab. The CLI cannot know the member's role,
+ * so Coc Docs' own `/cli/signed-in` forwards admins to `/claude-usage` and
+ * everyone else to `/my-claude-usage`, adding `?cli=signed-in` so that page
+ * watches for the upload this process is about to make.
+ */
+export const RETURN_PATH = '/cli/signed-in';
+
+const escapeHtml = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+/**
+ * The success page. Browsers only let a script close a tab it opened itself,
+ * and this one was opened by the OS, so `window.close()` usually does nothing;
+ * the redirect back to the dashboard is the fallback that almost always runs
+ * (the meta refresh covers a browser with scripts off). `returnUrl` is built
+ * from the configured server origin, never from the request.
+ */
+function successPage(returnUrl) {
+  if (!returnUrl) return page('Authorization successful', 'Return to your terminal. You can close this tab.');
+  const href = escapeHtml(returnUrl);
+  return (
+    page(
+      'Authorization successful',
+      `Returning to Claude Usage…<br><a href="${href}" style="color:#6d3ce0">Continue to Claude Usage</a>`,
+    ).replace('<body', `<meta http-equiv="refresh" content="3;url=${href}"><body`) +
+    // JSON.stringify of a URL origin + fixed path; `<` is escaped so it can never end the script element.
+    `<script>try{window.close()}catch(e){}setTimeout(function(){location.replace(${JSON.stringify(returnUrl).replace(/</g, '\\u003c')})},1500)</script>`
+  );
+}
+
 const PAGES = {
-  ok: page('claude-team-usage is signed in', 'Return to your terminal. You can close this tab.'),
   cancelled: page('Sign-in cancelled', 'Nothing was authorized. You can close this tab.'),
   mismatch: page('This sign-in link is not for this terminal', 'Run <code>claude-team-usage scan</code> again and use the page it opens.'),
   notFound: page('Not found', ''),
@@ -75,8 +105,10 @@ const PAGES = {
 /**
  * Starts the loopback listener. `result` settles once with {code, api}, or
  * rejects on cancel/timeout. Only GET /callback carrying our own state counts.
+ * `returnUrl`, when given, is where the success page sends the tab afterwards.
  */
-export function listenForCallback(state, { timeoutMs = LOGIN_TIMEOUT_MS } = {}) {
+export function listenForCallback(state, { timeoutMs = LOGIN_TIMEOUT_MS, returnUrl = null } = {}) {
+  const okPage = successPage(returnUrl);
   return new Promise((resolveListen, rejectListen) => {
     let settle;
     const result = new Promise((resolve, reject) => {
@@ -105,7 +137,7 @@ export function listenForCallback(state, { timeoutMs = LOGIN_TIMEOUT_MS } = {}) 
       const code = url.searchParams.get('code') ?? '';
       const api = acceptableApiOrigin(url.searchParams.get('api') ?? '');
       if (!B64URL_43.test(code) || !api) return reply(400, PAGES.mismatch);
-      reply(200, PAGES.ok);
+      reply(200, okPage);
       settle.resolve({ code, api });
     });
 
@@ -173,7 +205,8 @@ export async function browserLogin({
   timeoutMs = LOGIN_TIMEOUT_MS,
 }) {
   const { state, verifier, challenge } = newPkce();
-  const { port, result } = await listenForCallback(state, { timeoutMs });
+  const dashboardUrl = `${server}/my-claude-usage`;
+  const { port, result } = await listenForCallback(state, { timeoutMs, returnUrl: `${server}${RETURN_PATH}` });
 
   const url = new URL('/cli/authorize', server);
   url.searchParams.set('port', String(port));
@@ -195,5 +228,5 @@ export async function browserLogin({
   if (isLoopback(new URL(creds.ingestUrl).hostname) && !isLoopback(new URL(server).hostname)) {
     throw new CredentialsError('Coc Docs reported a localhost ingest URL — ask an admin to set APP_PUBLIC_URL on the backend.');
   }
-  return { ...creds, dashboardUrl: `${server}/my-claude-usage` };
+  return { ...creds, dashboardUrl };
 }
