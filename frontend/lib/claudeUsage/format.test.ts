@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { costChange, formatCost, formatTokens, modelDisplayName, modelShortId } from "./format";
+import {
+  costChange,
+  formatCost,
+  formatPrice,
+  formatTokens,
+  modelDisplayName,
+  modelFamilyName,
+  modelShortId,
+} from "./format";
 
 describe("My Claude Usage formatting (ADR-058)", () => {
   it("compacts token counts the way Claude Code's usage page does", () => {
@@ -27,6 +35,18 @@ describe("My Claude Usage formatting (ADR-058)", () => {
     expect(modelDisplayName("unattributed")).toBe("Unattributed");
     expect(modelDisplayName("something-else")).toBe("something-else");
     expect(modelShortId("claude-haiku-4-5-20251001")).toBe("claude-haiku-4-5");
+  });
+
+  it("shortens a model id to its family for the Reference API Cost card (ADR-065)", () => {
+    expect(modelFamilyName("claude-sonnet-4-6")).toBe("Sonnet");
+    expect(modelFamilyName("claude-opus-5-5")).toBe("Opus");
+    expect(modelFamilyName("claude-haiku-4-5-20251001")).toBe("Haiku");
+    expect(modelFamilyName("unattributed")).toBe("Unattributed");
+  });
+
+  it("formats a list price without the small-amount decimals", () => {
+    expect(formatPrice(25)).toBe("$25");
+    expect(formatPrice(22.5)).toBe("$22.50");
   });
 
   it("compares against the previous window, or not at all when it had no spend", () => {
