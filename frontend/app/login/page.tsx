@@ -9,6 +9,7 @@ import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/co
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
 import { useMinimumDisplay } from "@/lib/layout/useMinimumDisplay";
+import { landingPathFor } from "@/lib/auth/landing";
 import {
   loginWithIdToken,
   loginWithPassword,
@@ -24,19 +25,15 @@ import { keycloakLogoutUrl } from "@/lib/auth/keycloakLogout";
 import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutcome";
 import { safeNextPath } from "@/lib/auth/cliAuthorize";
 
-/** Where a signed-in account lands. A temporary password buys entry to
- *  exactly one place regardless of role (see the comment at each call
- *  site); otherwise the admin app (sidebar, Overview, PRODUCTS pages,
- *  Users & Roles, Settings) is admin/super_admin only, and a plain "user"
- *  account gets its own real landing page (ADR-033's Member home) instead
- *  — same destination RequireMemberSession sends an admin/super_admin
- *  back from if they land on it directly. A signed-out or `guest` caller
- *  never reaches this function at all (there is no successful login to
- *  return an account from), so /welcome stays the public marketing page. */
+/** Where a signed-in account lands — `landingPathFor`, shared with the bare
+ *  domain's redirect (`app/page.tsx`) so the two can never disagree. A
+ *  temporary password buys entry to exactly one place regardless of role;
+ *  Admin, Super Admin, Developer, Reviewer and Lead land on the Overview
+ *  dashboard (ADR-071); a plain "user" gets the Member home (ADR-033). A
+ *  signed-out or `guest` caller never reaches this function at all (there
+ *  is no successful login to return an account from). */
 function postLoginDestination(account: AuthenticatedAccount): string {
-  if (account.mustChangePassword) return "/create-password";
-  if (account.role === "admin" || account.role === "super_admin") return "/overview";
-  return account.role === "user" ? "/home" : "/welcome";
+  return landingPathFor(account);
 }
 
 /**

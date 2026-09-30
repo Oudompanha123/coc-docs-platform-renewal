@@ -1021,7 +1021,7 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
       },
     ],
     closingNote:
-      "Where to find it\n• Open it from the admin sidebar: **DEVELOPER → AX Renewal**. It opens in a new browser tab.\n• Available to accounts with the **Admin**, **Super Admin** or **Developer** role.\n• AX Renewal never edits the legacy system itself — it reads it, plans the move, and writes the renewed code to a separate destination.",
+      "Where to find it\n• Open it from the admin sidebar: **DEVELOPER → AX Renewal**. It opens in a new browser tab.\n• Available to accounts with the **Admin**, **Super Admin** or **Developer** role. **Reviewers** and **Leads** can open it too, to follow the projects they've been added to and comment on them — they cannot edit or confirm the plan.\n• Each project has its own **Members** (Workspace → Members). Only a project's members — its creator and the people added to it — can see it at all, and each can do what their role allows; a **Super Admin** can open any project. Everyone else doesn't see the project listed and can't open it. A member with the **Admin** role adds teammates by email; the creator can't be removed.\n• AX Renewal never edits the legacy system itself — it reads it, plans the move, and writes the renewed code to a separate destination.",
   },
   [contentId("ax-renewal-docs", "quick-start")]: {
     kind: "steps",

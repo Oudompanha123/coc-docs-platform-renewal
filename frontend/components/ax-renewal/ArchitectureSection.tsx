@@ -95,7 +95,8 @@ export function ArchitectureSection({
   canEdit: boolean;
   canConfirm: boolean;
   onSave: (summary: string) => Promise<void>;
-  onConfirm: () => void;
+  /** Awaited, so a refusal (e.g. a 409 because a teammate changed the plan since this loaded, ADR-067) lands on this section's error line. */
+  onConfirm: () => Promise<void>;
   onReopen: () => void;
 }) {
   const [summary, setSummary] = useState(() => architecture?.summary ?? suggestSummary(analysis, stackLayers));
@@ -151,7 +152,9 @@ export function ArchitectureSection({
     setConfirmBusy(true);
     setError(null);
     try {
-      onConfirm();
+      await onConfirm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't confirm the architecture.");
     } finally {
       setConfirmBusy(false);
     }

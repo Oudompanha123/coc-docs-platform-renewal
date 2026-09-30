@@ -52,6 +52,8 @@ const OPEN_TARGETS: Record<string, AxRenewalExplorerKey> = {
   implementation: "implementation",
   "run locally": "run-locally",
   "ai engine": "ai-engine",
+  members: "members",
+  team: "members",
   "audit trail": "audit-trail",
 };
 
