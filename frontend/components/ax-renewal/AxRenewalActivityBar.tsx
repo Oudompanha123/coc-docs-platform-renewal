@@ -34,6 +34,7 @@ const GROUP_OF: Record<AxRenewalExplorerKey, string> = {
   implementation: "Build",
   "run-locally": "Build",
   "ai-engine": "Workspace",
+  members: "Workspace",
   "audit-trail": "Workspace",
 };
 

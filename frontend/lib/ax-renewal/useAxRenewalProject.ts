@@ -2,7 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchProjectDetail, listProjects, type AxRenewalProject, type AxRenewalProjectDetail } from "./api";
+import {
+  AxRenewalNotFoundError,
+  fetchProjectDetail,
+  listProjects,
+  type AxRenewalProject,
+  type AxRenewalProjectDetail,
+} from "./api";
+
+/**
+ * What to say when a project will not load because it is not there *for
+ * this caller* — which, by design (ADR-070), cannot be told apart from it
+ * not being there at all. Says both, and the way in.
+ */
+export const PROJECT_NOT_AVAILABLE =
+  "This project doesn't exist, or you're not a member of it. Ask one of its members to add you under Workspace → Members.";
 
 /**
  * The current AX Renewal project and its detail, driven by the `project`
@@ -46,7 +60,12 @@ export function useAxRenewalProject(enabled: boolean = true) {
       setDetail(await fetchProjectDetail(effectiveProjectId));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't load this project.");
+      // Drop whatever was on screen before: a failed load must never leave
+      // the *previous* project's plan showing under this one's URL — least
+      // of all when the failure is "you may not see this one" (ADR-070).
+      setDetail(null);
+      if (err instanceof AxRenewalNotFoundError) setError(PROJECT_NOT_AVAILABLE);
+      else setError(err instanceof Error ? err.message : "Couldn't load this project.");
     }
   }, [effectiveProjectId]);
 

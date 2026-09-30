@@ -13,6 +13,8 @@ const BASE_DETAIL: AxRenewalProjectDetail = {
     attachStats: null,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
+    revision: 0,
+    member: true,
   },
   analysis: null,
   stackLayers: [],
@@ -24,6 +26,7 @@ const BASE_DETAIL: AxRenewalProjectDetail = {
   confirmations: {},
   latestImplementationRun: null,
   comments: [],
+  members: [],
 };
 
 function workspaceItems(role?: "guest" | "user" | "admin" | "super_admin" | null) {
@@ -47,6 +50,26 @@ describe("buildExplorerGroups — Workspace group", () => {
     expect(workspaceItems("user")).not.toContain("audit-trail");
     expect(workspaceItems(null)).not.toContain("audit-trail");
     expect(workspaceItems(undefined)).not.toContain("audit-trail");
+  });
+
+  it("includes Members for every role — a reader not on the team needs to know who to ask (ADR-069)", () => {
+    for (const role of ["user", "admin", "super_admin", null] as const) {
+      expect(workspaceItems(role)).toContain("members");
+    }
+  });
+
+  it("counts the project's members on the Members item", () => {
+    const detail: AxRenewalProjectDetail = {
+      ...BASE_DETAIL,
+      members: [
+        { accountId: "u1", displayName: "Dara", addedAt: "2026-09-01T00:00:00Z" },
+        { accountId: "u2", displayName: "Sokha", addedAt: "2026-09-02T00:00:00Z" },
+      ],
+    };
+    const members = buildExplorerGroups(detail, "user")
+      .find((g) => g.label === "Workspace")
+      ?.items.find((i) => i.key === "members");
+    expect(members?.count).toBe(2);
   });
 
   it("returns no groups at all when there is no project detail yet", () => {

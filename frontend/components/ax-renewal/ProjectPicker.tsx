@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
 import { createProject, deleteProject, type AxRenewalProject } from "@/lib/ax-renewal/api";
+import { writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 
 /** How long "Project deleted successfully" stays up before clearing itself — same window `TopProgressBar` uses for its own auto-hide. */
 const DELETED_MESSAGE_MS = 4000;
@@ -18,13 +19,21 @@ export function ProjectPicker({
   projects,
   projectId,
   canEdit,
+  canDelete = canEdit,
   onSelect,
   onCreated,
   onDeleted,
 }: {
   projects: AxRenewalProject[] | null;
   projectId: string | null;
+  /** May create a project — a role question only, there is no project yet to be on. */
   canEdit: boolean;
+  /**
+   * May delete the active project — role *and* membership (ADR-069). Kept
+   * separate from `canEdit` because an Admin who is not on a project can
+   * still start a new one of their own.
+   */
+  canDelete?: boolean;
   onSelect: (id: string) => void;
   onCreated: (project: AxRenewalProject) => void;
   /** Called once the project is actually gone server-side — the caller re-fetches the list and moves off it. */
@@ -104,7 +113,7 @@ export function ProjectPicker({
             project is active" changing look like an unmount+remount to
             React, which resets that state the same way it already resets
             cleanly when active becomes null entirely. */}
-        {canEdit && active && (
+        {canDelete && active && (
           <DeleteProjectControl key={active.id} project={active} onDeleted={handleProjectDeleted} />
         )}
       </div>
@@ -180,6 +189,10 @@ function DeleteProjectControl({ project, onDeleted }: { project: AxRenewalProjec
     setError(null);
     try {
       await deleteProject(project.id);
+      // The one thing this browser kept for the project on its own: the
+      // source path typed into AI engine. Gone with it (ADR-072) — clearing
+      // an empty value is exactly how that setting is removed.
+      writeSourcePathOverride(project.id, "");
       // This component (and this modal) is about to unmount as a direct
       // consequence — `onDeleted` refreshes the project list one level up,
       // which is what makes `active` in the parent stop matching this

@@ -6,7 +6,14 @@
 > the merged code implements. Both are PROPOSED; which stands is the PM's call
 > (`CONST-PROC-01`).
 
-> **Status**: PROPOSED
+> **Status**: SUPERSEDED by [ADR-062](ADR-062-resolution-of-039-040-ax-role-model-and-workspace-access.md) (2026-09-30)
+>
+> **Resolved.** The capability mechanism this document extends no longer exists:
+> V31 dropped `capability` and `account_capability` after moving `developer`
+> grants to a real role. `tech_lead`/`reviewer` capability grants were not
+> carried over (see ADR-062 §4.2). ADR-062 records the model as built.
+>
+> **Previous status**: PROPOSED
 > **Date**: 2026-09-21
 > **Author**: `backend-developer` / `frontend-developer` (implemented per PM direction to add "AX Role" choices to the account details screen)
 > **Approver**: PM (pending)
@@ -82,6 +89,7 @@ ADR-038 already built exactly the mechanism this needs: a `capability`/`account_
 | Date | Version | Changes | Author |
 |---|---|---|---|
 | 2026-09-21 | 1.0 | Written. Status PROPOSED — implemented ahead of approval per PM direction, following the precedent ADR-038 itself set. | backend-developer / frontend-developer |
+| 2026-09-30 | 1.1 | Status → SUPERSEDED by ADR-062, which resolves the ADR-039/ADR-040 conflict against the as-built migrations (V26, V28–V32). Body left as written. | Claude Opus 5.5 |
 
 ---
 

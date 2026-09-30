@@ -140,6 +140,83 @@ describe("RequireSession", () => {
       expect(screen.queryByText("admin content")).not.toBeInTheDocument();
       expect(replace).toHaveBeenCalledWith("/welcome");
     });
+
+    // ADR-068: Reviewer and Lead open the workspace to read and comment. The
+    // exception stays route-scoped for them exactly as it is for Developer.
+    it.each(["reviewer", "lead"] as const)("admits a %s on the /ax-renewal route", (role) => {
+      pathname.current = "/ax-renewal";
+      session.current = {
+        status: "authenticated",
+        user: { role, mustChangePassword: false, roles: ["user", role] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.getByText("admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it.each(["reviewer", "lead"] as const)("still refuses a %s everywhere else in the admin shell", (role) => {
+      pathname.current = "/users-roles";
+      session.current = {
+        status: "authenticated",
+        user: { role, mustChangePassword: false, roles: ["user", role] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
+  });
+
+  describe("the Overview dashboard and Settings for Developer, Reviewer and Lead (ADR-071)", () => {
+    function renderAs(role: "developer" | "reviewer" | "lead" | "user", path: string) {
+      pathname.current = path;
+      session.current = {
+        status: "authenticated",
+        user: { role, mustChangePassword: false, roles: role === "user" ? ["user"] : ["user", role] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
+    }
+
+    it.each(["developer", "reviewer", "lead"] as const)("admits a %s to /overview", (role) => {
+      renderAs(role, "/overview");
+      expect(screen.getByText("admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it.each(["developer", "reviewer", "lead"] as const)("admits a %s to their own /settings", (role) => {
+      renderAs(role, "/settings");
+      expect(screen.getByText("admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["developer", "/users-roles"],
+      ["reviewer", "/claude-usage"],
+      ["lead", "/attendance"],
+      ["developer", "/jex3-0"],
+      ["lead", "/content/jex3-0--overview"],
+    ] as const)("still refuses a %s on %s — the rest of the shell stays admin-only", (role, path) => {
+      renderAs(role, path);
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
+
+    it("still refuses a plain user on /overview", () => {
+      renderAs("user", "/overview");
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
   });
 
   describe("/claude-usage (ADR-052, further revised: admin-only again, no exception)", () => {
