@@ -153,7 +153,7 @@ function ModelUsageTable({ models, emptyLabel }: { models: MyClaudeUsageModel[];
 /**
  * What this usage would have cost on the pay-per-token API — never a bill,
  * and never drawn down from the subscription (ADR-063). Priced server-side
- * per model, cache tokens included (ADR-058), so the figure is the sum of
+ * per model, input + output only (ADR-064), so the figure is the sum of
  * the per-model lines under it.
  */
 function ReferenceCostCard({
