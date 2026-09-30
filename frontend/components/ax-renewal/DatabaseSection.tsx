@@ -59,7 +59,8 @@ export function DatabaseSection({
   onSaveChanges: (
     rows: { changeType: string; tableName: string; detail: unknown; rationale: string | null }[],
   ) => Promise<void>;
-  onConfirm: () => void;
+  /** Awaited, so a refusal (e.g. a 409 because a teammate changed the plan since this loaded, ADR-067) lands on this section's error line. */
+  onConfirm: () => Promise<void>;
   onReopen: () => void;
 }) {
   const [engine, setEngine] = useState(connection?.engine ?? "");
@@ -147,7 +148,9 @@ export function DatabaseSection({
     setConfirmBusy(true);
     setConfirmError(null);
     try {
-      onConfirm();
+      await onConfirm();
+    } catch (err) {
+      setConfirmError(err instanceof Error ? err.message : "Couldn't confirm the database plan.");
     } finally {
       setConfirmBusy(false);
     }

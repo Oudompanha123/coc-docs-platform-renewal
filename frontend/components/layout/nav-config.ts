@@ -72,6 +72,11 @@ function productsSection(products: NavProduct[]): NavSection {
       label: product.label,
       href: `/${product.key}`,
       icon: PRODUCT_ICONS[product.icon] ?? LayersIcon,
+      // Each product's page is content management — admin/super_admin only,
+      // in RequireSession and in the /api/v1/admin/** floor behind it. Once
+      // Developer, Reviewer and Lead can open the shell's Overview (ADR-071)
+      // these links would otherwise send them straight to a redirect.
+      roles: ["admin", "super_admin"] as const,
     })),
   };
 }
@@ -102,18 +107,20 @@ const STATIC_SECTIONS: NavSection[] = [
     ],
   },
   {
-    // Its own section, not folded into ADMINISTRATION: a plain `user` who
-    // only holds the `developer` role would otherwise see a section literally
-    // titled "ADMINISTRATION" over just this one link, which reads wrong for
-    // an account with no other account-authority role at all (ADR-037,
-    // ADR-039).
+    // Its own section, not folded into ADMINISTRATION: an account that only
+    // holds `developer`, `reviewer` or `lead` would otherwise see a section
+    // literally titled "ADMINISTRATION" over just this one link, which reads
+    // wrong for an account with no account-authority role at all (ADR-037,
+    // ADR-039). Reviewer and Lead open it to read and comment (ADR-068) —
+    // must match RequireSession's AX_RENEWAL_ROLES, or the link would lead
+    // straight to a redirect.
     label: "DEVELOPER",
     items: [
       {
         label: "AX Renewal",
         href: "/ax-renewal",
         icon: RenewIcon,
-        roles: ["developer", "admin", "super_admin"],
+        roles: ["developer", "reviewer", "lead", "admin", "super_admin"],
         newTab: true,
       },
     ],

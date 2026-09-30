@@ -6,7 +6,12 @@ vi.mock("@/lib/ax-renewal/api", () => ({
   deleteProject: vi.fn(),
 }));
 
+vi.mock("@/lib/ax-renewal/engine-preference", () => ({
+  writeSourcePathOverride: vi.fn(),
+}));
+
 import { createProject, deleteProject, type AxRenewalProject } from "@/lib/ax-renewal/api";
+import { writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 import { ProjectPicker } from "./ProjectPicker";
 
 function project(overrides: Partial<AxRenewalProject> = {}): AxRenewalProject {
@@ -20,6 +25,8 @@ function project(overrides: Partial<AxRenewalProject> = {}): AxRenewalProject {
     attachStats: null,
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
+    revision: 0,
+    member: true,
     ...overrides,
   };
 }
@@ -112,6 +119,29 @@ describe("ProjectPicker", () => {
 
       expect(deleteProject).not.toHaveBeenCalled();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    // ADR-072: nothing of a deleted project is kept, the browser included.
+    it("forgets the source path this browser saved for the project once it is deleted", async () => {
+      vi.mocked(deleteProject).mockResolvedValue(undefined);
+      renderWithOneProject();
+
+      fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+      fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
+
+      await waitFor(() => expect(writeSourcePathOverride).toHaveBeenCalledWith("p1", ""));
+    });
+
+    it("keeps that saved path when the delete is refused — the project still exists", async () => {
+      vi.mocked(writeSourcePathOverride).mockClear();
+      vi.mocked(deleteProject).mockRejectedValue(new Error("stop the local run before deleting this project"));
+      renderWithOneProject();
+
+      fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+      fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("stop the local run");
+      expect(writeSourcePathOverride).not.toHaveBeenCalled();
     });
 
     it("deletes on the second press, tells the caller, and shows a success message", async () => {

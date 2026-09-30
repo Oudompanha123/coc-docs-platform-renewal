@@ -45,6 +45,17 @@ describe("My Claude Usage client (ADR-052)", () => {
       byModel: [],
       recent: [],
     },
+    week: {
+      from: "2026-09-21",
+      to: "2026-09-25",
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      budgetTokens: 1_200_000,
+      pctUsed: 0,
+      remainingTokens: 1_199_850,
+    },
+    subscriptionUsdPerMonth: 25,
   };
 
   it("sends the request with the session cookie, and no id of any kind", async () => {

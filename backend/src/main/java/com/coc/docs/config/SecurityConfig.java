@@ -300,6 +300,16 @@ public class SecurityConfig {
                         // // req: FR-USAGE-002, NFR-SEC-CHANNEL, ADR-050, ADR-053
                         .requestMatchers("/api/v1/me/usage-tokens/**").hasRole(AppRole.USER.name())
 
+                        // The caller's own sending credential (ADR-063). USER, because
+                        // it is self-service: the route carries no id and always
+                        // resolves the account from the session, so a caller cannot
+                        // reach anybody else's. Needs its own line -- without one it
+                        // falls through to anyRequest()/super_admin and only an
+                        // administrator could set their own, which is the opposite of
+                        // what a self-service credential is for.
+                        // // req: NFR-SEC-PII, NFR-SEC-CHANNEL, ADR-063
+                        .requestMatchers("/api/v1/me/mail-credential").hasRole(AppRole.USER.name())
+
                         // The personal "My Claude Usage" screen (ADR-052):
                         // every signed-in account's own read of its own
                         // usage, unlike AdminClaudeUsageController's
@@ -399,6 +409,16 @@ public class SecurityConfig {
                         // server is active, which is a business rule, not an
                         // authorisation decision, so it does not live here.
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/ax-renewal/projects/*")
+                        .hasRole(AppRole.ADMIN.name())
+                        // Project members (ADR-069): who is on the team is a
+                        // project-lifecycle decision, the same floor as
+                        // creating the project. Whether this caller is on
+                        // *this* project is row data, so AxRenewalService
+                        // checks that, not this matcher. Listing members is a
+                        // plain read — it comes with the project detail GET.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects/*/members")
+                        .hasRole(AppRole.ADMIN.name())
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/ax-renewal/projects/*/members/*")
                         .hasRole(AppRole.ADMIN.name())
                         .requestMatchers(HttpMethod.POST, "/api/v1/ax-renewal/projects/*/manifest")
                         .hasRole(AppRole.ADMIN.name())

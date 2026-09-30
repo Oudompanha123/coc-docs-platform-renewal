@@ -13,7 +13,16 @@
 > own renumbering: an applied migration is immutable, and rewriting the
 > citation across twenty-eight files risks mislabelling the other ADR-039.
 
-> **Status**: PROPOSED
+> **Status**: SUPERSEDED IN PART by [ADR-062](ADR-062-resolution-of-039-040-ax-role-model-and-workspace-access.md) (2026-09-30)
+>
+> **Resolved.** §2.1 ("Developer stays a capability") and the §2.2 ladder are
+> replaced: V30–V32 made Developer a real role too, and dropped the capability
+> tables, so the as-built ladder is `guest < user < developer < reviewer <
+> lead < admin < super_admin`. §2.3 (Reviewer and Lead grant `content.read`
+> only) still stands. ADR-062 also admits both roles to the AX Renewal
+> workspace (read and comment), without changing any `SecurityConfig` rule.
+>
+> **Previous status**: PROPOSED
 > **Date**: 2026-09-21
 > **Author**: AI (implemented per PM/developer instruction in-session, same class of decision as ADR-037/ADR-038's own history) — **formal PM sign-off recommended, not yet recorded** (`CONST-PROC-01`).
 > **Related ADR**: Extends [ADR-016](ADR-016-roles-and-permissions.md) (the `account_role`/`role`/`role_permission` model). Deliberately does **not** revise [ADR-037](ADR-038-capability-grants-ax-renewal.md) (capability grants) — see Decision §1.
@@ -100,6 +109,7 @@ Every `/api/v1/admin/**` route still floors at `hasRole(ADMIN)` (`SecurityConfig
 | Date | Version | Changes | Author |
 |---|---|---|---|
 | 2026-09-21 | 1.0 | Initial draft, on direct PM/developer instruction in-session | AI |
+| 2026-09-30 | 1.1 | Status → SUPERSEDED IN PART by ADR-062 (§2.1 and the §2.2 ladder); §2.3 stands. Body left as written. | Claude Opus 5.5 |
 
 ---
 

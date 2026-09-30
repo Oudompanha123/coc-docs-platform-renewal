@@ -52,6 +52,8 @@ function detailFixture(): AxRenewalProjectDetail {
       attachStats: null,
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-01T00:00:00Z",
+      revision: 0,
+      member: true,
     },
     analysis: null,
     stackLayers: [],
@@ -63,11 +65,25 @@ function detailFixture(): AxRenewalProjectDetail {
     confirmations: {},
     latestImplementationRun: null,
     comments: [],
+    members: [],
   };
 }
 
 describe("AxAssistantPanel", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // File-level, not per-block: the "stop using" tests really do write
+    // `use-model=false` to storage, and a block that does not clear it
+    // renders no engine banner at all — which is how the ADR-068 tests
+    // below came to fail looking for "Local model in use". Clearing here
+    // means a new block cannot inherit an earlier one's choice.
+    try {
+      localStorage.clear();
+    } catch {
+      // Storage is not reliably available in this sandbox; blocks that need
+      // a specific value set it themselves.
+    }
+  });
 
   it("renders 'no tab open' instead of crashing once every tab has been closed (section=none)", () => {
     // Reproduces the reported bug exactly: closing the last open tab
@@ -351,6 +367,50 @@ describe("AxAssistantPanel", () => {
 
       await waitFor(() => expect(screen.queryByRole("tab", { name: "chat" })).not.toBeInTheDocument());
       expect(screen.queryByText(/Not saved/)).not.toBeInTheDocument();
+    });
+  });
+
+  // /assistant/chat sits at the admin floor (ADR-046). Offering it to anyone
+  // below that only ever produced a 403 — and Reviewers and Leads now open
+  // this workspace too (ADR-068). No localStorage.clear() here on purpose:
+  // readUseModel() already treats unreadable storage as "use the model", so
+  // these do not depend on the ambient Storage global.
+  describe("who is offered chat (ADR-068)", () => {
+    async function renderConnectedAs(user: { role: string; roles: string[] }) {
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: true });
+      searchParamsString = "project=p1&section=attach";
+      useSession.mockReturnValue({ user });
+      useAxRenewalProjectContext.mockReturnValue({ projectId: "p1", detail: detailFixture(), refresh: vi.fn() });
+      render(<AxAssistantPanel />);
+      // Wait for the engine status to land, so "no chat tab" means withheld,
+      // not "not loaded yet".
+      await screen.findByText(/Local model in use/);
+    }
+
+    it.each([
+      ["reviewer", { role: "reviewer", roles: ["user", "reviewer"] }],
+      ["lead", { role: "lead", roles: ["user", "lead"] }],
+      ["developer-only user", { role: "user", roles: ["user", "developer"] }],
+    ])("does not offer chat to a %s, even with a model connected", async (_name, user) => {
+      await renderConnectedAs(user);
+
+      expect(screen.queryByRole("tab", { name: "chat" })).not.toBeInTheDocument();
+    });
+
+    it("still offers chat to an admin", async () => {
+      await renderConnectedAs({ role: "admin", roles: ["admin"] });
+
+      expect(screen.getByRole("tab", { name: "chat" })).toBeInTheDocument();
+    });
+
+    it("lets a reviewer post to the thread — commenting is what they are there for", async () => {
+      await renderConnectedAs({ role: "reviewer", roles: ["user", "reviewer"] });
+
+      const box = screen.getByRole("textbox");
+      fireEvent.change(box, { target: { value: "Pages mapping looks right to me" } });
+      fireEvent.submit(box.closest("form")!);
+
+      await waitFor(() => expect(addComment).toHaveBeenCalledWith("p1", "Pages mapping looks right to me"));
     });
   });
 
