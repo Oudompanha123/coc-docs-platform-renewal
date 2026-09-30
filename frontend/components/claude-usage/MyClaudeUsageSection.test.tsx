@@ -51,7 +51,7 @@ const DASHBOARD: MyClaudeUsageDashboard = {
   subscriptionUsdPerMonth: 25,
 };
 
-describe("MyClaudeUsageSection (ADR-058, ADR-063)", () => {
+describe("MyClaudeUsageSection (ADR-058, ADR-065)", () => {
   beforeEach(() => {
     fetchMyUsage.mockReset();
     fetchMyUsage.mockResolvedValue(DASHBOARD);

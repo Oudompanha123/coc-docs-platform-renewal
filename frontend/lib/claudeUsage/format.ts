@@ -48,7 +48,7 @@ export function modelDisplayName(model: string): string {
 
 /**
  * "claude-sonnet-4-6" → "Sonnet", "claude-opus-5-5" → "Opus" — the short name
- * the Reference API Cost card uses (ADR-063). Falls back to the full display
+ * the Reference API Cost card uses (ADR-065). Falls back to the full display
  * name for anything that is not a Claude model id.
  */
 export function modelFamilyName(model: string): string {

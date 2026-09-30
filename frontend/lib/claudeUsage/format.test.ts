@@ -37,7 +37,7 @@ describe("My Claude Usage formatting (ADR-058)", () => {
     expect(modelShortId("claude-haiku-4-5-20251001")).toBe("claude-haiku-4-5");
   });
 
-  it("shortens a model id to its family for the Reference API Cost card (ADR-063)", () => {
+  it("shortens a model id to its family for the Reference API Cost card (ADR-065)", () => {
     expect(modelFamilyName("claude-sonnet-4-6")).toBe("Sonnet");
     expect(modelFamilyName("claude-opus-5-5")).toBe("Opus");
     expect(modelFamilyName("claude-haiku-4-5-20251001")).toBe("Haiku");

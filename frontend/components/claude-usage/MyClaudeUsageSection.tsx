@@ -57,7 +57,7 @@ function Card({ title, children, className = "" }: { title: string; children: Re
   );
 }
 
-/** Tokens first, never dollars (ADR-063). Input + output only — cache tokens are not counted as usage here. */
+/** Tokens first, never dollars (ADR-065). Input + output only — cache tokens are not counted as usage here. */
 function TodayCard({ input, output }: { input: number; output: number }) {
   return (
     <Card title="Today's Usage">
@@ -152,8 +152,8 @@ function ModelUsageTable({ models, emptyLabel }: { models: MyClaudeUsageModel[];
 
 /**
  * What this usage would have cost on the pay-per-token API — never a bill,
- * and never drawn down from the subscription (ADR-063). Priced server-side
- * per model, input + output only (ADR-064), so the figure is the sum of
+ * and never drawn down from the subscription (ADR-065). Priced server-side
+ * per model, input + output only (ADR-066), so the figure is the sum of
  * the per-model lines under it.
  */
 function ReferenceCostCard({
@@ -201,7 +201,7 @@ function ReferenceCostCard({
   );
 }
 
-/** The plan price on its own — deliberately no "remaining" or comparison with the API cost (ADR-063). */
+/** The plan price on its own — deliberately no "remaining" or comparison with the API cost (ADR-065). */
 function SubscriptionCard({ usdPerMonth }: { usdPerMonth: number }) {
   return (
     <Card title="Subscription">
@@ -218,7 +218,7 @@ function SubscriptionCard({ usdPerMonth }: { usdPerMonth: number }) {
  * (ADR-052 v1.6). `/claude-usage` is a separate, admin/super_admin-only page
  * — see `app/(shell)/claude-usage/page.tsx`.
  *
- * Tokens are the headline, dollars are not (ADR-063): Today's Usage and
+ * Tokens are the headline, dollars are not (ADR-065): Today's Usage and
  * Weekly Usage (against the weekly soft budget) first, then Model Usage over
  * the selected window, then the Reference API Cost and the Subscription as
  * two separate cards. The API figure is never subtracted from, or compared
@@ -237,7 +237,7 @@ function SubscriptionCard({ usdPerMonth }: { usdPerMonth: number }) {
  * "last reported" moves (`useUsageAutoRefresh`). Only the CLI uploads —
  * this page just re-reads.
  *
- * // req: FR-USAGE-005, ADR-052, ADR-058, ADR-060, ADR-063
+ * // req: FR-USAGE-005, ADR-052, ADR-058, ADR-060, ADR-065
  */
 export function MyClaudeUsageSection() {
   const [days, setDays] = useState<MyUsageRangeDays>(7);

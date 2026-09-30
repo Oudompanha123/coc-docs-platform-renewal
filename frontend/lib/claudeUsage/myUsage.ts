@@ -64,7 +64,7 @@ export interface MyClaudeUsageBreakdown {
 
 /**
  * Input + output tokens from this week's Monday to today, against the whole
- * weekly soft budget (ADR-063). `pctUsed` can exceed 100; `remainingTokens`
+ * weekly soft budget (ADR-065). `pctUsed` can exceed 100; `remainingTokens`
  * never goes below 0.
  */
 export interface MyClaudeUsageWeek {
@@ -92,7 +92,7 @@ export interface MyClaudeUsageDashboard {
   todayUsage: ClaudeUsageMember | null;
   usage: MyClaudeUsageBreakdown;
   week: MyClaudeUsageWeek;
-  /** The plan's list price — display only, never a balance `usage.costUsd` is subtracted from (ADR-063). */
+  /** The plan's list price — display only, never a balance `usage.costUsd` is subtracted from (ADR-065). */
   subscriptionUsdPerMonth: number;
 }
 

@@ -1,4 +1,4 @@
-# ADR-063: Personal Claude Usage leads with tokens; dollars are a "Reference API Cost", kept apart from the subscription
+# ADR-065: Personal Claude Usage leads with tokens; dollars are a "Reference API Cost", kept apart from the subscription
 
 > **Status**: PROPOSED
 > **Date**: 2026-09-30
