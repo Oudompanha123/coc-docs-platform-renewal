@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loopbackCallbackUrl, parseCliAuthorizeRequest, safeNextPath } from "./cliAuthorize";
+import { cliSignedInDestination, loopbackCallbackUrl, parseCliAuthorizeRequest, safeNextPath } from "./cliAuthorize";
 
 // req: FR-USAGE-002, NFR-SEC-CHANNEL, ADR-060
 
@@ -65,5 +65,18 @@ describe("loopbackCallbackUrl", () => {
     const url = new URL(loopbackCallbackUrl(53123, { error: "access_denied", state: S }));
     expect(url.searchParams.get("error")).toBe("access_denied");
     expect(url.searchParams.has("code")).toBe(false);
+  });
+});
+
+describe("cliSignedInDestination — where the CLI's Authorize tab lands, by role", () => {
+  it("sends admin and super_admin to the team dashboard", () => {
+    expect(cliSignedInDestination("admin")).toBe("/claude-usage?cli=signed-in");
+    expect(cliSignedInDestination("super_admin")).toBe("/claude-usage?cli=signed-in");
+  });
+
+  it("sends every other role, or an unknown one, to the member's own page", () => {
+    for (const role of ["user", "developer", "reviewer", "lead", "guest", null, undefined]) {
+      expect(cliSignedInDestination(role)).toBe("/my-claude-usage?cli=signed-in");
+    }
   });
 });

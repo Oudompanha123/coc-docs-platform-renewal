@@ -16,6 +16,7 @@ import {
   type MyClaudeUsageModel,
   type MyUsageRangeDays,
 } from "@/lib/claudeUsage/myUsage";
+import { useUsageAutoRefresh } from "@/lib/claudeUsage/useUsageAutoRefresh";
 
 const RANGES: { days: MyUsageRangeDays; label: string; previous: string }[] = [
   { days: 1, label: "Today", previous: "yesterday" },
@@ -125,7 +126,13 @@ function ModelCard({ usage }: { usage: MyClaudeUsageModel }) {
  * instruction) — the setup guide's own `push-usage.mjs` download link
  * (`ContentRenderer`, ADR-053) is the self-service path.
  *
- * // req: FR-USAGE-005, ADR-052, ADR-058
+ * Refetches whenever the tab regains focus, so switching back from the
+ * terminal after a `claude-team-usage scan` shows the new figures; and after
+ * the CLI's browser sign-in returns here (`?cli=signed-in`), polls until
+ * "last reported" moves (`useUsageAutoRefresh`). Only the CLI uploads —
+ * this page just re-reads.
+ *
+ * // req: FR-USAGE-005, ADR-052, ADR-058, ADR-060
  */
 export function MyClaudeUsageSection() {
   const [days, setDays] = useState<MyUsageRangeDays>(7);
@@ -147,6 +154,9 @@ export function MyClaudeUsageSection() {
   useEffect(() => {
     void reload(days);
   }, [reload, days]);
+
+  const reloadCurrent = useCallback(() => reload(days), [reload, days]);
+  const { awaitingCliUpload } = useUsageAutoRefresh(reloadCurrent, dashboard ? dashboard.lastUpdated : undefined);
 
   const usage = dashboard?.usage;
   const range = RANGES.find((r) => r.days === days) ?? RANGES[1]!;
@@ -171,6 +181,13 @@ export function MyClaudeUsageSection() {
           ))}
         </select>
       </div>
+
+      {awaitingCliUpload && (
+        <div role="status" className="mb-4 rounded-[10px] border border-border bg-page px-4 py-3 text-sm text-dash-ink">
+          Signed in. Your latest usage will appear here once <code className="font-mono text-xs">claude-team-usage</code>{" "}
+          finishes uploading.
+        </div>
+      )}
 
       {loadError && (
         <div role="alert" className="mb-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">

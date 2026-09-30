@@ -4,7 +4,6 @@ import { useState } from "react";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { MemberHeader } from "@/components/home/MemberHeader";
 import { NotificationsModal } from "@/components/home/NotificationsModal";
-import { ConnectCliPanel } from "@/components/claude-usage/ConnectCliPanel";
 import { MyClaudeUsageSection } from "@/components/claude-usage/MyClaudeUsageSection";
 import { ProfileModal } from "@/components/layout/ProfileModal";
 import { useProductStats } from "@/lib/docs/useProductStats";
@@ -25,9 +24,9 @@ import { useProductStats } from "@/lib/docs/useProductStats";
  * member self-minting a `push-usage.mjs` token still works via the setup
  * guide's own download link (ADR-053), just not from this page.
  *
- * `ConnectCliPanel` below it explains the `claude-team-usage` npm CLI (the
- * no-download path, signing in through `/cli/authorize`, ADR-060) and lists
- * the machines holding this account's tokens, each revocable.
+ * `ConnectCliPanel` (the `claude-team-usage` CLI instructions and the
+ * connected-machines revoke list, ADR-060) was removed from this page on
+ * direct developer instruction.
  */
 export default function MyClaudeUsagePage() {
   const productStats = useProductStats();
@@ -52,10 +51,6 @@ export default function MyClaudeUsagePage() {
 
           <div className="animate-entrance mt-10" style={{ animationDelay: "80ms" }}>
             <MyClaudeUsageSection />
-          </div>
-
-          <div className="animate-entrance" style={{ animationDelay: "120ms" }}>
-            <ConnectCliPanel />
           </div>
         </section>
       </main>
