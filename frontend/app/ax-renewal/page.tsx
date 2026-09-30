@@ -11,6 +11,7 @@ import { AuditTrailPanel } from "@/components/ax-renewal/AuditTrailPanel";
 import { AxRenewalLanding } from "@/components/ax-renewal/AxRenewalLanding";
 import { DatabaseSection } from "@/components/ax-renewal/DatabaseSection";
 import { GeneratedChangesReview } from "@/components/ax-renewal/GeneratedChangesReview";
+import { MembersPanel } from "@/components/ax-renewal/MembersPanel";
 import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectPicker } from "@/components/ax-renewal/ProjectPicker";
@@ -21,6 +22,7 @@ import { formatBytes, languageBreakdown, type FileLayoutEntry } from "@/lib/ax-r
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { readSourcePathOverride, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
+import { axRenewalPermissions } from "@/lib/ax-renewal/permissions";
 import { hasRuntimeErrorEvidence, runLocallyGuidance } from "@/lib/ax-renewal/runLocallyGuidance";
 import {
   cancelImplementation,
@@ -51,15 +53,17 @@ import {
 
 export default function AxRenewalPage() {
   const { user } = useSession();
-  const canEdit = user?.role === "admin" || user?.role === "super_admin";
-  // Exact membership, not rank: an Admin does not pass this just by
-  // out-ranking Developer (AppRole.exactAuthority(), ADR-039) — matches
-  // SecurityConfig's confirm/reopen/start-implementation gate exactly.
-  const canConfirm = user?.role === "super_admin" || (user?.roles?.includes("developer") ?? false);
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const { projects, projectId, detail, error: loadError, refresh, setProjects } = useAxRenewalProjectContext();
+  // Role decides what, membership decides where (ADR-063) — see
+  // permissions.ts. A non-member never gets this far: the backend refuses
+  // them the project itself (ADR-064), so `detail` stays null.
+  const { canCreate, canEdit, canConfirm } = axRenewalPermissions(user, detail?.project ?? null);
+  // The one way to be looking at a project one is not on: being a super
+  // admin, who may open any project. Said, so it is never mistaken for
+  // being on the team.
+  const viewingAsSuperAdminOnly = user?.role === "super_admin" && detail != null && !detail.project.member;
   const active = resolveActiveSection(searchParams.get("section"));
 
   function goTo(nextProjectId: string, section: AxRenewalExplorerKey = "attach") {
@@ -75,7 +79,8 @@ export default function AxRenewalPage() {
     <ProjectPicker
       projects={projects}
       projectId={projectId}
-      canEdit={canEdit}
+      canEdit={canCreate}
+      canDelete={canEdit}
       onSelect={(id) => goTo(id)}
       onCreated={(created) => {
         setProjects((prev) => (prev ? [created, ...prev] : [created]));
@@ -120,6 +125,16 @@ export default function AxRenewalPage() {
         </div>
       )}
 
+      {viewingAsSuperAdminOnly && (
+        <div role="status" className="flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
+          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+          <p className="text-sm text-dash-ink">
+            You&rsquo;re not a member of this project. You can open it because you&rsquo;re a Super Admin; its members
+            are listed under <strong className="font-semibold">Workspace → Members</strong>.
+          </p>
+        </div>
+      )}
+
       {detail && active == null && <NoTabOpenState />}
 
       {detail && active != null && (
@@ -134,6 +149,11 @@ export default function AxRenewalPage() {
           {active === "understand-pages" && <UnderstandPagesPanel detail={detail} />}
           {active === "old-new" && <OldNewPanel detail={detail} />}
 
+          {/* Every save and Confirm below sends back the revision this
+              screen loaded (ADR-061), so a teammate's save in between is
+              refused with a 409 instead of being silently overwritten. Confirm
+              is awaited, not fire-and-forget, so that 409 reaches the
+              section's own error line. */}
           {active === "stack-move" && (
             <StackMoveSection
               layers={detail.stackLayers}
@@ -142,10 +162,13 @@ export default function AxRenewalPage() {
               canEdit={canEdit}
               canConfirm={canConfirm}
               onSave={async (rows) => {
-                await updateStackMove(detail.project.id, rows);
+                await updateStackMove(detail.project.id, rows, detail.project.revision);
                 await refresh();
               }}
-              onConfirm={() => void confirmSection(detail.project.id, "stack_move").then(refresh)}
+              onConfirm={async () => {
+                await confirmSection(detail.project.id, "stack_move", detail.project.revision);
+                await refresh();
+              }}
               onReopen={() => void reopenSection(detail.project.id, "stack_move").then(refresh)}
             />
           )}
@@ -158,10 +181,13 @@ export default function AxRenewalPage() {
               canEdit={canEdit}
               canConfirm={canConfirm}
               onSave={async (summary) => {
-                await updateArchitecture(detail.project.id, summary || null, null);
+                await updateArchitecture(detail.project.id, summary || null, null, detail.project.revision);
                 await refresh();
               }}
-              onConfirm={() => void confirmSection(detail.project.id, "architecture").then(refresh)}
+              onConfirm={async () => {
+                await confirmSection(detail.project.id, "architecture", detail.project.revision);
+                await refresh();
+              }}
               onReopen={() => void reopenSection(detail.project.id, "architecture").then(refresh)}
             />
           )}
@@ -173,10 +199,13 @@ export default function AxRenewalPage() {
               canEdit={canEdit}
               canConfirm={canConfirm}
               onSave={async (rows) => {
-                await updatePages(detail.project.id, rows);
+                await updatePages(detail.project.id, rows, detail.project.revision);
                 await refresh();
               }}
-              onConfirm={() => void confirmSection(detail.project.id, "pages").then(refresh)}
+              onConfirm={async () => {
+                await confirmSection(detail.project.id, "pages", detail.project.revision);
+                await refresh();
+              }}
               onReopen={() => void reopenSection(detail.project.id, "pages").then(refresh)}
             />
           )}
@@ -188,14 +217,17 @@ export default function AxRenewalPage() {
               canEdit={canEdit}
               canConfirm={canConfirm}
               onConnect={async (input) => {
-                await connectDatabase(detail.project.id, input);
+                await connectDatabase(detail.project.id, input, detail.project.revision);
                 await refresh();
               }}
               onSaveChanges={async (rows) => {
-                await updateDatabasePlan(detail.project.id, rows);
+                await updateDatabasePlan(detail.project.id, rows, detail.project.revision);
                 await refresh();
               }}
-              onConfirm={() => void confirmSection(detail.project.id, "database").then(refresh)}
+              onConfirm={async () => {
+                await confirmSection(detail.project.id, "database", detail.project.revision);
+                await refresh();
+              }}
               onReopen={() => void reopenSection(detail.project.id, "database").then(refresh)}
             />
           )}
@@ -208,6 +240,15 @@ export default function AxRenewalPage() {
             <RunLocallyPanel detail={detail} canConfirm={canConfirm} canEdit={canEdit} onChanged={refresh} />
           )}
           {active === "ai-engine" && <AiEnginePanel />}
+          {active === "members" && (
+            <MembersPanel
+              projectId={detail.project.id}
+              members={detail.members}
+              currentUserId={user?.id ?? null}
+              canManage={canEdit}
+              onChanged={refresh}
+            />
+          )}
           {active === "audit-trail" && user?.role === "super_admin" && (
             <AuditTrailPanel projectId={detail.project.id} />
           )}
@@ -1171,12 +1212,16 @@ function OutputPanel({
     setSaving(true);
     setError(null);
     try {
-      await setDestination(detail.project.id, {
-        kind,
-        target: target.trim(),
-        branch: branch.trim() || null,
-        notes: null,
-      });
+      await setDestination(
+        detail.project.id,
+        {
+          kind,
+          target: target.trim(),
+          branch: branch.trim() || null,
+          notes: null,
+        },
+        detail.project.revision,
+      );
       await onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the destination.");

@@ -69,6 +69,16 @@ describe("the bare origin", () => {
     expect(replace).toHaveBeenCalledWith("/home");
   });
 
+  // ADR-065: these three used to match no branch and fall through to the
+  // public page — signed in, with nowhere of their own to go.
+  it.each(["developer", "reviewer", "lead"] as const)("sends a %s to the Overview dashboard", (role) => {
+    session.current = { status: "authenticated", user: { role, mustChangePassword: false } };
+
+    render(<RootPage />);
+
+    expect(replace).toHaveBeenCalledWith("/overview");
+  });
+
   it("sends a guest account to the public page", () => {
     session.current = { status: "authenticated", user: { role: "guest", mustChangePassword: false } };
 

@@ -15,6 +15,7 @@ import {
   RenewIcon,
   SparklesIcon,
   SunburstIcon,
+  UsersIcon,
   WarningIcon,
 } from "@/components/layout/icons";
 import type { AxRenewalProjectDetail, PlanSection } from "./api";
@@ -42,6 +43,7 @@ export type AxRenewalExplorerKey =
   | "implementation"
   | "run-locally"
   | "ai-engine"
+  | "members"
   | "audit-trail";
 
 /**
@@ -115,6 +117,7 @@ export const EXPLORER_META: Record<
   implementation: { label: "Implementation", icon: PlayIcon, group: "Build" },
   "run-locally": { label: "Run locally", icon: PlugIcon, group: "Build" },
   "ai-engine": { label: "AI engine", icon: SparklesIcon, group: "Workspace" },
+  members: { label: "Members", icon: UsersIcon, group: "Workspace" },
   "audit-trail": { label: "Audit trail", icon: SunburstIcon, group: "Workspace" },
 };
 
@@ -187,7 +190,14 @@ export function buildExplorerGroups(
     {
       label: "Workspace",
       icon: GearIcon,
-      items: [item("ai-engine"), ...(role === "super_admin" ? [item("audit-trail")] : [])],
+      // Members is shown to everyone who can open the project — since
+      // ADR-064 that means its members and super admins — not only to those
+      // who can manage the team.
+      items: [
+        item("ai-engine"),
+        item("members", { count: detail.members.length }),
+        ...(role === "super_admin" ? [item("audit-trail")] : []),
+      ],
     },
   ];
 }

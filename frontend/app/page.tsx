@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { landingPathFor } from "@/lib/auth/landing";
 import { SessionProvider, useSession } from "@/lib/auth/SessionProvider";
 
 /**
@@ -43,11 +44,10 @@ export default function RootPage() {
 }
 
 /**
- * Deliberately the same three-way split as
- * {@code postLoginDestination} in `app/login/page.tsx`: whoever signs in and
- * lands somewhere must land in that same place when they later type the bare
- * domain, or the product appears to move around under them. If one of these
- * changes, the other has to.
+ * The same destination as {@code postLoginDestination} in
+ * `app/login/page.tsx`, from the same function (`landingPathFor`): whoever
+ * signs in and lands somewhere must land in that same place when they later
+ * type the bare domain, or the product appears to move around under them.
  */
 function RootRedirect() {
   const { status, user } = useSession();
@@ -63,22 +63,11 @@ function RootRedirect() {
       return;
     }
 
-    // Signed in, but the session only buys entry to one place until the
-    // temporary password is replaced (revision of ADR-017).
-    if (user?.mustChangePassword) {
-      router.replace("/create-password");
-      return;
-    }
-
-    if (user?.role === "admin" || user?.role === "super_admin") {
-      router.replace("/overview");
-      return;
-    }
-
-    // A `user` gets the Member home (ADR-033); anything else — a `guest`
-    // account, or a role this build does not know — gets the public page,
-    // which asks nothing of them.
-    router.replace(user?.role === "user" ? "/home" : "/welcome");
+    // Signed in: a temporary password first (revision of ADR-017), then the
+    // role's own home — Overview for Admin/Super Admin and for Developer,
+    // Reviewer and Lead (ADR-065), the Member home for a `user`, the public
+    // page for anything else.
+    router.replace(landingPathFor({ role: user?.role, mustChangePassword: user?.mustChangePassword }));
   }, [status, user, router]);
 
   return null;

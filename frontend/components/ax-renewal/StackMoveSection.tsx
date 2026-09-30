@@ -133,7 +133,8 @@ export function StackMoveSection({
   canEdit: boolean;
   canConfirm: boolean;
   onSave: (rows: { layerKey: string; oldTarget: string | null; newTarget: string | null }[]) => Promise<void>;
-  onConfirm: () => void;
+  /** Awaited, so a refusal (e.g. a 409 because a teammate changed the plan since this loaded, ADR-061) lands on this section's error line. */
+  onConfirm: () => Promise<void>;
   onReopen: () => void;
 }) {
   const [rows, setRows] = useState<Row[]>(() => toRows(layers, analysis));
@@ -184,7 +185,9 @@ export function StackMoveSection({
     setConfirmBusy(true);
     setError(null);
     try {
-      onConfirm();
+      await onConfirm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't confirm the stack move.");
     } finally {
       setConfirmBusy(false);
     }

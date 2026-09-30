@@ -19,6 +19,7 @@ import {
   type PlanSection,
 } from "@/lib/ax-renewal/api";
 import { EXPLORER_META, resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
+import { axRenewalPermissions } from "@/lib/ax-renewal/permissions";
 import { readUseModel, writeUseModel } from "@/lib/ax-renewal/engine-preference";
 import { describeCommand, parseCommand } from "@/lib/ax-renewal/commands";
 import { SparklesIcon } from "@/components/layout/icons";
@@ -75,16 +76,12 @@ type AxAssistantPanelProps = {
 
 export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResizing = false }: AxAssistantPanelProps) {
   const { user } = useSession();
-  const canEdit = user?.role === "admin" || user?.role === "super_admin";
-  // Exact membership, not rank: an Admin does not pass this just by
-  // out-ranking Developer (AppRole.exactAuthority(), ADR-039) — matches
-  // SecurityConfig's confirm/reopen/start-implementation gate exactly, and
-  // the same check in app/ax-renewal/page.tsx.
-  const canConfirm = user?.role === "super_admin" || (user?.roles?.includes("developer") ?? false);
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const { projectId, detail, refresh } = useAxRenewalProjectContext();
+  // The same rules as app/ax-renewal/page.tsx, from the same place
+  // (permissions.ts): role decides what, membership decides where (ADR-063).
+  const { onProject, canEdit, canConfirm } = axRenewalPermissions(user, detail?.project ?? null);
   // Same sentinel every other AX Renewal component resolves through — a raw
   // `searchParams.get("section") ?? "attach"` here previously let the
   // NO_TAB_OPEN sentinel ("none") through uncaught, so `EXPLORER_META[active]`
@@ -134,7 +131,10 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
   // withdrawn the moment "stop using" is pressed, rather than left as a tab
   // that would now fail with a 409. `engine === null` (not yet known) counts
   // as unavailable for the same reason the banner renders nothing there.
-  const chatAvailable = Boolean(engine?.connected) && useModel;
+  // Also only to a caller who can use it: /assistant/chat sits at the admin
+  // floor (ADR-046), so a Developer, Reviewer or Lead would only ever get a
+  // 403 from it (ADR-062). The thread — comments — stays open to them.
+  const chatAvailable = Boolean(engine?.connected) && useModel && canEdit;
   useEffect(() => {
     if (!chatAvailable) setMode("thread");
   }, [chatAvailable]);
@@ -220,7 +220,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
       switch (command.type) {
         case "confirm":
           if (!canConfirm) return deny("confirm a section");
-          await confirmSection(projectId, command.section);
+          await confirmSection(projectId, command.section, detail.project.revision);
           break;
         case "reopen":
           if (!canConfirm) return deny("reopen a section");
@@ -228,8 +228,13 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
           break;
         case "confirm-all":
           if (!canConfirm) return deny("confirm a section");
+          // One revision for every section: a confirmation checks it but
+          // never bumps it (ADR-061), so each call in this loop is checked
+          // against the same plan the person was looking at.
           for (const section of PLAN_SECTIONS) {
-            if (detail.confirmations[section] == null) await confirmSection(projectId, section);
+            if (detail.confirmations[section] == null) {
+              await confirmSection(projectId, section, detail.project.revision);
+            }
           }
           break;
         case "run-analysis":
@@ -287,7 +292,14 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
   }
 
   function deny(action: string) {
-    setNote({ text: `you don't have permission to ${action}`, tone: "denied" });
+    // Say which of the two rules said no: a non-member can fix theirs by
+    // asking to be added, which "no permission" alone would not tell them.
+    setNote({
+      text: onProject
+        ? `you don't have permission to ${action}`
+        : `you're not a member of this project, so you can't ${action} — ask a member to add you`,
+      tone: "denied",
+    });
     setBusy(false);
   }
 

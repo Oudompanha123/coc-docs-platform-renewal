@@ -15,6 +15,15 @@ import type { AxRenewalAttachStats, FileLayoutEntry } from "./attachStats";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
+/**
+ * A 404 from this API. For anything under `/projects/{id}` that means either
+ * "no such project" or "you are not a member of it" — the backend answers
+ * both identically on purpose (ADR-064), so a project someone was not
+ * invited to is as invisible as one that never existed. Its own type so the
+ * workspace can say that, rather than a bare "project not found".
+ */
+export class AxRenewalNotFoundError extends AdminApiError {}
+
 export type PlanSection = "stack_move" | "architecture" | "pages" | "database";
 
 export interface AxRenewalProject {
@@ -27,6 +36,21 @@ export interface AxRenewalProject {
   attachStats: AxRenewalAttachStats | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Optimistic lock over the whole plan (ADR-061). Every plan edit and every
+   * Confirm sends back the value this screen loaded; if a teammate saved in
+   * between, the backend refuses with a 409 whose message says so, rather
+   * than silently overwriting their work.
+   */
+  revision: number;
+  /**
+   * Whether the signed-in caller is a member of this project (ADR-063) —
+   * computed by the backend per request. Since ADR-064 the backend only ever
+   * returns projects the caller is a member of, so this is always true —
+   * except for a super admin, who is served every project and may be on
+   * none of them.
+   */
+  member: boolean;
 }
 
 export interface AxRenewalAnalysis {
@@ -233,6 +257,13 @@ export interface AxRenewalComment {
   createdAt: string;
 }
 
+/** Display name only, never an email — the same as a comment's author (ADR-063). */
+export interface AxRenewalMember {
+  accountId: string;
+  displayName: string;
+  addedAt: string;
+}
+
 export interface AxRenewalProjectDetail {
   project: AxRenewalProject;
   analysis: AxRenewalAnalysis | null;
@@ -245,6 +276,17 @@ export interface AxRenewalProjectDetail {
   confirmations: Partial<Record<PlanSection, AxRenewalConfirmation>>;
   latestImplementationRun: AxRenewalImplementationRun | null;
   comments: AxRenewalComment[];
+  members: AxRenewalMember[];
+}
+
+/** The problem document's `detail`, or null when the body is not one. */
+async function problemDetail(response: Response): Promise<string | null> {
+  try {
+    const problem = (await response.json()) as { detail?: string };
+    return problem.detail ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -262,18 +304,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new AdminApiError("Couldn't reach the server. Check your connection and try again.");
   }
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     throw new NotPermittedError("You don't have access to AX Renewal.");
   }
+  if (response.status === 403) {
+    // A 403 now has two different causes: the route's role floor, or not
+    // being a member of this project (ADR-063). The backend's own words say
+    // which — and, for the second, how to get added — so they win over the
+    // generic line whenever there are any.
+    throw new NotPermittedError((await problemDetail(response)) ?? "You don't have access to AX Renewal.");
+  }
+  if (response.status === 404) {
+    throw new AxRenewalNotFoundError((await problemDetail(response)) ?? "not found");
+  }
   if (!response.ok) {
-    let detail: string | null = null;
-    try {
-      const problem = (await response.json()) as { detail?: string };
-      detail = problem.detail ?? null;
-    } catch {
-      // Not a problem document. Fall through to the generic message.
-    }
-    throw new AdminApiError(detail ?? "That change could not be saved. Please try again.");
+    throw new AdminApiError((await problemDetail(response)) ?? "That change could not be saved. Please try again.");
   }
   if (response.status === 204) {
     return undefined as T;
@@ -354,13 +399,19 @@ export function runAnalysis(
   });
 }
 
+// Every plan edit below takes `revision` — the `project.revision` this screen
+// loaded (ADR-061). Required, not optional: omitting it would be asking to
+// overwrite whatever a teammate saved meanwhile, and the backend refuses a
+// request without one (400) for exactly that reason.
+
 export function updateStackMove(
   projectId: string,
   layers: { layerKey: string; oldTarget: string | null; newTarget: string | null }[],
+  revision: number,
 ): Promise<AxRenewalStackLayer[]> {
   return request<AxRenewalStackLayer[]>(`/projects/${projectId}/plan/stack-move`, {
     method: "PUT",
-    body: JSON.stringify({ layers }),
+    body: JSON.stringify({ layers, revision }),
   });
 }
 
@@ -368,55 +419,73 @@ export function updateArchitecture(
   projectId: string,
   summary: string | null,
   diagram: unknown,
+  revision: number,
 ): Promise<AxRenewalArchitecture> {
   return request<AxRenewalArchitecture>(`/projects/${projectId}/plan/architecture`, {
     method: "PUT",
-    body: JSON.stringify({ summary, diagram }),
+    body: JSON.stringify({ summary, diagram, revision }),
   });
 }
 
 export function updatePages(
   projectId: string,
   pages: { oldPath: string | null; newPath: string | null; notes: string | null }[],
+  revision: number,
 ): Promise<AxRenewalPageMapping[]> {
   return request<AxRenewalPageMapping[]>(`/projects/${projectId}/plan/pages`, {
     method: "PUT",
-    body: JSON.stringify({ pages }),
+    body: JSON.stringify({ pages, revision }),
   });
 }
 
 export function updateDatabasePlan(
   projectId: string,
   changes: { changeType: string; tableName: string; detail: unknown; rationale: string | null }[],
+  revision: number,
 ): Promise<AxRenewalDbChange[]> {
   return request<AxRenewalDbChange[]>(`/projects/${projectId}/plan/database`, {
     method: "PUT",
-    body: JSON.stringify({ changes }),
+    body: JSON.stringify({ changes, revision }),
   });
 }
 
 export function connectDatabase(
   projectId: string,
   input: { engine: string | null; host: string | null; port: number | null; databaseName: string | null; schemaName: string | null },
+  revision: number,
 ): Promise<AxRenewalDbConnection> {
   return request<AxRenewalDbConnection>(`/projects/${projectId}/database/connect`, {
     method: "PUT",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, revision }),
   });
 }
 
 export function setDestination(
   projectId: string,
   input: { kind: string; target: string; branch: string | null; notes: string | null },
+  revision: number,
 ): Promise<AxRenewalDestination> {
   return request<AxRenewalDestination>(`/projects/${projectId}/destination`, {
     method: "PUT",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, revision }),
   });
 }
 
-export function confirmSection(projectId: string, section: PlanSection): Promise<AxRenewalConfirmation> {
-  return request<AxRenewalConfirmation>(`/projects/${projectId}/plan/${section}/confirm`, { method: "POST" });
+/**
+ * Checks `revision` but does not bump it (ADR-061): a sign-off on a plan a
+ * teammate has changed since this screen loaded it is refused (409), but a
+ * confirmation changes no plan content, so it never makes anybody else's open
+ * copy stale.
+ */
+export function confirmSection(
+  projectId: string,
+  section: PlanSection,
+  revision: number,
+): Promise<AxRenewalConfirmation> {
+  return request<AxRenewalConfirmation>(`/projects/${projectId}/plan/${section}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ revision }),
+  });
 }
 
 export function reopenSection(projectId: string, section: PlanSection): Promise<void> {
@@ -551,6 +620,25 @@ export function addComment(projectId: string, body: string): Promise<AxRenewalCo
  */
 export function deleteComment(projectId: string, commentId: string): Promise<void> {
   return request<void>(`/projects/${projectId}/comments/${commentId}`, { method: "DELETE" });
+}
+
+/**
+ * Adds a member by email (ADR-063) — by email because nobody below super
+ * admin can list accounts to pick from (NFR-SEC-PII). Resolves to the
+ * project's members after the change. The backend refuses (400) an account
+ * that cannot open AX Renewal at all, and (403) a caller who is not on this
+ * project themselves.
+ */
+export function addMember(projectId: string, email: string): Promise<AxRenewalMember[]> {
+  return request<AxRenewalMember[]>(`/projects/${projectId}/members`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+/** Refused (409) for a project's last member — a project nobody is on could only be changed by a super admin. */
+export function removeMember(projectId: string, accountId: string): Promise<void> {
+  return request<void>(`/projects/${projectId}/members/${accountId}`, { method: "DELETE" });
 }
 
 /** One thing said in the assistant's chat — `"you"` is the person at the keyboard. */

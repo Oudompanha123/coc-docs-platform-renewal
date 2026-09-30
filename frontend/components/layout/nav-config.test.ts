@@ -76,18 +76,35 @@ describe("visibleNavSections", () => {
   });
 
   it("builds the PRODUCTS section from the live nav structure, not a hardcoded list", () => {
-    for (const role of ["guest", "user", "admin", "super_admin"] as const) {
+    for (const role of ["admin", "super_admin"] as const) {
       expect(labelsFor([role])).toEqual(expect.arrayContaining(["Jex3.0", "Jex2.0"]));
     }
 
     const differentFixture: NavProduct[] = [
       { key: "brand-new", label: "Brand New", icon: "layers", minRole: "user", items: [] },
     ];
-    expect(labelsFor(["user"], differentFixture)).toEqual(["Brand New"]);
+    const products = visibleNavSections(["admin"], differentFixture).find((s) => s.label === "PRODUCTS");
+    expect(products?.items.map((i) => i.label)).toEqual(["Brand New"]);
   });
 
+  it("shows PRODUCTS only to admin and super_admin — each product page is content management (ADR-065)", () => {
+    // Developer, Reviewer and Lead now open the shell's Overview, so they see
+    // this sidebar; a product link would only send them to a redirect.
+    for (const role of ["guest", "user", "developer", "reviewer", "lead"] as const) {
+      const headings = visibleNavSections(["user", role], FIXTURE_PRODUCTS).map((s) => s.label);
+      expect(headings).not.toContain("PRODUCTS");
+    }
+  });
+
+  it.each(["developer", "reviewer", "lead"] as const)(
+    "leaves a %s exactly the AX Renewal link in the sidebar's sections",
+    (role) => {
+      expect(labelsFor(["user", role])).toEqual(["AX Renewal"]);
+    },
+  );
+
   it("drops the PRODUCTS heading when there are no products yet", () => {
-    const headings = visibleNavSections(["user"], []).map((section) => section.label);
+    const headings = visibleNavSections(["admin"], []).map((section) => section.label);
     expect(headings).not.toContain("PRODUCTS");
   });
 
@@ -129,6 +146,16 @@ describe("visibleNavSections", () => {
 
     it("shows it to a plain user who also holds the developer role", () => {
       expect(labelsFor(["user", "developer"])).toContain("AX Renewal");
+    });
+
+    it.each(["reviewer", "lead"] as const)("shows it to a plain user who also holds the %s role (ADR-062)", (role) => {
+      expect(labelsFor(["user", role])).toContain("AX Renewal");
+    });
+
+    it.each(["reviewer", "lead"] as const)("does not promote a %s into seeing admin-only items", (role) => {
+      const labels = labelsFor(["user", role]);
+      expect(labels).not.toContain("Users & Roles");
+      expect(labels).not.toContain("Claude Usage");
     });
 
     it("does not promote a developer-role user into seeing admin-only items", () => {

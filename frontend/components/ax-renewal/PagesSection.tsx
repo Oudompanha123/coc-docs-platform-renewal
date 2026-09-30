@@ -65,7 +65,8 @@ export function PagesSection({
   canEdit: boolean;
   canConfirm: boolean;
   onSave: (rows: { oldPath: string | null; newPath: string | null; notes: string | null }[]) => Promise<void>;
-  onConfirm: () => void;
+  /** Awaited, so a refusal (e.g. a 409 because a teammate changed the plan since this loaded, ADR-061) lands on this section's error line. */
+  onConfirm: () => Promise<void>;
   onReopen: () => void;
 }) {
   const [rows, setRows] = useState<Row[]>(() => toRows(pages, analysis));
@@ -116,7 +117,9 @@ export function PagesSection({
     setConfirmBusy(true);
     setError(null);
     try {
-      onConfirm();
+      await onConfirm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't confirm the pages.");
     } finally {
       setConfirmBusy(false);
     }
