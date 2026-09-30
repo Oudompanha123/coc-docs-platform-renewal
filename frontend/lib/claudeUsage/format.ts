@@ -46,6 +46,22 @@ export function modelDisplayName(model: string): string {
   return `Claude ${family} ${version}`;
 }
 
+/**
+ * "claude-sonnet-4-6" → "Sonnet", "claude-opus-5-5" → "Opus" — the short name
+ * the Reference API Cost card uses (ADR-063). Falls back to the full display
+ * name for anything that is not a Claude model id.
+ */
+export function modelFamilyName(model: string): string {
+  const match = /^claude-([a-z]+)-/.exec(model);
+  if (!match) return modelDisplayName(model);
+  return match[1]!.charAt(0).toUpperCase() + match[1]!.slice(1);
+}
+
+/** 25 → "$25", 22.5 → "$22.50" — a list price, so no four-decimal small-amount rule. */
+export function formatPrice(usd: number): string {
+  return Number.isInteger(usd) ? `$${usd}` : `$${usd.toFixed(2)}`;
+}
+
 /** The model id without its date suffix — the chip beside the display name. */
 export function modelShortId(model: string): string {
   return model.replace(/-\d{8}$/, "");

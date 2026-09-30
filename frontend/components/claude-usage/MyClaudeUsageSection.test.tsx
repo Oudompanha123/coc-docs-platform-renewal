@@ -38,43 +38,92 @@ const DASHBOARD: MyClaudeUsageDashboard = {
       { date: "2026-09-28", model: "claude-opus-5-5", inputTokens: 1_400, outputTokens: 38_300, cacheReadTokens: 5_500_000, cacheWriteTokens: 107_900, costUsd: 2.7348 },
     ],
   },
+  week: {
+    from: "2026-09-28",
+    to: "2026-09-28",
+    inputTokens: 1_000,
+    outputTokens: 619_000,
+    totalTokens: 620_000,
+    budgetTokens: 1_200_000,
+    pctUsed: 52,
+    remainingTokens: 580_000,
+  },
+  subscriptionUsdPerMonth: 25,
 };
 
-describe("MyClaudeUsageSection (ADR-058)", () => {
+describe("MyClaudeUsageSection (ADR-058, ADR-063)", () => {
   beforeEach(() => {
     fetchMyUsage.mockReset();
     fetchMyUsage.mockResolvedValue(DASHBOARD);
   });
 
-  it("shows the backend's total cost and all four token categories, never input + output alone", async () => {
+  it("leads with today's tokens, not dollars, split into input and output", async () => {
+    render(<MyClaudeUsageSection />);
+
+    expect(await screen.findByTestId("my-usage-today-tokens")).toHaveTextContent("41.6K tokens");
+    const today = screen.getByRole("heading", { name: "Today's Usage" }).closest("section") as HTMLElement;
+    expect(within(today).getByText("3.3K")).toBeInTheDocument();
+    expect(within(today).getByText("38.3K")).toBeInTheDocument();
+    expect(within(today).queryByText(/\$/)).toBeNull();
+  });
+
+  it("shows the week against the weekly budget with a progress bar and what is left", async () => {
+    render(<MyClaudeUsageSection />);
+
+    expect(await screen.findByTestId("my-usage-week-tokens")).toHaveTextContent("620K / 1.2M tokens");
+    expect(screen.getByText("52% used")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Weekly usage" })).toHaveAttribute("aria-valuenow", "52");
+    expect(screen.getByText(/580K remaining/)).toBeInTheDocument();
+  });
+
+  it("caps the bar at 100% when the week is over budget", async () => {
+    fetchMyUsage.mockResolvedValue({
+      ...DASHBOARD,
+      week: { ...DASHBOARD.week, totalTokens: 1_500_000, pctUsed: 125, remainingTokens: 0 },
+    });
+    render(<MyClaudeUsageSection />);
+
+    expect(await screen.findByRole("progressbar", { name: "Weekly usage" })).toHaveAttribute("aria-valuenow", "100");
+    expect(screen.getByText("125% used")).toBeInTheDocument();
+  });
+
+  it("lists each model's input, output and total tokens", async () => {
+    render(<MyClaudeUsageSection />);
+
+    const table = await screen.findByRole("table", { name: "Model usage" });
+    const opus = within(table).getByText("Claude Opus 5.5").closest("tr") as HTMLElement;
+    expect(within(opus).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Claude Opus 5.5", "1.4K", "38.3K", "39.7K"]);
+    const haiku = within(table).getByText("Claude Haiku 4.5").closest("tr") as HTMLElement;
+    expect(within(haiku).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Claude Haiku 4.5", "1.9K", "16", "1.9K"]);
+  });
+
+  it("labels the dollar figure Reference API Cost, with the not-a-charge note and per-model lines", async () => {
     render(<MyClaudeUsageSection />);
 
     expect(await screen.findByTestId("my-usage-total-cost")).toHaveTextContent("$2.74");
-    // Once in the all-models totals, once on the Opus card (the table cell is a td).
-    expect(screen.getAllByText("5.5M", { selector: "p" })).toHaveLength(2);
-    expect(screen.getAllByText("107.9K", { selector: "p" })).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Reference API Cost" })).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "API-equivalent estimate only. This is not an additional Claude subscription charge.",
+    );
+    const lines = within(screen.getByTestId("my-usage-cost-models")).getAllByRole("listitem").map((li) => li.textContent);
+    expect(lines).toEqual(["Opus · 39.7K tokens · $2.73", "Haiku · 1.9K tokens · $0.0020"]);
     expect(screen.getByText("↑ 12% from previous 7 days")).toBeInTheDocument();
+    for (const banned of [/Claude Bill/i, /Amount Paid/i, /Subscription Cost/i, /Additional Cost/i]) {
+      expect(screen.queryByText(banned)).toBeNull();
+    }
   });
 
-  it("gives each model its own card with separate categories and its own cost", async () => {
+  it("shows the subscription on its own, never reduced by the API cost", async () => {
     render(<MyClaudeUsageSection />);
 
-    const opus = (await screen.findByRole("heading", { name: "Claude Opus 5.5" })).closest("div.rounded-\\[10px\\]") as HTMLElement;
-    expect(within(opus).getByText("1.4K")).toBeInTheDocument();
-    expect(within(opus).getByText("38.3K")).toBeInTheDocument();
-    expect(within(opus).getByText("5.5M")).toBeInTheDocument();
-    expect(within(opus).getByText("107.9K")).toBeInTheDocument();
-    expect(within(opus).getByText("$2.73")).toBeInTheDocument();
-
-    const haiku = screen.getByRole("heading", { name: "Claude Haiku 4.5" }).closest("div.rounded-\\[10px\\]") as HTMLElement;
-    expect(within(haiku).getByText("1.9K")).toBeInTheDocument();
-    expect(within(haiku).getByText("16")).toBeInTheDocument();
-    expect(within(haiku).getByText("$0.0020")).toBeInTheDocument();
+    expect(await screen.findByTestId("my-usage-subscription")).toHaveTextContent("$25 / month");
+    // $25 - $2.74 must not appear anywhere as a "remaining balance".
+    expect(screen.queryByText(/\$22\.26/)).toBeNull();
   });
 
   it("re-reads the chosen window from the backend", async () => {
     render(<MyClaudeUsageSection />);
-    await screen.findByTestId("my-usage-total-cost");
+    await screen.findByTestId("my-usage-today-tokens");
     expect(fetchMyUsage).toHaveBeenLastCalledWith(7);
 
     await userEvent.selectOptions(screen.getByLabelText("Period"), "30");
@@ -95,7 +144,7 @@ describe("MyClaudeUsageSection — refresh after claude-team-usage (ADR-060)", (
 
   it("re-reads the usage when the window regains focus", async () => {
     render(<MyClaudeUsageSection />);
-    await screen.findByTestId("my-usage-total-cost");
+    await screen.findByTestId("my-usage-today-tokens");
     expect(fetchMyUsage).toHaveBeenCalledTimes(1);
 
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -131,7 +180,7 @@ describe("MyClaudeUsageSection — refresh after claude-team-usage (ADR-060)", (
   it("does not poll on an ordinary visit", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<MyClaudeUsageSection />);
-    await screen.findByTestId("my-usage-total-cost");
+    await screen.findByTestId("my-usage-today-tokens");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(CLI_POLL_INTERVAL_MS * 3);
