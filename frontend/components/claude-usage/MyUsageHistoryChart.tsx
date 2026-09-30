@@ -4,8 +4,6 @@ const CHART_HEIGHT_PX = 180;
 const INPUT_COLOR = "#6d3ce0"; // brand-purple
 const OUTPUT_COLOR = "#4c6ff0"; // brand-blue
 
-/** Show a label under at most this many bars — the rest would overlap at 30 points. */
-const LABEL_STRIDE = 5;
 
 function formatTokensShort(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -24,14 +22,13 @@ function formatDayLabel(isoDate: string): string {
  * admin dashboard's `UsageChart`, stacking input/output instead of
  * per-teammate segments, since there is only ever one person's data here.
  *
- * Renders all 30 days, including zero-token ones (as a thin baseline stub),
- * so a gap in reporting is visible rather than silently collapsed — unlike
- * the admin chart, which only ever draws days that have something in them.
+ * Draws only days that have usage, like the admin chart — zero-token days are
+ * dropped rather than shown as empty stubs (on direct developer instruction).
  */
-export function MyUsageHistoryChart({ data, today }: { data: MyClaudeUsagePoint[]; today?: string }) {
-  const hasAnyUsage = data.some((point) => point.totalTokens > 0);
+export function MyUsageHistoryChart({ data: allDays, today }: { data: MyClaudeUsagePoint[]; today?: string }) {
+  const data = allDays.filter((point) => point.totalTokens > 0);
 
-  if (!hasAnyUsage) {
+  if (data.length === 0) {
     return (
       <div className="rounded-[10px] border border-border bg-page px-4 py-8 text-center text-sm text-muted">
         No usage reported in the last 30 days.
@@ -69,38 +66,35 @@ export function MyUsageHistoryChart({ data, today }: { data: MyClaudeUsagePoint[
               style={{ top: CHART_HEIGHT_PX / 2 }}
             />
 
-            {data.map((point, index) => {
+            {data.map((point) => {
               const isToday = today != null && point.date === today;
-              const totalHeightPx = Math.max((point.totalTokens / maxTotal) * (CHART_HEIGHT_PX - 4), point.totalTokens > 0 ? 3 : 0);
-              const inputHeightPx = point.totalTokens > 0 ? (point.inputTokens / point.totalTokens) * totalHeightPx : 0;
+              const totalHeightPx = Math.max((point.totalTokens / maxTotal) * (CHART_HEIGHT_PX - 4), 3);
+              const inputHeightPx = (point.inputTokens / point.totalTokens) * totalHeightPx;
               const outputHeightPx = totalHeightPx - inputHeightPx;
-              const showLabel = isToday || index === data.length - 1 || index % LABEL_STRIDE === 0;
               const label = formatDayLabel(point.date);
 
               return (
-                <div key={point.date} className="z-10 flex flex-1 flex-col items-center gap-1.5">
+                // Every bar is labelled; the min width keeps "Sep 30" from overlapping
+                // its neighbour, and the wrapper scrolls sideways when 30 won't fit.
+                <div key={point.date} className="z-10 flex min-w-[2.25rem] flex-1 flex-col items-center gap-1.5">
                   <div className="flex flex-col justify-end" style={{ height: CHART_HEIGHT_PX - 4 }}>
-                    {point.totalTokens > 0 ? (
-                      <div
-                        className="flex w-4 flex-col-reverse overflow-hidden rounded-t-sm sm:w-6"
-                        style={{ height: totalHeightPx }}
-                        role="img"
-                        aria-label={`${label}${isToday ? " (today)" : ""}: ${formatTokensShort(point.totalTokens)} tokens`}
-                        title={`${label}${isToday ? " · Today" : ""}\n${formatTokensShort(point.inputTokens)} input · ${formatTokensShort(point.outputTokens)} output`}
-                      >
-                        <div style={{ height: inputHeightPx, backgroundColor: INPUT_COLOR }} />
-                        <div style={{ height: outputHeightPx, backgroundColor: OUTPUT_COLOR }} />
-                      </div>
-                    ) : (
-                      <div className="h-[3px] w-4 rounded-full bg-border sm:w-6" title={`${label}: no usage`} />
-                    )}
+                    <div
+                      className="flex w-4 flex-col-reverse overflow-hidden rounded-t-sm sm:w-6"
+                      style={{ height: totalHeightPx }}
+                      role="img"
+                      aria-label={`${label}${isToday ? " (today)" : ""}: ${formatTokensShort(point.totalTokens)} tokens`}
+                      title={`${label}${isToday ? " · Today" : ""}\n${formatTokensShort(point.inputTokens)} input · ${formatTokensShort(point.outputTokens)} output`}
+                    >
+                      <div style={{ height: inputHeightPx, backgroundColor: INPUT_COLOR }} />
+                      <div style={{ height: outputHeightPx, backgroundColor: OUTPUT_COLOR }} />
+                    </div>
                   </div>
                   <span
                     className={`h-3 whitespace-nowrap text-[9px] font-medium sm:text-[10px] ${
                       isToday ? "font-bold text-brand-purple" : "text-muted"
                     }`}
                   >
-                    {showLabel ? label : ""}
+                    {label}
                   </span>
                 </div>
               );

@@ -1,7 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MyClaudeUsageDashboard } from "@/lib/claudeUsage/myUsage";
+import { CLI_POLL_INTERVAL_MS } from "@/lib/claudeUsage/useUsageAutoRefresh";
 import { MyClaudeUsageSection } from "./MyClaudeUsageSection";
 
 const { fetchMyUsage } = vi.hoisted(() => ({ fetchMyUsage: vi.fn() }));
@@ -79,5 +80,63 @@ describe("MyClaudeUsageSection (ADR-058)", () => {
     await userEvent.selectOptions(screen.getByLabelText("Period"), "30");
 
     expect(fetchMyUsage).toHaveBeenLastCalledWith(30);
+  });
+});
+
+describe("MyClaudeUsageSection — refresh after claude-team-usage (ADR-060)", () => {
+  beforeEach(() => {
+    fetchMyUsage.mockReset();
+    fetchMyUsage.mockResolvedValue(DASHBOARD);
+    window.history.replaceState(null, "", "/my-claude-usage");
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("re-reads the usage when the window regains focus", async () => {
+    render(<MyClaudeUsageSection />);
+    await screen.findByTestId("my-usage-total-cost");
+    expect(fetchMyUsage).toHaveBeenCalledTimes(1);
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.advanceTimersByTime(3_000); // past the double-event guard
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => expect(fetchMyUsage).toHaveBeenCalledTimes(2));
+  });
+
+  it("returning from the CLI sign-in: drops the marker, polls, and stops once the upload lands", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.replaceState(null, "", "/my-claude-usage?cli=signed-in");
+    render(<MyClaudeUsageSection />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/finishes uploading/);
+    expect(window.location.search).toBe("");
+
+    fetchMyUsage.mockResolvedValue({ ...DASHBOARD, lastUpdated: "2026-09-30T09:00:00Z" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CLI_POLL_INTERVAL_MS);
+    });
+
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    const calls = fetchMyUsage.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CLI_POLL_INTERVAL_MS * 3);
+    });
+    expect(fetchMyUsage).toHaveBeenCalledTimes(calls); // polling stopped
+  });
+
+  it("does not poll on an ordinary visit", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(<MyClaudeUsageSection />);
+    await screen.findByTestId("my-usage-total-cost");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CLI_POLL_INTERVAL_MS * 3);
+    });
+    expect(fetchMyUsage).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

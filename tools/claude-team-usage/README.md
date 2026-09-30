@@ -15,9 +15,10 @@ claude-team-usage scan
 
 or, without installing: `npx claude-team-usage scan`
 
-**First run:** your browser opens Coc Docs. Sign in as usual and click **Authorize**.
-The terminal then finishes by itself: it saves your personal token on this machine,
-scans, and uploads. **Later runs** need no browser and no input.
+That is all. **First run:** your browser opens Coc Docs. Sign in as usual and click **Authorize**.
+The terminal then finishes by itself: it saves your personal token on this machine, on
+Windows sets up automatic scans every day at 11:00 and 16:00, then scans and uploads.
+**Later runs** need no browser and no input, and you don't need to run them yourself.
 
 ```
 claude-team-usage scan [--days N] [--dry-run] [--verbose]
@@ -25,7 +26,11 @@ claude-team-usage login     # sign in again (e.g. after revoking this machine)
 claude-team-usage logout    # forget the saved sign-in on this machine
 ```
 
-- `--days N` reports the last N days (1–400), for a one-off backfill.
+- By default `scan` sends **every day with usage not yet reported from this machine**, up to
+  30 days back. That includes usage from before a Claude usage-limit reset, a day the PC was
+  off, or anything after the last scheduled run. Days already sent and unchanged are skipped.
+  What was sent is recorded in `reported.json`, next to the saved sign-in.
+- `--days N` re-sends the last N days (1–400) regardless, for a one-off backfill.
 - `--dry-run` prints the payloads that would be sent and sends nothing. It needs no sign-in.
 
 Days are calendar days in **Asia/Phnom_Penh**, the same zone the dashboard uses.
@@ -39,12 +44,37 @@ After the first sign-in, a scheduled run works unattended. A run with no termina
 never opens a browser. If it isn't signed in, it exits 1 and tells you to run
 `claude-team-usage login` once.
 
+**Windows** — set up automatically by your first `claude-team-usage scan` in a terminal,
+right after sign-in. Each later terminal `scan` checks the task is still there and adds it
+back if it is missing; it never creates a second one. For troubleshooting:
+
 ```bat
-schtasks /Create /TN "Claude Usage Push" /SC DAILY /ST 23:30 /TR "cmd /c claude-team-usage scan"
+claude-team-usage schedule status    :: last run, its result, next run, and the latest log
+claude-team-usage schedule remove    :: stop the automatic scans (scan won't re-add them)
+claude-team-usage schedule           :: turn them back on / refresh after moving Node.js
 ```
 
+The task is a Task Scheduler task named `claude-team-usage`:
+
+- It runs as **you**, only while you are logged on, so it uses your saved sign-in in
+  `%APPDATA%\claude-team-usage`. It needs no admin rights and stores no password.
+- It lives in Task Scheduler, so it survives restarts. If the PC was off or you were
+  logged out at 11:00 or 16:00, the missed run happens as soon as possible afterwards.
+- Each run is a plain `scan`, so it catches up on anything not yet reported, including
+  usage after the previous 16:00 run.
+- Each run is limited to 15 minutes and appends to
+  `%APPDATA%\claude-team-usage\scheduled-scan.log`.
+- A small console window may appear for a few seconds while it runs.
+
+Run it now to test: `schtasks /Run /TN claude-team-usage`, then `claude-team-usage schedule status`.
+A last result of `0` plus a `sent … tokens` line in the log means the upload worked;
+**Last reported** on My Claude Usage shows the same time.
+
+**macOS / Linux** — `crontab -e`:
+
 ```bash
-30 23 * * * claude-team-usage scan    # crontab -e
+0 11 * * * claude-team-usage scan
+0 16 * * * claude-team-usage scan
 ```
 
 ## Where things live

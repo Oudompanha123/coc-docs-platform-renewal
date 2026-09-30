@@ -27,26 +27,31 @@ if (major < 18 || (major === 18 && minor < 18)) {
 const { login, logout } = await import('../src/login.js');
 const { scan } = await import('../src/scan.js');
 const { closeConnections } = await import('../src/upload.js');
+const schedule = await import('../src/schedule.js');
 
 const HELP = `claude-team-usage ${version}
 
 Usage:
   claude-team-usage scan [--days N] [--dry-run] [--verbose]
       Scan this machine's Claude Code transcripts and send the totals to Coc Docs.
-      --days N    report the last N days (1-400), for a one-off backfill. Default 1 (today).
+      By default, sends every day (up to 30 back) with usage not yet reported from here.
+      --days N    re-send the last N days (1-400) regardless, for a one-off backfill.
       --dry-run   print the payloads that would be sent; send nothing.
   claude-team-usage login     Sign in through your browser (done automatically by the first scan).
   claude-team-usage logout    Remove the saved credentials from this machine.
+  claude-team-usage schedule [status|remove]
+      Windows: the daily 11:00 and 16:00 scans. The first \`scan\` sets them up for you;
+      use \`status\` to check them, \`remove\` to stop them, no argument to turn them back on.
 
-The first \`scan\` in a terminal opens your browser to sign in to Coc Docs, once.
-Later runs, including scheduled ones, use the saved sign-in.
+The first \`scan\` in a terminal opens your browser to sign in to Coc Docs, once, and on
+Windows sets up the daily scans. Later runs, including scheduled ones, use the saved sign-in.
 `;
 
 class UsageError extends Error {}
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  const opts = { command, dryRun: false, verbose: false, days: 1, help: false };
+  const opts = { command, dryRun: false, verbose: false, days: null, help: false };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
     if (a === '--dry-run') opts.dryRun = true;
@@ -75,6 +80,14 @@ async function main(argv) {
   }
   if (argv[0] === '--version' || argv[0] === '-v') {
     io.out(version);
+    return;
+  }
+
+  if (argv[0] === 'schedule') {
+    const [, action = 'install', ...extra] = argv;
+    const run = { install: schedule.install, status: schedule.status, remove: schedule.remove }[action];
+    if (!run || extra.length) throw new UsageError('usage: claude-team-usage schedule [status|remove]');
+    run({ io });
     return;
   }
 

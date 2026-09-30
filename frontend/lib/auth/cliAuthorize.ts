@@ -7,6 +7,20 @@
 
 export const CLI_AUTHORIZE_PATH = "/cli/authorize";
 
+/** Where the CLI's loopback success page sends the browser (`browser-login.js` → `RETURN_PATH`). */
+export const CLI_SIGNED_IN_PATH = "/cli/signed-in";
+
+/**
+ * The dashboard a freshly authorized CLI's tab ends up on: the team view for
+ * admin/super_admin — the same pair every other role-based landing in this
+ * app uses — and the member's own view for everyone else. `?cli=signed-in`
+ * tells that page to watch for the upload the CLI is about to make.
+ */
+export function cliSignedInDestination(role: string | null | undefined): string {
+  const marker = "?cli=signed-in";
+  return role === "admin" || role === "super_admin" ? `/claude-usage${marker}` : `/my-claude-usage${marker}`;
+}
+
 /**
  * Where `/login` may send someone after sign-in, given its `?next=`. Only the
  * CLI authorize page — nothing else, and never another origin — so adding
