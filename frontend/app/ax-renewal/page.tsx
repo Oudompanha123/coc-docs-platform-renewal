@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
+import { ChevronLeftIcon, ChevronRightIcon, GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { ModuleCouplingDiagram, SystemContextDiagram } from "@/components/ax-renewal/ArchitectureDiagrams";
@@ -21,17 +21,22 @@ import { formatBytes, languageBreakdown, type FileLayoutEntry } from "@/lib/ax-r
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { readSourcePathOverride, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
+import { hasRuntimeErrorEvidence, runLocallyGuidance } from "@/lib/ax-renewal/runLocallyGuidance";
 import {
   cancelImplementation,
   confirmSection,
   connectDatabase,
+  explainRunLocallyFailure,
   fetchEngineStatus,
   fetchRunLocallyStatus,
   listProjects,
   reopenSection,
+  revertImplementation,
   setDestination,
+  startErrorFixImplementation,
   startImplementation,
   startRunLocally,
+  startUiChangeImplementation,
   stopRunLocally,
   updateArchitecture,
   updateDatabasePlan,
@@ -126,6 +131,7 @@ export default function AxRenewalPage() {
           {active === "codebase" && <CodebasePanel detail={detail} />}
           {active === "understand-architecture" && <UnderstandArchitecturePanel detail={detail} />}
           {active === "findings" && <FindingsPanel detail={detail} />}
+          {active === "understand-pages" && <UnderstandPagesPanel detail={detail} />}
           {active === "old-new" && <OldNewPanel detail={detail} />}
 
           {active === "stack-move" && (
@@ -198,7 +204,9 @@ export default function AxRenewalPage() {
           {active === "implementation" && (
             <ImplementationPanel detail={detail} canConfirm={canConfirm} onChanged={refresh} />
           )}
-          {active === "run-locally" && <RunLocallyPanel detail={detail} canConfirm={canConfirm} />}
+          {active === "run-locally" && (
+            <RunLocallyPanel detail={detail} canConfirm={canConfirm} canEdit={canEdit} onChanged={refresh} />
+          )}
           {active === "ai-engine" && <AiEnginePanel />}
           {active === "audit-trail" && user?.role === "super_admin" && (
             <AuditTrailPanel projectId={detail.project.id} />
@@ -304,9 +312,12 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[5px] border border-border bg-white p-5">
-        <h3 className="text-sm font-bold text-dash-ink">Codebase</h3>
-        <p className="mt-1 text-xs text-muted">Counted at attach time. Detection below comes from analysis.</p>
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="border-b border-border bg-page px-5 py-3">
+          <h3 className="text-sm font-bold text-dash-ink">Codebase</h3>
+        </div>
+        <div className="p-5">
+        <p className="text-xs text-muted">Counted at attach time. Detection below comes from analysis.</p>
 
         <div className="mt-4 space-y-4">
           {analysis && !analysis.modelConnected && <NoModelBanner />}
@@ -376,12 +387,16 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {attachStats && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Indexed</h3>
-          <p className="mt-1 text-xs text-muted">
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Indexed</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
             Files, size and runtime above are counted at attach time; lines, routes, templates, dependencies and
             test coverage need a connected local model reading the source —{" "}
             <span className="font-medium text-dash-ink">—</span> means it hasn&apos;t reported one.
@@ -403,13 +418,17 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
               </div>
             ))}
           </div>
+          </div>
         </div>
       )}
 
       {fileLayout.length > 0 && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">File layout</h3>
-          <p className="mt-1 text-xs text-muted">
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">File layout</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
             {attachFileLayout.length > 0
               ? "The largest directories in the attached folder, by file count — read from the browser's own scan, not a guess."
               : "Directories a connected local model actually looked at while reading the source — not a full scan, and not a guess."}
@@ -433,13 +452,17 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
               </div>
             ))}
           </div>
+          </div>
         </div>
       )}
 
       {languages.length > 0 && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Languages</h3>
-          <p className="mt-1 text-xs text-muted">Share of recognized source files by extension, not by AI guess.</p>
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Languages</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">Share of recognized source files by extension, not by AI guess.</p>
           <div className="mt-3 divide-y divide-border">
             {languages.map((l) => (
               <div key={l.name} className="flex items-center justify-between py-1.5 text-sm">
@@ -448,13 +471,17 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
               </div>
             ))}
           </div>
+          </div>
         </div>
       )}
 
       {runningOnToday.length > 0 && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Running on today</h3>
-          <p className="mt-1 text-xs text-muted">
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Running on today</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
             What the connected model actually found in place — not a recommendation for what to move to.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -471,6 +498,7 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
                 {tag.note ? ` · ${tag.note}` : ""}
               </span>
             ))}
+          </div>
           </div>
         </div>
       )}
@@ -525,6 +553,7 @@ function HonestlyUnavailable({ reason }: { reason: string }) {
 }
 
 function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetail }) {
+  const router = useRouter();
   const analysis = detail.analysis;
   const attachStats = detail.project.attachStats;
   const [archTab, setArchTab] = useState<string>("context");
@@ -540,73 +569,119 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
   const hasContext = runtime != null || framework != null || fileLayout.length > 0;
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
-      <p className="mt-1 text-xs text-muted">How the current system is put together, from what analysis found.</p>
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="border-b border-border bg-page px-5 py-3">
+          <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
+        </div>
+        <div className="p-5">
+        <p className="text-xs text-muted">How the current system is put together, from what analysis found.</p>
 
-      <div className="mt-4 space-y-4">
-        {analysis && !analysis.modelConnected && <NoModelBanner />}
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
 
-        {!analysis ? (
-          <NotAnalysedYet what="the detected architecture" />
-        ) : (
-          <>
-            <Tabs tabs={ARCHITECTURE_TABS} active={archTab} onChange={setArchTab} />
+          {!analysis ? (
+            <NotAnalysedYet what="the detected architecture" />
+          ) : (
+            <>
+              <Tabs tabs={ARCHITECTURE_TABS} active={archTab} onChange={setArchTab} />
 
-            {archTab === "context" &&
-              (hasContext ? (
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-border bg-page p-3">
-                    <SystemContextDiagram
-                      runtime={runtime}
-                      framework={framework}
-                      fileLayout={fileLayout}
-                      routeCount={routeCount}
+              {archTab === "context" &&
+                (hasContext ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border bg-page p-3">
+                      <SystemContextDiagram
+                        runtime={runtime}
+                        framework={framework}
+                        fileLayout={fileLayout}
+                        routeCount={routeCount}
+                      />
+                    </div>
+                    <ArchExplainer
+                      what="Everything detected so far runs as one process — the browser talks to it directly, and the directories shown are real ones the attach step or analysis actually found inside it."
+                      why="A fuller picture (data stores, external services this talks to) needs more than static analysis can honestly tell — either a connected model reading further, or someone confirming what else the system depends on."
                     />
                   </div>
-                  <ArchExplainer
-                    what="Everything detected so far runs as one process — the browser talks to it directly, and the directories shown are real ones the attach step or analysis actually found inside it."
-                    why="A fuller picture (data stores, external services this talks to) needs more than static analysis can honestly tell — either a connected model reading further, or someone confirming what else the system depends on."
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
-              ))}
+                ) : (
+                  <p className="text-sm text-muted">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
+                ))}
 
-            {archTab === "sequence" && (
-              <HonestlyUnavailable reason="Seeing what actually happens on one request — which queries run, how long each step takes — means running the application with real traffic and measuring it. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
-            )}
+              {archTab === "sequence" && (
+                <HonestlyUnavailable reason="Seeing what actually happens on one request — which queries run, how long each step takes — means running the application with real traffic and measuring it. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
+              )}
 
-            {archTab === "coupling" &&
-              (hasCoupling ? (
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-border bg-page p-3">
-                    <ModuleCouplingDiagram coupling={coupling} />
+              {archTab === "coupling" &&
+                (hasCoupling ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-border bg-page p-3">
+                      <ModuleCouplingDiagram coupling={coupling} />
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-muted">
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-sm border border-danger bg-danger/10" /> hub — imported by
+                        several modules
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="h-0.5 w-4 bg-danger" /> circular dependency
+                      </span>
+                    </div>
+                    <ArchExplainer
+                      what="Which files import which, as actually traced by the connected model reading source — not every file in the project, just the ones it judged central enough to report."
+                      why="A hub means many other files depend on its behavior, so it needs to become an injected dependency before anything around it can be tested in isolation. A cycle means neither file involved can be moved or replaced on its own until it's broken."
+                    />
                   </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-muted">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-sm border border-danger bg-danger/10" /> hub — imported by
-                      several modules
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-0.5 w-4 bg-danger" /> circular dependency
-                    </span>
-                  </div>
-                  <ArchExplainer
-                    what="Which files import which, as actually traced by the connected model reading source — not every file in the project, just the ones it judged central enough to report."
-                    why="A hub means many other files depend on its behavior, so it needs to become an injected dependency before anything around it can be tested in isolation. A cycle means neither file involved can be moved or replaced on its own until it's broken."
-                  />
-                </div>
-              ) : (
-                <HonestlyUnavailable reason="Tracing real imports between files needs a connected local model actually reading the source (source-path configured, not just the manifest) — this project hasn't reported one yet." />
-              ))}
+                ) : (
+                  <HonestlyUnavailable reason="Tracing real imports between files needs a connected local model actually reading the source (source-path configured, not just the manifest) — this project hasn't reported one yet." />
+                ))}
 
-            {archTab === "deploy" && (
-              <HonestlyUnavailable reason="How this project actually reaches production — build steps, hosting, rollback — isn't visible from its source code at all. That has to come from a person who runs the deploy, not from analysis." />
-            )}
-          </>
-        )}
+              {archTab === "deploy" && (
+                <HonestlyUnavailable reason="How this project actually reaches production — build steps, hosting, rollback — isn't visible from its source code at all. That has to come from a person who runs the deploy, not from analysis." />
+              )}
+            </>
+          )}
+        </div>
+        </div>
       </div>
+
+      {/* Matches the reference prototype's own closing panel in vArch(), shown
+          under every tab rather than just one of them — general guidance
+          about how to use what is above, not a fifth diagram. "Order follows
+          the coupling graph" only asserted once there is a real coupling
+          graph to follow; the database/framing points are true regardless of
+          which tab found what. */}
+      {analysis && (
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Read this before choosing a target stack</h3>
+          </div>
+          <div className="p-5">
+          <ul className="list-disc space-y-2 pl-4 text-sm text-dash-ink">
+            <li>
+              A slow request or a tangled import graph isn&apos;t fixed by switching frameworks alone — both need a
+              change in shape, which is what the rest of Plan sets up.
+            </li>
+            <li>
+              {hasCoupling
+                ? "The order of the move follows what Module coupling actually found above — break any cycle and extract any hub before what depends on it — not preference."
+                : "Once Module coupling has something to report, let that — not preference — set the order the move happens in."}
+            </li>
+            <li>
+              The database stays where it is throughout the renewal — old and new code read the same schema; see{" "}
+              <span className="font-medium">Plan → Database</span> for what, if anything, is changing there.
+            </li>
+          </ul>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=stack-move`)}
+              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            >
+              Open the stack move
+            </button>
+          </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -642,14 +717,15 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[5px] border border-border bg-white p-5">
-        <div className="flex items-center justify-between">
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
           <h3 className="text-sm font-bold text-dash-ink">
             {analysis ? `${findings.length} finding${findings.length === 1 ? "" : "s"}` : "Findings"}
           </h3>
           {findings.length > 0 && <span className="text-xs text-muted">worst first</span>}
         </div>
-        <p className="mt-1 text-xs text-muted">What a renewal would need to address.</p>
+        <div className="p-5">
+        <p className="text-xs text-muted">What a renewal would need to address.</p>
 
         <div className="mt-4 space-y-4">
           {analysis && !analysis.modelConnected && <NoModelBanner />}
@@ -680,12 +756,16 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
             </ul>
           )}
         </div>
+        </div>
       </div>
 
       {fixedByGroups.length > 0 && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Which of these the renewal fixes</h3>
-          <p className="mt-1 text-xs text-muted">
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Which of these the renewal fixes</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
             Only findings the connected model was confident enough to place — most findings are not categorized
             below, and that&apos;s the honest answer, not a gap.
           </p>
@@ -697,6 +777,235 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
               </li>
             ))}
           </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Best-effort cross-reference of one detected page against the directories/
+ * files analysis actually saw (`fileLayout` — the same real, counted data
+ * Understand → Codebase's own "File layout" card shows), used by the "Files"
+ * card below. Matches on the page's own path segments ("/products/:id" →
+ * "products"), case-insensitively, against each entry's directory and
+ * filenames — a real filter over real data, but a guess about relevance all
+ * the same, since analysis reports no actual route-to-file mapping today.
+ */
+function relatedFilePaths(path: string, fileLayout: FileLayoutEntry[]): string[] {
+  const tokens = path
+    .toLowerCase()
+    .split(/[/:._-]+/)
+    .filter((t) => t.length > 2);
+  if (tokens.length === 0) return [];
+  const matches: string[] = [];
+  for (const entry of fileLayout) {
+    for (const file of entry.files) {
+      const full = entry.dir ? `${entry.dir}/${file}` : file;
+      if (tokens.some((t) => full.toLowerCase().includes(t))) {
+        matches.push(full);
+      }
+    }
+  }
+  return matches;
+}
+
+/**
+ * Understand → Pages, following CodeRenewalPlatform.html's `vPage()` layout —
+ * browse every route/screen analysis actually detected, one at a time, read
+ * only (this is what analysis found on the *current* system; mapping each to
+ * where it goes next is Plan → Pages, a separate, editable table), through
+ * the same four cards the reference prototype shows for one: Page view,
+ * Processing flow, Files, Issues on this page.
+ *
+ * Two of those stay honest rather than reproducing the reference's fixed
+ * demo content: its screen preview is a hand-built mockup of one fictional
+ * e-commerce page, meaningless (and actively misleading) against an
+ * arbitrary attached project, so Page view here shows the page's own
+ * detected path and purpose inside the same browser-chrome frame instead of
+ * a fabricated render; Processing flow's per-step millisecond timings need a
+ * real, instrumented run against live traffic to produce honestly (same
+ * reason Architecture → Request lifecycle stays a `HonestlyUnavailable`
+ * notice, not invented numbers). Files and Issues on this page are both real
+ * data, cross-referenced against this one page — but both best-effort text
+ * matches, not a route-to-file or finding-to-page mapping analysis actually
+ * reports, so a short list (or none) is an honest answer, not a gap.
+ */
+function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
+  const analysis = detail.analysis;
+  const pages = analysis?.pagesDetected ?? [];
+  const [index, setIndex] = useState(0);
+  // Clamps rather than trusting stale state, in case a re-run of analysis
+  // came back with fewer pages than the one that was selected before.
+  const current = pages.length === 0 ? null : (pages[Math.min(index, pages.length - 1)] ?? null);
+  const safeIndex = pages.length === 0 ? 0 : Math.min(index, pages.length - 1);
+
+  const attachFileLayout = detail.project.attachStats?.fileLayout ?? [];
+  const fileLayout: FileLayoutEntry[] = attachFileLayout.length > 0 ? attachFileLayout : (analysis?.fileLayout ?? []);
+  const matchedFiles = current ? relatedFilePaths(current.path, fileLayout) : [];
+
+  const relatedFindings = current
+    ? (analysis?.findings ?? []).filter((f) => f.where.includes(current.path))
+    : [];
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="border-b border-border bg-page px-5 py-3">
+          <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
+        </div>
+        <div className="p-5">
+        <p className="text-xs text-muted">Every route or screen analysis actually detected, one at a time.</p>
+
+        <div className="mt-4 space-y-4">
+          {analysis && !analysis.modelConnected && <NoModelBanner />}
+
+          {!analysis ? (
+            <NotAnalysedYet what="every page it detected" />
+          ) : pages.length === 0 ? (
+            <p className="text-sm text-muted">No pages or routes were detected.</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+                <button
+                  type="button"
+                  onClick={() => setIndex(safeIndex - 1)}
+                  disabled={safeIndex === 0}
+                  className="flex min-w-0 items-center gap-1 rounded-[5px] border border-border px-2.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeftIcon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{safeIndex > 0 ? pages[safeIndex - 1]!.path : "first"}</span>
+                </button>
+                <span className="shrink-0 font-mono text-xs text-muted">
+                  {safeIndex + 1} / {pages.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIndex(safeIndex + 1)}
+                  disabled={safeIndex === pages.length - 1}
+                  className="flex min-w-0 items-center gap-1 rounded-[5px] border border-border px-2.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span className="truncate">{safeIndex < pages.length - 1 ? pages[safeIndex + 1]!.path : "last"}</span>
+                  <ChevronRightIcon className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {pages.map((p, i) => (
+                  <button
+                    key={`${p.path}-${i}`}
+                    type="button"
+                    aria-current={i === safeIndex ? "true" : undefined}
+                    onClick={() => setIndex(i)}
+                    className={`rounded-full border px-2.5 py-1 font-mono text-xs transition-colors ${
+                      i === safeIndex
+                        ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
+                        : "border-border text-muted hover:bg-page"
+                    }`}
+                  >
+                    {p.path}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        </div>
+      </div>
+
+      {analysis && current && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+            <div className="border-b border-border bg-page px-5 py-3">
+              <h3 className="text-sm font-bold text-dash-ink">Page view</h3>
+            </div>
+            <div className="p-5">
+            <div className="overflow-hidden rounded-xl border border-border">
+              <div className="border-b border-border bg-page px-3 py-2 font-mono text-xs text-muted">
+                {current.path}
+              </div>
+              <div className="bg-white p-4">
+                <p className="text-sm text-dash-ink">{current.purpose}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              A rendered screenshot needs a real, running instance of the page — this shows what analysis actually
+              read about it instead of a fabricated one.
+            </p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+            <div className="border-b border-border bg-page px-5 py-3">
+              <h3 className="text-sm font-bold text-dash-ink">Processing flow</h3>
+            </div>
+            <div className="p-5">
+              <HonestlyUnavailable reason="Seeing what actually happens on one request to this page — which queries run, how long each step takes — means running the application with real traffic and measuring it, the same as Architecture → Request lifecycle. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {analysis && current && (
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Files</h3>
+            {matchedFiles.length > 0 && <span className="text-xs text-muted">{matchedFiles.length}</span>}
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
+            A best-effort text match against the directories and files Understand → Codebase already saw — analysis
+            doesn&apos;t report which files implement which page, so this is worth checking, not a guarantee.
+          </p>
+          <div className="mt-3">
+            {matchedFiles.length === 0 ? (
+              <p className="text-sm text-muted">Nothing in what analysis saw matched this page&apos;s path.</p>
+            ) : (
+              <div className="space-y-1 font-mono text-xs text-dash-ink">
+                {matchedFiles.map((f) => (
+                  <p key={f}>{f}</p>
+                ))}
+              </div>
+            )}
+          </div>
+          </div>
+        </div>
+      )}
+
+      {analysis && current && (
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Issues on this page</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
+            Findings whose location mentions <span className="font-mono">{current.path}</span> — most findings
+            don&apos;t name a specific page, so a shorter list here (or none) is the honest answer, not a gap. The
+            full list is under Understand → Findings.
+          </p>
+          <div className="mt-3">
+            {relatedFindings.length === 0 ? (
+              <p className="text-sm text-muted">Nothing found that names this page specifically.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {relatedFindings.map((f, i) => (
+                  <li key={i} className="flex items-start gap-3 py-2.5">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${severityBadgeClasses(f.severity)}`}
+                    >
+                      {f.severity === "info" ? "·" : "!"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-dash-ink">{f.what}</span>
+                      <span className="mt-0.5 block font-mono text-xs text-muted">{f.where}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          </div>
         </div>
       )}
     </div>
@@ -731,9 +1040,12 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[5px] border border-border bg-white p-5">
-        <h3 className="text-sm font-bold text-dash-ink">How the old becomes the new</h3>
-        <p className="mt-1 text-xs text-muted">The whole move on one page, built from what is entered under Plan.</p>
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="border-b border-border bg-page px-5 py-3">
+          <h3 className="text-sm font-bold text-dash-ink">How the old becomes the new</h3>
+        </div>
+        <div className="p-5">
+        <p className="text-xs text-muted">The whole move on one page, built from what is entered under Plan.</p>
         <div className="mt-3 rounded-xl border border-border bg-page p-3">
           {layers.length > 0 ? (
             <OldToNewDiagram layers={layers} sameDatabase={sameDatabase} />
@@ -743,12 +1055,16 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
             </p>
           )}
         </div>
+        </div>
       </div>
 
       {layers.length > 0 && (
-        <div className="rounded-[5px] border border-border bg-white p-5">
-          <h3 className="text-sm font-bold text-dash-ink">Side by side</h3>
-          <p className="mt-1 text-xs text-muted">
+        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+          <div className="border-b border-border bg-page px-5 py-3">
+            <h3 className="text-sm font-bold text-dash-ink">Side by side</h3>
+          </div>
+          <div className="p-5">
+          <p className="text-xs text-muted">
             Every layer entered under Plan → Stack move. Edit it there; this view is read-only.
           </p>
           <div className="mt-3 grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
@@ -774,12 +1090,16 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
 
-      <div className="rounded-[5px] border border-border bg-white p-5">
-        <h3 className="text-sm font-bold text-dash-ink">What does not change</h3>
-        <ul className="mt-3 space-y-2.5 text-sm text-dash-ink">
+      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+        <div className="border-b border-border bg-page px-5 py-3">
+          <h3 className="text-sm font-bold text-dash-ink">What does not change</h3>
+        </div>
+        <div className="p-5">
+        <ul className="space-y-2.5 text-sm text-dash-ink">
           <li>
             <b className="font-semibold">The database.</b>{" "}
             {dbChanges.length > 0
@@ -825,6 +1145,7 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
             Set where the code goes
           </button>
         </div>
+        </div>
       </div>
     </div>
   );
@@ -865,60 +1186,65 @@ function OutputPanel({
   }
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Output</h3>
-      <p className="mt-1 text-xs text-muted">Where the renewed project would be written.</p>
-      {kind === "filesystem_path" && (
-        <p className="mt-1.5 text-xs leading-relaxed text-muted">
-          Unlike the source path in AI engine, this one is shared for the whole project, not set per machine —
-          whoever clicks Approve or Run Locally writes to or reads from exactly this path on <em>their own</em>{" "}
-          computer. On a team where more than one person does that, it only behaves consistently if this path
-          actually exists (or can be created) the same way on each of those machines — e.g. the same drive letter
-          mapped to the same real folder, or everyone treating one particular machine as the one that approves/runs.
-        </p>
-      )}
-
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <select
-          value={kind}
-          disabled={!canEdit}
-          onChange={(e) => setKind(e.target.value as typeof kind)}
-          className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink focus:outline-none disabled:bg-page"
-        >
-          <option value="git_repo">Git repository</option>
-          <option value="filesystem_path">Filesystem path</option>
-          <option value="other">Other</option>
-        </select>
-        <input
-          value={target}
-          disabled={!canEdit}
-          onChange={(e) => setTarget(e.target.value)}
-          placeholder="Target (repo URL or path)"
-          className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-2"
-        />
-        <input
-          value={branch}
-          disabled={!canEdit}
-          onChange={(e) => setBranch(e.target.value)}
-          placeholder="Branch (optional)"
-          className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-3"
-        />
+    <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+      <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
+        <h3 className="text-sm font-bold text-dash-ink">Output</h3>
+        <span className="text-xs text-muted">{detail.destination ? "set" : "not set"}</span>
       </div>
+      <div className="p-5">
+        <p className="text-xs text-muted">Where the renewed project would be written.</p>
+        {kind === "filesystem_path" && (
+          <p className="mt-1.5 text-xs leading-relaxed text-muted">
+            Unlike the source path in AI engine, this one is shared for the whole project, not set per machine —
+            whoever clicks Approve or Run Locally writes to or reads from exactly this path on <em>their own</em>{" "}
+            computer. On a team where more than one person does that, it only behaves consistently if this path
+            actually exists (or can be created) the same way on each of those machines — e.g. the same drive letter
+            mapped to the same real folder, or everyone treating one particular machine as the one that approves/runs.
+          </p>
+        )}
 
-      {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
-
-      {canEdit && (
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={saving || !target.trim()}
-            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <select
+            value={kind}
+            disabled={!canEdit}
+            onChange={(e) => setKind(e.target.value as typeof kind)}
+            className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink focus:outline-none disabled:bg-page"
           >
-            {saving ? "Saving…" : "Save destination"}
-          </button>
+            <option value="git_repo">Git repository</option>
+            <option value="filesystem_path">Filesystem path</option>
+            <option value="other">Other</option>
+          </select>
+          <input
+            value={target}
+            disabled={!canEdit}
+            onChange={(e) => setTarget(e.target.value)}
+            placeholder="Target (repo URL or path)"
+            className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-2"
+          />
+          <input
+            value={branch}
+            disabled={!canEdit}
+            onChange={(e) => setBranch(e.target.value)}
+            placeholder="Branch (optional)"
+            className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-3"
+          />
         </div>
-      )}
+
+        {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+
+        {canEdit && (
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving || !target.trim()}
+              className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save destination"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -941,6 +1267,20 @@ function ImplementationPanel({
   const [error, setError] = useState<string | null>(null);
   const [elapsedSecs, setElapsedSecs] = useState(0);
   const run = detail.latestImplementationRun;
+
+  // UI Customization (ADR-062 Phase 2): a natural-language description
+  // against the renewed project's own UI — never this admin app's own.
+  // Offered only once there is an applied build to point at, the same
+  // precondition an error fix and Run Locally itself already require.
+  const [uiChangeText, setUiChangeText] = useState("");
+  const [startingUiChange, setStartingUiChange] = useState(false);
+  const [uiChangeError, setUiChangeError] = useState<string | null>(null);
+
+  // Reverting one specific applied run (ADR-062 §revert) — only offered on
+  // the current latest run while it is actually applied, matching the
+  // backend's own "must still be the latest applied run" safety check.
+  const [reverting, setReverting] = useState(false);
+  const [revertError, setRevertError] = useState<string | null>(null);
 
   // Same per-project, per-browser path Attach source offers (ADR-055) — read
   // independently here rather than shared state, so setting it in either
@@ -1023,6 +1363,36 @@ function ImplementationPanel({
     }
   }
 
+  async function handleStartUiChange() {
+    const description = uiChangeText.trim();
+    if (!description) return;
+    setStartingUiChange(true);
+    setUiChangeError(null);
+    try {
+      await startUiChangeImplementation(detail.project.id, description);
+      setUiChangeText("");
+      await onChanged();
+    } catch (err) {
+      setUiChangeError(err instanceof Error ? err.message : "Couldn't start generating this change.");
+    } finally {
+      setStartingUiChange(false);
+    }
+  }
+
+  async function handleRevert() {
+    if (!run) return;
+    setReverting(true);
+    setRevertError(null);
+    try {
+      await revertImplementation(detail.project.id, run.id);
+      await onChanged();
+    } catch (err) {
+      setRevertError(err instanceof Error ? err.message : "Couldn't revert this run.");
+    } finally {
+      setReverting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-[5px] border border-border bg-white p-5">
@@ -1071,6 +1441,45 @@ function ImplementationPanel({
           </div>
         )}
 
+        {/* UI Customization (ADR-062 Phase 2) — a natural-language change
+            against the renewed project's own UI, offered once there is an
+            applied build to point at. A separate Generate → Review → Apply
+            run from Rebuild's own confirmed-Plan one, reviewed the same way
+            below once it reaches awaiting_review. */}
+        {canConfirm && !isActive && run?.status === "applied" && (
+          <div className="mt-4 rounded-xl border border-border bg-page p-4">
+            <label htmlFor="ax-ui-change-description" className="text-xs font-semibold text-dash-ink">
+              Describe a UI change
+            </label>
+            <p className="mt-1 text-xs text-muted">
+              Colors, layout, fonts, spacing, component styles — against the renewed project&apos;s own UI, in your
+              own words. Reviewed as a diff before anything is written, same as Rebuild.
+            </p>
+            <textarea
+              id="ax-ui-change-description"
+              value={uiChangeText}
+              onChange={(e) => setUiChangeText(e.target.value)}
+              disabled={startingUiChange}
+              rows={2}
+              placeholder="e.g. make the primary button purple and increase the page padding"
+              className="mt-2 w-full resize-none rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={() => void handleStartUiChange()}
+              disabled={startingUiChange || !uiChangeText.trim()}
+              className="mt-2 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {startingUiChange ? "Starting…" : "Generate this change"}
+            </button>
+            {uiChangeError && (
+              <p role="alert" className="mt-2 text-xs font-medium text-danger">
+                {uiChangeError}
+              </p>
+            )}
+          </div>
+        )}
+
         {run && (
           <div className="mt-4 rounded-xl border border-border bg-page p-4 text-sm">
             {isActive ? (
@@ -1099,7 +1508,33 @@ function ImplementationPanel({
                 )}
               </div>
             ) : (
-              <p className="font-semibold text-dash-ink">Status: {run.status.replace(/_/g, " ")}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-dash-ink">
+                  Status: {run.status.replace(/_/g, " ")}
+                  {run.runKind !== "plan" && (
+                    <span className="ml-2 rounded-full bg-brand-purple/10 px-2 py-0.5 text-[11px] font-semibold uppercase text-brand-purple">
+                      {run.runKind === "error_fix" ? "error fix" : "UI change"}
+                    </span>
+                  )}
+                </p>
+                {canConfirm && run.status === "applied" && (
+                  <button
+                    type="button"
+                    onClick={() => void handleRevert()}
+                    disabled={reverting}
+                    className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {reverting ? "Reverting…" : "Revert this run"}
+                  </button>
+                )}
+              </div>
+            )}
+            {revertError && <p role="alert" className="mt-2 text-xs font-medium text-danger">{revertError}</p>}
+            {run.instruction && (
+              <p className="mt-2 whitespace-pre-wrap break-words text-xs text-muted">
+                {run.runKind === "error_fix" ? "Fixing: " : "Requested: "}
+                {run.instruction}
+              </p>
             )}
 
             {run.status === "generating" && (
@@ -1148,7 +1583,18 @@ function ImplementationPanel({
 /** Statuses the backend is still actively working on — polled the same way ImplementationPanel polls a Generate/Apply run. */
 const RUN_LOCALLY_POLLING_STATUSES = new Set<AxRenewalRunLocallyStatus["status"]>(["starting", "running"]);
 
-function RunLocallyPanel({ detail, canConfirm }: { detail: AxRenewalProjectDetail; canConfirm: boolean }) {
+function RunLocallyPanel({
+  detail,
+  canConfirm,
+  canEdit,
+  onChanged,
+}: {
+  detail: AxRenewalProjectDetail;
+  canConfirm: boolean;
+  canEdit: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const router = useRouter();
   // The exact "a real generated build to point at" precondition the tab has
   // always been locked behind (ADR-048) -- Approve (ADR-044) is what makes
   // this true. A rebuild started since re-locks it, since the destination is
@@ -1159,6 +1605,22 @@ function RunLocallyPanel({ detail, canConfirm }: { detail: AxRenewalProjectDetai
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
+
+  // AI Error Assistant, phase 1 (ADR-062): a real answer from the local
+  // model about the real failure above, or nothing at all — never a guess
+  // shown while one is pending. Cleared the moment the run is retried, since
+  // an explanation of the last failure would otherwise linger on screen
+  // looking like it describes whatever is happening now.
+  const [explaining, setExplaining] = useState(false);
+  const [explainError, setExplainError] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<string | null>(null);
+
+  // AI Error Assistant, phase 2 (ADR-062): a real Generate run against the
+  // destination itself, reviewed the same way any other proposed change is
+  // (GeneratedChangesReview on the Implementation tab) — this only starts
+  // it and says so; nothing here writes to the destination on its own.
+  const [fixing, setFixing] = useState(false);
+  const [fixError, setFixError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -1184,16 +1646,55 @@ function RunLocallyPanel({ detail, canConfirm }: { detail: AxRenewalProjectDetai
   }, [status?.log.length]);
 
   const active = status != null && RUN_LOCALLY_POLLING_STATUSES.has(status.status);
+  const guidance = status ? runLocallyGuidance(status) : null;
+  // A process exit is not the only real failure Run Locally can show: a dev
+  // server that renders an unhandled error for one request stays up (Next.js
+  // catches it and answers 500) or gets stopped by hand afterward — neither
+  // ever reaches `failed`. Real evidence in the log, not the bare status
+  // word, is what actually says there is something to explain or fix.
+  const hasActionableFailure =
+    status != null &&
+    status.status !== "starting" &&
+    (status.status === "failed" || hasRuntimeErrorEvidence(status.log));
 
   async function handleStart() {
     setBusy(true);
     setError(null);
+    setExplanation(null);
+    setExplainError(null);
     try {
       setStatus(await startRunLocally(detail.project.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start the local dev server.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleExplain() {
+    setExplaining(true);
+    setExplainError(null);
+    try {
+      const { reply } = await explainRunLocallyFailure(detail.project.id);
+      setExplanation(reply);
+    } catch (err) {
+      setExplainError(err instanceof Error ? err.message : "Couldn't get an explanation for this failure.");
+    } finally {
+      setExplaining(false);
+    }
+  }
+
+  async function handleApplyFix() {
+    setFixing(true);
+    setFixError(null);
+    try {
+      await startErrorFixImplementation(detail.project.id);
+      await onChanged();
+      router.push(`/ax-renewal?project=${detail.project.id}&section=implementation`);
+    } catch (err) {
+      setFixError(err instanceof Error ? err.message : "Couldn't start generating a fix.");
+    } finally {
+      setFixing(false);
     }
   }
 
@@ -1262,6 +1763,78 @@ function RunLocallyPanel({ detail, canConfirm }: { detail: AxRenewalProjectDetai
               <span className="text-xs text-muted">
                 since {new Date(status.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
+            )}
+          </div>
+        )}
+
+        {/* Always one of a few honest, actionable messages — never just the
+            bare status word above with nothing to do about it. On failure
+            this checks the process's own real log for a handful of standard,
+            unambiguous Node/npm error codes (a real fact read off real
+            output, the same way the backend's own URL detection works) —
+            never a guessed diagnosis; see runLocallyGuidance's own doc
+            comment for the exact patterns and the honest fallback. */}
+        {guidance && (
+          <p
+            role={guidance.tone === "error" ? "alert" : undefined}
+            className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
+              guidance.tone === "success"
+                ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                : guidance.tone === "error"
+                  ? "border-danger/30 bg-danger/10 text-danger"
+                  : "border-brand-purple/20 bg-brand-purple/5 text-dash-ink"
+            }`}
+          >
+            {guidance.message}
+          </p>
+        )}
+
+        {/* AI Error Assistant, phase 1 (ADR-062) — offered only once there is
+            an actual failure to explain, and only at the same read floor
+            Chat sits at (an Admin, Developer or Super Admin — never a plain
+            User): it can point the local model at the applied destination to
+            read it, so it is not the plain status read just above. Read-only
+            end to end — it explains, it never edits a file. */}
+        {hasActionableFailure && canEdit && (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleExplain()}
+                disabled={explaining}
+                className="rounded-[10px] border border-brand-purple/30 bg-brand-purple/5 px-3 py-1.5 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {explaining ? "Asking the local model…" : "Ask AI to explain this"}
+              </button>
+              {/* AI Error Assistant, phase 2 (ADR-062) — Super-Admin-or-
+                  Developer-exact only, the same write floor Approve/Reject
+                  sit at, since this actually generates a candidate fix (never
+                  applied without a separate review/approve). */}
+              {canConfirm && (
+                <button
+                  type="button"
+                  onClick={() => void handleApplyFix()}
+                  disabled={fixing}
+                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {fixing ? "Starting…" : "Generate a fix"}
+                </button>
+              )}
+            </div>
+            {explanation && (
+              <div className="mt-2 whitespace-pre-wrap break-words rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-dash-ink">
+                {explanation}
+              </div>
+            )}
+            {explainError && (
+              <p role="alert" className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+                {explainError}
+              </p>
+            )}
+            {fixError && (
+              <p role="alert" className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+                {fixError}
+              </p>
             )}
           </div>
         )}

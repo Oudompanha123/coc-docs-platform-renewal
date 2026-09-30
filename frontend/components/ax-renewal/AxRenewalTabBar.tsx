@@ -80,7 +80,7 @@ export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTa
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
       onClickCapture={handleClickCapture}
-      className="no-scrollbar flex flex-1 cursor-grab select-none overflow-x-auto border-b border-border bg-page active:cursor-grabbing">
+      className="no-scrollbar flex min-w-0 flex-1 cursor-grab select-none overflow-x-auto border-b border-border bg-page active:cursor-grabbing">
       {tabs.map((key) => {
         const meta = EXPLORER_META[key];
         const isActive = key === active;

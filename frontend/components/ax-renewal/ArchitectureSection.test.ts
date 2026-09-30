@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { suggestSummary } from "./ArchitectureSection";
+import { couplingFindings, decidedLayers, suggestSummary } from "./ArchitectureSection";
 import type { AxRenewalAnalysis, AxRenewalStackLayer } from "@/lib/ax-renewal/api";
 
 function analysisOf(overrides: Partial<AxRenewalAnalysis>): AxRenewalAnalysis {
@@ -11,6 +11,7 @@ function analysisOf(overrides: Partial<AxRenewalAnalysis>): AxRenewalAnalysis {
     runningOnToday: [],
     fileLayout: [],
     moduleCoupling: {},
+    recommendedStackMove: [],
     modelConnected: true,
     analyzedAt: "2026-01-01T00:00:00Z",
     ...overrides,
@@ -52,5 +53,51 @@ describe("suggestSummary", () => {
   it("never references an index the model didn't actually name a module for", () => {
     const summary = suggestSummary(analysisOf({ moduleCoupling: { hubs: [0], cycles: [[0, 1]] } }), []);
     expect(summary).toBe("");
+  });
+});
+
+describe("decidedLayers", () => {
+  // Backs "Layers after the move" — read live from stackLayers on every
+  // render, so this (unlike the drafted summary text) can never go stale.
+  it("is empty when there are no layers at all", () => {
+    expect(decidedLayers([])).toEqual([]);
+  });
+
+  it("includes only layers with a real newTarget that differs from oldTarget", () => {
+    const layers: AxRenewalStackLayer[] = [
+      { layerKey: "Runtime", oldTarget: "Node 12", newTarget: "Node 22 LTS", position: 0 },
+      { layerKey: "Styling", oldTarget: "Bootstrap 3", newTarget: "Bootstrap 3", position: 1 },
+      { layerKey: "Testing", oldTarget: null, newTarget: null, position: 2 },
+    ];
+    expect(decidedLayers(layers)).toEqual([
+      { layerKey: "Runtime", oldTarget: "Node 12", newTarget: "Node 22 LTS", position: 0 },
+    ]);
+  });
+});
+
+describe("couplingFindings", () => {
+  it("is empty when there is no analysis, or no hubs/cycles were traced", () => {
+    expect(couplingFindings(null)).toEqual([]);
+    expect(couplingFindings(analysisOf({}))).toEqual([]);
+  });
+
+  it("reports a real hub and a real cycle, by name", () => {
+    const findings = couplingFindings(
+      analysisOf({
+        moduleCoupling: {
+          modules: ["src/db.js", "controllers/orders.js", "controllers/users.js"],
+          hubs: [0],
+          cycles: [[1, 2]],
+        },
+      }),
+    );
+    expect(findings).toEqual([
+      { kind: "hub", text: expect.stringContaining("src/db.js is a hub") },
+      { kind: "cycle", text: expect.stringContaining("controllers/orders.js and controllers/users.js import each other") },
+    ]);
+  });
+
+  it("never references an index the model didn't actually name a module for", () => {
+    expect(couplingFindings(analysisOf({ moduleCoupling: { hubs: [0], cycles: [[0, 1]] } }))).toEqual([]);
   });
 });

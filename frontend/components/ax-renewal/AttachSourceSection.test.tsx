@@ -166,6 +166,50 @@ describe("AttachSourceSection", () => {
         "/home/dev/legacy-app",
       );
     });
+
+    it("prefills from a picked folder's own name, since a browser never hands back its real location on disk", async () => {
+      const resolveAttach = deferAttach();
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: false });
+      const { container } = render(
+        <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />,
+      );
+      const folderInput = container.querySelector('input[type="file"][webkitdirectory]') as HTMLInputElement;
+      Object.defineProperty(folderInput, "files", {
+        value: [folderFile("legacy-app-checkout/index.html")],
+        configurable: true,
+      });
+      fireEvent.change(folderInput);
+
+      const input = await screen.findByLabelText(/legacy project's path/);
+      await waitFor(() => expect(input).toHaveValue("legacy-app-checkout"));
+
+      resolveAttach();
+      await waitFor(() => expect(screen.queryByText("File types found")).not.toBeInTheDocument());
+    });
+
+    it("never overwrites a legacy path already typed for this project when another folder is then picked", async () => {
+      const resolveAttach = deferAttach();
+      vi.mocked(fetchEngineStatus).mockResolvedValue({ connected: true, readsSource: false });
+      const { container } = render(
+        <AttachSourceSection detail={detailFixture()} canEdit={true} onChanged={vi.fn()} />,
+      );
+
+      const input = await screen.findByLabelText(/legacy project's path/);
+      fireEvent.change(input, { target: { value: "/home/dev/legacy-app" } });
+
+      const folderInput = container.querySelector('input[type="file"][webkitdirectory]') as HTMLInputElement;
+      Object.defineProperty(folderInput, "files", {
+        value: [folderFile("some-other-checkout/index.html")],
+        configurable: true,
+      });
+      fireEvent.change(folderInput);
+
+      await screen.findByText("File types found");
+      expect(input).toHaveValue("/home/dev/legacy-app");
+
+      resolveAttach();
+      await waitFor(() => expect(screen.queryByText("File types found")).not.toBeInTheDocument());
+    });
   });
 
   it("keeps the folder-only picker (webkitdirectory) working even when it first mounts after the session finishes loading", () => {
@@ -343,6 +387,7 @@ describe("AttachSourceSection", () => {
       runningOnToday: [],
       fileLayout: [],
       moduleCoupling: {},
+      recommendedStackMove: [],
       modelConnected: false,
       analyzedAt: "2026-01-02T00:00:00Z",
     };

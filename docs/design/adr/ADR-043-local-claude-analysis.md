@@ -3,7 +3,7 @@
 > **Status**: PROPOSED
 > **Date**: 2026-09-22
 > **Approver**: PM (pending) — `CONST-PROC-01`
-> **Related ADR**: Answers the "how does analysis actually get done" question [ADR-037](ADR-037-integrations.md) left open for a later phase. Does not touch ADR-011 (security model) or ADR-012 (the two-service split).
+> **Related ADR**: Answers the "how does analysis actually get done" question [ADR-037](ADR-037-integrations.md) left open for a later phase. Does not touch ADR-011 (security model) or ADR-012 (the two-service split). **Revised by [ADR-059](ADR-059-revision-of-043-stack-move-recommendation.md)**: this ADR's prompt rule "do not recommend a target stack" no longer applies to the new `recommendedStackMove` field specifically — `runningOnToday` itself is unchanged, still present-tense only.
 
 ---
 
