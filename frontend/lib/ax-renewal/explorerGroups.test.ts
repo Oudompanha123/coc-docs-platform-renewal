@@ -119,6 +119,8 @@ describe("buildExplorerGroups — Build group's Run Locally lock (ADR-048)", () 
       runLocallyLocked({
         id: "r1",
         status: "awaiting_review",
+        runKind: "plan",
+        instruction: null,
         beforeReport: null,
         afterReport: null,
         startedAt: "2026-01-01T00:00:00Z",
@@ -133,6 +135,8 @@ describe("buildExplorerGroups — Build group's Run Locally lock (ADR-048)", () 
       runLocallyLocked({
         id: "r1",
         status: "applied",
+        runKind: "plan",
+        instruction: null,
         beforeReport: null,
         afterReport: null,
         startedAt: "2026-01-01T00:00:00Z",
@@ -149,6 +153,8 @@ describe("buildExplorerGroups — Build group's Run Locally lock (ADR-048)", () 
       runLocallyLocked({
         id: "r2",
         status: "generating",
+        runKind: "plan",
+        instruction: null,
         beforeReport: null,
         afterReport: null,
         startedAt: "2026-01-02T00:00:00Z",

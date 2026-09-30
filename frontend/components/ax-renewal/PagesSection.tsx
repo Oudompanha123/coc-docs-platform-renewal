@@ -21,6 +21,34 @@ export function toRows(pages: AxRenewalPageMapping[], analysis: AxRenewalAnalysi
   return (analysis?.pagesDetected ?? []).map((p) => ({ oldPath: p.path, newPath: "", notes: p.purpose }));
 }
 
+type CleanedRow = { oldPath: string | null; newPath: string | null; notes: string | null };
+
+/** What `rows` would actually persist if Save were pressed right now — a blank row (oldPath and newPath both empty) is dropped, same as `handleSave` already does. */
+function cleanRows(rows: Row[]): CleanedRow[] {
+  return rows
+    .map((r) => ({
+      oldPath: r.oldPath.trim() || null,
+      newPath: r.newPath.trim() || null,
+      notes: r.notes.trim() || null,
+    }))
+    .filter((r) => r.oldPath != null || r.newPath != null);
+}
+
+/**
+ * Whether what Save would persist right now already matches what is actually
+ * on the server. Confirming this section records a sign-off on the
+ * *persisted* pages, not on whatever is currently typed in these rows — so
+ * this is what Confirm checks before letting a caller who edited a row (or
+ * added/removed one) and went straight to Confirm, without pressing Save
+ * pages first, sign off on the mapping as it stood before that edit.
+ */
+export function sameCleanedRows(a: CleanedRow[], b: CleanedRow[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((r, i) => r.oldPath === b[i]?.oldPath && r.newPath === b[i]?.newPath && r.notes === b[i]?.notes)
+  );
+}
+
 export function PagesSection({
   pages,
   analysis,
@@ -58,18 +86,19 @@ export function PagesSection({
     setRows((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const cleanedRows = cleanRows(rows);
+  const persistedCleaned: CleanedRow[] = pages.map((p) => ({
+    oldPath: p.oldPath,
+    newPath: p.newPath,
+    notes: p.notes,
+  }));
+  const hasUnsavedChanges = !sameCleanedRows(cleanedRows, persistedCleaned);
+
   async function handleSave() {
-    const cleaned = rows
-      .map((r) => ({
-        oldPath: r.oldPath.trim() || null,
-        newPath: r.newPath.trim() || null,
-        notes: r.notes.trim() || null,
-      }))
-      .filter((r) => r.oldPath != null || r.newPath != null);
     setSaving(true);
     setError(null);
     try {
-      await onSave(cleaned);
+      await onSave(cleanedRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the pages.");
     } finally {
@@ -78,7 +107,14 @@ export function PagesSection({
   }
 
   async function handleConfirm() {
+    if (hasUnsavedChanges) {
+      setError(
+        "Save pages first — the mapping below hasn't been saved yet, so confirming now would sign off on the previous mapping, not this one.",
+      );
+      return;
+    }
     setConfirmBusy(true);
+    setError(null);
     try {
       onConfirm();
     } finally {
@@ -87,9 +123,12 @@ export function PagesSection({
   }
 
   return (
-    <div className="rounded-[5px] border border-border bg-white p-5">
-      <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
-      <p className="mt-1 text-xs text-muted">
+    <div className="overflow-hidden rounded-[5px] border border-border bg-white">
+      <div className="border-b border-border bg-page px-5 py-3">
+        <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
+      </div>
+      <div className="p-5">
+      <p className="text-xs text-muted">
         Map each old page to its new route. Leave the old side blank for a page that never existed before; leave
         the new side blank for one being retired.
       </p>
@@ -153,7 +192,12 @@ export function PagesSection({
       {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
       {canEdit && (
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex items-center justify-between gap-3">
+          {hasUnsavedChanges ? (
+            <p className="text-xs font-medium text-amber-700">Unsaved changes — save before confirming.</p>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             onClick={() => void handleSave()}
@@ -173,6 +217,7 @@ export function PagesSection({
         onConfirm={() => void handleConfirm()}
         onReopen={onReopen}
       />
+      </div>
     </div>
   );
 }
