@@ -62,6 +62,22 @@ export interface MyClaudeUsageBreakdown {
   recent: MyClaudeUsageDayModel[];
 }
 
+/**
+ * Input + output tokens from this week's Monday to today, against the whole
+ * weekly soft budget (ADR-063). `pctUsed` can exceed 100; `remainingTokens`
+ * never goes below 0.
+ */
+export interface MyClaudeUsageWeek {
+  from: string;
+  to: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  budgetTokens: number;
+  pctUsed: number;
+  remainingTokens: number;
+}
+
 /** Everything the "My Claude Usage" screen renders, read together in one call. */
 export interface MyClaudeUsageDashboard {
   email: string;
@@ -75,6 +91,9 @@ export interface MyClaudeUsageDashboard {
   /** The caller's own row rolled up over today, same shape as an admin per-user row; null until they first report. */
   todayUsage: ClaudeUsageMember | null;
   usage: MyClaudeUsageBreakdown;
+  week: MyClaudeUsageWeek;
+  /** The plan's list price — display only, never a balance `usage.costUsd` is subtracted from (ADR-063). */
+  subscriptionUsdPerMonth: number;
 }
 
 /** The caller's own dashboard, with "Usage by Model" over the last `days` days. */

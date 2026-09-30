@@ -237,10 +237,10 @@ export function AdminClaudeUsageView() {
             />
             <UsageStatCard
               icon={CoinsIcon}
-              label="API-Equivalent Cost"
+              label="Reference API Cost"
               value={`$${totals.costUsd.toFixed(2)}`}
               tone="blue"
-              note="Estimated, per-model rate"
+              note="API-equivalent estimate, not a charge"
             />
             <UsageStatCard
               icon={UsersIcon}

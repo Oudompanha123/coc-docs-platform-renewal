@@ -43,9 +43,9 @@ export default function MyClaudeUsagePage() {
       <main>
         <section className="mx-auto max-w-5xl px-6 py-16">
           <div className="animate-entrance">
-            <h1 className="text-center text-3xl font-bold text-ink">My Claude Usage</h1>
+            <h1 className="text-center text-3xl font-bold text-ink">Claude Usage</h1>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
-              Your own Claude Code usage — nobody else&apos;s.
+              Track your Claude token usage.
             </p>
           </div>
 
