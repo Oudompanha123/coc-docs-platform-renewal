@@ -79,7 +79,12 @@ describe('login (browser, ADR-060)', () => {
 
     const page = await actAsBrowser(authorizeUrl, { api: backend.origin });
     assert.equal(page.status, 200);
-    assert.match(page.body, /signed in/);
+    assert.match(page.body, /Authorization successful/);
+    // Returns the tab to Coc Docs' /cli/signed-in, which picks the dashboard by
+    // role — and never echoes the one-time code or state back into the page.
+    assert.ok(page.body.includes(`${backend.origin}/cli/signed-in`));
+    assert.ok(!page.body.includes(CODE));
+    assert.ok(!page.body.includes(u.searchParams.get('state')));
 
     const res = await cli.done;
     assert.equal(res.code, 0, res.stderr);

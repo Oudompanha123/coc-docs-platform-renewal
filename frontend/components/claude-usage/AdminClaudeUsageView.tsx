@@ -27,6 +27,7 @@ import {
   type Period,
   type TeamRole,
 } from "@/lib/admin/claudeUsage";
+import { useUsageAutoRefresh } from "@/lib/claudeUsage/useUsageAutoRefresh";
 
 const RANGE_LABEL: Record<Period, string> = {
   day: "Today",
@@ -98,6 +99,10 @@ export function AdminClaudeUsageView() {
     setLoading(true);
     void reload();
   }, [reload]);
+
+  // Re-read on return to the tab, and after an admin's own CLI sign-in lands
+  // here (`/cli/signed-in` → `?cli=signed-in`) until the team totals move.
+  const { awaitingCliUpload } = useUsageAutoRefresh(reload, dashboard ? JSON.stringify(dashboard.totals) : undefined);
 
   function handlePeriodChange(next: Period) {
     setPeriod(next);
@@ -196,6 +201,13 @@ export function AdminClaudeUsageView() {
           Invite teammate
         </button>
       </div>
+
+      {awaitingCliUpload && (
+        <div role="status" className="mt-4 rounded-[10px] border border-border bg-page px-4 py-3 text-sm text-dash-ink">
+          Signed in. Your latest usage will appear here once <code className="font-mono text-xs">claude-team-usage</code>{" "}
+          finishes uploading.
+        </div>
+      )}
 
       {loadError && (
         <div role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
