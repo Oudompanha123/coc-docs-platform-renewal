@@ -90,6 +90,13 @@ function render(n: InboxNotification): { title: string; detail: string } {
         title: "New sign-in",
         detail: body ? `${body} · ${formatWhen(n.createdAt)}` : "From a device you have not used",
       };
+    // ADR-075. The project's name is deliberately not in the row — the same
+    // sentence goes to a lock screen — so it is one click away instead.
+    case "ax-renewal.member-added":
+      return {
+        title: "Added to a project",
+        detail: body || "You were added to an AX Renewal project",
+      };
     default:
       return { title: "Notification", detail: body || "Something happened" };
   }
@@ -204,6 +211,14 @@ export function useNotifications(
     onOpenApproval?: (account: PendingAccount) => void;
     /** Called when a new-device sign-in notification is opened. */
     onOpenSignIn?: (session: SessionSummary) => void;
+    /**
+     * Called with the project's id when an "added to a project" notification
+     * is opened (ADR-075). The caller decides how to get there — the admin
+     * shell's Topbar opens the workspace in a new tab. Without it, opening
+     * one does nothing, which is right for the member area: a plain `user`
+     * can never be added to a project.
+     */
+    onOpenProject?: (projectId: string) => void;
   } = {},
 ): Notifications {
   // Refs so the polling effect does not restart every render just because the
@@ -212,6 +227,8 @@ export function useNotifications(
   onOpenApproval.current = options.onOpenApproval;
   const onOpenSignIn = useRef(options.onOpenSignIn);
   onOpenSignIn.current = options.onOpenSignIn;
+  const onOpenProject = useRef(options.onOpenProject);
+  onOpenProject.current = options.onOpenProject;
 
   const { status, refresh: refreshSession } = useSession();
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -233,6 +250,13 @@ export function useNotifications(
    */
   const open = useCallback(async (item: NotificationItem) => {
     if (!item.targetId) return;
+    // No lookup first: the project page itself is the check. If the project
+    // has since been deleted, or the reader removed from it, it says so —
+    // the same 404 any non-member gets (ADR-070).
+    if (item.type === "ax-renewal.member-added") {
+      onOpenProject.current?.(item.targetId);
+      return;
+    }
     try {
       if (item.type === "auth.new-device") {
         const session = (await listSessions()).find((s) => s.id === item.targetId);

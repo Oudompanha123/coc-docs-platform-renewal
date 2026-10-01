@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
 import { ResizeHandle } from "@/components/ax-renewal/ResizeHandle";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
@@ -76,7 +77,7 @@ type AxAssistantPanelProps = {
 
 export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResizing = false }: AxAssistantPanelProps) {
   const { user } = useSession();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const searchParams = useSearchParams();
   const { projectId, detail, refresh } = useAxRenewalProjectContext();
   // The same rules as app/ax-renewal/page.tsx, from the same place

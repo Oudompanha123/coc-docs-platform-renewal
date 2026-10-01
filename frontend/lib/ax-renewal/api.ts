@@ -209,6 +209,8 @@ export interface AxRenewalConfirmation {
   confirmedAt: string;
   confirmedBy: string;
   confirmedVia: "super_admin" | "developer_role";
+  /** The confirmer's display name, never an email (ADR-076) — null only if their account is gone. */
+  confirmedByName: string | null;
 }
 
 export type AxRenewalImplementationStatus =
@@ -339,6 +341,22 @@ export function createProject(name: string, description: string | null): Promise
 
 export function fetchProjectDetail(projectId: string): Promise<AxRenewalProjectDetail> {
   return request<AxRenewalProjectDetail>(`/projects/${projectId}`);
+}
+
+/**
+ * Renames a project and sets its description (ADR-076). A blank description
+ * clears it. Admin on the project, or a super admin; a non-member gets the
+ * same 404 as a missing project (ADR-070).
+ */
+export function updateProject(
+  projectId: string,
+  name: string,
+  description: string | null,
+): Promise<AxRenewalProject> {
+  return request<AxRenewalProject>(`/projects/${projectId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name, description }),
+  });
 }
 
 /**
