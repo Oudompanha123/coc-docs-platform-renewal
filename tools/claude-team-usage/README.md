@@ -38,6 +38,23 @@ Re-running is safe: each day is an upsert, so the latest total replaces the earl
 
 Exit codes: `0` success (including "no usage found"), `1` failure, `2` bad arguments.
 
+## What is sent
+
+For each day, and nothing else:
+
+- **Tokens**: input, output, cache read and cache write, in total and per model.
+- **Activity** (since 0.3.0): how many requests (prompts you sent), sessions (continuous
+  activity, split after 30 minutes with none) and minutes of active time. Also, per
+  project: the same counts, its tokens, and the first and last time you used it.
+
+A project is the **name** of the git repository folder you worked in, e.g.
+`coc-docs-platform`. Outside a repository, it is the name of the folder the conversation started in.
+**Never sent**: paths, prompts, replies, file names, tool names or session IDs.
+`claude-team-usage scan --dry-run` prints exactly what would be sent.
+
+After upgrading from 0.2.x, days already reported are re-sent once to add their
+activity. `claude-team-usage scan --days 30` fills in the last 30 days.
+
 ## Scheduled runs
 
 After the first sign-in, a scheduled run works unattended. A run with no terminal
