@@ -16,6 +16,7 @@ import { MembersPanel } from "@/components/ax-renewal/MembersPanel";
 import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectPicker } from "@/components/ax-renewal/ProjectPicker";
+import { RunHistory } from "@/components/ax-renewal/RunHistory";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
 import { Tabs, type Tab } from "@/components/settings/Tabs";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -1627,6 +1628,10 @@ function ImplementationPanel({
         )}
 
         {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+
+        {/* Every earlier run too (ADR-078), read-only. Re-read whenever the
+            latest run starts, changes status or is replaced. */}
+        <RunHistory projectId={detail.project.id} refreshKey={`${run?.id ?? "none"}:${run?.status ?? ""}`} />
       </div>
     </div>
   );
