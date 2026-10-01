@@ -6,6 +6,7 @@ import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectCon
 import { useAxRenewalTabs } from "@/lib/ax-renewal/tabs";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
 import { AxRenewalBreadcrumb } from "./AxRenewalBreadcrumb";
+import { AxRenewalNotificationsBell } from "./AxRenewalNotificationsBell";
 import { AxRenewalTabBar } from "./AxRenewalTabBar";
 
 type AxRenewalTopbarProps = {
@@ -66,6 +67,13 @@ export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
         ) : (
           <div className="flex-1" />
         )}
+        {/* The workspace has its own layout, without the admin shell's
+            Topbar — so without this bell nothing here listened for
+            notifications at all: no live bell, and no browser banner for one
+            that arrived while somebody was working in this tab (ADR-074). */}
+        <div className="ml-auto shrink-0 px-2 py-1">
+          <AxRenewalNotificationsBell />
+        </div>
       </div>
       {detail && <AxRenewalBreadcrumb active={active} detail={detail} />}
     </div>

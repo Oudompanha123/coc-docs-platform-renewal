@@ -103,6 +103,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     // clicking the item in the bell. The reader acts from wherever they are.
     onOpenApproval: (account) => setApproving(account),
     onOpenSignIn: (session) => setReviewingSignIn(session),
+    // A new tab, the same as the sidebar's own AX Renewal link: the workspace
+    // is its own full-screen app, not a page of this shell (ADR-074).
+    onOpenProject: (projectId) =>
+      window.open(`/ax-renewal?project=${encodeURIComponent(projectId)}`, "_blank", "noopener,noreferrer"),
   });
   const visibleNotifications =
     notificationFilter === "unread"
