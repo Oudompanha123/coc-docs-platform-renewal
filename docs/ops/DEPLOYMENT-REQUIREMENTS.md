@@ -179,8 +179,42 @@ variable has a working default or degrades to a documented state:
 | Database | `DB_NAME` `DB_USER` `DB_SCHEMA` `DB_POOL_MAX` `DB_BIND_ADDRESS` |
 | Keycloak | `KEYCLOAK_ADMIN_USER` `KEYCLOAK_DB_NAME` `KEYCLOAK_REALM` `KEYCLOAK_VERSION` `KEYCLOAK_CLIENT_ID` |
 | Sizing / TLS | `BACKEND_MEMORY` `FRONTEND_MEMORY` `SESSION_TTL` `CERTBOT_STAGING` |
+| HRMS attendance (shared inbox) | `APP_HRMS_ENABLED` `APP_HRMS_HOST` `APP_HRMS_PORT` `APP_HRMS_USERNAME` `APP_HRMS_PASSWORD` `APP_HRMS_SENDER` `APP_HRMS_FOLDER` `APP_HRMS_POLL_CRON` |
+| Per-account mail credentials (ADR-063, ADR-075) | `APP_SECURITY_ENCRYPTION_KEY` |
 
-Two requirements that are easy to miss, each of which has cost an afternoon:
+### 6.1 `APP_SECURITY_ENCRYPTION_KEY` — read this before the first deploy
+
+This one behaves unlike every other variable here, and getting it wrong is not
+recoverable by editing a file.
+
+- **What it is.** Base64 of exactly **32 random bytes** (AES-256). Generate it
+  with `openssl rand -base64 32`, which produces 44 characters ending in `=`.
+  The backend refuses to start if it decodes to any other length.
+- **It is the only key to `account_mail_credential.app_password_encrypted`.**
+  Every account's stored Gmail App Password is encrypted under it. Unlike
+  `DB_PASSWORD`, which can be changed on both sides, **losing or changing this
+  value makes every stored credential permanently unreadable** — there is no
+  recovery, and each person must enter their App Password again.
+- **It must be the same value everywhere the backend runs.** Two replicas with
+  different keys will each fail to decrypt what the other wrote. The symptom is
+  not an error: `AccountMailCredentialRepository.findFor` treats an
+  undecryptable row as "no credential" and quietly falls back to the shared
+  sender, so the feature degrades silently rather than complaining.
+- **Do not reuse the development value in production.** A key that has been in
+  a developer's `.env.local`, a terminal history or a chat transcript is a key
+  that protects nothing.
+- **Leaving it unset is a supported state.** `SecretBox.isConfigured()` returns
+  false, no credential can be stored, personal inbox polling never runs, and
+  attendance mail is sent by the shared `MAIL_*` sender. That is the correct
+  configuration for a deployment that does not want this feature.
+
+**The compose file must pass these through to the `backend` service** —
+a variable present in `infra/.env` but absent from that service's `environment:`
+block never reaches the JVM, and the feature then silently stays off. Verify
+after deploy with the startup log line beginning `MAIL:` and, if HRMS polling
+is on, `HRMS: polling …`.
+
+Two further requirements that are easy to miss, each of which has cost an afternoon:
 
 - **`FIREBASE_CREDENTIALS` is the service-account JSON on one line.** The `\n`
   sequences inside `private_key` are two characters and must stay that way. An
