@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
 import { BellIcon } from "@/components/layout/icons";
 import { ShieldIcon } from "@/components/auth/icons";
 import { ApplicantAvatar } from "@/components/layout/ApplicantAvatar";
@@ -14,6 +15,8 @@ import type { SessionSummary } from "@/lib/auth/api";
 type NotificationFilter = "unread" | "all";
 
 /**
+ * The AX Renewal workspace's bell, mounted in `AxRenewalTopbar` (ADR-075).
+ *
  * The bell from the main admin Topbar, reused here rather than re-invented —
  * same `useNotifications` hook (real approval/new-device alerts, not a
  * mock), same two modals it can open. A fresh component rather than a shared
@@ -28,9 +31,14 @@ export function AxRenewalNotificationsBell() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const unreadCountRef = useRef(0);
 
+  const router = useGuardedRouter();
+
   const notifications = useNotifications({
     onOpenApproval: (account) => setApproving(account),
     onOpenSignIn: (session) => setReviewingSignIn(session),
+    // Already inside the workspace: switch to that project in place, rather
+    // than the new tab the admin shell's bell opens (ADR-075).
+    onOpenProject: (projectId) => router.push(`/ax-renewal?project=${encodeURIComponent(projectId)}`),
   });
   unreadCountRef.current = notifications.unreadCount;
 

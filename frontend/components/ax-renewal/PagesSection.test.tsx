@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AxRenewalAnalysis } from "@/lib/ax-renewal/api";
+import { resetUnsavedForTests, unsavedSections } from "@/lib/ax-renewal/unsavedChanges";
 import { PagesSection } from "./PagesSection";
 
 /**
@@ -53,5 +55,56 @@ describe("PagesSection confirm", () => {
     finish();
     await waitFor(() => expect(screen.getByRole("button", { name: "Confirm Pages" })).toBeEnabled());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Leaving with unsaved edits (ADR-076): the section tells the workspace it has
+ * something to lose — and only when the person actually changed something.
+ */
+describe("PagesSection unsaved-edits warning", () => {
+  afterEach(() => resetUnsavedForTests());
+
+  function renderWith(pages: { oldPath: string; newPath: string; notes: null; position: number }[], analysis: AxRenewalAnalysis | null) {
+    render(
+      <PagesSection
+        pages={pages}
+        analysis={analysis}
+        confirmation={undefined}
+        canEdit
+        canConfirm
+        onSave={vi.fn()}
+        onConfirm={vi.fn()}
+        onReopen={vi.fn()}
+      />,
+    );
+  }
+
+  it("registers once a saved mapping is edited", () => {
+    renderWith([{ oldPath: "/old", newPath: "/new", notes: null, position: 0 }], null);
+    expect(unsavedSections()).toEqual([]);
+
+    fireEvent.change(screen.getByDisplayValue("/new"), { target: { value: "/newer" } });
+
+    expect(unsavedSections()).toEqual(["Pages"]);
+  });
+
+  it("does not warn about a suggestion nobody has touched", () => {
+    // Nothing saved yet, so the rows shown come from analysis — unsaved, but
+    // not anybody's edits, and leaving loses nothing worth asking about.
+    const analysis = { pagesDetected: [{ path: "/products", purpose: "catalogue" }] } as unknown as AxRenewalAnalysis;
+    renderWith([], analysis);
+
+    expect(screen.getByDisplayValue("/products")).toBeInTheDocument();
+    expect(unsavedSections()).toEqual([]);
+  });
+
+  it("warns once that suggestion is edited", () => {
+    const analysis = { pagesDetected: [{ path: "/products", purpose: "catalogue" }] } as unknown as AxRenewalAnalysis;
+    renderWith([], analysis);
+
+    fireEvent.change(screen.getAllByPlaceholderText("New route")[0]!, { target: { value: "/shop" } });
+
+    expect(unsavedSections()).toEqual(["Pages"]);
   });
 });

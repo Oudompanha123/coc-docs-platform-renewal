@@ -53,6 +53,8 @@ export interface ClaudeUsageMember {
   outputTokens: number;
   totalTokens: number;
   costUsd: number;
+  /** Profile picture of the platform account with the same email, or null — show initials then. */
+  avatarUrl: string | null;
 }
 
 /** A roster row on its own, with no usage figures — what invite/role/budget/remove return. */
@@ -93,6 +95,119 @@ export interface ClaudeUsageDashboard {
   activeUsers: number;
   nearLimit: number;
   lastUpdated: string | null;
+}
+
+/** One model's share of a reported day. `totalTokens` is input + output, the same definition as everywhere else here. */
+export interface ClaudeUsageActivityModel {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+  costUsd: number;
+}
+
+/**
+ * One project's usage (ADR-074) — over the whole range in
+ * {@link ClaudeUsageMemberActivity.projects}, or one day inside a day.
+ * `name` is a repository folder name, never a path. `sessionCount` and
+ * `activeSeconds` come from this project's own activity, so two projects
+ * worked on in parallel can add up to more than the day.
+ */
+export interface ClaudeUsageActivityProject {
+  name: string;
+  /** Human turns — each time the person asked Claude something. */
+  requestCount: number;
+  /** Model responses — the unit tokens are summed over. */
+  apiCallCount: number;
+  conversationCount: number;
+  sessionCount: number;
+  activeSeconds: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+  firstAt: string | null;
+  lastAt: string | null;
+}
+
+/** One block of continuous activity — split after 30 minutes with no Claude activity. */
+export interface ClaudeUsageActivitySession {
+  date: string;
+  startedAt: string;
+  endedAt: string;
+  durationSeconds: number;
+  requestCount: number;
+  projects: string[];
+}
+
+/**
+ * One reported day for one member. Tokens and cost come from the day's
+ * running total. The activity fields (requests through sessions) are null
+ * when the day was reported by a reporter older than ADR-074 — "not
+ * reported", never zero.
+ */
+export interface ClaudeUsageActivityDay {
+  date: string;
+  /** When the reporter last uploaded this day's running total — not when any piece of work happened. */
+  reportedAt: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+  /** Null under a project filter — cost is not split by project. */
+  costUsd: number | null;
+  /** Empty under a project filter. */
+  models: ClaudeUsageActivityModel[];
+  requestCount: number | null;
+  apiCallCount: number | null;
+  conversationCount: number | null;
+  sessionCount: number | null;
+  activeSeconds: number | null;
+  projects: ClaudeUsageActivityProject[] | null;
+  sessions: ClaudeUsageActivitySession[] | null;
+}
+
+/** Range totals: tokens over every day; activity over the days that reported it, or null if none did. */
+export interface ClaudeUsageActivitySummary {
+  requestCount: number | null;
+  apiCallCount: number | null;
+  conversationCount: number | null;
+  sessionCount: number | null;
+  activeSeconds: number | null;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+}
+
+/** The admin "User Activity" detail for one member over a date range (ADR-074). */
+export interface ClaudeUsageMemberActivity {
+  memberId: string;
+  from: string;
+  to: string;
+  /** The project filter applied, or null for all projects. */
+  project: string | null;
+  summary: ClaudeUsageActivitySummary;
+  /** Days with tokens but no activity — reported by an older reporter. */
+  daysWithoutActivity: number;
+  /** Largest total first. */
+  projects: ClaudeUsageActivityProject[];
+  /** Newest first. */
+  sessions: ClaudeUsageActivitySession[];
+  /** Newest first. */
+  days: ClaudeUsageActivityDay[];
+}
+
+/** A User Activity date range: ISO calendar dates, inclusive, plus an optional project filter. */
+export interface ActivityQuery {
+  from: string;
+  to: string;
+  project?: string | null;
 }
 
 /** The roster mutations, all of which live under `/admin` and need that floor. */
@@ -155,6 +270,16 @@ async function requestAt<T>(url: string, init?: RequestInit): Promise<T> {
  */
 export function fetchDashboard(period: Period, offset = 0): Promise<ClaudeUsageDashboard> {
   return requestAt(`${BACKEND_URL}/api/v1/claude-usage?period=${period}&offset=${offset}`);
+}
+
+/**
+ * One member's usage detail over `from`..`to` (inclusive), optionally narrowed
+ * to one project (ADR-074). Admin-only — under `/admin`, unlike the dashboard read.
+ */
+export function fetchMemberActivity(memberId: string, query: ActivityQuery): Promise<ClaudeUsageMemberActivity> {
+  const params = new URLSearchParams({ from: query.from, to: query.to });
+  if (query.project) params.set("project", query.project);
+  return request<ClaudeUsageMemberActivity>(`/members/${encodeURIComponent(memberId)}/activity?${params.toString()}`);
 }
 
 /**

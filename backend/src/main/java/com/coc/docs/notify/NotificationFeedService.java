@@ -191,7 +191,13 @@ public class NotificationFeedService {
      * Nobody in this system did it.
      */
     private Stream<FeedItem> hrmsItemsFor(CurrentUser caller, int limit) {
-        return hrms.recent(limit).stream().map(NotificationFeedService::toItem);
+        // The caller was already a parameter and already unused -- it is used
+        // now (ADR-077). A report read from somebody's own inbox reaches only
+        // their bell; the shared mailbox's reach everyone's, as before. Passing
+        // null for an absent session is deliberate: no session, no personal
+        // mailbox, rather than falling back to some default account's.
+        return hrms.recent(limit, caller == null ? null : caller.id()).stream()
+                .map(NotificationFeedService::toItem);
     }
 
     /**
@@ -334,6 +340,7 @@ public class NotificationFeedService {
             case AuditAction.CLAUDE_USAGE_CLI_AUTHORIZE -> "Connected the usage CLI on a machine";
             case AuditAction.AX_RENEWAL_PROJECT_CREATE -> "Started an AX Renewal project";
             case AuditAction.AX_RENEWAL_PROJECT_DELETE -> "Deleted an AX Renewal project";
+            case AuditAction.AX_RENEWAL_PROJECT_UPDATE -> "Renamed or re-described an AX Renewal project";
             case AuditAction.AX_RENEWAL_MANIFEST_ATTACH -> "Attached a codebase manifest";
             case AuditAction.AX_RENEWAL_ANALYSIS_RUN -> "Analysed a codebase";
             case AuditAction.AX_RENEWAL_STACK_MOVE_EDIT -> "Changed a stack move target";

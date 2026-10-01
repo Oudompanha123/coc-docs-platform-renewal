@@ -17,6 +17,7 @@ import { TeamRosterPanel } from "@/components/claude-usage/TeamRosterPanel";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { UsageTable } from "@/components/claude-usage/UsageTable";
+import { UserActivityModal } from "@/components/claude-usage/UserActivityModal";
 import {
   fetchDashboard,
   inviteMember,
@@ -83,6 +84,7 @@ export function AdminClaudeUsageView() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<ClaudeUsageMember | null>(null);
+  const [detail, setDetail] = useState<{ member: ClaudeUsageMember; avatarColor: string } | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -268,13 +270,21 @@ export function AdminClaudeUsageView() {
 
           <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
-            <UsageTable members={members} />
+            <UsageTable members={members} onSelect={(member, avatarColor) => setDetail({ member, avatarColor })} />
           </div>
 
           <TeamRosterPanel members={members} onRemove={handleRemove} />
 
           <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
         </>
+      )}
+
+      {detail && (
+        <UserActivityModal
+          member={members.find((m) => m.id === detail.member.id) ?? detail.member}
+          avatarColor={detail.avatarColor}
+          onClose={() => setDetail(null)}
+        />
       )}
 
       {inviteOpen && <InviteTeammateModal onClose={() => setInviteOpen(false)} onInvite={handleInvite} />}

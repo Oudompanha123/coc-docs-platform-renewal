@@ -672,6 +672,28 @@ class SecurityRulesTest {
         }
 
         @Test
+        void member_activity_refuses_a_plain_user_and_admits_an_admin() throws Exception {
+            // One colleague's day-by-day usage: an admin read, never a plain
+            // user's, even though the team dashboard itself admits them.
+            java.util.UUID id = java.util.UUID.randomUUID();
+            mvc.perform(get("/api/v1/admin/claude-usage/members/" + id + "/activity").with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+
+            org.mockito.Mockito.when(claudeUsageService.memberActivity(
+                            org.mockito.ArgumentMatchers.eq(id),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.anyInt(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(new com.coc.docs.claudeusage.ClaudeUsageMemberActivity(
+                            id, java.time.LocalDate.now(), java.time.LocalDate.now(), List.of()));
+
+            mvc.perform(get("/api/v1/admin/claude-usage/members/" + id + "/activity").with(as(AppRole.ADMIN)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
         void the_dashboard_admits_an_admin() throws Exception {
             org.mockito.Mockito.when(claudeUsageService.dashboardFor(
                             org.mockito.ArgumentMatchers.any(),
@@ -1176,6 +1198,45 @@ class SecurityRulesTest {
         void deleting_a_project_refuses_a_caller_with_no_session() throws Exception {
             mvc.perform(delete("/api/v1/ax-renewal/projects/" + UUID.randomUUID()))
                     .andExpect(status().isUnauthorized());
+        }
+
+        // --- Renaming a project (ADR-076): the same floor as deleting one.
+
+        @ParameterizedTest
+        @EnumSource(value = AppRole.class, names = {"USER", "DEVELOPER", "REVIEWER", "LEAD"})
+        void renaming_a_project_refuses_every_role_below_admin(AppRole role) throws Exception {
+            mvc.perform(patch("/api/v1/ax-renewal/projects/" + UUID.randomUUID())
+                            .with(as(role))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Renamed\"}"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void renaming_a_project_admits_an_admin() throws Exception {
+            org.mockito.Mockito.doThrow(ApiException.notFound("project"))
+                    .when(axRenewalService)
+                    .updateDetails(
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any());
+
+            // 404 from the stub, not 403 — the route was reached.
+            mvc.perform(patch("/api/v1/ax-renewal/projects/" + UUID.randomUUID())
+                            .with(as(AppRole.ADMIN))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Renamed\",\"description\":\"notes\"}"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void renaming_a_project_to_a_blank_name_is_refused_before_it_reaches_the_service() throws Exception {
+            mvc.perform(patch("/api/v1/ax-renewal/projects/" + UUID.randomUUID())
+                            .with(as(AppRole.ADMIN))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"   \"}"))
+                    .andExpect(status().isBadRequest());
         }
 
         @Test

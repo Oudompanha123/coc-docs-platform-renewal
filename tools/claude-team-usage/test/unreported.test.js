@@ -130,7 +130,10 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
         version: 1,
         accounts: {
           [`dana@example.com|${backend.url}`]: {
-            days: { [day]: { input: 0, output: 100_000, cacheRead: 0, cacheCreation: 0 } },
+            // As this version records it — with the activity marker (ADR-074).
+            // A day recorded without one is re-sent once to fill its activity
+            // in; that upgrade path is covered in activity.test.js.
+            days: { [day]: { input: 0, output: 100_000, cacheRead: 0, cacheCreation: 0, activity: { requests: 0, activeSeconds: 0 } } },
             lastCompleteScan: lastDays(3)[0],
           },
         },

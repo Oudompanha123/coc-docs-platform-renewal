@@ -13,6 +13,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { ActivityCollector } from './activity.js';
 
 // Must agree with the backend's own reporting zone (ClaudeUsageService.
 // REPORT_ZONE, ADR-035) — otherwise a report made near midnight lands under
@@ -124,7 +125,7 @@ function num(value) {
  * content blocks can log an early line with a partial output_tokens before the final
  * one, so each response keeps the largest value seen per category (ADR-058).
  */
-export function collectDays(projectsDirs, dates) {
+export function collectDays(projectsDirs, dates, { activity = new ActivityCollector() } = {}) {
   const wanted = new Set(dates);
   const cutoffMs = Date.parse(`${dates[0]}T00:00:00Z`) - 36 * 3600 * 1000;
   const allFiles = projectsDirs.flatMap((dir) => findTranscripts(dir));
@@ -172,11 +173,15 @@ export function collectDays(projectsDirs, dates) {
         continue;
       }
 
-      const usage = entry?.message?.usage;
-      if (!usage || typeof usage !== 'object') continue;
-      if (!entry.timestamp) continue;
+      if (!entry?.timestamp || !Number.isFinite(Date.parse(entry.timestamp))) continue;
       const day = ymd(new Date(entry.timestamp));
       if (!wanted.has(day)) continue;
+      // Every line of the day is activity (ADR-074); only usage lines go on to
+      // the token sums below, exactly as before.
+      const project = activity.observe(entry, day);
+
+      const usage = entry.message?.usage;
+      if (!usage || typeof usage !== 'object') continue;
       lines++;
 
       const model = String(entry.message?.model ?? 'unknown');
@@ -191,13 +196,14 @@ export function collectDays(projectsDirs, dates) {
       };
 
       const key = `${entry.message?.id ?? ''}|${entry.requestId ?? ''}`;
+      const at = { day, model, add, project: project ?? activity.projectOf(entry) };
       if (key === '|') {
-        unkeyed.push({ day, model, add });
+        unkeyed.push(at);
         continue;
       }
       const prior = responses.get(key);
       if (!prior) {
-        responses.set(key, { day, model, add });
+        responses.set(key, at);
       } else {
         duplicates++;
         for (const k of Object.keys(add)) prior.add[k] = Math.max(prior.add[k], add[k]);
@@ -205,7 +211,21 @@ export function collectDays(projectsDirs, dates) {
     }
   }
 
-  for (const { day, model, add } of [...responses.values(), ...unkeyed]) {
+  // day -> project -> tokens and API calls: the same responses, filed by the
+  // project of the line that first carried them, so a day's projects always
+  // sum to its totals.
+  const projectTokens = new Map();
+  for (const { day, model, add, project } of [...responses.values(), ...unkeyed]) {
+    if (!projectTokens.has(day)) projectTokens.set(day, new Map());
+    const byProject = projectTokens.get(day);
+    const p = byProject.get(project) ?? { input: 0, output: 0, cache_read: 0, cache_creation: 0, calls: 0 };
+    p.input += add.input;
+    p.output += add.output;
+    p.cache_read += add.cache_read;
+    p.cache_creation += add.cache_creation;
+    p.calls++;
+    byProject.set(project, p);
+
     const slot = bucketFor(day);
     const bucket = (slot.byModel[model] ??= {
       input: 0,
@@ -222,6 +242,10 @@ export function collectDays(projectsDirs, dates) {
     counted++;
   }
 
+  for (const [day, detail] of activity.build(projectTokens)) {
+    if (days.has(day)) days.get(day).activity = detail;
+  }
+
   return { days, counted, skipped, duplicates, lines, files: files.length, totalFiles: allFiles.length };
 }
 
@@ -234,7 +258,7 @@ export function buildPayloads(days, dates, identity) {
     .map((date) => {
       const slot = days.get(date);
       if (!slot) return null; // nothing was logged that day
-      const { totals, byModel, counted } = slot;
+      const { totals, byModel, counted, activity } = slot;
       const total = Math.round(totals.input + totals.output);
       if (total <= 0) return null;
 
@@ -270,6 +294,9 @@ export function buildPayloads(days, dates, identity) {
           cacheCreation: Math.round(totals.cache_creation),
           models,
           byModel: byModelPayload,
+          // Requests, sessions, active time and projects (ADR-074). Optional on
+          // the wire: a backend or reporter that predates it simply omits it.
+          ...(activity ? { activity } : {}),
         },
         total,
         counted,
