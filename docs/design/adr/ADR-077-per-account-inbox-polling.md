@@ -1,4 +1,4 @@
-# ADR-075: Each Account's Attendance Report Is Read From That Account's Own Inbox
+# ADR-077: Each Account's Attendance Report Is Read From That Account's Own Inbox
 
 > **Status**: PROPOSED
 > **Date**: 2026-10-01

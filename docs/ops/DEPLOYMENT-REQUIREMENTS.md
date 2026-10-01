@@ -180,7 +180,7 @@ variable has a working default or degrades to a documented state:
 | Keycloak | `KEYCLOAK_ADMIN_USER` `KEYCLOAK_DB_NAME` `KEYCLOAK_REALM` `KEYCLOAK_VERSION` `KEYCLOAK_CLIENT_ID` |
 | Sizing / TLS | `BACKEND_MEMORY` `FRONTEND_MEMORY` `SESSION_TTL` `CERTBOT_STAGING` |
 | HRMS attendance (shared inbox) | `APP_HRMS_ENABLED` `APP_HRMS_HOST` `APP_HRMS_PORT` `APP_HRMS_USERNAME` `APP_HRMS_PASSWORD` `APP_HRMS_SENDER` `APP_HRMS_FOLDER` `APP_HRMS_POLL_CRON` |
-| Per-account mail credentials (ADR-063, ADR-075) | `APP_SECURITY_ENCRYPTION_KEY` |
+| Per-account mail credentials (ADR-063, ADR-077) | `APP_SECURITY_ENCRYPTION_KEY` |
 
 ### 6.1 `APP_SECURITY_ENCRYPTION_KEY` — read this before the first deploy
 
