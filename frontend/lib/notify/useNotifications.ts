@@ -97,6 +97,12 @@ function render(n: InboxNotification): { title: string; detail: string } {
         title: "Added to a project",
         detail: body || "You were added to an AX Renewal project",
       };
+    // ADR-079. The same reticence: which project is one click away.
+    case "ax-renewal.run-ready":
+      return {
+        title: "Ready for review",
+        detail: body || "An AX Renewal implementation run is ready for review",
+      };
     default:
       return { title: "Notification", detail: body || "Something happened" };
   }
@@ -253,7 +259,7 @@ export function useNotifications(
     // No lookup first: the project page itself is the check. If the project
     // has since been deleted, or the reader removed from it, it says so —
     // the same 404 any non-member gets (ADR-070).
-    if (item.type === "ax-renewal.member-added") {
+    if (item.type === "ax-renewal.member-added" || item.type === "ax-renewal.run-ready") {
       onOpenProject.current?.(item.targetId);
       return;
     }
