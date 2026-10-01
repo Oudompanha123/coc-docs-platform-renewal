@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
+import { Pagination } from "@/components/users-roles/Pagination";
 import { TrackingStatusBadge } from "./TrackingStatusBadge";
 
 /**
@@ -16,7 +20,15 @@ export function TeamRosterPanel({
   members: ClaudeUsageMember[];
   onRemove: (member: ClaudeUsageMember) => void;
 }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+
   const roster = [...members].sort((a, b) => a.displayName.localeCompare(b.displayName));
+  // Clamp here too, not just in <Pagination>: removing the last member on the
+  // final page would otherwise slice past the end and show an empty list.
+  const pageCount = Math.max(1, Math.ceil(roster.length / pageSize));
+  const current = Math.min(page, pageCount);
+  const visible = roster.slice((current - 1) * pageSize, current * pageSize);
 
   return (
     <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
@@ -27,7 +39,7 @@ export function TeamRosterPanel({
       </p>
 
       <div className="mt-4 divide-y divide-border">
-        {roster.map((member) => (
+        {visible.map((member) => (
           <div key={member.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-dash-ink">{member.displayName}</p>
@@ -52,6 +64,18 @@ export function TeamRosterPanel({
           </div>
         ))}
       </div>
+
+      {roster.length > 0 && (
+        <div className="-mx-5 -mb-5 mt-2">
+          <Pagination
+            total={roster.length}
+            page={current}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
+      )}
     </div>
   );
 }

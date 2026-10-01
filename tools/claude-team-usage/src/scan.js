@@ -130,6 +130,13 @@ export async function scan({
       `  ${payload.date}  ${fmt(total)} tokens  (input ${fmt(payload.input)}, output ${fmt(payload.output)}, ` +
         `cache read ${fmt(payload.cacheRead)}, cache write ${fmt(payload.cacheCreation)})  ${payload.models.join(', ')}`,
     );
+    const a = payload.activity;
+    if (a) {
+      io.info(
+        `              ${fmt(a.requestCount)} request(s), ${fmt(a.sessionCount)} session(s), ` +
+          `${Math.round(a.activeSeconds / 60)} min active, ${a.projects.length} project(s)`,
+      );
+    }
   }
 
   if (dryRun) {

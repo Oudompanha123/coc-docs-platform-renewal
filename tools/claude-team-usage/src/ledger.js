@@ -60,15 +60,26 @@ export function saveLedger(ledger, env = process.env) {
 
 const sum = (t) => (t.input ?? 0) + (t.output ?? 0) + (t.cacheRead ?? 0) + (t.cacheCreation ?? 0);
 
-/** Never sent, or grown since it was. */
+const activityOf = (a) => (a ? { requests: a.requestCount, activeSeconds: a.activeSeconds } : null);
+
+/**
+ * Never sent, or grown since it was. Activity counts as growth too (ADR-074):
+ * a new prompt or more active time is worth re-sending, and so is a day first
+ * sent by a reporter that predated activity, so an upgrade fills it in once.
+ */
 export function isDue(entry, payload) {
   const prior = entry.days[payload.date];
-  return !prior || sum(payload) > sum(prior);
+  if (!prior || sum(payload) > sum(prior)) return true;
+  const now = activityOf(payload.activity);
+  if (!now) return false;
+  const was = prior.activity;
+  return !was || now.requests > was.requests || now.activeSeconds > was.activeSeconds;
 }
 
 export function recordSent(entry, payload) {
   const { input, output, cacheRead, cacheCreation } = payload;
-  entry.days[payload.date] = { input, output, cacheRead, cacheCreation };
+  const activity = activityOf(payload.activity);
+  entry.days[payload.date] = { input, output, cacheRead, cacheCreation, ...(activity ? { activity } : {}) };
 }
 
 /** Drops days older than `oldest` (YYYY-MM-DD) — they can no longer be scanned anyway. */
