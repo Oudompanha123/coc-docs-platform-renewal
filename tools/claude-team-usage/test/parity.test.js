@@ -4,6 +4,10 @@
 // payloads from the same transcripts — otherwise the dashboard would show a
 // different total depending on which reporter a teammate happens to use.
 // Runs only inside this repository (the script is not shipped in the package).
+//
+// One deliberate exception: `activity` (requests, sessions, projects — ADR-074)
+// is reported by the CLI only, so it is set aside before comparing. Every token
+// field must still match byte for byte.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -37,7 +41,11 @@ it('matches push-usage.mjs --dry-run exactly', { skip: !fs.existsSync(PUSH_USAGE
   const legacy = dryRunPayloads(execFileSync(process.execPath, [PUSH_USAGE, '--dry-run', '--days', '2'], opts));
   // USER_EMAIL alone is not a login for the CLI; give it the full env trio.
   const cliEnv = { ...env, INGEST_URL: 'http://127.0.0.1:9/api/ingest', INGEST_SECRET: 'coc_x' };
-  const cli = dryRunPayloads(execFileSync(process.execPath, [CLI, 'scan', '--dry-run', '--days', '2'], { ...opts, env: cliEnv }));
+  const cli = dryRunPayloads(execFileSync(process.execPath, [CLI, 'scan', '--dry-run', '--days', '2'], { ...opts, env: cliEnv }))
+    .map(({ activity, ...tokens }) => {
+      assert.ok(activity, 'the CLI reports activity');
+      return tokens;
+    });
 
   assert.ok(legacy.length >= 1);
   assert.deepEqual(cli, legacy);
