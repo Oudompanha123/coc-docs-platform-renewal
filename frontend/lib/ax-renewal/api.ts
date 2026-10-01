@@ -535,6 +535,11 @@ export function rejectImplementation(projectId: string, runId: string): Promise<
  * backend's own machine. The run's status flips to `cancelled` a moment
  * later, once the killed process actually unblocks; the existing poll for
  * `generating` picks that up, this call does not wait for it.
+ *
+ * If that backend has no process for the run any more (it was restarted
+ * mid-run, or the run belongs to a teammate's backend on the same
+ * database), the run is closed as `cancelled` immediately instead of being
+ * refused — that refusal used to leave it stuck for good (ADR-073).
  */
 export function cancelImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
   return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/cancel`, {
