@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
 import { ChevronLeftIcon, ChevronRightIcon, GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
@@ -53,7 +54,7 @@ import {
 
 export default function AxRenewalPage() {
   const { user } = useSession();
-  const router = useRouter();
+  const router = useGuardedRouter();
   const searchParams = useSearchParams();
   const { projects, projectId, detail, error: loadError, refresh, setProjects } = useAxRenewalProjectContext();
   // Role decides what, membership decides where (ADR-069) — see
@@ -85,6 +86,12 @@ export default function AxRenewalPage() {
       onCreated={(created) => {
         setProjects((prev) => (prev ? [created, ...prev] : [created]));
         goTo(created.id);
+      }}
+      onUpdated={(updated) => {
+        // The renamed row in place, so the switcher shows the new name at
+        // once, then the open project's own detail (ADR-075).
+        setProjects((prev) => (prev ? prev.map((p) => (p.id === updated.id ? updated : p)) : prev));
+        void refresh();
       }}
       onDeleted={() => {
         // Re-fetched from the server, not a local filter — and awaited
@@ -594,7 +601,7 @@ function HonestlyUnavailable({ reason }: { reason: string }) {
 }
 
 function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetail }) {
-  const router = useRouter();
+  const router = useGuardedRouter();
   const analysis = detail.analysis;
   const attachStats = detail.project.attachStats;
   const [archTab, setArchTab] = useState<string>("context");
@@ -1062,7 +1069,7 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
  * every fact here is edited under its own Plan section, not here.
  */
 function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
-  const router = useRouter();
+  const router = useGuardedRouter();
   const layers = detail.stackLayers.filter((l) => l.oldTarget || l.newTarget);
   const dbChanges = detail.dbChanges;
   const mappedPages = detail.pageMappings.filter((p) => p.oldPath && p.newPath);
@@ -1639,7 +1646,7 @@ function RunLocallyPanel({
   canEdit: boolean;
   onChanged: () => Promise<void>;
 }) {
-  const router = useRouter();
+  const router = useGuardedRouter();
   // The exact "a real generated build to point at" precondition the tab has
   // always been locked behind (ADR-048) -- Approve (ADR-044) is what makes
   // this true. A rebuild started since re-locks it, since the destination is

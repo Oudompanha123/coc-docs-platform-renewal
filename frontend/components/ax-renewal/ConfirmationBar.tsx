@@ -35,7 +35,11 @@ export function ConfirmationBar({
           <>
             <CheckCircleIcon className="h-4 w-4 shrink-0 text-brand-purple" />
             <span className="text-dash-ink">
-              Confirmed {new Date(confirmation.confirmedAt).toLocaleString()}
+              {/* Who signed it off, not only when — on a team that is the
+                  question (ADR-075). A display name, never an email. */}
+              Confirmed
+              {confirmation.confirmedByName ? ` by ${confirmation.confirmedByName}` : ""} ·{" "}
+              {new Date(confirmation.confirmedAt).toLocaleString()}
               {confirmation.confirmedVia === "developer_role" ? " · via Developer role" : ""}
             </span>
           </>

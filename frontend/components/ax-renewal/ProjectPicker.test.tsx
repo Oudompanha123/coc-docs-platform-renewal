@@ -4,13 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/ax-renewal/api", () => ({
   createProject: vi.fn(),
   deleteProject: vi.fn(),
+  updateProject: vi.fn(),
 }));
 
 vi.mock("@/lib/ax-renewal/engine-preference", () => ({
   writeSourcePathOverride: vi.fn(),
 }));
 
-import { createProject, deleteProject, type AxRenewalProject } from "@/lib/ax-renewal/api";
+import { createProject, deleteProject, updateProject, type AxRenewalProject } from "@/lib/ax-renewal/api";
 import { writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 import { ProjectPicker } from "./ProjectPicker";
 
@@ -287,5 +288,95 @@ describe("ProjectPicker", () => {
 
     await waitFor(() => expect(createProject).toHaveBeenCalledWith("New One", null));
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(project({ id: "p2", name: "New One" })));
+  });
+});
+
+/** Renaming a project and editing its description (ADR-075). */
+describe("ProjectPicker editing a project's details", () => {
+  function renderPicker(options: { canDelete?: boolean; onUpdated?: (p: AxRenewalProject) => void } = {}) {
+    render(
+      <ProjectPicker
+        projects={[project({ description: "Old notes" })]}
+        projectId="p1"
+        canEdit={true}
+        canDelete={options.canDelete ?? true}
+        onSelect={vi.fn()}
+        onCreated={vi.fn()}
+        onDeleted={vi.fn()}
+        onUpdated={options.onUpdated}
+      />,
+    );
+  }
+
+  it("shows the project's description", () => {
+    renderPicker();
+
+    expect(screen.getByText("Old notes")).toBeInTheDocument();
+  });
+
+  it("is not offered to someone who may not change the project", () => {
+    renderPicker({ canDelete: false });
+
+    expect(screen.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
+  });
+
+  it("opens filled with the current name and description", () => {
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+
+    expect(screen.getByRole("dialog", { name: "Edit project details" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Legacy Portal");
+    expect(screen.getByLabelText(/Description/)).toHaveValue("Old notes");
+  });
+
+  it("saves the trimmed name, clears a blanked description, and hands back the result", async () => {
+    const renamed = project({ name: "Legacy Portal v2", description: null });
+    vi.mocked(updateProject).mockResolvedValue(renamed);
+    const onUpdated = vi.fn();
+    renderPicker({ onUpdated });
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "  Legacy Portal v2  " } });
+    fireEvent.change(screen.getByLabelText(/Description/), { target: { value: "   " } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(updateProject).toHaveBeenCalledWith("p1", "Legacy Portal v2", null));
+    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("refuses a blank name without calling the server", () => {
+    vi.mocked(updateProject).mockClear();
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "   " } });
+    fireEvent.submit(screen.getByRole("dialog", { name: "Edit project details" }).querySelector("form")!);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("needs a name");
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
+  it("keeps the dialog open with the reason when the save is refused", async () => {
+    vi.mocked(updateProject).mockRejectedValue(new Error("project not found"));
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("project not found");
+    expect(screen.getByRole("dialog", { name: "Edit project details" })).toBeInTheDocument();
+  });
+
+  it("backs out on Cancel without saving", () => {
+    vi.mocked(updateProject).mockClear();
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(updateProject).not.toHaveBeenCalled();
   });
 });

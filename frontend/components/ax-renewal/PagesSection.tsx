@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ConfirmationBar } from "./ConfirmationBar";
+import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalAnalysis, AxRenewalConfirmation, AxRenewalPageMapping } from "@/lib/ax-renewal/api";
 
 type Row = { oldPath: string; newPath: string; notes: string };
@@ -94,6 +95,11 @@ export function PagesSection({
     notes: p.notes,
   }));
   const hasUnsavedChanges = !sameCleanedRows(cleanedRows, persistedCleaned);
+  // Warn before leaving only for the person's own edits (ADR-075): what was
+  // first shown may be an unsaved suggestion from analysis — unsaved, but not
+  // typed by anyone, and not something leaving would lose that matters.
+  const [shownCleaned] = useState(cleanedRows);
+  useUnsavedChangesGuard(hasUnsavedChanges && !sameCleanedRows(cleanedRows, shownCleaned), "Pages");
 
   async function handleSave() {
     setSaving(true);

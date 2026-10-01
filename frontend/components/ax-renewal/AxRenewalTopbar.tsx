@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
 import { MenuIcon } from "@/components/layout/icons";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { useAxRenewalTabs } from "@/lib/ax-renewal/tabs";
@@ -35,7 +36,7 @@ type AxRenewalTopbarProps = {
  * without climbing over the mobile sidebar drawer's own `z-40`/`z-50`.
  */
 export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
-  const router = useRouter();
+  const router = useGuardedRouter();
   const searchParams = useSearchParams();
   const { projectId, detail } = useAxRenewalProjectContext();
   const active = resolveActiveSection(searchParams.get("section"));

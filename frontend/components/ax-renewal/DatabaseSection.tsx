@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ConfirmationBar } from "./ConfirmationBar";
+import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalConfirmation, AxRenewalDbChange, AxRenewalDbConnection } from "@/lib/ax-renewal/api";
 
 type ChangeRow = { changeType: "add_column" | "add_index"; tableName: string; rationale: string };
@@ -121,6 +122,9 @@ export function DatabaseSection({
     schemaName !== (connection?.schemaName ?? "");
   const changesHaveUnsavedEdits = !sameCleanedChangeRows(cleanedChangeRows, persistedCleanedChanges);
   const hasUnsavedChanges = connectionHasUnsavedChanges || changesHaveUnsavedEdits;
+  // Starts from the saved values only (no suggestion), so "unsaved" here is
+  // always the person's own edits (ADR-075).
+  useUnsavedChangesGuard(hasUnsavedChanges, "Database");
 
   async function handleSaveChanges() {
     setSavingChanges(true);

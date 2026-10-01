@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
+import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type {
   AxRenewalAnalysis,
   AxRenewalConfirmation,
@@ -149,6 +150,11 @@ export function StackMoveSection({
   // Recomputed fresh every render, never taken as a one-time snapshot — see
   // sameRows's own doc comment for why this matters for Confirm below.
   const hasUnsavedChanges = !sameRows(rows, toRows(layers, analysis));
+  // Warn before leaving only for the person's own edits (ADR-075): what was
+  // first shown may be an unsaved suggestion from analysis — unsaved, but not
+  // typed by anyone, and not something leaving would lose that matters.
+  const [shownRows] = useState(rows);
+  useUnsavedChangesGuard(hasUnsavedChanges && !sameRows(rows, shownRows), "Stack move");
 
   function updateRow(index: number, field: "oldTarget" | "newTarget", value: string) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));

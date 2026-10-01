@@ -6,6 +6,7 @@ import { useEffect, useState, type PointerEvent } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { ChevronDownIcon, MoonIcon, SunIcon, XIcon } from "@/components/layout/icons";
 import { ResizeHandle } from "@/components/ax-renewal/ResizeHandle";
+import { confirmDiscardUnsaved } from "@/lib/ax-renewal/unsavedChanges";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -185,7 +186,15 @@ export function AxRenewalSidebar({
                   <Link
                     key={sub.key}
                     href={href}
-                    onClick={onClose}
+                    onClick={(e) => {
+                      // Same question the workspace's own navigation asks
+                      // before a Plan section's unsaved edits are lost (ADR-075).
+                      if (!confirmDiscardUnsaved()) {
+                        e.preventDefault();
+                        return;
+                      }
+                      onClose();
+                    }}
                     aria-current={subActive ? "page" : undefined}
                     className={rowClasses}
                   >

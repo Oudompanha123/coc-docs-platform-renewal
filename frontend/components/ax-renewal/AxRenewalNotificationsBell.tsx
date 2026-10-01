@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
 import { BellIcon } from "@/components/layout/icons";
 import { ShieldIcon } from "@/components/auth/icons";
 import { ApplicantAvatar } from "@/components/layout/ApplicantAvatar";
@@ -31,7 +31,7 @@ export function AxRenewalNotificationsBell() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const unreadCountRef = useRef(0);
 
-  const router = useRouter();
+  const router = useGuardedRouter();
 
   const notifications = useNotifications({
     onOpenApproval: (account) => setApproving(account),
