@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
 import { ChevronLeftIcon, ChevronRightIcon, ClockIcon, FolderIcon, LayersIcon, PlayIcon, RenewIcon } from "@/components/layout/icons";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { resolveActiveSection, type AxRenewalExplorerKey } from "@/lib/ax-renewal/explorerGroups";
@@ -45,7 +46,7 @@ export function AxRenewalActivityBar({
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
 }) {
-  const router = useRouter();
+  const router = useGuardedRouter();
   const searchParams = useSearchParams();
   const { projectId, detail } = useAxRenewalProjectContext();
   const active = resolveActiveSection(searchParams.get("section"));

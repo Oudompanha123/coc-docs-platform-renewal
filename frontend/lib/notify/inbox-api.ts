@@ -13,7 +13,7 @@ import { BACKEND_URL, SessionExpiredError, AuthApiError } from "@/lib/auth/api";
 /** One stored notification. The sentence is rendered from these, never sent. */
 export interface InboxNotification {
   id: string;
-  /** `NotificationType.key()` — "auth.new-device", "registration.pending". */
+  /** `NotificationType.key()` — "auth.new-device", "registration.pending", "ax-renewal.member-added". */
   type: string;
   /** What it is about, for the deep link. Null for one about nothing in particular. */
   targetId: string | null;

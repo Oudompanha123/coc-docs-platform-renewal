@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
+import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalAnalysis, AxRenewalArchitecture, AxRenewalConfirmation, AxRenewalStackLayer } from "@/lib/ax-renewal/api";
 
 /**
@@ -125,6 +126,11 @@ export function ArchitectureSection({
   // own Confirm guard uses, and for the same failure mode: editing this
   // field, then going straight to Confirm without Save architecture first.
   const hasUnsavedChanges = summary !== (architecture?.summary ?? "");
+  // Warn before leaving only for the person's own edits (ADR-076): what was
+  // first shown may be an unsaved suggestion from analysis — unsaved, but not
+  // typed by anyone, and not something leaving would lose that matters.
+  const [shownSummary] = useState(summary);
+  useUnsavedChangesGuard(hasUnsavedChanges && summary !== shownSummary, "Architecture");
 
   function useLiveSuggestion() {
     setSummary((prev) => (prev.trim() ? `${prev.trim()}\n\n${liveSuggestion}` : liveSuggestion));
