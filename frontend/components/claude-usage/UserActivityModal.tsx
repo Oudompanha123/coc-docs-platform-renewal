@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
+import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "@/components/layout/icons";
 import {
@@ -476,22 +477,50 @@ function ProjectRow({
   );
 }
 
+const SESSION_PAGE_SIZE = 5;
+
 function SessionList({ sessions, showDate }: { sessions: ClaudeUsageActivitySession[]; showDate: boolean }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(SESSION_PAGE_SIZE);
+
+  // A new range is a new list — start it from its first page, not wherever
+  // the previous range was left.
+  useEffect(() => setPage(1), [sessions]);
+
+  // Clamp here too, not just in <Pagination>, so a shorter list never slices
+  // past its end and renders an empty page.
+  const pageCount = Math.max(1, Math.ceil(sessions.length / pageSize));
+  const current = Math.min(page, pageCount);
+  const offset = (current - 1) * pageSize;
+  const visible = sessions.slice(offset, offset + pageSize);
+
   return (
-    <ul aria-label="Sessions" className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
-      {sessions.map((s) => (
-        <li key={s.startedAt} className="flex items-center gap-4 px-4 py-2.5 text-sm">
-          <span className="w-32 shrink-0 font-medium tabular-nums text-dash-ink">
-            {showDate && <span className="mr-1.5 text-muted">{formatDate(s.date)}</span>}
-            {formatTime(s.startedAt)} – {formatTime(s.endedAt)}
-          </span>
-          <span className="w-16 shrink-0 font-semibold tabular-nums text-dash-ink">{formatDuration(s.durationSeconds)}</span>
-          <span className="min-w-0 flex-1 truncate text-xs text-muted">
-            {s.projects.join(", ")} · {plural(s.requestCount, "request", "requests")}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+      <ul aria-label="Sessions" className="divide-y divide-border">
+        {visible.map((s) => (
+          <li key={s.startedAt} className="flex items-center gap-4 px-4 py-2.5 text-sm">
+            <span className="w-32 shrink-0 font-medium tabular-nums text-dash-ink">
+              {showDate && <span className="mr-1.5 text-muted">{formatDate(s.date)}</span>}
+              {formatTime(s.startedAt)} – {formatTime(s.endedAt)}
+            </span>
+            <span className="w-16 shrink-0 font-semibold tabular-nums text-dash-ink">{formatDuration(s.durationSeconds)}</span>
+            <span className="min-w-0 flex-1 truncate text-xs text-muted">
+              {s.projects.join(", ")} · {plural(s.requestCount, "request", "requests")}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {/* One page's worth needs no controls. */}
+      {sessions.length > SESSION_PAGE_SIZE && (
+        <Pagination
+          total={sessions.length}
+          page={current}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
+    </div>
   );
 }
 
