@@ -110,6 +110,14 @@ function render(n: InboxNotification): { title: string; detail: string } {
         title: "New comment",
         detail: body || "Someone commented on an AX Renewal project",
       };
+    // ADR-081. The body is the outcome — approved and applied, or rejected —
+    // so the row says whether anything is left to do; who reviewed it is in
+    // the project's run history.
+    case "ax-renewal.run-reviewed":
+      return {
+        title: "Run reviewed",
+        detail: body || "Your AX Renewal implementation run was reviewed",
+      };
     default:
       return { title: "Notification", detail: body || "Something happened" };
   }
@@ -269,7 +277,8 @@ export function useNotifications(
     if (
       item.type === "ax-renewal.member-added" ||
       item.type === "ax-renewal.run-ready" ||
-      item.type === "ax-renewal.comment-added"
+      item.type === "ax-renewal.comment-added" ||
+      item.type === "ax-renewal.run-reviewed"
     ) {
       onOpenProject.current?.(item.targetId);
       return;

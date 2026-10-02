@@ -2,3 +2,31 @@ title = "Harness default gitleaks config"
 
 [extend]
 useDefault = true
+
+# Google OAuth client secret.
+#
+# WHY THIS IS HERE AND NOT LEFT TO THE DEFAULTS
+#
+# A live GOCSPX- secret sat in infra/.env.example from e685742 until it was
+# found by hand on 2026-10-02 -- committed, pushed to origin/dev, and passed
+# over by every pre-commit scan in between, including ones that staged that
+# exact file. The default rule set did not catch this prefix, so relying on it
+# was the gap rather than anyone ignoring a warning.
+#
+# The prefix is fixed and Google-assigned, so this cannot collide with an
+# ordinary string: anything matching it is a real credential.
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth client secret (GOCSPX-)"
+regex = '''GOCSPX-[A-Za-z0-9_\-]{20,}'''
+keywords = ["GOCSPX-"]
+
+# Google App Password: sixteen lowercase letters, which Google prints in four
+# groups of four. Deliberately anchored to an assignment of a password-ish
+# name rather than matching sixteen letters anywhere, because the bare shape
+# is far too common to flag on its own.
+[[rules]]
+id = "google-app-password"
+description = "Google App Password assigned to a MAIL_/APP_ variable"
+regex = '''(?i)(MAIL_PASSWORD|APP_HRMS_PASSWORD|APP_PASSWORD)\s*[=:]\s*["']?(?:[a-z]{4}\s?){3}[a-z]{4}["']?'''
+keywords = ["MAIL_PASSWORD", "APP_HRMS_PASSWORD", "APP_PASSWORD"]

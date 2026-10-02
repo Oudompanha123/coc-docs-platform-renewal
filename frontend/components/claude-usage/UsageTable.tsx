@@ -40,7 +40,14 @@ export function UsageTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const reporting = members.filter((m) => m.totalTokens > 0);
+  // Heaviest users first; ties go to whoever was active most recently.
+  const reporting = members
+    .filter((m) => m.totalTokens > 0)
+    .sort(
+      (a, b) =>
+        b.totalTokens - a.totalTokens ||
+        (Date.parse(b.lastActiveAt ?? "") || 0) - (Date.parse(a.lastActiveAt ?? "") || 0),
+    );
   // Clamp here too, not just in <Pagination>: switching to a period with fewer
   // reporters would otherwise slice past the end and show an empty table.
   const pageCount = Math.max(1, Math.ceil(reporting.length / pageSize));
@@ -66,9 +73,10 @@ export function UsageTable({
               <th className="px-4 py-3">Models Used</th>
               <th className="px-4 py-3">Input / Output</th>
               <th className="px-4 py-3">Total Tokens</th>
-              <th className="px-4 py-3">Reference API Cost</th>
+              <th className="px-4 py-3">Cost</th>
               <th className="px-4 py-3">Soft Budget</th>
-              <th className="px-4 py-3">Last Active</th>
+              {/* reported_at -- when the scan last reached the backend, not when Claude was last used. */}
+              <th className="px-4 py-3">Last Reported</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

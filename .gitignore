@@ -46,3 +46,8 @@ backend/logs/
 
 # npm pack output (tools/claude-team-usage) — build artifacts, never source.
 *.tgz
+
+# A stray `yarn` at the repo root once committed these; the project uses npm
+# (frontend/package-lock.json) and installs under frontend/.
+/node_modules/
+/yarn.lock

@@ -32,6 +32,29 @@ export function actualTimeOrNull(check: HrmsAttendanceCheck): string | null {
 }
 
 /**
+ * Minutes between a scheduled and actual `"HH:MM"` time, clamped to zero
+ * rather than ever going negative — this describes how late a logged check
+ * was on the personal Attendance page ("5 min late"), not a general time
+ * delta, so an actual time earlier than scheduled (an early check-in) reads
+ * as 0, not a negative number. Returns null when either string isn't a
+ * parseable 24-hour `"HH:MM"`.
+ */
+export function minutesLate(scheduled: string, actual: string): number | null {
+  const toMinutes = (value: string): number | null => {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const mins = Number(match[2]);
+    if (hours > 23 || mins > 59) return null;
+    return hours * 60 + mins;
+  };
+  const start = toMinutes(scheduled);
+  const end = toMinutes(actual);
+  if (start === null || end === null) return null;
+  return Math.max(0, end - start);
+}
+
+/**
  * The rows a name search matches — shared by {@link AttendanceTable}'s own
  * filtering and the Export button, so a file downloaded mid-search cannot
  * hold more than the table beside it shows (same reasoning as

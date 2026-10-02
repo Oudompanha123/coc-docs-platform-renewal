@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ShieldIcon } from "@/components/auth/icons";
-import { BellIcon, CheckCircleIcon, MailIcon, UserPlusIcon } from "@/components/layout/icons";
+import { BellIcon, CheckCircleIcon, MailIcon, ReturnIcon, UserPlusIcon } from "@/components/layout/icons";
 import {
   fetchNotificationPreferences,
   updateNotificationPreference,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/notify/notification-preferences-api";
 
 // registration.pending / auth.new-device / ax-renewal.member-added / ax-renewal.run-ready /
-// ax-renewal.comment-added — NotificationType.key() on the
+// ax-renewal.comment-added / ax-renewal.run-reviewed — NotificationType.key() on the
 // backend. A type this build doesn't recognise falls back to BellIcon rather
 // than crashing, same "skip, don't crash" spirit NotificationType.key()'s own
 // doc gives an unrendered row.
@@ -20,6 +20,7 @@ const ROW_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "ax-renewal.member-added": UserPlusIcon,
   "ax-renewal.run-ready": CheckCircleIcon,
   "ax-renewal.comment-added": MailIcon,
+  "ax-renewal.run-reviewed": ReturnIcon,
 };
 
 type State =
