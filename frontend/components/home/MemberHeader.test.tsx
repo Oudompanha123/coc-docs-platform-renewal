@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NavProduct } from "@/lib/docs/nav-api";
 import { MemberHeader } from "./MemberHeader";
@@ -87,5 +88,22 @@ describe("MemberHeader — Claude Usage link (ADR-052 v1.6: its own page again, 
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
 
     expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveClass("border-brand-purple", "text-ink");
+  });
+});
+
+describe("MemberHeader — user menu", () => {
+  it("offers My Profile and, under it, My Settings linking to /my-settings", async () => {
+    const user = userEvent.setup();
+    const onOpenProfile = vi.fn();
+    render(<MemberHeader products={PRODUCTS} onOpenProfile={onOpenProfile} />);
+
+    await user.click(screen.getByRole("button", { name: /Dana Lee/ }));
+    const items = screen.getAllByRole("menuitem");
+    expect(items[0]).toHaveTextContent("My Profile");
+    expect(items[1]).toHaveTextContent("My Settings");
+    expect(items[1]).toHaveAttribute("href", "/my-settings");
+
+    await user.click(items[0]!);
+    expect(onOpenProfile).toHaveBeenCalledOnce();
   });
 });

@@ -131,7 +131,7 @@ function ProductsDropdown({
  */
 // onOpenNotifications is gone from this header on purpose: notification
 // settings now live inside the Profile modal (PushNotificationsCard), so the
-// user menu here is Profile and Log out. HomeFooter still takes the prop and
+// user menu here is My Profile, My Settings and Log out. HomeFooter still takes the prop and
 // still opens that modal -- this removal is scoped to the header.
 export function MemberHeader({
   products,
@@ -523,8 +523,17 @@ export function MemberHeader({
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
-                    Profile
+                    My Profile
                   </button>
+                  <Link
+                    href="/my-settings"
+                    role="menuitem"
+                    onClick={() => setOpenMenu(null)}
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
+                  >
+                    <PersonIcon className="h-4 w-4 text-muted" />
+                    My Settings
+                  </Link>
                   {canManage && (
                     <Link
                       href="/overview"
