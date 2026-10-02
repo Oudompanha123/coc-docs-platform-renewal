@@ -7,7 +7,9 @@ import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { ActivityAvatar } from "@/components/layout/ActivityAvatar";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
+  BarChartIcon,
   BellIcon,
+  CalendarCheckIcon,
   ChevronDownIcon,
   LayersIcon,
   LogOutIcon,
@@ -26,7 +28,7 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-type MenuKey = "bell" | "mail" | "user" | "products";
+type MenuKey = "bell" | "mail" | "user" | "products" | "reports";
 
 /**
  * Which half of a panel's list is showing. Mirrors the admin Topbar's, and is
@@ -125,8 +127,65 @@ function ProductsDropdown({
 }
 
 /**
+ * Reports & Records dropdown — a single-column list, deliberately built so
+ * more items can be added later rather than hand-coding one link. Styled
+ * after {@link ProductsDropdown}'s own active/hover treatment, just a
+ * single column instead of a 2-col grid since there is only ever a handful
+ * of report kinds, not a whole product catalogue.
+ */
+function ReportsDropdown({ onClose }: { onClose: () => void }) {
+  const pathname = usePathname();
+  const attendanceActive = pathname === "/reports/attendance";
+
+  return (
+    <div
+      role="menu"
+      className="absolute left-0 top-[72px] z-30 w-72 rounded-2xl border border-border bg-white p-2 shadow-xl"
+    >
+      <Link
+        href="/reports/attendance"
+        role="menuitem"
+        onClick={onClose}
+        className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-brand-purple/10 ${
+          attendanceActive ? "bg-brand-purple/10" : ""
+        }`}
+      >
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-purple ${
+            attendanceActive ? "bg-brand-purple/20" : "bg-brand-purple/10"
+          }`}
+        >
+          <CalendarCheckIcon className="h-[18px] w-[18px]" />
+        </span>
+        <span className="min-w-0">
+          <span className={`block truncate text-sm font-medium ${attendanceActive ? "text-brand-purple" : "text-ink"}`}>
+            Attendance
+          </span>
+          <span className="block truncate text-xs text-muted">Your daily check-in &amp; out</span>
+        </span>
+      </Link>
+
+      {/* Not a link: a placeholder so the menu's "room for more" shape is
+          visible before a second report kind actually exists. */}
+      <div className="flex cursor-not-allowed items-start gap-3 rounded-xl px-3 py-2.5 opacity-60">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted">
+          <BarChartIcon className="h-[18px] w-[18px]" />
+        </span>
+        <span className="min-w-0">
+          <span className="flex items-center gap-1.5 truncate text-sm font-medium text-muted">
+            More reports
+            <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold text-muted">Later</span>
+          </span>
+          <span className="block truncate text-xs text-muted">New items can be added here</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * The signed-in Member's header for `/home`.
- * Nav: Home | Products ▾
+ * Nav: Home | Products ▾ | Claude Usage | Reports & Records ▾
  * Right: Notifications, Activity, User chip.
  */
 // onOpenNotifications is gone from this header on purpose: notification
@@ -143,6 +202,7 @@ export function MemberHeader({
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
+  const reportsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useCurrentUser();
   const { user: sessionUser, signOut, isSigningOut } = useSession();
@@ -196,10 +256,11 @@ export function MemberHeader({
 
   const isProductsActive =
     pathname?.startsWith("/docs/") || pathname?.startsWith("/admin/products");
+  const isReportsActive = pathname?.startsWith("/reports/") ?? false;
 
   // Close right-side cluster on outside click
   useEffect(() => {
-    if (!openMenu || openMenu === "products") return;
+    if (!openMenu || openMenu === "products" || openMenu === "reports") return;
     function onClick(e: MouseEvent) {
       if (clusterRef.current && !clusterRef.current.contains(e.target as Node))
         setOpenMenu(null);
@@ -213,6 +274,17 @@ export function MemberHeader({
     if (openMenu !== "products") return;
     function onClick(e: MouseEvent) {
       if (productsRef.current && !productsRef.current.contains(e.target as Node))
+        setOpenMenu(null);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [openMenu]);
+
+  // Close reports dropdown on outside click
+  useEffect(() => {
+    if (openMenu !== "reports") return;
+    function onClick(e: MouseEvent) {
+      if (reportsRef.current && !reportsRef.current.contains(e.target as Node))
         setOpenMenu(null);
     }
     document.addEventListener("mousedown", onClick);
@@ -290,6 +362,31 @@ export function MemberHeader({
           >
             Claude Usage
           </Link>
+
+          {/* Reports & Records dropdown — Attendance today, built so a
+              second report kind has somewhere to go without another nav
+              item. Visible to every role that reaches this header at all
+              (RequireMemberSession already gates that), including
+              `user`/`developer`, who have no admin-app equivalent since
+              ADR-084. */}
+          <div ref={reportsRef} className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={openMenu === "reports"}
+              onClick={() => toggleMenu("reports")}
+              className={`${navLinkClass(isReportsActive)} gap-1`}
+            >
+              Reports &amp; Records
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform duration-150 ${
+                  openMenu === "reports" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {openMenu === "reports" && <ReportsDropdown onClose={() => setOpenMenu(null)} />}
+          </div>
         </nav>
 
         {/* Right-side chrome */}

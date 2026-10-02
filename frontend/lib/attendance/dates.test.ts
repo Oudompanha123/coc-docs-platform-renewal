@@ -6,8 +6,10 @@ import {
   formatDisplayDate,
   formatShortDate,
   isFutureDate,
+  isoRangeBetween,
   monthLabel,
   toIsoDate,
+  weekRangeOf,
   yearMonthOf,
 } from "./dates";
 
@@ -109,6 +111,54 @@ describe("isFutureDate", () => {
 
   it("is true for a date in a later month", () => {
     expect(isFutureDate("2026-10-01")).toBe(true);
+  });
+});
+
+describe("isoRangeBetween", () => {
+  it("is inclusive of both ends", () => {
+    expect(isoRangeBetween("2026-09-07", "2026-09-10")).toEqual([
+      "2026-09-07",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+    ]);
+  });
+
+  it("gives the same result regardless of argument order", () => {
+    expect(isoRangeBetween("2026-09-10", "2026-09-07")).toEqual(isoRangeBetween("2026-09-07", "2026-09-10"));
+  });
+
+  it("is a single day when both ends are the same date", () => {
+    expect(isoRangeBetween("2026-09-07", "2026-09-07")).toEqual(["2026-09-07"]);
+  });
+
+  it("crosses a month boundary", () => {
+    expect(isoRangeBetween("2026-09-29", "2026-10-02")).toEqual([
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+    ]);
+  });
+});
+
+describe("weekRangeOf", () => {
+  it("spans Monday to Sunday for a date in the middle of the week", () => {
+    // 2026-09-09 is a Wednesday.
+    expect(weekRangeOf("2026-09-09")).toEqual({ start: "2026-09-07", end: "2026-09-13" });
+  });
+
+  it("is its own start when the date is already a Monday", () => {
+    expect(weekRangeOf("2026-09-07")).toEqual({ start: "2026-09-07", end: "2026-09-13" });
+  });
+
+  it("is its own end when the date is already a Sunday", () => {
+    expect(weekRangeOf("2026-09-13")).toEqual({ start: "2026-09-07", end: "2026-09-13" });
+  });
+
+  it("crosses a month boundary correctly", () => {
+    // 2026-09-30 is a Wednesday; that week runs into October.
+    expect(weekRangeOf("2026-09-30")).toEqual({ start: "2026-09-28", end: "2026-10-04" });
   });
 });
 
