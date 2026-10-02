@@ -165,6 +165,25 @@ describe("UserActivityModal", () => {
     expect(rows[0]).toHaveTextContent("45m");
     expect(rows[1]).toHaveTextContent("09:15 – 09:42");
     expect(rows[1]).toHaveTextContent("27m");
+    // Two sessions fit on one page, so there is nothing to page through.
+    expect(within(duration).queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
+  });
+
+  it("pages the session list five at a time", async () => {
+    const many = Array.from({ length: 7 }, (_, i) => ({
+      ...sessions[0],
+      startedAt: `2026-09-16T0${i + 1}:00:00Z`,
+      endedAt: `2026-09-16T0${i + 1}:30:00Z`,
+    }));
+    fetchMemberActivity.mockResolvedValue({ ...ACTIVITY, sessions: many });
+    const user = userEvent.setup();
+    renderModal();
+    const duration = await screen.findByRole("region", { name: "Duration" });
+    const rows = () => within(within(duration).getByRole("list", { name: "Sessions" })).getAllByRole("listitem");
+
+    expect(rows()).toHaveLength(5);
+    await user.click(within(duration).getByRole("button", { name: "Next page" }));
+    expect(rows()).toHaveLength(2);
   });
 
   it("charts token usage by project", async () => {
