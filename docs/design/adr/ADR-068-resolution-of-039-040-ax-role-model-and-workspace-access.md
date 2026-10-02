@@ -1,13 +1,13 @@
 # ADR-068: Resolution of ADR-039 / ADR-040 — the AX Role Model as Built, and Reviewer/Lead Workspace Access
 
-> **Status**: ACCEPTED — implemented; §2.2 **superseded in part by [ADR-070](ADR-070-revision-of-063-strict-project-access.md)** (2026-09-30); **§2.2's own Reviewer/Lead AX Renewal access further superseded in full by [ADR-084](ADR-084-block-developer-and-user-from-the-admin-app.md)** (2026-09-29)
+> **Status**: ACCEPTED — implemented; §2.2 **superseded in part by [ADR-070](ADR-070-revision-of-063-strict-project-access.md)** (2026-09-30); **§2.2's own Reviewer/Lead AX Renewal access further superseded in full by [ADR-086](ADR-086-block-developer-and-user-from-the-admin-app.md)** (2026-09-29)
 >
 > Reviewers and Leads still open the workspace and still read and comment
 > — but only on the projects they are members of, not every project
 > (ADR-069 introduced membership; ADR-070 made it gate reading). The role
 > model and every `SecurityConfig` floor below are unchanged.
 >
-> **2026-09-29 update:** none of that matters anymore — ADR-084 blocks
+> **2026-09-29 update:** none of that matters anymore — ADR-086 blocks
 > Reviewer and Lead (and Developer) from AX Renewal entirely, membership or
 > not, per a later PM decision. This section is kept as written for history.
 > **Date**: 2026-09-30
@@ -127,7 +127,7 @@ ADR-039 §4.3 and ADR-040 §3 both left one follow-up open: Reviewer and Lead ar
 | Date | Version | Changes | Author |
 |------|------|------|--------|
 | 2026-09-30 | 1.0 | Initial version: conflict resolved against the as-built migrations; Reviewer/Lead workspace access implemented on direct in-session instruction | Claude Opus 5.5 |
-| 2026-09-29 | 1.1 | Status note: §2.2's Reviewer/Lead AX Renewal access superseded in full by ADR-084 (PM decision blocks all three roles from the admin app entirely). Body left as written. | AI (Claude Sonnet 5) |
+| 2026-09-29 | 1.1 | Status note: §2.2's Reviewer/Lead AX Renewal access superseded in full by ADR-086 (PM decision blocks all three roles from the admin app entirely). Body left as written. | AI (Claude Sonnet 5) |
 
 ---
 

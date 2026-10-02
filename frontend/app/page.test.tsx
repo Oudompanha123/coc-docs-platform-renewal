@@ -69,7 +69,7 @@ describe("the bare origin", () => {
     expect(replace).toHaveBeenCalledWith("/home");
   });
 
-  // ADR-071 briefly sent these three to the Overview dashboard; ADR-084
+  // ADR-071 briefly sent these three to the Overview dashboard; ADR-086
   // retired that, so they fall through to the public page again.
   it.each(["developer", "reviewer", "lead"] as const)("sends a %s to the public page, not the Overview dashboard", (role) => {
     session.current = { status: "authenticated", user: { role, mustChangePassword: false } };

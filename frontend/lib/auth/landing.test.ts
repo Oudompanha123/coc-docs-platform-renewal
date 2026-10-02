@@ -4,7 +4,7 @@ import { landingPathFor } from "./landing";
 /**
  * Where each role lands after signing in, and on the bare domain — one rule
  * for both. Developer, Reviewer and Lead briefly landed on the Overview
- * dashboard (ADR-071); ADR-084 retired that, so they fall through to the
+ * dashboard (ADR-071); ADR-086 retired that, so they fall through to the
  * public page again, the same as before ADR-071.
  */
 describe("landingPathFor", () => {

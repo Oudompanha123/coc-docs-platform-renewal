@@ -13,7 +13,7 @@
 > own renumbering: an applied migration is immutable, and rewriting the
 > citation across twenty-eight files risks mislabelling the other ADR-039.
 
-> **Status**: SUPERSEDED IN PART by [ADR-068](ADR-068-resolution-of-039-040-ax-role-model-and-workspace-access.md) (2026-09-30); **the Developer `exactAuthority()` confirm/reopen/start-implementation floor this enabled is further superseded by [ADR-084](ADR-084-block-developer-and-user-from-the-admin-app.md)** (2026-09-29)
+> **Status**: SUPERSEDED IN PART by [ADR-068](ADR-068-resolution-of-039-040-ax-role-model-and-workspace-access.md) (2026-09-30); **the Developer `exactAuthority()` confirm/reopen/start-implementation floor this enabled is further superseded by [ADR-086](ADR-086-block-developer-and-user-from-the-admin-app.md)** (2026-09-29)
 >
 > **Resolved.** §2.1 ("Developer stays a capability") and the §2.2 ladder are
 > replaced: V30–V32 made Developer a real role too, and dropped the capability
@@ -21,7 +21,7 @@
 > lead < admin < super_admin`. §2.3 (Reviewer and Lead grant `content.read`
 > only) still stands. ADR-068 also admits both roles to the AX Renewal
 > workspace (read and comment), without changing any `SecurityConfig` rule.
-> ADR-084 retired all of that admission — Developer, Reviewer and Lead are
+> ADR-086 retired all of that admission — Developer, Reviewer and Lead are
 > now refused across the admin app entirely, AX Renewal included.
 >
 > **Previous status**: PROPOSED
@@ -112,7 +112,7 @@ Every `/api/v1/admin/**` route still floors at `hasRole(ADMIN)` (`SecurityConfig
 |---|---|---|---|
 | 2026-09-21 | 1.0 | Initial draft, on direct PM/developer instruction in-session | AI |
 | 2026-09-30 | 1.1 | Status → SUPERSEDED IN PART by ADR-062 (§2.1 and the §2.2 ladder); §2.3 stands. Body left as written. | Claude Opus 5.5 |
-| 2026-09-29 | 1.2 | Status note: the Developer `exactAuthority()` floor this enabled is superseded by ADR-084 (PM decision blocks Developer/Reviewer/Lead from the admin app entirely). Body left as written. | AI (Claude Sonnet 5) |
+| 2026-09-29 | 1.2 | Status note: the Developer `exactAuthority()` floor this enabled is superseded by ADR-086 (PM decision blocks Developer/Reviewer/Lead from the admin app entirely). Body left as written. | AI (Claude Sonnet 5) |
 
 ---
 

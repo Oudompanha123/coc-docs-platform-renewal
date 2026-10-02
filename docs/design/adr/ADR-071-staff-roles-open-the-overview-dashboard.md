@@ -1,6 +1,6 @@
 # ADR-071: Developer, Reviewer and Lead Open the Overview Dashboard
 
-> **Status**: SUPERSEDED in full by [ADR-084](ADR-084-block-developer-and-user-from-the-admin-app.md) (2026-09-29) — Developer, Reviewer and Lead no longer open `/overview`, `/settings` or `/ax-renewal`; a later PM decision blocks all three from the admin app entirely. Body left as written for history.
+> **Status**: SUPERSEDED in full by [ADR-086](ADR-086-block-developer-and-user-from-the-admin-app.md) (2026-09-29) — Developer, Reviewer and Lead no longer open `/overview`, `/settings` or `/ax-renewal`; a later PM decision blocks all three from the admin app entirely. Body left as written for history.
 > **Date**: 2026-09-30
 > **Author**: AI (Claude Opus 5.5), on direct in-session instruction
 > **Approver**: the user, in-session ("change role Lead, Developer, Reviewer can access to dashboard") — recorded as a transcription of that instruction, not a self-approval (`CONST-PROC-01`), the same way [ADR-062](ADR-062-ai-error-assistant-and-ui-customization.md) records its own. Including `/settings` (§2) and hiding PRODUCTS from these roles were the implementer's reading of it; set this back to PROPOSED if either needs a PM decision.
@@ -47,7 +47,7 @@ The Overview needs no backend change to be opened by them:
 | Date | Version | Changes | Author |
 |------|------|------|--------|
 | 2026-09-30 | 1.0 | Initial version, implemented on direct in-session instruction | Claude Opus 5.5 |
-| 2026-09-29 | 1.1 | Status → SUPERSEDED in full by ADR-084 (PM decision blocks Developer/Reviewer/Lead from the admin app entirely). Body left as written. | AI (Claude Sonnet 5) |
+| 2026-09-29 | 1.1 | Status → SUPERSEDED in full by ADR-086 (PM decision blocks Developer/Reviewer/Lead from the admin app entirely). Body left as written. | AI (Claude Sonnet 5) |
 
 ---
 

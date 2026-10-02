@@ -95,7 +95,7 @@ describe("visibleNavSections", () => {
   });
 
   it.each(["developer", "reviewer", "lead"] as const)(
-    "leaves a %s with no sidebar sections at all (ADR-084 retired every carve-out)",
+    "leaves a %s with no sidebar sections at all (ADR-086 retired every carve-out)",
     (role) => {
       expect(visibleNavSections(["user", role], FIXTURE_PRODUCTS)).toEqual([]);
     },
@@ -132,7 +132,7 @@ describe("visibleNavSections", () => {
     });
   });
 
-  describe("AX Renewal (ADR-084, retiring ADR-040/ADR-068's Developer/Reviewer/Lead carve-outs)", () => {
+  describe("AX Renewal (ADR-086, retiring ADR-040/ADR-068's Developer/Reviewer/Lead carve-outs)", () => {
     it("shows it to an admin and a super admin with no other role needed", () => {
       expect(labelsFor(["admin"])).toContain("AX Renewal");
       expect(labelsFor(["super_admin"])).toContain("AX Renewal");

@@ -35,7 +35,7 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * the shell first and redirecting after means a visible flash of an interface
  * the visitor is not entitled to see.
  *
- * <p><b>No more Developer/Reviewer/Lead exception (ADR-084, superseding
+ * <p><b>No more Developer/Reviewer/Lead exception (ADR-086, superseding
  * ADR-040/ADR-068/ADR-071).</b> Those three roles used to open exactly the
  * Overview dashboard, their own Settings, and AX Renewal — a 2026-09-29 PM
  * decision retired that carve-out outright: only {@link ADMIN_APP_ROLES} may

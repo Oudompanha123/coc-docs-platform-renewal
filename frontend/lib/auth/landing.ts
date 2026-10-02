@@ -2,9 +2,9 @@ import type { Role } from "./api";
 
 /**
  * The only roles that may use the admin app at all (2026-09-29 PM decision,
- * ADR-084, superseding ADR-040/ADR-068/ADR-071's Developer/Reviewer/Lead
+ * ADR-086, superseding ADR-040/ADR-068/ADR-071's Developer/Reviewer/Lead
  * carve-outs — those three used to open the Overview dashboard, their own
- * Settings, and AX Renewal; none of that survives ADR-084). Put in one place
+ * Settings, and AX Renewal; none of that survives ADR-086). Put in one place
  * and read by both `landingPathFor` below and `RequireSession`, the same way
  * the backend's own allow-list (`AppRole.ADMIN_APP_ROLE_NAMES`) is the one
  * place on that side.
@@ -22,7 +22,7 @@ export function landingPathFor(account: { role: Role | null | undefined; mustCha
   if (account.mustChangePassword) return "/create-password";
   if (account.role != null && ADMIN_APP_ROLES.includes(account.role)) return "/overview";
   // A `user` gets the Member home (ADR-033). Everyone else — `guest`,
-  // `developer`, `reviewer`, `lead` (ADR-084 retired their admin-shell
+  // `developer`, `reviewer`, `lead` (ADR-086 retired their admin-shell
   // carve-out), or a role this build does not know — gets the public page,
   // which asks nothing of them.
   return account.role === "user" ? "/home" : "/welcome";

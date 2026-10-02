@@ -95,7 +95,7 @@ describe("RequireSession", () => {
     expect(replace).toHaveBeenCalledWith("/create-password");
   });
 
-  describe("Developer, Reviewer and Lead (ADR-084, retiring ADR-040/ADR-068/ADR-071's carve-outs)", () => {
+  describe("Developer, Reviewer and Lead (ADR-086, retiring ADR-040/ADR-068/ADR-071's carve-outs)", () => {
     // Those three roles used to open exactly /overview, /settings and
     // /ax-renewal (plus its sub-routes) — a 2026-09-29 PM decision retired
     // all of it: only admin/super_admin may enter the admin shell at all now,

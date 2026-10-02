@@ -109,7 +109,7 @@ const STATIC_SECTIONS: NavSection[] = [
     // visual grouping now — the reason it used to need separating, a
     // `developer`/`reviewer`/`lead` account seeing a section literally
     // titled "ADMINISTRATION" over just this one link, no longer applies:
-    // ADR-084 retired all three roles' access, so only admin/super_admin —
+    // ADR-086 retired all three roles' access, so only admin/super_admin —
     // who already see the ADMINISTRATION section above — ever see this one.
     label: "DEVELOPER",
     items: [

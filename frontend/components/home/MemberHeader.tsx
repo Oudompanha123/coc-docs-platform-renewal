@@ -368,7 +368,7 @@ export function MemberHeader({
               item. Visible to every role that reaches this header at all
               (RequireMemberSession already gates that), including
               `user`/`developer`, who have no admin-app equivalent since
-              ADR-084. */}
+              ADR-086. */}
           <div ref={reportsRef} className="relative">
             <button
               type="button"

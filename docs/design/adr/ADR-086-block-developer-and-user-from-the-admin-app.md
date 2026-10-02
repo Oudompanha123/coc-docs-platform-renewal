@@ -1,4 +1,4 @@
-# ADR-084: Block "user" and "developer" From the Admin App Entirely
+# ADR-086: Block "user" and "developer" From the Admin App Entirely
 
 > **Status**: ACCEPTED — implemented. Drafted and implemented as "ADR-074", then renumbered to "ADR-078" when `dev`'s own unrelated ADR-074 (Claude usage activity detail) landed first; renumbered again to 084 on a later pull, whose own unrelated ADR-078..083 (AX Renewal run history and notifications) had landed in the meantime — see `ADR-INDEX.md`'s own Numbering convention.
 > **Date**: 2026-09-29

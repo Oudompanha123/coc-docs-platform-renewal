@@ -23,7 +23,7 @@ import { useProductStats } from "@/lib/docs/useProductStats";
  *
  * Every row here is the caller's own — `fetchMyAttendance` hits
  * `GET /api/v1/me/attendance`, which the backend scopes from the session
- * (ADR-084) with no parameter here that could widen it. Export writes
+ * (ADR-086) with no parameter here that could widen it. Export writes
  * exactly the rows this page is already showing, same as the admin page's
  * own Export button.
  */

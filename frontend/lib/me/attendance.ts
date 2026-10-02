@@ -3,7 +3,7 @@ import type { HrmsAttendanceReport } from "@/lib/notify/activity";
 
 /**
  * The landing page's own personal Attendance API — `GET /api/v1/me/attendance`
- * (ADR-084). Reachable by any signed-in account (`USER` floor) — unlike
+ * (ADR-086). Reachable by any signed-in account (`USER` floor) — unlike
  * `lib/admin/attendance.ts`, which needs `admin`/`super_admin` and a
  * department to pick. There is no identifier to pass here beyond the date:
  * the backend resolves the caller from the session and narrows to their own
