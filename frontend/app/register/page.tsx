@@ -13,6 +13,11 @@ import {
   resendRegistrationCode,
   verifyRegistrationCode,
 } from "@/lib/auth/api";
+import {
+  isPasswordAcceptable,
+  passwordChecklist,
+  passwordViolations,
+} from "@/lib/auth/passwordPolicy";
 
 type FormErrors = Partial<Record<"fullName" | "email" | "password" | "confirmPassword" | "agree", string>>;
 
@@ -73,6 +78,10 @@ export default function RegisterPage() {
     if (!fullName.trim()) next.fullName = "Enter your full name.";
     if (!email.trim()) next.email = "Enter your email.";
     if (!password) next.password = "Create a password.";
+    // Advisory only (CONST-TECH-07) — the backend applies the same rules and
+    // is what actually refuses. This exists so somebody is not told after a
+    // round trip what they could have been told as they typed.
+    else if (!isPasswordAcceptable(password)) next.password = passwordViolations(password).join(" ");
     if (!confirmPassword) next.confirmPassword = "Confirm your password.";
     else if (password && confirmPassword && password !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";
@@ -294,6 +303,26 @@ export default function RegisterPage() {
           autoComplete="new-password"
           error={errors.password}
         />
+
+        {/* Shown while typing, not after a failed submit. Revealing the rules
+            one refusal at a time is what produces passwords ending in "1!" —
+            the whole list from the start costs nothing and avoids that. */}
+        {password.length > 0 && !isPasswordAcceptable(password) && (
+          <ul className="-mt-2 space-y-1" aria-label="Password requirements">
+            {passwordChecklist(password).map((rule) => (
+              <li
+                key={rule.label}
+                className={`flex items-center gap-1.5 text-xs ${
+                  rule.met ? "text-emerald-600" : "text-muted"
+                }`}
+              >
+                <span aria-hidden="true">{rule.met ? "✓" : "○"}</span>
+                <span>{rule.label}</span>
+                <span className="sr-only">{rule.met ? " — met" : " — not met yet"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <PasswordField
           label="Confirm Password"

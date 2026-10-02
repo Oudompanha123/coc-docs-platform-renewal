@@ -27,8 +27,8 @@ describe("RegisterPage", () => {
   async function fillAndSubmitForm(user: ReturnType<typeof userEvent.setup>) {
     await user.type(screen.getByLabelText("Full Name"), "New Person");
     await user.type(screen.getByLabelText("Email"), "new.person@example.com");
-    await user.type(screen.getByLabelText("Password"), "hunter2222");
-    await user.type(screen.getByLabelText("Confirm Password"), "hunter2222");
+    await user.type(screen.getByLabelText("Password"), "Hunter2222!x");
+    await user.type(screen.getByLabelText("Confirm Password"), "Hunter2222!x");
     await user.click(screen.getByLabelText(/I agree to the/));
     await user.click(screen.getByRole("button", { name: "Continue" }));
   }
@@ -64,8 +64,8 @@ describe("RegisterPage", () => {
 
     await user.type(screen.getByLabelText("Full Name"), "New Person");
     await user.type(screen.getByLabelText("Email"), "new.person@example.com");
-    await user.type(screen.getByLabelText("Password"), "hunter2222");
-    await user.type(screen.getByLabelText("Confirm Password"), "somethingElse");
+    await user.type(screen.getByLabelText("Password"), "Hunter2222!x");
+    await user.type(screen.getByLabelText("Confirm Password"), "SomethingElse1!");
     await user.click(screen.getByLabelText(/I agree to the/));
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
@@ -87,7 +87,7 @@ describe("RegisterPage", () => {
       expect(register).toHaveBeenCalledWith({
         email: "new.person@example.com",
         displayName: "New Person",
-        password: "hunter2222",
+        password: "Hunter2222!x",
       }),
     );
     expect(await screen.findByRole("heading", { name: "Verify Your Email" })).toBeInTheDocument();

@@ -45,13 +45,15 @@ describe("ChangePasswordForm", () => {
       expect(changePassword).not.toHaveBeenCalled();
     });
 
-    it("rejects a new password under 8 characters without calling the API", async () => {
+    it("rejects a weak new password without calling the API", async () => {
       const user = userEvent.setup();
       render(<ChangePasswordForm hasPassword onSuccess={onSuccess} onCancel={onCancel} />);
 
       await fillAndSubmit(user, { new: "short", confirm: "short" });
 
-      expect(await screen.findByText("Password must be at least 8 characters.")).toBeInTheDocument();
+      // A regex, because the field now reports every unmet rule in one string
+      // rather than only the length (ADR-087).
+      expect(await screen.findByText(/Use at least 12 characters\./)).toBeInTheDocument();
       expect(changePassword).not.toHaveBeenCalled();
     });
 
