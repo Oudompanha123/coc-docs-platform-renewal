@@ -3,13 +3,25 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/layout/icons";
 import { addDays, formatShortDate, todayIso } from "@/lib/attendance/dates";
 import { AttendanceDatePicker } from "./AttendanceDatePicker";
+import type { AttendanceRange } from "./AttendanceRangeToggle";
 
 /**
  * Prev / Today / Next + the date picker popup, all driving one ISO date —
  * both own only `date`/`onChange`, which is what keeps them always showing
- * the same date.
+ * the same date. `range` is passed straight through to the popup purely so
+ * it can decorate Week mode with a row highlight (see
+ * `AttendanceDatePicker`'s own doc comment) — it never changes what date or
+ * data this nav itself shows.
  */
-export function AttendanceDateNav({ date, onChange }: { date: string; onChange: (iso: string) => void }) {
+export function AttendanceDateNav({
+  date,
+  onChange,
+  range = "day",
+}: {
+  date: string;
+  onChange: (iso: string) => void;
+  range?: AttendanceRange;
+}) {
   return (
     <div className="flex items-center gap-2">
       <div className="inline-flex items-center rounded-[10px] border border-border bg-white shadow-sm">
@@ -44,7 +56,7 @@ export function AttendanceDateNav({ date, onChange }: { date: string; onChange: 
         </button>
       </div>
 
-      <AttendanceDatePicker date={date} onChange={onChange} />
+      <AttendanceDatePicker date={date} onChange={onChange} range={range} />
     </div>
   );
 }

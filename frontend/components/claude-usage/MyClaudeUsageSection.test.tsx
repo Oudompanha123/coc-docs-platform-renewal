@@ -57,44 +57,22 @@ describe("MyClaudeUsageSection (ADR-058, ADR-065)", () => {
     fetchMyUsage.mockResolvedValue(DASHBOARD);
   });
 
-  it("leads with today's tokens, not dollars, split into input and output", async () => {
-    render(<MyClaudeUsageSection />);
-
-    expect(await screen.findByTestId("my-usage-today-tokens")).toHaveTextContent("41.6K tokens");
-    const today = screen.getByRole("heading", { name: "Today's Usage" }).closest("section") as HTMLElement;
-    expect(within(today).getByText("3.3K")).toBeInTheDocument();
-    expect(within(today).getByText("38.3K")).toBeInTheDocument();
-    expect(within(today).queryByText(/\$/)).toBeNull();
-  });
-
-  it("shows the week against the weekly budget with a progress bar and what is left", async () => {
-    render(<MyClaudeUsageSection />);
-
-    expect(await screen.findByTestId("my-usage-week-tokens")).toHaveTextContent("620K / 1.2M tokens");
-    expect(screen.getByText("52% used")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "Weekly usage" })).toHaveAttribute("aria-valuenow", "52");
-    expect(screen.getByText(/580K remaining/)).toBeInTheDocument();
-  });
-
-  it("caps the bar at 100% when the week is over budget", async () => {
-    fetchMyUsage.mockResolvedValue({
-      ...DASHBOARD,
-      week: { ...DASHBOARD.week, totalTokens: 1_500_000, pctUsed: 125, remainingTokens: 0 },
-    });
-    render(<MyClaudeUsageSection />);
-
-    expect(await screen.findByRole("progressbar", { name: "Weekly usage" })).toHaveAttribute("aria-valuenow", "100");
-    expect(screen.getByText("125% used")).toBeInTheDocument();
-  });
-
-  it("lists each model's input, output and total tokens", async () => {
+  it("lists each day and model with its tokens, cache and reference cost in one table", async () => {
     render(<MyClaudeUsageSection />);
 
     const table = await screen.findByRole("table", { name: "Model usage" });
     const opus = within(table).getByText("Claude Opus 5.5").closest("tr") as HTMLElement;
-    expect(within(opus).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Claude Opus 5.5", "1.4K", "38.3K", "39.7K"]);
-    const haiku = within(table).getByText("Claude Haiku 4.5").closest("tr") as HTMLElement;
-    expect(within(haiku).getAllByRole("cell").map((c) => c.textContent)).toEqual(["Claude Haiku 4.5", "1.9K", "16", "1.9K"]);
+    expect(within(opus).getAllByRole("cell").map((c) => c.textContent)).toEqual([
+      new Date(2026, 8, 28).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
+      "Claude Opus 5.5",
+      "1.4K",
+      "38.3K",
+      "39.7K",
+      "5.5M",
+      "107.9K",
+      "$2.73",
+    ]);
+    expect(screen.queryByRole("heading", { name: "Recent Usage" })).toBeNull();
   });
 
   it("labels the dollar figure Reference API Cost, with the not-a-charge note and per-model lines", async () => {
@@ -123,7 +101,7 @@ describe("MyClaudeUsageSection (ADR-058, ADR-065)", () => {
 
   it("re-reads the chosen window from the backend", async () => {
     render(<MyClaudeUsageSection />);
-    await screen.findByTestId("my-usage-today-tokens");
+    await screen.findByTestId("my-usage-total-cost");
     expect(fetchMyUsage).toHaveBeenLastCalledWith(7);
 
     await userEvent.selectOptions(screen.getByLabelText("Period"), "30");
@@ -144,7 +122,7 @@ describe("MyClaudeUsageSection — refresh after claude-team-usage (ADR-060)", (
 
   it("re-reads the usage when the window regains focus", async () => {
     render(<MyClaudeUsageSection />);
-    await screen.findByTestId("my-usage-today-tokens");
+    await screen.findByTestId("my-usage-total-cost");
     expect(fetchMyUsage).toHaveBeenCalledTimes(1);
 
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -180,7 +158,7 @@ describe("MyClaudeUsageSection — refresh after claude-team-usage (ADR-060)", (
   it("does not poll on an ordinary visit", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<MyClaudeUsageSection />);
-    await screen.findByTestId("my-usage-today-tokens");
+    await screen.findByTestId("my-usage-total-cost");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(CLI_POLL_INTERVAL_MS * 3);

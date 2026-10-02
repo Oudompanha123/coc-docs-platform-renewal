@@ -10,8 +10,6 @@ import {
   UsersIcon,
   WarningIcon,
 } from "@/components/layout/icons";
-import { BudgetOverridesPanel } from "@/components/claude-usage/BudgetOverridesPanel";
-import { InviteTeammateModal } from "@/components/claude-usage/InviteTeammateModal";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
 import { TeamRosterPanel } from "@/components/claude-usage/TeamRosterPanel";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
@@ -20,13 +18,10 @@ import { UsageTable } from "@/components/claude-usage/UsageTable";
 import { UserActivityModal } from "@/components/claude-usage/UserActivityModal";
 import {
   fetchDashboard,
-  inviteMember,
   removeMember,
-  updateMemberBudget,
   type ClaudeUsageDashboard,
   type ClaudeUsageMember,
   type Period,
-  type TeamRole,
 } from "@/lib/admin/claudeUsage";
 import { useUsageAutoRefresh } from "@/lib/claudeUsage/useUsageAutoRefresh";
 
@@ -70,9 +65,9 @@ function rangeLabel(period: Period, offset: number, from: string, to: string): s
  * table/pill/modal patterns as Users & Roles) rather than that tool's
  * visual style.
  *
- * Cooperative/opt-in framing throughout: removing someone or inviting them
- * only changes this dashboard's tracking list, never their actual Claude
- * Code account or machine — see the footer note and both modals.
+ * Cooperative/opt-in framing throughout: removing someone only changes this
+ * dashboard's tracking list, never their actual Claude Code account or
+ * machine — see the footer note and the remove modal.
  */
 export function AdminClaudeUsageView() {
   const [period, setPeriod] = useState<Period>("week");
@@ -82,7 +77,6 @@ export function AdminClaudeUsageView() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<ClaudeUsageMember | null>(null);
   const [detail, setDetail] = useState<{ member: ClaudeUsageMember; avatarColor: string } | null>(null);
 
@@ -119,16 +113,6 @@ export function AdminClaudeUsageView() {
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "That change could not be saved.");
     }
-  }
-
-  async function handleInvite(email: string, teamRole: TeamRole) {
-    // Left to throw: InviteTeammateModal shows the error itself and stays open.
-    await inviteMember(email, teamRole);
-    await reload();
-  }
-
-  function handleBudgetOverrideChange(member: ClaudeUsageMember, tokens: number | null) {
-    void withActionError(() => updateMemberBudget(member.id, tokens).then(() => undefined));
   }
 
   function handleRemove(member: ClaudeUsageMember) {
@@ -191,17 +175,6 @@ export function AdminClaudeUsageView() {
             {dashboard ? rangeLabel(period, offset, dashboard.from, dashboard.to) : RANGE_LABEL[period]}
           </span>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setInviteOpen(true)}
-          className="flex items-center gap-2 self-start rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-          </svg>
-          Invite teammate
-        </button>
       </div>
 
       {awaitingCliUpload && (
@@ -239,7 +212,7 @@ export function AdminClaudeUsageView() {
             />
             <UsageStatCard
               icon={CoinsIcon}
-              label="Reference API Cost"
+              label="Cost"
               value={`$${totals.costUsd.toFixed(2)}`}
               tone="blue"
               note="API-equivalent estimate, not a charge"
@@ -274,8 +247,6 @@ export function AdminClaudeUsageView() {
           </div>
 
           <TeamRosterPanel members={members} onRemove={handleRemove} />
-
-          <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
         </>
       )}
 
@@ -286,8 +257,6 @@ export function AdminClaudeUsageView() {
           onClose={() => setDetail(null)}
         />
       )}
-
-      {inviteOpen && <InviteTeammateModal onClose={() => setInviteOpen(false)} onInvite={handleInvite} />}
 
       {removeTarget && (
         <RemoveMemberModal

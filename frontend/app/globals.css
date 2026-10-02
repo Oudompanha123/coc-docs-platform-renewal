@@ -190,6 +190,52 @@
   box-shadow: 0 20px 40px rgb(0 0 0 / 55%), 0 8px 16px rgb(0 0 0 / 40%);
 }
 
+/* Hero download button — icon tile (ContentRenderer.tsx). A soft 3D white
+   tile with a per-brand hover glow, both expressed as literal multi-layer
+   box-shadows no Tailwind utility class can hold, and a per-brand
+   `:hover` rule, which an inline style cannot express at all — hence a
+   dedicated class here rather than arbitrary-value utilities. The
+   class names are specific enough to this one feature that the hover rule
+   needs no further scoping; the dark-mode override follows the exact same
+   :is(admin, ax-renewal, home) + data-theme="dark" scoping every other dark
+   rule in this file already uses. */
+.hero-download-tile {
+  background: linear-gradient(145deg, #ffffff, #eef1f6);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 4px 10px rgba(17, 24, 39, 0.08),
+    0 1px 2px rgba(17, 24, 39, 0.06),
+    inset 0 1px 0 #ffffff,
+    inset 0 -2px 4px rgba(17, 24, 39, 0.04);
+  transition: box-shadow 150ms;
+}
+
+a:hover .hero-download-tile--windows {
+  box-shadow:
+    0 0 0 4px rgba(56, 189, 248, 0.15),
+    0 6px 16px rgba(37, 99, 235, 0.25);
+}
+
+a:hover .hero-download-tile--macos {
+  box-shadow:
+    0 0 0 4px rgba(156, 163, 175, 0.18),
+    0 6px 16px rgba(107, 114, 128, 0.22);
+}
+
+a:hover .hero-download-tile--linux {
+  box-shadow:
+    0 0 0 4px rgba(245, 158, 11, 0.15),
+    0 6px 16px rgba(245, 158, 11, 0.22);
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hero-download-tile {
+  background: linear-gradient(145deg, #2a2d3e, #1e2030);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 /* True-black dark theme, AX Renewal only (ax-renewal-black-theme.png) —
    more specific than the shared :is(admin, ax-renewal, home) block above,
    so these win for this shell without touching admin/home's navy dark
@@ -675,6 +721,15 @@ body {
 html {
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
+}
+
+/* Pinned down explicitly on every `.overflow-y-auto` element itself, not
+   left to inherit from `html` above — same reasoning as AX Renewal's <main>
+   rule further down: support for `scrollbar-width` is inconsistent enough
+   across engines that a directly overflowing element is worth setting on
+   its own rather than trusting inheritance alone. */
+.overflow-y-auto {
+  scrollbar-width: thin;
 }
 
 *::-webkit-scrollbar {

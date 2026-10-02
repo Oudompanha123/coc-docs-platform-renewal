@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MeResponse } from "@/lib/auth/api";
-import type { StepsContent } from "@/lib/docs/content-types";
+import type { HeroContent, StepsContent } from "@/lib/docs/content-types";
 import { ContentRenderer } from "./ContentRenderer";
 
 const { createUsageToken } = vi.hoisted(() => ({ createUsageToken: vi.fn() }));
@@ -122,5 +122,166 @@ describe("ContentRenderer's push-usage.mjs download link", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't personalize/i);
     expect(downloadPersonalizedScript).not.toHaveBeenCalled();
+  });
+});
+
+function heroContent(overrides: Partial<HeroContent> = {}): HeroContent {
+  return {
+    kind: "hero",
+    heading: "jexmcp",
+    tagline: "JEX Studio automation for Claude Code.",
+    subline: "One install. Every workspace.",
+    ctaLabel: "Get started",
+    ctaHref: "/docs/jex3-0/get-started",
+    eyebrow: "Overview",
+    sectionHeading: "Your whole JEX workflow. In one plugin.",
+    sectionIntro: "Intro",
+    features: [],
+    ...overrides,
+  };
+}
+
+describe("ContentRenderer's Hero download buttons", () => {
+  it("renders only Get started when every download URL is empty — the Hero looks exactly like before", () => {
+    render(<ContentRenderer content={heroContent()} variant="docs" />);
+
+    expect(screen.getByRole("link", { name: "Get started" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /download for/i })).not.toBeInTheDocument();
+  });
+
+  it("old saved content with no downloadButtons field at all loads with no errors", () => {
+    // heroContent()'s own default already omits the field entirely — this is
+    // exactly what a pre-existing saved row (written by an older editor)
+    // deserialises to, not `downloadButtons: undefined` set explicitly.
+    const oldContent = heroContent();
+    expect("downloadButtons" in oldContent).toBe(false);
+    expect(() => render(<ContentRenderer content={oldContent} variant="docs" />)).not.toThrow();
+    expect(screen.getByRole("link", { name: "Get started" })).toBeInTheDocument();
+  });
+
+  it("shows Get started + Download for Windows only, when only Windows is filled in", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({ downloadButtons: { windows: "https://example.com/app.exe" } })}
+        variant="docs"
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Get started" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Download for Windows" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Download for macOS" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Download for Linux" })).not.toBeInTheDocument();
+  });
+
+  it("shows all 4 buttons, in order, when all three OSes are filled in", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({
+          downloadButtons: {
+            windows: "https://example.com/app.exe",
+            macos: "https://example.com/app.dmg",
+            linux: "/downloads/app.AppImage",
+          },
+        })}
+        variant="docs"
+      />,
+    );
+
+    const links = screen.getAllByRole("link").map((el) => el.textContent?.trim());
+    expect(links).toEqual(["Get started", "Download for Windows", "Download for macOS", "Download for Linux"]);
+  });
+
+  it("adds rel=noopener noreferrer to an external https:// URL, but not to a same-site relative path", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({
+          downloadButtons: { windows: "https://example.com/app.exe", linux: "/downloads/app.AppImage" },
+        })}
+        variant="docs"
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Download for Windows" })).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
+    expect(screen.getByRole("link", { name: "Download for Linux" })).not.toHaveAttribute("rel");
+  });
+
+  it("shows version and size on line 2, joined by a middle dot, when both are set", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({
+          downloadButtons: {
+            windows: { url: "https://example.com/app.exe", version: "v2.1.0", size: "84 MB" },
+          },
+        })}
+        variant="docs"
+      />,
+    );
+
+    expect(screen.getByText("v2.1.0 · 84 MB")).toBeInTheDocument();
+  });
+
+  it("shows only version, or only size, when just one of the two is set", () => {
+    const { rerender } = render(
+      <ContentRenderer
+        content={heroContent({ downloadButtons: { windows: { url: "https://example.com/app.exe", version: "v2.1.0" } } })}
+        variant="docs"
+      />,
+    );
+    expect(screen.getByText("v2.1.0")).toBeInTheDocument();
+
+    rerender(
+      <ContentRenderer
+        content={heroContent({ downloadButtons: { windows: { url: "https://example.com/app.exe", size: "84 MB" } } })}
+        variant="docs"
+      />,
+    );
+    expect(screen.getByText("84 MB")).toBeInTheDocument();
+  });
+
+  it("hides line 2 entirely when both version and size are empty — including the legacy bare-URL shape", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({ downloadButtons: { windows: "https://example.com/app.exe" } })}
+        variant="docs"
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Download for Windows" });
+    // Only one text node inside the label/meta wrapper — the label itself.
+    expect(link.querySelectorAll("span > span")).toHaveLength(1);
+  });
+
+  it("a custom label and a show: false entry on another OS — the custom label renders and the off one stays hidden", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({
+          downloadButtons: {
+            windows: { url: "https://example.com/app.exe", label: "Get it now" },
+            macos: { url: "https://example.com/app.dmg", show: false },
+          },
+        })}
+        variant="docs"
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Get it now" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /macos/i })).not.toBeInTheDocument();
+  });
+
+  it("Get started sits in its own row, ahead of the download buttons row", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({ downloadButtons: { windows: "https://example.com/app.exe" } })}
+        variant="docs"
+      />,
+    );
+
+    const getStarted = screen.getByRole("link", { name: "Get started" });
+    const download = screen.getByRole("link", { name: "Download for Windows" });
+    // Get started's row and the download row are siblings, not the same element.
+    expect(getStarted.parentElement).not.toBe(download.parentElement);
   });
 });
