@@ -11,7 +11,8 @@ describe("AddAccountModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Add Account" }));
 
-    expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
+    // An empty field says so; a malformed one says what is wrong with it.
+    expect(await screen.findByText("Enter an email address.")).toBeInTheDocument();
     expect(onAdd).not.toHaveBeenCalled();
   });
 
@@ -23,7 +24,7 @@ describe("AddAccountModal", () => {
     await user.type(screen.getByLabelText("Email"), "not-an-address");
     await user.click(screen.getByRole("button", { name: "Add Account" }));
 
-    expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
+    expect(await screen.findByText("Include an @, as in name@example.com.")).toBeInTheDocument();
     expect(onAdd).not.toHaveBeenCalled();
   });
 

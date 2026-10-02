@@ -1,5 +1,6 @@
 "use client";
 
+import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 import { useState } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import type { TeamRole } from "@/lib/admin/claudeUsage";
@@ -48,7 +49,12 @@ export function InviteTeammateModal({
         onSubmit={async (e) => {
           e.preventDefault();
           const trimmed = email.trim();
-          if (!trimmed) return;
+          // Previously only "not empty", so a typo reached the backend and came
+          // back as a validation error with no field attached (ADR-088).
+          if (!isEmailAcceptable(trimmed)) {
+            setError(emailViolations(trimmed).join(" "));
+            return;
+          }
           setError(null);
           setBusy(true);
           try {

@@ -13,6 +13,8 @@ import {
   resendRegistrationCode,
   verifyRegistrationCode,
 } from "@/lib/auth/api";
+import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
+import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
 
 type FormErrors = Partial<Record<"fullName" | "email" | "password" | "confirmPassword" | "agree", string>>;
 
@@ -72,7 +74,14 @@ export default function RegisterPage() {
     const next: FormErrors = {};
     if (!fullName.trim()) next.fullName = "Enter your full name.";
     if (!email.trim()) next.email = "Enter your email.";
+    // Advisory only (CONST-TECH-07) -- the backend applies the same rules and is
+    // what refuses. This exists so a typo is caught before a round trip.
+    else if (!isEmailAcceptable(email)) next.email = emailViolations(email).join(" ");
     if (!password) next.password = "Create a password.";
+    // Advisory only (CONST-TECH-07) — the backend applies the same rules and
+    // is what actually refuses. This exists so somebody is not told after a
+    // round trip what they could have been told as they typed.
+    else if (!isPasswordAcceptable(password)) next.password = passwordViolations(password).join(" ");
     if (!confirmPassword) next.confirmPassword = "Confirm your password.";
     else if (password && confirmPassword && password !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";
