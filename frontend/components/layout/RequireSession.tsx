@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
-import { STAFF_ROLES } from "@/lib/auth/landing";
+import { ADMIN_APP_ROLES } from "@/lib/auth/landing";
 import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
@@ -23,31 +23,24 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * /create-password instead of /login — they *are* signed in, just not yet
  * allowed to use that session for anything but replacing the password.
  *
- * <p>A signed-in caller whose role is neither `admin` nor `super_admin` is
- * sent to /welcome, not shown a restricted view of the shell. The admin app
+ * <p>A signed-in caller whose role is not in {@link ADMIN_APP_ROLES} is sent
+ * to /welcome, not shown a restricted view of the shell. The admin app
  * (sidebar, Overview, per-product content management, Users & Roles,
- * Settings) is `admin`+ only now — a plain `user` account reads the public
- * /docs/* pages instead, same as a signed-out visitor. This is the same
- * floor `canManage` already checks in ProductContentTable/Sidebar; this is
- * just the entry gate, not a replacement for it.
+ * Settings, AX Renewal) is `admin`+ only now — a plain `user` account reads
+ * the public /docs/* pages instead, same as a signed-out visitor. This is the
+ * same floor `canManage` already checks in ProductContentTable/Sidebar; this
+ * is just the entry gate, not a replacement for it.
  *
  * <p>Rendering `null` while loading rather than the page is deliberate. Showing
  * the shell first and redirecting after means a visible flash of an interface
  * the visitor is not entitled to see.
  *
- * <p>One route-scoped exception (ADR-037, revised by ADR-039, ADR-068 and
- * ADR-071). An account holding the `developer`, `reviewer` or `lead` role
- * may enter exactly the Overview dashboard (`/overview`), their own
- * `/settings`, and `/ax-renewal` — nothing else in the admin shell opens
- * for them. What each role may *do*
- * there is still decided by the backend, route by route, not by this gate.
- * `roles` (every role held), not `role` (the highest), because rank alone
- * would not tell us they hold one of these three specifically. This is deliberately
- * narrower than widening `canAccessAdmin` unconditionally: that would also
- * let them navigate straight to `/users-roles` or `/claude-usage` by URL
- * (the backend would still refuse those with a 403, since this check is
- * presentation only, but the *experience* would be an inconsistent one of a
- * link hidden everywhere except by typing it in).
+ * <p><b>No more Developer/Reviewer/Lead exception (ADR-086, superseding
+ * ADR-040/ADR-068/ADR-071).</b> Those three roles used to open exactly the
+ * Overview dashboard, their own Settings, and AX Renewal — a 2026-09-29 PM
+ * decision retired that carve-out outright: only {@link ADMIN_APP_ROLES} may
+ * enter the admin shell at all now, full stop. What each admitted role may
+ * *do* is still decided by the backend, route by route, not by this gate.
  *
  * <p><b>ADR-052, no longer an exception here.</b> `/claude-usage` briefly
  * admitted any authenticated caller, rendering a personal view for
@@ -57,31 +50,10 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * so `/claude-usage` is back to being an ordinary admin-only route with no
  * carve-out, the same as every other item in `ADMINISTRATION`.
  */
-/**
- * The shell routes open to Developer, Reviewer and Lead (`STAFF_ROLES`):
- * the Overview dashboard and their own Settings (ADR-071), and AX Renewal
- * (ADR-068) — exact paths, plus AX Renewal's own sub-routes. Settings comes
- * with the dashboard because the shell's sidebar pins it on every page, and
- * everything on it is the caller's own account (`/api/v1/auth/**`,
- * `/api/v1/me/**`), no admin API. Everything else in the shell stays
- * Admin/Super Admin, the same floor its APIs sit at.
- */
-function isStaffRoute(pathname: string): boolean {
-  return (
-    pathname === "/overview" ||
-    pathname === "/settings" ||
-    pathname === "/ax-renewal" ||
-    pathname.startsWith("/ax-renewal/")
-  );
-}
-
 export function RequireSession({ children }: { children: ReactNode }) {
   const { status, user } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
-  const isAdminRole = user?.role === "admin" || user?.role === "super_admin";
-  const holdsStaffRole = user?.roles?.some((r) => STAFF_ROLES.includes(r)) ?? false;
-  const canAccessAdmin = isAdminRole || (isStaffRoute(pathname) && holdsStaffRole);
+  const canAccessAdmin = user?.role != null && ADMIN_APP_ROLES.includes(user.role);
 
   useEffect(() => {
     if (status === "anonymous") {

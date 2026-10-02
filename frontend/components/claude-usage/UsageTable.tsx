@@ -73,7 +73,7 @@ export function UsageTable({
               <th className="px-4 py-3">Models Used</th>
               <th className="px-4 py-3">Input / Output</th>
               <th className="px-4 py-3">Total Tokens</th>
-              <th className="px-4 py-3">Reference API Cost</th>
+              <th className="px-4 py-3">Cost</th>
               <th className="px-4 py-3">Soft Budget</th>
               {/* reported_at -- when the scan last reached the backend, not when Claude was last used. */}
               <th className="px-4 py-3">Last Reported</th>
