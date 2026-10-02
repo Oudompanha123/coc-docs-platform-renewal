@@ -1,16 +1,67 @@
 import { useState } from "react";
 import { FormField, fieldInputClass, fieldTextareaClass } from "./FormField";
 import { moveItem } from "./reorder";
-import { ICON_KEYS } from "@/lib/docs/content-types";
-import type { HeroContent } from "@/lib/docs/content-types";
+import { HERO_DOWNLOAD_OS_ICON } from "../os-icons";
+import {
+  HERO_DOWNLOAD_OS_LABEL,
+  HERO_DOWNLOAD_OS_ORDER,
+  ICON_KEYS,
+  isValidHeroDownloadUrl,
+  resolveHeroDownloadButton,
+} from "@/lib/docs/content-types";
+import type { HeroContent, HeroDownloadButton, HeroDownloadButtons, HeroDownloadOs } from "@/lib/docs/content-types";
 import { uploadContentImage } from "@/lib/docs/content-image-api";
+
+const DOWNLOAD_OS_PLACEHOLDER: Record<HeroDownloadOs, string> = {
+  windows: "https://… .exe / .msi",
+  macos: "https://… .dmg / .pkg",
+  linux: "https://… .AppImage / .deb / .tar.gz",
+};
+const DOWNLOAD_URL_ERROR = "Must be an https:// URL or a path starting with /.";
 
 export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (next: HeroContent) => void }) {
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // What the admin is currently typing per OS, kept apart from `value.downloadButtons`
+  // so the input can show an in-progress, momentarily-invalid string (e.g.
+  // typing "https:/" one character at a time) without that string ever
+  // reaching the saved draft — only a value isValidHeroDownloadUrl accepts
+  // is committed via `set`, which is what keeps an invalid URL from ever
+  // being saved (it simply never becomes part of `value`).
+  const [downloadDrafts, setDownloadDrafts] = useState<Partial<Record<HeroDownloadOs, string>>>({});
 
   function set<K extends keyof HeroContent>(key: K, val: HeroContent[K]) {
     onChange({ ...value, [key]: val });
+  }
+
+  /** The raw, not-yet-defaulted entry for one OS — what its own inputs read
+   *  from, as opposed to `resolveHeroDownloadButton`'s fully-defaulted view
+   *  (which a bare input must never show as if it were typed in). A legacy
+   *  bare-URL string normalises to `{ url }` so every caller here only ever
+   *  deals with the object shape. */
+  function entryOf(os: HeroDownloadOs): HeroDownloadButton {
+    const raw = value.downloadButtons?.[os];
+    return typeof raw === "string" ? { url: raw } : (raw ?? {});
+  }
+
+  function updateDownloadButton(os: HeroDownloadOs, patch: Partial<HeroDownloadButton>) {
+    const next: HeroDownloadButtons = { ...value.downloadButtons, [os]: { ...entryOf(os), ...patch } };
+    set("downloadButtons", next);
+  }
+
+  function toggleShow(os: HeroDownloadOs) {
+    const shownNow = resolveHeroDownloadButton(os, value.downloadButtons?.[os]).show;
+    updateDownloadButton(os, { show: !shownNow });
+  }
+
+  function downloadUrlValue(os: HeroDownloadOs): string {
+    return downloadDrafts[os] ?? entryOf(os).url ?? "";
+  }
+
+  function setDownloadUrl(os: HeroDownloadOs, raw: string) {
+    setDownloadDrafts((prev) => ({ ...prev, [os]: raw }));
+    if (!isValidHeroDownloadUrl(raw)) return;
+    updateDownloadButton(os, { url: raw });
   }
 
   function updateFeature(index: number, patch: Partial<HeroContent["features"][number]>) {
@@ -85,6 +136,94 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
           <input className={fieldInputClass} value={value.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} />
         </FormField>
       </div>
+
+      <div>
+        <span className="text-xs font-semibold text-muted">Download buttons</span>
+        <p className="mt-0.5 text-xs text-muted">Paste a download URL. Leave empty to hide that button.</p>
+        <div className="mt-2 space-y-3">
+          {HERO_DOWNLOAD_OS_ORDER.map((os) => {
+            const label = HERO_DOWNLOAD_OS_LABEL[os];
+            const Icon = HERO_DOWNLOAD_OS_ICON[os];
+            const entry = entryOf(os);
+            const shown = resolveHeroDownloadButton(os, value.downloadButtons?.[os]).show;
+            const rawUrl = downloadUrlValue(os);
+            const urlError = isValidHeroDownloadUrl(rawUrl) ? null : DOWNLOAD_URL_ERROR;
+            const showNoUrlHint = shown && !urlError && rawUrl === "";
+            return (
+              <div key={os} className="rounded-[10px] border border-border p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-dash-ink">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-xs font-semibold text-dash-ink">{label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={shown}
+                    aria-label={`Show the ${label} download button`}
+                    onClick={() => toggleShow(os)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
+                      shown ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+                        shown ? "left-[22px]" : "left-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 ${shown ? "" : "opacity-60"}`}>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">Label</span>
+                    <input
+                      className={`${fieldInputClass} mt-1`}
+                      placeholder={`Download for ${label}`}
+                      value={entry.label ?? ""}
+                      onChange={(e) => updateDownloadButton(os, { label: e.target.value })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">URL</span>
+                    <input
+                      className={`${fieldInputClass} mt-1`}
+                      placeholder={DOWNLOAD_OS_PLACEHOLDER[os]}
+                      value={rawUrl}
+                      onChange={(e) => setDownloadUrl(os, e.target.value)}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">Version</span>
+                    <input
+                      className={`${fieldInputClass} mt-1`}
+                      placeholder="v2.1.0"
+                      maxLength={20}
+                      value={entry.version ?? ""}
+                      onChange={(e) => updateDownloadButton(os, { version: e.target.value })}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[11px] font-semibold text-muted">File size</span>
+                    <input
+                      className={`${fieldInputClass} mt-1`}
+                      placeholder="84 MB"
+                      maxLength={12}
+                      value={entry.size ?? ""}
+                      onChange={(e) => updateDownloadButton(os, { size: e.target.value })}
+                    />
+                  </label>
+                </div>
+                {urlError && <p className="mt-2 text-xs font-semibold text-[#c94040]">{urlError}</p>}
+                {showNoUrlHint && <p className="mt-2 text-xs font-semibold text-muted">Add a URL to show this button.</p>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <FormField label="Eyebrow (small label above the section heading)">
         <input className={fieldInputClass} value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
       </FormField>
