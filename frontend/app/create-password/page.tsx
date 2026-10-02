@@ -6,6 +6,7 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordField } from "@/components/auth/FormField";
 import { LockIcon } from "@/components/auth/icons";
 import { AuthApiError, changePassword } from "@/lib/auth/api";
+import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
 import { SessionProvider, useSession } from "@/lib/auth/SessionProvider";
 
 type Errors = Partial<Record<"temporaryPassword" | "password" | "confirmPassword", string>>;
@@ -62,7 +63,7 @@ function CreatePasswordForm() {
     const next: Errors = {};
     if (!temporaryPassword) next.temporaryPassword = "Enter your temporary password.";
     if (!password) next.password = "Create a new password.";
-    else if (password.length < 8) next.password = "Password must be at least 8 characters.";
+    else if (!isPasswordAcceptable(password)) next.password = passwordViolations(password).join(" ");
     if (!confirmPassword) next.confirmPassword = "Confirm your new password.";
     else if (password && confirmPassword && password !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";

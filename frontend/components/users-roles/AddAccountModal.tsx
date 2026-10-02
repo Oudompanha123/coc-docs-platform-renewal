@@ -1,5 +1,6 @@
 "use client";
 
+import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 import { useState } from "react";
 import { Modal } from "./Modal";
 import { RoleMultiSelect } from "./RoleMultiSelect";
@@ -31,15 +32,14 @@ export function AddAccountModal({
   const [error, setError] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Advisory only, matching every other client-side check in this codebase
-  // (CONST-TECH-07): the backend's own @Email validation on CreateAccountRequest
-  // is what actually decides.
-  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   async function submit() {
     const trimmed = email.trim();
-    if (!trimmed || !EMAIL_PATTERN.test(trimmed)) {
-      setError("Enter a valid email address.");
+    // Advisory only, matching every other client-side check in this codebase
+    // (CONST-TECH-07): the backend's @ValidEmail on CreateAccountRequest is
+    // what actually decides. The local pattern this replaces was one of three
+    // different shapes across the forms (ADR-088).
+    if (!isEmailAcceptable(trimmed)) {
+      setError(emailViolations(trimmed).join(" "));
       return;
     }
     setError(undefined);

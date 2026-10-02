@@ -6,6 +6,7 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField } from "@/components/auth/FormField";
 import { LockIcon, MailIcon } from "@/components/auth/icons";
 import { AuthApiError, forgotPassword } from "@/lib/auth/api";
+import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 
 /**
  * Forgot Password — POST /api/v1/auth/forgot-password (ADR-018, revised by
@@ -39,10 +40,12 @@ export default function ForgotPasswordPage() {
       setError("Enter your email.");
       return false;
     }
-    // A light client-side shape check only — advisory, like the rest of this
-    // frontend's validation. The backend's @Email annotation is authoritative.
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setError("Enter a valid email address.");
+    // Advisory, like the rest of this frontend's validation — the backend's
+    // @ValidEmail is authoritative (ADR-088). The hand-rolled \S+@\S+\.\S+
+    // this replaces was one of three different shapes across the forms, which
+    // is how "valid" came to mean something different on each screen.
+    if (!isEmailAcceptable(email)) {
+      setError(emailViolations(email).join(" "));
       return false;
     }
     setError(undefined);
