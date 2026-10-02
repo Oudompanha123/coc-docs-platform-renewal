@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
@@ -60,8 +60,10 @@ export function UserActivityModal({
   const [project, setProject] = useState<string | null>(null);
   const [projectOptions, setProjectOptions] = useState<string[]>([]);
   const [activity, setActivity] = useState<ClaudeUsageMemberActivity | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<ClaudeUsageActivityDay | null>(null);
+  const [closing, setClosing] = useState(false);
 
   const range = presetRange(preset, today, custom);
   const rangeKey = range ? `${range.from}|${range.to}` : "";
@@ -69,7 +71,10 @@ export function UserActivityModal({
   useEffect(() => {
     if (!range) return;
     let cancelled = false;
-    setActivity(null);
+    // The previous result stays on screen, dimmed, until this one lands.
+    // Clearing it collapsed the popup to a one-line "Loading…" and grew it
+    // back — re-centring each time — on every range or project switch.
+    setLoading(true);
     setError(null);
     setSelectedDay(null);
     fetchMemberActivity(member.id, { from: range.from, to: range.to, project })
@@ -80,7 +85,13 @@ export function UserActivityModal({
         if (!project) setProjectOptions(result.projects.map((p) => p.name));
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't load this person's activity.");
+        if (cancelled) return;
+        // Not the previous range's numbers under this range's heading.
+        setActivity(null);
+        setError(err instanceof Error ? err.message : "Couldn't load this person's activity.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -89,16 +100,19 @@ export function UserActivityModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member.id, rangeKey, project]);
 
+  // Starts the fade-out; Modal calls `onClose` (as onExited) once it ends.
+  const requestClose = useCallback(() => setClosing(true), []);
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       // Esc steps back out of the day detail first, then closes.
       if (selectedDay) setSelectedDay(null);
-      else onClose();
+      else requestClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedDay, onClose]);
+  }, [selectedDay, requestClose]);
 
   const rangeLabel =
     preset === "custom" && range
@@ -109,20 +123,38 @@ export function UserActivityModal({
   const singleDay = !!range && range.from === range.to;
   const lastActivity = activity?.sessions[0]?.endedAt ?? null;
 
+  const refreshing = loading && activity !== null;
+
   return (
     <Modal
-      onClose={onClose}
-      className="w-full max-w-4xl overflow-y-auto rounded-2xl border border-border bg-white shadow-xl"
+      onClose={requestClose}
+      animated
+      closing={closing}
+      onExited={onClose}
+      // Sized to its content, up to the viewport (Modal's maxHeight: 100%):
+      // compact for an empty range, scrolling inside for a long one.
+      className="w-full max-w-4xl overflow-y-auto overscroll-contain rounded-2xl border border-border bg-white shadow-xl"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="user-activity-title" className="p-5 sm:p-7">
-        <div className="flex items-start justify-between gap-4">
-          <h2 id="user-activity-title" className="text-lg font-bold text-dash-ink">
-            {selectedDay ? "Day detail" : "User Activity"}
-          </h2>
+        {/* Sticky so the title and close button stay in reach while a long
+            activity list scrolls; the negative margins carry its white
+            background over the panel's own padding. */}
+        <div className="sticky top-0 z-10 -mx-5 -mt-5 flex items-start justify-between gap-4 bg-white px-5 pb-3 pt-5 sm:-mx-7 sm:-mt-7 sm:px-7 sm:pt-7">
+          <div className="flex items-baseline gap-3">
+            <h2 id="user-activity-title" className="text-lg font-bold text-dash-ink">
+              {selectedDay ? "Day detail" : "User Activity"}
+            </h2>
+            {/* In the title row, not above the content, so it adds no height. */}
+            {refreshing && (
+              <span role="status" className="text-xs text-muted">
+                Updating…
+              </span>
+            )}
+          </div>
           <button
             type="button"
             aria-label="Close"
-            onClick={onClose}
+            onClick={requestClose}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
           >
             <XIcon className="h-5 w-5" />
@@ -159,13 +191,19 @@ export function UserActivityModal({
             )}
 
             {activity && activity.days.length === 0 && (
-              <p className="mt-6 rounded-[10px] border border-border px-4 py-8 text-center text-sm text-muted">
+              <p
+                aria-busy={refreshing}
+                className={`mt-6 rounded-[10px] border border-border px-4 py-8 text-center text-sm text-muted transition-opacity duration-200 ${refreshing ? "opacity-50" : ""}`}
+              >
                 {project ? `No usage on ${project} in this range.` : "No usage reported in this range."}
               </p>
             )}
 
             {activity && activity.days.length > 0 && (
-              <div className="mt-6 flex flex-col gap-7">
+              <div
+                aria-busy={refreshing}
+                className={`mt-6 flex flex-col gap-7 transition-opacity duration-200 ${refreshing ? "pointer-events-none opacity-50" : ""}`}
+              >
                 {activity.daysWithoutActivity > 0 && (
                   <p className="rounded-[10px] border border-[#e0873c]/30 bg-[#e0873c]/10 px-4 py-3 text-xs text-dash-ink">
                     {activity.daysWithoutActivity === activity.days.length

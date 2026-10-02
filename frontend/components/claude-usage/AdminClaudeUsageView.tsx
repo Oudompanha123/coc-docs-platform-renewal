@@ -10,6 +10,7 @@ import {
   UsersIcon,
   WarningIcon,
 } from "@/components/layout/icons";
+import { BudgetOverridesPanel } from "@/components/claude-usage/BudgetOverridesPanel";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
 import { TeamRosterPanel } from "@/components/claude-usage/TeamRosterPanel";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
@@ -19,6 +20,7 @@ import { UserActivityModal } from "@/components/claude-usage/UserActivityModal";
 import {
   fetchDashboard,
   removeMember,
+  updateMemberBudget,
   type ClaudeUsageDashboard,
   type ClaudeUsageMember,
   type Period,
@@ -69,6 +71,11 @@ function rangeLabel(period: Period, offset: number, from: string, to: string): s
  * dashboard's tracking list, never their actual Claude Code account or
  * machine — see the footer note and the remove modal.
  */
+// Hoisted, not inline: AppShell republishes the page header whenever this
+// element's identity changes, so an inline literal re-rendered the topbar on
+// every render of this page — including opening and closing a user's detail.
+const TITLE_ICON = <BarChartIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
+
 export function AdminClaudeUsageView() {
   const [period, setPeriod] = useState<Period>("week");
   const [offset, setOffset] = useState(0);
@@ -115,6 +122,12 @@ export function AdminClaudeUsageView() {
     }
   }
 
+  function handleBudgetOverrideChange(member: ClaudeUsageMember, tokens: number | null) {
+    void withActionError(() => updateMemberBudget(member.id, tokens).then(() => undefined));
+  }
+
+  const closeDetail = useCallback(() => setDetail(null), []);
+
   function handleRemove(member: ClaudeUsageMember) {
     setRemoveTarget(member);
   }
@@ -138,7 +151,7 @@ export function AdminClaudeUsageView() {
     <AppShell
       pageTitle="Claude Code Usage"
       pageSubtitle="Track opt-in Claude Code usage and estimated API-equivalent cost across your team"
-      titleIcon={<BarChartIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={TITLE_ICON}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex items-center gap-1 self-start rounded-[10px] border border-border bg-white p-1 shadow-sm">
@@ -247,6 +260,8 @@ export function AdminClaudeUsageView() {
           </div>
 
           <TeamRosterPanel members={members} onRemove={handleRemove} />
+
+          <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
         </>
       )}
 
@@ -254,7 +269,7 @@ export function AdminClaudeUsageView() {
         <UserActivityModal
           member={members.find((m) => m.id === detail.member.id) ?? detail.member}
           avatarColor={detail.avatarColor}
-          onClose={() => setDetail(null)}
+          onClose={closeDetail}
         />
       )}
 
