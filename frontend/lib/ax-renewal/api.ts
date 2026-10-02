@@ -559,6 +559,38 @@ export function fetchGeneratedChanges(projectId: string, runId: string): Promise
   return request<AxRenewalGeneratedChange[]>(`/projects/${projectId}/implementation/${runId}/changes`);
 }
 
+/** The step a generating run is on (ADR-082) — each reported when it actually begins. */
+export type AxRenewalGenerationStep = "preparing" | "working" | "comparing";
+
+/** One thing the model did or said while generating (ADR-082). `path` is relative to the project. */
+export interface AxRenewalGenerationActivity {
+  at: string;
+  kind: "read" | "edit" | "write" | "search" | "list" | "plan" | "note" | "tool" | "error" | "done" | string;
+  text: string;
+  path: string | null;
+}
+
+/**
+ * A generating run's live progress (ADR-082). `available` is false when the
+ * backend answering is not the one running the generation — every other
+ * field is then empty. There is deliberately no percentage: nothing reports
+ * how much of its work the model has left.
+ */
+export interface AxRenewalGenerationProgress {
+  available: boolean;
+  step: AxRenewalGenerationStep | null;
+  stepStartedAt: string | null;
+  filesRead: number;
+  filesChanged: number;
+  actions: number;
+  activity: AxRenewalGenerationActivity[];
+  earlierActivityDropped: boolean;
+}
+
+export function fetchImplementationProgress(projectId: string, runId: string): Promise<AxRenewalGenerationProgress> {
+  return request<AxRenewalGenerationProgress>(`/projects/${projectId}/implementation/${runId}/progress`);
+}
+
 /** Copies a Generate run's approved changes into the real destination — the one call in this whole feature that writes outside this application's own database. */
 export function approveImplementation(projectId: string, runId: string): Promise<AxRenewalImplementationRun> {
   return request<AxRenewalImplementationRun>(`/projects/${projectId}/implementation/${runId}/approve`, {
