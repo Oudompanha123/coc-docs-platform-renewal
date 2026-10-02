@@ -16,6 +16,7 @@ import { MembersPanel } from "@/components/ax-renewal/MembersPanel";
 import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectPicker } from "@/components/ax-renewal/ProjectPicker";
+import { GenerationProgress } from "@/components/ax-renewal/GenerationProgress";
 import { RunHistory } from "@/components/ax-renewal/RunHistory";
 import { RunLocallyControls } from "@/components/ax-renewal/RunLocallyControls";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
@@ -1591,12 +1592,15 @@ function ImplementationPanel({
               </p>
             )}
 
+            {/* What the AI is doing right now (ADR-082): the real step, counts and
+                the model's own actions, as the backend running it reports them. */}
             {run.status === "generating" && (
-              <p className="mt-2 text-dash-ink">
-                Copying the attached source, asking your local model to carry out the confirmed plan against that
-                copy, then comparing the result — this can take up to 20 minutes. Nothing is written to the
-                destination until you approve it.
-              </p>
+              <>
+                <p className="mt-2 text-xs text-muted">
+                  This can take up to 20 minutes. Nothing is written to the destination until you approve it.
+                </p>
+                <GenerationProgress projectId={detail.project.id} runId={run.id} />
+              </>
             )}
             {run.status === "applying" && <p className="mt-2 text-dash-ink">Copying the approved changes into the destination…</p>}
             {run.status === "failed" && run.failureReason && (
