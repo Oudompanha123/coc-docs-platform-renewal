@@ -35,7 +35,8 @@ describe("ForgotPasswordPage", () => {
     await user.type(screen.getByLabelText("Email"), "not-an-email");
     await user.click(screen.getByRole("button", { name: "Send Reset Link" }));
 
-    expect(await screen.findByText("Enter a valid email address.")).toBeInTheDocument();
+    // Names the actual problem now, rather than "invalid" (ADR-088).
+    expect(await screen.findByText("Include an @, as in name@example.com.")).toBeInTheDocument();
     expect(forgotPassword).not.toHaveBeenCalled();
   });
 
