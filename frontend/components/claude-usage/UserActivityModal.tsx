@@ -328,7 +328,7 @@ function MemberHeader({
         <p className="truncate text-sm text-muted">{member.email}</p>
         <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
           <span aria-hidden="true" className={`h-2 w-2 rounded-full ${activeToday ? "bg-[#1f9d6b]" : "bg-[#c4c4d0]"}`} />
-          Last active · {formatLastActive(last)}
+          Last report · {formatLastActive(last)}
         </p>
       </div>
     </div>
