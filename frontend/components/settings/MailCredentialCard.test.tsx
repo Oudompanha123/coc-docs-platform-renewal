@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { loadMailCredential, saveMailCredential, removeMailCredential } = vi.hoisted(() => ({
   loadMailCredential: vi.fn(),
@@ -12,11 +12,26 @@ vi.mock("@/lib/notify/mailCredential", () => ({
   loadMailCredential,
   saveMailCredential,
   removeMailCredential,
+  connectGoogleMail,
+  GMAIL_SCOPES: "gmail.send gmail.readonly",
   MailCredentialError: class extends Error {},
 }));
 
 const { useSession } = vi.hoisted(() => ({ useSession: vi.fn() }));
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession }));
+
+// FakeDismissed is created inside vi.hoisted because vi.mock factories are
+// hoisted above ordinary declarations -- a top-level class here is still in
+// its temporal dead zone when the factory runs.
+const { connectGoogleMail, requestGmailAuthorizationCode, FakeDismissed } = vi.hoisted(() => ({
+  connectGoogleMail: vi.fn(),
+  requestGmailAuthorizationCode: vi.fn(),
+  FakeDismissed: class extends Error {},
+}));
+vi.mock("@/lib/notify/googleCodeClient", () => ({
+  requestGmailAuthorizationCode,
+  ConsentDismissedError: FakeDismissed,
+}));
 
 import { MailCredentialCard } from "./MailCredentialCard";
 
@@ -27,6 +42,14 @@ describe("MailCredentialCard", () => {
     vi.clearAllMocks();
     loadMailCredential.mockResolvedValue({ configured: false, smtpUsername: null });
     useSession.mockReturnValue({ user: { email: "ana@gmail.com" } });
+    // Set here rather than inherited from the runner's environment: whether
+    // the OAuth route is offered must be a property of these tests, not of
+    // whoever ran them.
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_CLIENT_ID", "test-client-id");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("says nothing is stored, and that the shared address is used instead", async () => {
@@ -154,5 +177,84 @@ describe("MailCredentialCard", () => {
     render(<MailCredentialCard />);
 
     await waitFor(() => expect(setUp()).toBeInTheDocument());
+  });
+
+  /**
+   * The OAuth route (ADR-085). Preferred over an App Password because the
+   * grant is scoped and revocable, so it is offered first — but only where the
+   * deployment can actually complete the exchange.
+   */
+  describe("connecting with Google", () => {
+    const withOauth = () =>
+      loadMailCredential.mockResolvedValue({
+        configured: false,
+        smtpUsername: null,
+        kind: null,
+        oauthAvailable: true,
+      });
+
+    it("is not offered when the server cannot exchange a code", async () => {
+      loadMailCredential.mockResolvedValue({
+        configured: false,
+        smtpUsername: null,
+        kind: null,
+        oauthAvailable: false,
+      });
+
+      render(<MailCredentialCard />);
+      await waitFor(() => expect(loadMailCredential).toHaveBeenCalled());
+      await userEvent.click(setUp());
+
+      expect(screen.queryByRole("button", { name: /connect with google/i })).not.toBeInTheDocument();
+      // The App Password route is still there, so nobody is left without one.
+      expect(screen.getByLabelText(/app password/i)).toBeInTheDocument();
+    });
+
+    it("exchanges the code and reports the grant", async () => {
+      withOauth();
+      requestGmailAuthorizationCode.mockResolvedValue("auth-code");
+      connectGoogleMail.mockResolvedValue({
+        configured: true,
+        smtpUsername: "ana@gmail.com",
+        kind: "oauth",
+        oauthAvailable: true,
+      });
+
+      render(<MailCredentialCard />);
+      await waitFor(() => expect(loadMailCredential).toHaveBeenCalled());
+      await userEvent.click(setUp());
+      await userEvent.click(screen.getByRole("button", { name: /connect with google/i }));
+
+      await waitFor(() => expect(connectGoogleMail).toHaveBeenCalledWith("auth-code"));
+      expect(await screen.findByText(/connected with google/i)).toBeInTheDocument();
+    });
+
+    /** Closing the popup is a decision. Reporting it as an error would be noise. */
+    it("says nothing when the consent window is dismissed", async () => {
+      withOauth();
+      requestGmailAuthorizationCode.mockRejectedValue(new FakeDismissed("closed"));
+
+      render(<MailCredentialCard />);
+      await waitFor(() => expect(loadMailCredential).toHaveBeenCalled());
+      await userEvent.click(setUp());
+      await userEvent.click(screen.getByRole("button", { name: /connect with google/i }));
+
+      await waitFor(() => expect(requestGmailAuthorizationCode).toHaveBeenCalled());
+      expect(connectGoogleMail).not.toHaveBeenCalled();
+      expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+    });
+
+    it("shows why a real failure failed", async () => {
+      withOauth();
+      requestGmailAuthorizationCode.mockResolvedValue("auth-code");
+      connectGoogleMail.mockRejectedValue(new Error("Google didn't complete the connection."));
+
+      render(<MailCredentialCard />);
+      await waitFor(() => expect(loadMailCredential).toHaveBeenCalled());
+      await userEvent.click(setUp());
+      await userEvent.click(screen.getByRole("button", { name: /connect with google/i }));
+
+      expect(await screen.findByText(/google didn't complete the connection/i)).toBeInTheDocument();
+    });
   });
 });

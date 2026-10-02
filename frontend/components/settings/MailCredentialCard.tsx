@@ -5,11 +5,27 @@ import { MailIcon } from "@/components/layout/icons";
 import { SessionExpiredError } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 import {
+  connectGoogleMail,
   loadMailCredential,
   removeMailCredential,
   saveMailCredential,
   type MailCredentialStatus,
 } from "@/lib/notify/mailCredential";
+import { ConsentDismissedError, requestGmailAuthorizationCode } from "@/lib/notify/googleCodeClient";
+
+/**
+ * The same client id sign-in uses. Absent means the OAuth route cannot be
+ * offered, and the App Password form is all that shows.
+ *
+ * <p>Read per render rather than once at module load. Next.js inlines
+ * {@code NEXT_PUBLIC_*} at build time either way, so this costs nothing there
+ * — but a module-level constant is captured before a test can set it, which
+ * made the OAuth cases pass or fail on whether the runner happened to have the
+ * variable in its environment.
+ */
+function googleClientId(): string {
+  return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+}
 
 /**
  * Where somebody supplies their own Gmail credential (ADR-063, ADR-077,
@@ -41,6 +57,7 @@ export function MailCredentialCard() {
   const [appPassword, setAppPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -90,11 +107,48 @@ export function MailCredentialCard() {
   const remove = () =>
     act(async () => {
       await removeMailCredential();
-      setStatus({ configured: false, smtpUsername: null });
+      setStatus({ configured: false, smtpUsername: null, kind: null });
       setSaved(false);
     });
 
+  /**
+   * The preferred route (ADR-085). One consent screen, nothing typed, and the
+   * grant is scoped to sending and reading rather than being a password that
+   * opens the whole account.
+   */
+  async function connectGoogle() {
+    setBusy(true);
+    // Its own error state, not the form's. One shared string rendered in both
+    // places put the same message on screen twice.
+    setOauthError(null);
+    setError(null);
+    setSaved(false);
+    try {
+      const code = await requestGmailAuthorizationCode(googleClientId());
+      setStatus(await connectGoogleMail(code));
+      setExpanded(false);
+      setSaved(true);
+    } catch (e) {
+      // Closing the popup is a decision, not a failure. Saying "something went
+      // wrong" to someone who just changed their mind is noise.
+      if (e instanceof ConsentDismissedError) return;
+      setOauthError(
+        e instanceof SessionExpiredError
+          ? "You are not signed in any more. Reload the page and sign in."
+          : e instanceof Error
+            ? e.message
+            : "Something went wrong.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const configured = status?.configured === true;
+  const viaOauth = status?.kind === "oauth";
+  // Both halves must be present: the server needs a client secret to exchange
+  // the code, and this bundle needs the client id to raise the popup.
+  const canUseOauth = status?.oauthAvailable === true && googleClientId() !== "";
 
   return (
     <div className="py-3.5 first:pt-0 last:pb-0">
@@ -107,7 +161,9 @@ export function MailCredentialCard() {
             <p className="text-sm font-semibold text-dash-ink">Send attendance mail from your own Gmail</p>
             <p className="text-xs text-muted">
               {configured
-                ? `Using ${status?.smtpUsername}. Your attendance report is sent from this address.`
+                ? `Using ${status?.smtpUsername} — ${
+                    viaOauth ? "connected with Google" : "App Password"
+                  }. Your attendance report is sent from this address.`
                 : "Optional. Without this, your report is sent from the shared address."}
             </p>
           </div>
@@ -167,6 +223,26 @@ export function MailCredentialCard() {
               <li>You can remove it here at any time, and revoke it in your Google account.</li>
             </ul>
           </div>
+
+          {canUseOauth && (
+            <>
+              <button
+                type="button"
+                onClick={() => void connectGoogle()}
+                disabled={busy}
+                className="mt-3 w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-surface-2 disabled:opacity-40"
+              >
+                {busy ? "Connecting…" : "Connect with Google"}
+              </button>
+              <p className="mt-1 text-xs text-muted">
+                Recommended. One permission screen, nothing to type, and you can revoke it from your Google
+                account at any time.
+              </p>
+              {oauthError && <p className="mt-2 text-xs font-semibold text-rose-600">{oauthError}</p>}
+
+              <p className="mt-4 text-xs font-semibold text-muted">Or use an App Password instead</p>
+            </>
+          )}
 
           <label className="mt-3 block text-xs font-semibold text-dash-ink" htmlFor="smtp-username">
             Gmail address

@@ -34,7 +34,15 @@ export class MailCredentialError extends Error {}
 export interface MailCredentialStatus {
   configured: boolean;
   smtpUsername: string | null;
+  /** "oauth", "app_password", or null when nothing is stored. */
+  kind?: "oauth" | "app_password" | null;
+  /** Whether this deployment can offer the OAuth route at all (ADR-085). */
+  oauthAvailable?: boolean;
 }
+
+/** Scopes requested at consent. Must match what the backend expects Google to grant. */
+export const GMAIL_SCOPES =
+  "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly";
 
 async function send(method: "GET" | "PUT" | "DELETE", body?: unknown): Promise<Response> {
   try {
@@ -81,6 +89,42 @@ export async function saveMailCredential(
     );
   }
   if (!response.ok) throw new MailCredentialError("Couldn't save your mail credential.");
+  return (await response.json()) as MailCredentialStatus;
+}
+
+/**
+ * Hands Google's authorization code to the backend, which exchanges it for a
+ * refresh token (ADR-085).
+ *
+ * <p>The code is short-lived and single-use, which is the only reason it may
+ * travel in a request body: by the time it could be read anywhere it is spent.
+ * What it becomes never leaves the server.
+ */
+export async function connectGoogleMail(authorizationCode: string): Promise<MailCredentialStatus> {
+  let response: Response;
+  try {
+    response = await fetch(`${ROUTE}/google`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ authorizationCode }),
+    });
+  } catch {
+    throw new MailCredentialError("Couldn't reach the server. Check your connection and try again.");
+  }
+
+  if (response.status === 401) throw new SessionExpiredError("You are not signed in any more.");
+  if (response.status === 503) {
+    throw new MailCredentialError(
+      "Google sign-in isn't fully configured on the server, so this can't be connected yet.",
+    );
+  }
+  if (response.status === 422) {
+    // A closed popup, an expired code, or a consent that granted nothing
+    // storable. All of them are "try again", not "something is broken".
+    throw new MailCredentialError("Google didn't complete the connection. Try again and accept both permissions.");
+  }
+  if (!response.ok) throw new MailCredentialError("Couldn't connect your Gmail.");
   return (await response.json()) as MailCredentialStatus;
 }
 

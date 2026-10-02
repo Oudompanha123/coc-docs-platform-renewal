@@ -302,6 +302,12 @@ services:
       APP_HRMS_FOLDER: ${APP_HRMS_FOLDER:-INBOX}
       APP_HRMS_POLL_CRON: ${APP_HRMS_POLL_CRON:-0 */30 * * * *}
 
+      # Exchanging a Gmail authorization code for a refresh token (ADR-085).
+      # The same client as sign-in; Keycloak already receives this secret for
+      # the brokered login, and the backend needs it for the second, scoped
+      # exchange. Blank: Settings offers only the App Password route.
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
       # The one key to every stored Gmail App Password (ADR-063, ADR-075).
       # Absent is a supported state: no credential can be stored, no personal
       # inbox is polled, attendance mail goes out via MAIL_* above.
