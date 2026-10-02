@@ -677,6 +677,15 @@ html {
   scrollbar-color: #ccc transparent;
 }
 
+/* Pinned down explicitly on every `.overflow-y-auto` element itself, not
+   left to inherit from `html` above — same reasoning as AX Renewal's <main>
+   rule further down: support for `scrollbar-width` is inconsistent enough
+   across engines that a directly overflowing element is worth setting on
+   its own rather than trusting inheritance alone. */
+.overflow-y-auto {
+  scrollbar-width: thin;
+}
+
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;

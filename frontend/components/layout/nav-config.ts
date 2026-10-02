@@ -73,9 +73,7 @@ function productsSection(products: NavProduct[]): NavSection {
       href: `/${product.key}`,
       icon: PRODUCT_ICONS[product.icon] ?? LayersIcon,
       // Each product's page is content management — admin/super_admin only,
-      // in RequireSession and in the /api/v1/admin/** floor behind it. Once
-      // Developer, Reviewer and Lead can open the shell's Overview (ADR-071)
-      // these links would otherwise send them straight to a redirect.
+      // in RequireSession and in the /api/v1/admin/** floor behind it.
       roles: ["admin", "super_admin"] as const,
     })),
   };
@@ -107,20 +105,19 @@ const STATIC_SECTIONS: NavSection[] = [
     ],
   },
   {
-    // Its own section, not folded into ADMINISTRATION: an account that only
-    // holds `developer`, `reviewer` or `lead` would otherwise see a section
-    // literally titled "ADMINISTRATION" over just this one link, which reads
-    // wrong for an account with no account-authority role at all (ADR-037,
-    // ADR-039). Reviewer and Lead open it to read and comment (ADR-068) —
-    // must match RequireSession's AX_RENEWAL_ROLES, or the link would lead
-    // straight to a redirect.
+    // Kept as its own section (not folded into ADMINISTRATION) purely for
+    // visual grouping now — the reason it used to need separating, a
+    // `developer`/`reviewer`/`lead` account seeing a section literally
+    // titled "ADMINISTRATION" over just this one link, no longer applies:
+    // ADR-084 retired all three roles' access, so only admin/super_admin —
+    // who already see the ADMINISTRATION section above — ever see this one.
     label: "DEVELOPER",
     items: [
       {
         label: "AX Renewal",
         href: "/ax-renewal",
         icon: RenewIcon,
-        roles: ["developer", "reviewer", "lead", "admin", "super_admin"],
+        roles: ["admin", "super_admin"],
         newTab: true,
       },
     ],

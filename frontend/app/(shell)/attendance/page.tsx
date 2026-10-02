@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { CalendarCheckIcon, ClockIcon, DownloadIcon, PersonIcon, UsersIcon, WarningIcon } from "@/components/layout/icons";
 import { AttendanceDateNav } from "@/components/attendance/AttendanceDateNav";
 import { AttendanceDepartmentSelect } from "@/components/attendance/AttendanceDepartmentSelect";
+import { AttendanceRangeToggle, type AttendanceRange } from "@/components/attendance/AttendanceRangeToggle";
 import { AttendanceStatCard } from "@/components/attendance/AttendanceStatCard";
 import { AttendanceTable } from "@/components/attendance/AttendanceTable";
 import { fetchAttendanceReports, type HrmsAttendanceReport } from "@/lib/admin/attendance";
@@ -23,6 +24,10 @@ export default function AttendancePage() {
   const [knownDepartments, setKnownDepartments] = useState<string[]>([]);
   const [department, setDepartment] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  // Decorative for now — does not change which date, department, or rows are
+  // fetched or shown. Wiring an actual week/month/year range is a separate,
+  // later task.
+  const [range, setRange] = useState<AttendanceRange>("day");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -84,7 +89,8 @@ export default function AttendancePage() {
             Administration / <b className="font-semibold text-dash-ink">Attendance</b>
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <AttendanceDateNav date={date} onChange={setDate} />
+            <AttendanceRangeToggle value={range} onChange={setRange} />
+            <AttendanceDateNav date={date} onChange={setDate} range={range} />
             <AttendanceDepartmentSelect departments={knownDepartments} value={department} onChange={setDepartment} />
             <button
               type="button"

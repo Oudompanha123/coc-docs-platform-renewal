@@ -95,86 +95,11 @@ describe("RequireSession", () => {
     expect(replace).toHaveBeenCalledWith("/create-password");
   });
 
-  describe("the /ax-renewal route exception (ADR-037, roles revised by ADR-039)", () => {
-    it("admits a plain user who also holds the developer role, on the /ax-renewal route", () => {
-      pathname.current = "/ax-renewal";
-      session.current = {
-        status: "authenticated",
-        user: { role: "user", mustChangePassword: false, roles: ["user", "developer"] },
-      };
-      render(
-        <RequireSession>
-          <p>admin content</p>
-        </RequireSession>,
-      );
-      expect(screen.getByText("admin content")).toBeInTheDocument();
-      expect(replace).not.toHaveBeenCalled();
-    });
-
-    it("still refuses a plain user who also holds developer everywhere else in the admin shell", () => {
-      pathname.current = "/users-roles";
-      session.current = {
-        status: "authenticated",
-        user: { role: "user", mustChangePassword: false, roles: ["user", "developer"] },
-      };
-      render(
-        <RequireSession>
-          <p>admin content</p>
-        </RequireSession>,
-      );
-      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
-      expect(replace).toHaveBeenCalledWith("/welcome");
-    });
-
-    it("still refuses a plain user on /ax-renewal who does not hold the developer role", () => {
-      pathname.current = "/ax-renewal";
-      session.current = {
-        status: "authenticated",
-        user: { role: "user", mustChangePassword: false, roles: ["user"] },
-      };
-      render(
-        <RequireSession>
-          <p>admin content</p>
-        </RequireSession>,
-      );
-      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
-      expect(replace).toHaveBeenCalledWith("/welcome");
-    });
-
-    // ADR-068: Reviewer and Lead open the workspace to read and comment. The
-    // exception stays route-scoped for them exactly as it is for Developer.
-    it.each(["reviewer", "lead"] as const)("admits a %s on the /ax-renewal route", (role) => {
-      pathname.current = "/ax-renewal";
-      session.current = {
-        status: "authenticated",
-        user: { role, mustChangePassword: false, roles: ["user", role] },
-      };
-      render(
-        <RequireSession>
-          <p>admin content</p>
-        </RequireSession>,
-      );
-      expect(screen.getByText("admin content")).toBeInTheDocument();
-      expect(replace).not.toHaveBeenCalled();
-    });
-
-    it.each(["reviewer", "lead"] as const)("still refuses a %s everywhere else in the admin shell", (role) => {
-      pathname.current = "/users-roles";
-      session.current = {
-        status: "authenticated",
-        user: { role, mustChangePassword: false, roles: ["user", role] },
-      };
-      render(
-        <RequireSession>
-          <p>admin content</p>
-        </RequireSession>,
-      );
-      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
-      expect(replace).toHaveBeenCalledWith("/welcome");
-    });
-  });
-
-  describe("the Overview dashboard and Settings for Developer, Reviewer and Lead (ADR-071)", () => {
+  describe("Developer, Reviewer and Lead (ADR-084, retiring ADR-040/ADR-068/ADR-071's carve-outs)", () => {
+    // Those three roles used to open exactly /overview, /settings and
+    // /ax-renewal (plus its sub-routes) — a 2026-09-29 PM decision retired
+    // all of it: only admin/super_admin may enter the admin shell at all now,
+    // on any route, full stop.
     function renderAs(role: "developer" | "reviewer" | "lead" | "user", path: string) {
       pathname.current = path;
       session.current = {
@@ -188,32 +113,36 @@ describe("RequireSession", () => {
       );
     }
 
-    it.each(["developer", "reviewer", "lead"] as const)("admits a %s to /overview", (role) => {
-      renderAs(role, "/overview");
-      expect(screen.getByText("admin content")).toBeInTheDocument();
-      expect(replace).not.toHaveBeenCalled();
-    });
-
-    it.each(["developer", "reviewer", "lead"] as const)("admits a %s to their own /settings", (role) => {
-      renderAs(role, "/settings");
-      expect(screen.getByText("admin content")).toBeInTheDocument();
-      expect(replace).not.toHaveBeenCalled();
-    });
-
     it.each([
+      ["developer", "/overview"],
+      ["developer", "/settings"],
+      ["developer", "/ax-renewal"],
+      ["reviewer", "/overview"],
+      ["reviewer", "/settings"],
+      ["reviewer", "/ax-renewal"],
+      ["lead", "/overview"],
+      ["lead", "/settings"],
+      ["lead", "/ax-renewal"],
       ["developer", "/users-roles"],
       ["reviewer", "/claude-usage"],
       ["lead", "/attendance"],
-      ["developer", "/jex3-0"],
-      ["lead", "/content/jex3-0--overview"],
-    ] as const)("still refuses a %s on %s — the rest of the shell stays admin-only", (role, path) => {
+    ] as const)("refuses a %s on %s", (role, path) => {
       renderAs(role, path);
       expect(screen.queryByText("admin content")).not.toBeInTheDocument();
       expect(replace).toHaveBeenCalledWith("/welcome");
     });
 
-    it("still refuses a plain user on /overview", () => {
-      renderAs("user", "/overview");
+    it("a plain user holding developer alongside it is refused everywhere too", () => {
+      pathname.current = "/ax-renewal";
+      session.current = {
+        status: "authenticated",
+        user: { role: "user", mustChangePassword: false, roles: ["user", "developer"] },
+      };
+      render(
+        <RequireSession>
+          <p>admin content</p>
+        </RequireSession>,
+      );
       expect(screen.queryByText("admin content")).not.toBeInTheDocument();
       expect(replace).toHaveBeenCalledWith("/welcome");
     });

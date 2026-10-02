@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HrmsAttendanceRow } from "@/lib/notify/activity";
-import { actualTimeOrNull, computeAttendanceStats, filterAttendanceRows, statusKind } from "./stats";
+import { actualTimeOrNull, computeAttendanceStats, filterAttendanceRows, minutesLate, statusKind } from "./stats";
 
 function check(scheduled: string, actual: string, status: string) {
   return { scheduled, actual, status };
@@ -49,6 +49,27 @@ describe("actualTimeOrNull", () => {
 
   it("treats an empty actual (the parser's own no-arrow fallback) as missing", () => {
     expect(actualTimeOrNull(check("17:00", "", "Missed Check-Out"))).toBeNull();
+  });
+});
+
+describe("minutesLate", () => {
+  it("counts the minutes an actual time sits after scheduled", () => {
+    expect(minutesLate("08:00", "08:05")).toBe(5);
+    expect(minutesLate("17:00", "17:29")).toBe(29);
+  });
+
+  it("clamps an early actual time to zero rather than going negative", () => {
+    expect(minutesLate("08:00", "07:50")).toBe(0);
+  });
+
+  it("is zero for an exact match", () => {
+    expect(minutesLate("08:00", "08:00")).toBe(0);
+  });
+
+  it("returns null when either side isn't a parseable HH:MM", () => {
+    expect(minutesLate("", "08:05")).toBeNull();
+    expect(minutesLate("08:00", "")).toBeNull();
+    expect(minutesLate("08:00", "25:00")).toBeNull();
   });
 });
 
