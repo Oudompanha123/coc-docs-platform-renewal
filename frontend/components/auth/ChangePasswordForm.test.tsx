@@ -51,9 +51,7 @@ describe("ChangePasswordForm", () => {
 
       await fillAndSubmit(user, { new: "short", confirm: "short" });
 
-      // A regex, because the field now reports every unmet rule in one string
-      // rather than only the length (ADR-087).
-      expect(await screen.findByText(/Use at least 12 characters\./)).toBeInTheDocument();
+      expect(await screen.findByText(/Use at least 8 characters\./)).toBeInTheDocument();
       expect(changePassword).not.toHaveBeenCalled();
     });
 

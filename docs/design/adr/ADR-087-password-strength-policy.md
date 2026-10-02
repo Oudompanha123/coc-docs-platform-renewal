@@ -30,15 +30,19 @@ That is three separate problems:
 ## 2. Decision
 
 > One policy, stated once per side: `PasswordPolicy` in Java is authoritative, and
-> `passwordPolicy.ts` mirrors it for the form. A password must be **12–200 characters** and
-> contain **a lowercase letter, an uppercase letter, a number and a symbol**. It is applied by a
-> `@StrongPassword` constraint on every request that *sets* a password, and never on one that
-> presents an existing password.
+> `passwordPolicy.ts` mirrors it for the form. A password must be **8–200 characters**, with
+> **no composition rules**. It is applied by a `@StrongPassword` constraint on every request that
+> *sets* a password, and never on one that presents an existing password.
+>
+> **Revised at v1.1** (2026-10-02, PM instruction): v1.0 required 12 characters and four
+> character classes. The classes and the checklist UI are removed and the floor returns to 8.
 
 ### Key Choices
 
-- **Twelve, not eight.** Eight admits `Passw0rd!` — four character classes and a dictionary word,
-  which is exactly what composition rules fail to catch and length does.
+- **Eight, and no character classes** — which is what NIST SP 800-63B §5.1.1.2 actually asks for:
+  a length floor, and verifiers that SHOULD NOT impose composition rules. v1.0's twelve-plus-four
+  was the stricter-looking option, not the better-evidenced one. What the revision genuinely gives
+  up is length, which is the part that resists guessing — see §4.2.
 - **A constraint annotation, not a check in each service.** A fifth place to set a password cannot
   silently skip the rule: the DTO either carries `@StrongPassword` or it does not, and that is
   visible in the file a reviewer is already reading.
@@ -57,8 +61,8 @@ That is three separate problems:
 
 | | Option | Pros | Cons | Chosen |
 |---|---|---|---|---|
-| A | **Raise the length floor only** (NIST SP 800-63B) | Simplest; what the standard actually recommends; no rules to remember | NIST pairs it with a breach-list check this project does not have, and the PM asked for a pattern | No — see §4.2 |
-| B | **Length + four character classes** (this ADR) | Clear, checkable identically on both sides, matches the request | Composition rules are weak evidence of strength and push people toward predictable substitutions | **Yes** |
+| A | **Length floor only** (NIST SP 800-63B) | What the standard recommends; no rules to remember; nothing to re-teach | NIST pairs it with a breach-list check this project does not have | **Yes, at v1.1** |
+| B | **Length + four character classes** (v1.0, reverted) | Clear, checkable identically on both sides, matches the request | Composition rules are weak evidence of strength and push people toward predictable substitutions | No — reverted at v1.1 |
 | C | **A strength meter (zxcvbn)** | Scores real guessability rather than shape | A ~400 KB dependency in the auth bundle, and no Java equivalent that would agree with it | No |
 | D | **Leave it at eight** | No change | `qqq` was accepted by the form; eight is a weak floor for this data | No |
 
@@ -74,12 +78,13 @@ That is three separate problems:
 
 ### 4.2 Negative Impacts / Costs to Accept
 
-- **Composition rules are known to be weak**, and NIST SP 800-63B recommends against making them
-  mandatory: they push people toward `Password1!` and toward reusing one password that satisfies
-  every site's rules. This is accepted because the PM asked for a pattern and because the floor
-  was raised to 12 at the same time, which is the part that actually resists guessing. **If a
-  breach-list check is ever added, the character classes should be reconsidered rather than kept
-  out of habit.**
+- **The floor is eight, which is low.** Length is the part that resists guessing, and v1.1 gives
+  up the twelve that v1.0 had. Eight is the standard's minimum rather than a good target, and
+  with no breach-list check behind it, `password` and `12345678` are both accepted today.
+  **This is the gap that `§4.3`'s breach-list follow-up exists to close, and it matters more now
+  than it did at v1.0.**
+- Dropping the character classes is *not* itself a loss: 800-63B argues they buy little and cost
+  real usability. The loss is the four characters of length that went with them.
 - **Existing accounts keep weaker passwords.** Nothing forces a change, and sign-in deliberately
   does not apply the policy. Those accounts are no stronger than before this ADR.
 - **Two implementations of one rule.** Mitigated by the shared case lists in both test suites, not
@@ -115,3 +120,4 @@ That is three separate problems:
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-10-02 | 1.0 | Initial draft, replacing the `@Size(min = 8)` rule and the form's non-empty check. | AI |
+| 2026-10-02 | 1.1 | Reverted to a length-only policy at 8 characters on the PM's instruction; removed the four character classes and the register form's checklist. Closer to NIST's shape, but gives up the length floor — §4.2. | AI |

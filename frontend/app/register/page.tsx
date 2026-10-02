@@ -15,7 +15,6 @@ import {
 } from "@/lib/auth/api";
 import {
   isPasswordAcceptable,
-  passwordChecklist,
   passwordViolations,
 } from "@/lib/auth/passwordPolicy";
 
@@ -303,26 +302,6 @@ export default function RegisterPage() {
           autoComplete="new-password"
           error={errors.password}
         />
-
-        {/* Shown while typing, not after a failed submit. Revealing the rules
-            one refusal at a time is what produces passwords ending in "1!" —
-            the whole list from the start costs nothing and avoids that. */}
-        {password.length > 0 && !isPasswordAcceptable(password) && (
-          <ul className="-mt-2 space-y-1" aria-label="Password requirements">
-            {passwordChecklist(password).map((rule) => (
-              <li
-                key={rule.label}
-                className={`flex items-center gap-1.5 text-xs ${
-                  rule.met ? "text-emerald-600" : "text-muted"
-                }`}
-              >
-                <span aria-hidden="true">{rule.met ? "✓" : "○"}</span>
-                <span>{rule.label}</span>
-                <span className="sr-only">{rule.met ? " — met" : " — not met yet"}</span>
-              </li>
-            ))}
-          </ul>
-        )}
 
         <PasswordField
           label="Confirm Password"
