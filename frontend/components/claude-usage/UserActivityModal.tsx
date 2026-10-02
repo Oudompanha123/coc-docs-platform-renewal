@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
+import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "@/components/layout/icons";
 import {
@@ -244,13 +245,15 @@ export function UserActivityModal({
 
                 <section aria-label="Daily activity">
                   <SectionTitle title="Daily activity" />
-                  <ul aria-label="Daily activity" className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
-                    {activity.days.map((day) => (
+                  <PagedList
+                    label="Daily activity"
+                    items={activity.days}
+                    renderItem={(day) => (
                       <li key={day.date}>
                         <DayRow day={day} onClick={() => setSelectedDay(day)} />
                       </li>
-                    ))}
-                  </ul>
+                    )}
+                  />
                 </section>
               </div>
             )}
@@ -312,8 +315,10 @@ function MemberHeader({
   /** The latest activity the detail knows of; falls back to the dashboard's last report. */
   lastActivity: string | null;
 }) {
+  // A real session end is activity; the fallback is only when the scan last reported.
   const last = lastActivity ?? member.lastActiveAt;
-  const activeToday = isToday(last);
+  const label = lastActivity ? "Last active" : "Last reported";
+  const activeToday = !!lastActivity && isToday(lastActivity);
   return (
     <div className="mt-5 flex items-center gap-4">
       <UserAvatar
@@ -328,7 +333,7 @@ function MemberHeader({
         <p className="truncate text-sm text-muted">{member.email}</p>
         <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
           <span aria-hidden="true" className={`h-2 w-2 rounded-full ${activeToday ? "bg-[#1f9d6b]" : "bg-[#c4c4d0]"}`} />
-          Last active · {formatLastActive(last)}
+          {label} · {formatLastActive(last)}
         </p>
       </div>
     </div>
@@ -478,8 +483,10 @@ function ProjectRow({
 
 function SessionList({ sessions, showDate }: { sessions: ClaudeUsageActivitySession[]; showDate: boolean }) {
   return (
-    <ul aria-label="Sessions" className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
-      {sessions.map((s) => (
+    <PagedList
+      label="Sessions"
+      items={sessions}
+      renderItem={(s) => (
         <li key={s.startedAt} className="flex items-center gap-4 px-4 py-2.5 text-sm">
           <span className="w-32 shrink-0 font-medium tabular-nums text-dash-ink">
             {showDate && <span className="mr-1.5 text-muted">{formatDate(s.date)}</span>}
@@ -490,8 +497,48 @@ function SessionList({ sessions, showDate }: { sessions: ClaudeUsageActivitySess
             {s.projects.join(", ")} · {plural(s.requestCount, "request", "requests")}
           </span>
         </li>
-      ))}
-    </ul>
+      )}
+    />
+  );
+}
+
+const LIST_PAGE_SIZE = 5;
+
+/** A bordered list paged five rows at a time, same pager as the usage table.
+ *  The pager only appears once there is more than one page's worth at the
+ *  smallest size; the page is clamped so a filter change that shrinks the list
+ *  never leaves it on an empty page. */
+function PagedList<T>({
+  label,
+  items,
+  renderItem,
+}: {
+  label: string;
+  items: T[];
+  renderItem: (item: T) => ReactNode;
+}) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(LIST_PAGE_SIZE);
+
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const current = Math.min(page, pageCount);
+  const visible = items.slice((current - 1) * pageSize, current * pageSize);
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-border">
+      <ul aria-label={label} className="divide-y divide-border">
+        {visible.map(renderItem)}
+      </ul>
+      {items.length > LIST_PAGE_SIZE && (
+        <Pagination
+          total={items.length}
+          page={current}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
+    </div>
   );
 }
 

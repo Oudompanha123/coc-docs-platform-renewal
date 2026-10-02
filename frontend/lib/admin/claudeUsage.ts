@@ -47,7 +47,9 @@ export interface ClaudeUsageMember {
   /** Read this rather than re-deriving thresholds client-side — see {@link BudgetStatus}. */
   budgetStatus: BudgetStatus;
   modelsUsed: string[];
-  /** ISO instant of the latest report in range, or null if nothing was reported in this window. */
+  /** ISO instant of the latest report (`reported_at`) in range, or null if nothing was reported in this window.
+   *  When the scan ran, not when Claude was used -- label it "Last reported", never "Last active". The name is
+   *  the API's wire field and stays as-is. */
   lastActiveAt: string | null;
   inputTokens: number;
   outputTokens: number;
