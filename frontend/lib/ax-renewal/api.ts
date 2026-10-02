@@ -530,6 +530,31 @@ export function startImplementation(
 }
 
 /** The files a Generate run actually found different, once it reaches `awaiting_review` (ADR-044). */
+/** One past implementation run, as the Build → Implementation history lists it (ADR-078). */
+export interface AxRenewalRunSummary {
+  id: string;
+  runKind: "plan" | "error_fix" | "ui_change";
+  status: string;
+  startedAt: string;
+  startedBy: string;
+  /** A display name, never an email — null only if the account is gone. */
+  startedByName: string | null;
+  completedAt: string | null;
+  failureReason: string | null;
+  /** A UI change's request, or the failure an error fix was for; null for a plan build. */
+  instruction: string | null;
+  changedFiles: number;
+}
+
+/**
+ * The project's implementation runs, newest first, at most 50 (ADR-078).
+ * Read-only history — what each run was, who started it, how it ended. A
+ * non-member gets the same 404 as for the project itself (ADR-070).
+ */
+export function listImplementationRuns(projectId: string): Promise<AxRenewalRunSummary[]> {
+  return request<AxRenewalRunSummary[]>(`/projects/${projectId}/implementation/runs`);
+}
+
 export function fetchGeneratedChanges(projectId: string, runId: string): Promise<AxRenewalGeneratedChange[]> {
   return request<AxRenewalGeneratedChange[]>(`/projects/${projectId}/implementation/${runId}/changes`);
 }

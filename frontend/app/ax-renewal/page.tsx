@@ -16,6 +16,8 @@ import { MembersPanel } from "@/components/ax-renewal/MembersPanel";
 import { OldToNewDiagram } from "@/components/ax-renewal/OldToNewDiagram";
 import { PagesSection } from "@/components/ax-renewal/PagesSection";
 import { ProjectPicker } from "@/components/ax-renewal/ProjectPicker";
+import { RunHistory } from "@/components/ax-renewal/RunHistory";
+import { RunLocallyControls } from "@/components/ax-renewal/RunLocallyControls";
 import { StackMoveSection } from "@/components/ax-renewal/StackMoveSection";
 import { Tabs, type Tab } from "@/components/settings/Tabs";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -1627,6 +1629,10 @@ function ImplementationPanel({
         )}
 
         {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+
+        {/* Every earlier run too (ADR-078), read-only. Re-read whenever the
+            latest run starts, changes status or is replaced. */}
+        <RunHistory projectId={detail.project.id} refreshKey={`${run?.id ?? "none"}:${run?.status ?? ""}`} />
       </div>
     </div>
   );
@@ -1654,7 +1660,6 @@ function RunLocallyPanel({
   const unlocked = detail.latestImplementationRun?.status === "applied";
 
   const [status, setStatus] = useState<AxRenewalRunLocallyStatus | null>(null);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
@@ -1697,7 +1702,6 @@ function RunLocallyPanel({
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [status?.log.length]);
 
-  const active = status != null && RUN_LOCALLY_POLLING_STATUSES.has(status.status);
   const guidance = status ? runLocallyGuidance(status) : null;
   // A process exit is not the only real failure Run Locally can show: a dev
   // server that renders an unhandled error for one request stays up (Next.js
@@ -1709,8 +1713,8 @@ function RunLocallyPanel({
     status.status !== "starting" &&
     (status.status === "failed" || hasRuntimeErrorEvidence(status.log));
 
+  // In-flight state and the one-click-at-a-time guard are RunLocallyControls'.
   async function handleStart() {
-    setBusy(true);
     setError(null);
     setExplanation(null);
     setExplainError(null);
@@ -1718,8 +1722,6 @@ function RunLocallyPanel({
       setStatus(await startRunLocally(detail.project.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start the local dev server.");
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -1751,14 +1753,11 @@ function RunLocallyPanel({
   }
 
   async function handleStop() {
-    setBusy(true);
     setError(null);
     try {
       setStatus(await stopRunLocally(detail.project.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't stop the local dev server.");
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -1781,14 +1780,7 @@ function RunLocallyPanel({
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-bold text-dash-ink">Run locally</h3>
           {canConfirm && (
-            <button
-              type="button"
-              onClick={() => void (active ? handleStop() : handleStart())}
-              disabled={busy}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {busy ? (active ? "Stopping…" : "Starting…") : active ? "Stop" : "Start"}
-            </button>
+            <RunLocallyControls state={status?.status ?? null} onStart={handleStart} onStop={handleStop} />
           )}
         </div>
         <p className="mt-1.5 text-xs text-muted">
