@@ -1,4 +1,4 @@
-# ADR-086: The Attendance Report Is Mailed When Somebody Signs In
+# ADR-089: The Attendance Report Is Mailed When Somebody Signs In
 
 > **Status**: PROPOSED
 > **Date**: 2026-10-02
