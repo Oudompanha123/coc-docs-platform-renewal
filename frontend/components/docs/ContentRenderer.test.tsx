@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MeResponse } from "@/lib/auth/api";
 import type { HeroContent, StepsContent } from "@/lib/docs/content-types";
+import { contentId, SEED_CONTENT } from "@/lib/docs/content-store";
 import { ContentRenderer } from "./ContentRenderer";
 
 const { createUsageToken } = vi.hoisted(() => ({ createUsageToken: vi.fn() }));
@@ -283,5 +284,64 @@ describe("ContentRenderer's Hero download buttons", () => {
     const download = screen.getByRole("link", { name: "Download for Windows" });
     // Get started's row and the download row are siblings, not the same element.
     expect(getStarted.parentElement).not.toBe(download.parentElement);
+  });
+});
+
+describe("ContentRenderer's Hero second button", () => {
+  it("shows the second button beside the CTA, linking where it says", () => {
+    render(
+      <ContentRenderer
+        content={heroContent({ ctaLabel: "Quick start", secondaryCta: { label: "AX Renewal", href: "/ax-renewal" } })}
+        variant="docs"
+      />,
+    );
+
+    const primary = screen.getByRole("link", { name: "Quick start" });
+    const second = screen.getByRole("link", { name: "AX Renewal" });
+    expect(second).toHaveAttribute("href", "/ax-renewal");
+    // Same row as the CTA, after it — a same-site link, so no new tab.
+    expect(second.parentElement).toBe(primary.parentElement);
+    expect(primary.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(second).not.toHaveAttribute("target");
+  });
+
+  it("is absent for content with no second button — the Hero looks exactly like before", () => {
+    render(<ContentRenderer content={heroContent()} variant="docs" />);
+
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("opens an external https:// link in a new tab, safely", () => {
+    render(
+      <ContentRenderer content={heroContent({ secondaryCta: { label: "Site", href: "https://example.com/x" } })} variant="docs" />,
+    );
+
+    const link = screen.getByRole("link", { name: "Site" });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it.each([
+    ["no label", { label: "  ", href: "/ax-renewal" }],
+    ["no link", { label: "AX Renewal", href: "" }],
+    ["an unsafe link", { label: "AX Renewal", href: "javascript:alert(1)" }],
+    ["a plain http:// link", { label: "AX Renewal", href: "http://example.com" }],
+  ])("stays hidden with %s", (_case, secondaryCta) => {
+    render(<ContentRenderer content={heroContent({ secondaryCta })} variant="docs" />);
+
+    expect(screen.queryByRole("link", { name: /AX Renewal/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Get started" })).toBeInTheDocument();
+  });
+});
+
+describe("AX Renewal docs overview", () => {
+  it("offers Quick start and a button straight into the AX Renewal workspace", () => {
+    const overview = SEED_CONTENT[contentId("ax-renewal-docs", "")];
+    if (overview?.kind !== "hero") throw new Error("expected the AX Renewal overview to be a hero");
+
+    render(<ContentRenderer content={overview} variant="docs" />);
+
+    expect(screen.getByRole("link", { name: "Quick start" })).toHaveAttribute("href", "/docs/ax-renewal-docs/quick-start");
+    expect(screen.getByRole("link", { name: "AX Renewal" })).toHaveAttribute("href", "/ax-renewal");
   });
 });
