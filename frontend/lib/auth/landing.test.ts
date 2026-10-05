@@ -4,20 +4,22 @@ import { landingPathFor } from "./landing";
 /**
  * Where each role lands after signing in, and on the bare domain — one rule
  * for both. Developer, Reviewer and Lead briefly landed on the Overview
- * dashboard (ADR-071); ADR-086 retired that, so they fall through to the
- * public page again, the same as before ADR-071.
+ * dashboard (ADR-071); ADR-086 retired that, so they fell through to the
+ * public page, same as before ADR-071. ADR-092 then split that trio again:
+ * Developer now lands on the Member home alongside `user`; Reviewer and
+ * Lead still fall through to the public page.
  */
 describe("landingPathFor", () => {
   it.each(["admin", "super_admin"] as const)("sends a %s to the Overview dashboard", (role) => {
     expect(landingPathFor({ role })).toBe("/overview");
   });
 
-  it.each(["developer", "reviewer", "lead"] as const)("sends a %s to the public page, not the Overview dashboard", (role) => {
+  it.each(["reviewer", "lead"] as const)("sends a %s to the public page, not the Overview dashboard", (role) => {
     expect(landingPathFor({ role })).toBe("/welcome");
   });
 
-  it("keeps a plain user on the Member home", () => {
-    expect(landingPathFor({ role: "user" })).toBe("/home");
+  it.each(["user", "developer"] as const)("sends a %s to the Member home", (role) => {
+    expect(landingPathFor({ role })).toBe("/home");
   });
 
   it("sends a guest, or no role at all, to the public page", () => {

@@ -21,9 +21,10 @@ export const ADMIN_APP_ROLES: readonly Role[] = ["admin", "super_admin"];
 export function landingPathFor(account: { role: Role | null | undefined; mustChangePassword?: boolean }): string {
   if (account.mustChangePassword) return "/create-password";
   if (account.role != null && ADMIN_APP_ROLES.includes(account.role)) return "/overview";
-  // A `user` gets the Member home (ADR-033). Everyone else — `guest`,
-  // `developer`, `reviewer`, `lead` (ADR-086 retired their admin-shell
-  // carve-out), or a role this build does not know — gets the public page,
-  // which asks nothing of them.
-  return account.role === "user" ? "/home" : "/welcome";
+  // A `user` gets the Member home (ADR-033), and so does `developer` now
+  // (ADR-092, revising ADR-086's own "developer, reviewer, lead all get
+  // /welcome" rule — developer only, reviewer/lead still fall through).
+  // Everyone else — `guest`, `reviewer`, `lead`, or a role this build does
+  // not know — gets the public page, which asks nothing of them.
+  return account.role === "user" || account.role === "developer" ? "/home" : "/welcome";
 }
