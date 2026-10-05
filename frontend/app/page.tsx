@@ -64,9 +64,9 @@ function RootRedirect() {
     }
 
     // Signed in: a temporary password first (revision of ADR-017), then the
-    // role's own home — Overview for Admin/Super Admin and for Developer,
-    // Reviewer and Lead (ADR-071), the Member home for a `user`, the public
-    // page for anything else.
+    // role's own home — Overview for Admin/Super Admin, the Member home for a
+    // `user` and for Developer, Reviewer and Lead (ADR-090), the public page
+    // for anything else.
     router.replace(landingPathFor({ role: user?.role, mustChangePassword: user?.mustChangePassword }));
   }, [status, user, router]);
 

@@ -990,6 +990,8 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     subline: "Attach, analyze, plan, build.",
     ctaLabel: "Quick start",
     ctaHref: "/docs/ax-renewal-docs/quick-start",
+    // Straight into the workspace these docs describe.
+    secondaryCta: { label: "AX Renewal", href: "/ax-renewal" },
     eyebrow: "Overview",
     sectionHeading: "Nothing moves to the next stage until it's agreed.",
     sectionIntro:

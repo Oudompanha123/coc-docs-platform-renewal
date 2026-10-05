@@ -12,6 +12,18 @@ import type { Role } from "./api";
 export const ADMIN_APP_ROLES: readonly Role[] = ["admin", "super_admin"];
 
 /**
+ * Developer, Reviewer and Lead: kept out of the admin app (ADR-086) except
+ * for AX Renewal, which they may open again (ADR-090, revising ADR-086 for
+ * that one feature). They land on the Member home after signing in, like a
+ * plain user. What each may do in AX Renewal is the workspace's own
+ * question (`axRenewalPermissions`).
+ */
+export const AX_RENEWAL_STAFF_ROLES: readonly Role[] = ["developer", "reviewer", "lead"];
+
+/** Everyone the AX Renewal workspace admits (ADR-090) — `app/ax-renewal/layout.tsx`'s `RequireSession`. */
+export const AX_RENEWAL_ROLES: readonly Role[] = [...ADMIN_APP_ROLES, ...AX_RENEWAL_STAFF_ROLES];
+
+/**
  * Where a signed-in account belongs — the one rule behind both the bare
  * domain (`app/page.tsx`) and the post-sign-in redirect (`app/login`), which
  * each used to carry their own copy and a comment asking whoever changed one
@@ -21,9 +33,12 @@ export const ADMIN_APP_ROLES: readonly Role[] = ["admin", "super_admin"];
 export function landingPathFor(account: { role: Role | null | undefined; mustChangePassword?: boolean }): string {
   if (account.mustChangePassword) return "/create-password";
   if (account.role != null && ADMIN_APP_ROLES.includes(account.role)) return "/overview";
-  // A `user` gets the Member home (ADR-033). Everyone else — `guest`,
-  // `developer`, `reviewer`, `lead` (ADR-086 retired their admin-shell
-  // carve-out), or a role this build does not know — gets the public page,
-  // which asks nothing of them.
-  return account.role === "user" ? "/home" : "/welcome";
+  // A `user` gets the Member home (ADR-033), and so do Developer, Reviewer
+  // and Lead (ADR-090). `role` is the highest role held, so an Admin who
+  // also holds Developer still lands on the Overview above.
+  if (account.role === "user") return "/home";
+  if (account.role != null && AX_RENEWAL_STAFF_ROLES.includes(account.role)) return "/home";
+  // Everyone else — `guest`, or a role this build does not know — gets the
+  // public page, which asks nothing of them.
+  return "/welcome";
 }

@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RequireSession } from "./RequireSession";
-import type { MeResponse } from "@/lib/auth/api";
+import type { MeResponse, Role } from "@/lib/auth/api";
+import { AX_RENEWAL_ROLES } from "@/lib/auth/landing";
 
 // Partial<MeResponse> rather than any: these fixtures deliberately carry only
 // the fields RequireSession reads, and `any` would let a rename of one of them
@@ -95,19 +96,21 @@ describe("RequireSession", () => {
     expect(replace).toHaveBeenCalledWith("/create-password");
   });
 
-  describe("Developer, Reviewer and Lead (ADR-086, retiring ADR-040/ADR-068/ADR-071's carve-outs)", () => {
-    // Those three roles used to open exactly /overview, /settings and
-    // /ax-renewal (plus its sub-routes) — a 2026-09-29 PM decision retired
-    // all of it: only admin/super_admin may enter the admin shell at all now,
-    // on any route, full stop.
-    function renderAs(role: "developer" | "reviewer" | "lead" | "user", path: string) {
+  describe("Developer, Reviewer and Lead (ADR-086; AX Renewal reopened by ADR-090)", () => {
+    // Kept out of every admin page (ADR-086) except AX Renewal, whose layout
+    // passes AX_RENEWAL_ROLES (ADR-090). Every other layout keeps the default.
+    function renderAs(
+      role: "developer" | "reviewer" | "lead" | "user",
+      path: string,
+      allowRoles?: readonly Role[],
+    ) {
       pathname.current = path;
       session.current = {
         status: "authenticated",
         user: { role, mustChangePassword: false, roles: role === "user" ? ["user"] : ["user", role] },
       };
       render(
-        <RequireSession>
+        <RequireSession allowRoles={allowRoles}>
           <p>admin content</p>
         </RequireSession>,
       );
@@ -116,35 +119,43 @@ describe("RequireSession", () => {
     it.each([
       ["developer", "/overview"],
       ["developer", "/settings"],
-      ["developer", "/ax-renewal"],
       ["reviewer", "/overview"],
       ["reviewer", "/settings"],
-      ["reviewer", "/ax-renewal"],
       ["lead", "/overview"],
       ["lead", "/settings"],
-      ["lead", "/ax-renewal"],
       ["developer", "/users-roles"],
       ["reviewer", "/claude-usage"],
       ["lead", "/attendance"],
-    ] as const)("refuses a %s on %s", (role, path) => {
+    ] as const)("still refuses a %s on %s", (role, path) => {
       renderAs(role, path);
       expect(screen.queryByText("admin content")).not.toBeInTheDocument();
       expect(replace).toHaveBeenCalledWith("/welcome");
     });
 
-    it("a plain user holding developer alongside it is refused everywhere too", () => {
+    it.each(["developer", "reviewer", "lead"] as const)("admits a %s to AX Renewal", (role) => {
+      renderAs(role, "/ax-renewal", AX_RENEWAL_ROLES);
+      expect(screen.getByText("admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it("still refuses a plain user at AX Renewal", () => {
+      renderAs("user", "/ax-renewal", AX_RENEWAL_ROLES);
+      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/welcome");
+    });
+
+    it("admits an account holding developer alongside a lower role, by the roles it holds", () => {
       pathname.current = "/ax-renewal";
       session.current = {
         status: "authenticated",
         user: { role: "user", mustChangePassword: false, roles: ["user", "developer"] },
       };
       render(
-        <RequireSession>
+        <RequireSession allowRoles={AX_RENEWAL_ROLES}>
           <p>admin content</p>
         </RequireSession>,
       );
-      expect(screen.queryByText("admin content")).not.toBeInTheDocument();
-      expect(replace).toHaveBeenCalledWith("/welcome");
+      expect(screen.getByText("admin content")).toBeInTheDocument();
     });
   });
 

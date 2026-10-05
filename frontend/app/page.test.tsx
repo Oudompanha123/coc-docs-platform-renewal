@@ -61,22 +61,23 @@ describe("the bare origin", () => {
     expect(replace).toHaveBeenCalledWith("/overview");
   });
 
-  it("sends a plain user to the Member home", () => {
-    session.current = { status: "authenticated", user: { role: "user", mustChangePassword: false } };
+  // ADR-092: developer now lands alongside a plain user.
+  it.each(["user", "developer"] as const)("sends a %s to the Member home", (role) => {
+    session.current = { status: "authenticated", user: { role, mustChangePassword: false } };
 
     render(<RootPage />);
 
     expect(replace).toHaveBeenCalledWith("/home");
   });
 
-  // ADR-071 briefly sent these three to the Overview dashboard; ADR-086
-  // retired that, so they fall through to the public page again.
-  it.each(["developer", "reviewer", "lead"] as const)("sends a %s to the public page, not the Overview dashboard", (role) => {
+  // Kept off the Overview (ADR-086); they land on the Member home, like a
+  // plain user (ADR-093).
+  it.each(["developer", "reviewer", "lead"] as const)("sends a %s to the Member home, not the Overview dashboard", (role) => {
     session.current = { status: "authenticated", user: { role, mustChangePassword: false } };
 
     render(<RootPage />);
 
-    expect(replace).toHaveBeenCalledWith("/welcome");
+    expect(replace).toHaveBeenCalledWith("/home");
   });
 
   it("sends a guest account to the public page", () => {

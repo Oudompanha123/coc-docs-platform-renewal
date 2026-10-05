@@ -11,11 +11,11 @@ import {
   BellIcon,
   CalendarCheckIcon,
   ChevronDownIcon,
+  GearIcon,
   LayersIcon,
   LogOutIcon,
   MailIcon,
   PersonIcon,
-  ReturnIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
@@ -26,6 +26,7 @@ import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
+import { MemberThemeSync } from "@/components/home/MemberThemeSync";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
 type MenuKey = "bell" | "mail" | "user" | "products" | "reports";
@@ -189,15 +190,19 @@ function ReportsDropdown({ onClose }: { onClose: () => void }) {
  * Right: Notifications, Activity, User chip.
  */
 // onOpenNotifications is gone from this header on purpose: notification
-// settings now live inside the Profile modal (PushNotificationsCard), so the
-// user menu here is My Profile, My Settings and Log out. HomeFooter still takes the prop and
-// still opens that modal -- this removal is scoped to the header.
+// settings now live on /account/settings, so the user menu here is
+// Profile, Settings, and Log out.
+//
+// `onOpenProfile` is accepted (not required) only so existing callers that
+// still pass it down to HomeFooter's own, separate Profile trigger don't
+// need to change — this header's own "Profile" item no longer opens that
+// modal (it navigates to /account/settings#account instead, same
+// destination "Settings" opens), so it is never called from here.
 export function MemberHeader({
   products,
-  onOpenProfile,
 }: {
   products: NavProduct[];
-  onOpenProfile: () => void;
+  onOpenProfile?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
@@ -205,7 +210,7 @@ export function MemberHeader({
   const reportsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useCurrentUser();
-  const { user: sessionUser, signOut, isSigningOut } = useSession();
+  const { signOut, isSigningOut } = useSession();
   const notifications = useNotifications();
   const activity = useActivityFeed();
   // Same rule as the admin Topbar's panel: this lists what the badge counts and
@@ -252,11 +257,10 @@ export function MemberHeader({
     }
   }, [openMenu]);
 
-  const canManage = sessionUser?.role === "admin" || sessionUser?.role === "super_admin";
-
   const isProductsActive =
     pathname?.startsWith("/docs/") || pathname?.startsWith("/admin/products");
   const isReportsActive = pathname?.startsWith("/reports/") ?? false;
+  const isSettingsActive = pathname?.startsWith("/account/settings") ?? false;
 
   // Close right-side cluster on outside click
   useEffect(() => {
@@ -296,18 +300,32 @@ export function MemberHeader({
   }
 
   const navLinkClass = (active: boolean) =>
-    `flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
-      active ? "border-brand-purple font-bold text-ink" : "border-transparent text-muted"
+    `header-nav-link flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
+      active ? "header-nav-link-active border-brand-purple font-bold text-ink" : "border-transparent text-muted"
     }`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
+    <>
+      <MemberThemeSync />
+      <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
 
-        {/* Logo */}
+        {/* Logo — two images, dark mode's own CSS (globals.css) shows/hides
+            each one; no JS theme read needed, consistent with how every
+            other dark-mode rule in this shell works. */}
         <Link href="/home" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-[55px] w-auto rounded-lg" />
+          <img
+            src="/logo-coc-docs-platform.png"
+            alt="Coc Docs Platform"
+            className="logo-light h-[55px] w-auto rounded-lg"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-coc-docs-platform-dark-mode.png"
+            alt="Coc Docs Platform"
+            className="logo-dark hidden h-[55px] w-auto rounded-lg"
+          />
         </Link>
 
         {/* Primary nav */}
@@ -342,26 +360,12 @@ export function MemberHeader({
             )}
           </div>
 
-          {/* Claude Usage — its own page again (ADR-052 v1.6, revising
-              v1.5's embedded-section-on-/home design): `/my-claude-usage`
-              renders `MyClaudeUsageSection` directly rather than the caller
-              scrolling to a section on /home. A real navigation, not a
-              scroll intercept.
-
-              Role-branched target, not the url itself: admin/super_admin
-              go to `/claude-usage` (the team-wide roster, `AdminClaudeUsageView`)
-              — the same `canManage` check "Open Dashboard" above already
-              uses — since without this, no nav link anywhere reaches that
-              page at all (the sidebar has had none since ADR-047 v1.2, and
-              this link used to be the one path admin/super_admin also had
-              to their own personal view, not the team one). Everyone else
-              still goes to their personal `/my-claude-usage`. */}
-          <Link
-            href={canManage ? "/claude-usage" : "/my-claude-usage"}
-            className={navLinkClass(canManage ? pathname === "/claude-usage" : pathname === "/my-claude-usage")}
-          >
-            Claude Usage
-          </Link>
+          {/* Claude Usage's own nav link retired: the personal view moved
+              into /account/settings's own Claude Usage section instead of
+              being a page of its own (/my-claude-usage now redirects
+              there). Admin/super_admin still reach the team-wide roster,
+              `/claude-usage`, from the admin sidebar's own ADMINISTRATION
+              section (nav-config.ts) — unaffected, unchanged. */}
 
           {/* Reports & Records dropdown — Attendance today, built so a
               second report kind has somewhere to go without another nav
@@ -599,7 +603,7 @@ export function MemberHeader({
             </button>
 
             {openMenu === "user" && (
-              <div role="menu" className={`${PANEL_CLASSES} w-64`}>
+              <div role="menu" className={`${PANEL_CLASSES} w-[200px]`}>
                 <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                   <UserAvatar
                     avatarUrl={user?.avatarUrl ?? null}
@@ -613,35 +617,26 @@ export function MemberHeader({
                   </div>
                 </div>
                 <div className="py-1">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => { setOpenMenu(null); onOpenProfile(); }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
-                  >
-                    <PersonIcon className="h-4 w-4 text-muted" />
-                    My Profile
-                  </button>
                   <Link
-                    href="/my-settings"
+                    href="/account/settings#account"
                     role="menuitem"
                     onClick={() => setOpenMenu(null)}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
-                    My Settings
+                    Profile
                   </Link>
-                  {canManage && (
-                    <Link
-                      href="/overview"
-                      role="menuitem"
-                      onClick={() => setOpenMenu(null)}
-                      className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
-                    >
-                      <ReturnIcon className="h-4 w-4 text-muted" />
-                      Open Dashboard
-                    </Link>
-                  )}
+                  <Link
+                    href="/account/settings"
+                    role="menuitem"
+                    onClick={() => setOpenMenu(null)}
+                    className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors hover:bg-page ${
+                      isSettingsActive ? "bg-brand-purple/10 text-brand-purple" : "text-ink"
+                    }`}
+                  >
+                    <GearIcon className={`h-4 w-4 ${isSettingsActive ? "text-brand-purple" : "text-muted"}`} />
+                    Settings
+                  </Link>
                 </div>
                 <div className="border-t border-border py-1">
                   <button
@@ -664,5 +659,6 @@ export function MemberHeader({
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
     </header>
+    </>
   );
 }
