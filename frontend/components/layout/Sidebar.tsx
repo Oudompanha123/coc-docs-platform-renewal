@@ -118,7 +118,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const content = (
-    <div className="flex h-full flex-col bg-sidebar px-0 py-5">
+    <div className="admin-sidebar flex h-full flex-col bg-sidebar px-0 py-5">
       <div className="flex items-center justify-between px-4">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
