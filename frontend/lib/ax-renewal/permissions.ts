@@ -10,8 +10,9 @@ import type { AxRenewalProject } from "./api";
  * offered in the first place.
  *
  * Two axes, multiplied (ADR-069):
- *   - **role** decides *what* — Admin drafts, exactly Developer (or Super
- *     Admin) confirms and builds;
+ *   - **role** decides *what* — Admin drafts; Admin, Super Admin or exactly
+ *     Developer confirms and builds (ADR-086 added Admin, ADR-090 kept
+ *     Developer); Reviewer and Lead read and comment;
  *   - **membership** decides *where* — only on projects the caller is on.
  *     A Super Admin may act on any project, member or not.
  */
@@ -31,8 +32,8 @@ type Caller = Pick<MeResponse, "role" | "roles"> | null | undefined;
 export function axRenewalPermissions(user: Caller, project: Pick<AxRenewalProject, "member"> | null): AxRenewalPermissions {
   const isSuperAdmin = user?.role === "super_admin";
   const isAdmin = user?.role === "admin" || isSuperAdmin;
-  // Exact membership of the Developer role, not rank: an Admin does not pass
-  // this just by out-ranking Developer (AppRole.exactAuthority(), ADR-039/062).
+  // Exact membership of the Developer role, not rank: Reviewer and Lead do
+  // not pass this by out-ranking Developer (AppRole.exactAuthority(), ADR-090).
   const holdsDeveloper = user?.roles?.includes("developer") ?? false;
   const onProject = isSuperAdmin || (project?.member ?? false);
 
@@ -40,6 +41,8 @@ export function axRenewalPermissions(user: Caller, project: Pick<AxRenewalProjec
     onProject,
     canCreate: isAdmin,
     canEdit: isAdmin && onProject,
-    canConfirm: (isSuperAdmin || holdsDeveloper) && onProject,
+    // The backend's floor for these routes: Admin or above, or exactly
+    // Developer (SecurityConfig, ADR-086/ADR-090).
+    canConfirm: (isAdmin || holdsDeveloper) && onProject,
   };
 }

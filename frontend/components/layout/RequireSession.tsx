@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import type { Role } from "@/lib/auth/api";
 import { ADMIN_APP_ROLES } from "@/lib/auth/landing";
 import { useSession } from "@/lib/auth/SessionProvider";
 
@@ -50,10 +51,23 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * so `/claude-usage` is back to being an ordinary admin-only route with no
  * carve-out, the same as every other item in `ADMINISTRATION`.
  */
-export function RequireSession({ children }: { children: ReactNode }) {
+export function RequireSession({
+  children,
+  allowRoles = ADMIN_APP_ROLES,
+}: {
+  children: ReactNode;
+  /**
+   * Who this part of the app admits — the admin app's own two roles unless a
+   * layout says otherwise. Only AX Renewal widens it (`AX_RENEWAL_ROLES`,
+   * ADR-090); every other admin page keeps the default (ADR-086).
+   */
+  allowRoles?: readonly Role[];
+}) {
   const { status, user } = useSession();
   const router = useRouter();
-  const canAccessAdmin = user?.role != null && ADMIN_APP_ROLES.includes(user.role);
+  const canAccessAdmin =
+    (user?.role != null && allowRoles.includes(user.role)) ||
+    (user?.roles?.some((r) => allowRoles.includes(r)) ?? false);
 
   useEffect(() => {
     if (status === "anonymous") {

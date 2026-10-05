@@ -92,6 +92,7 @@
 | [ADR-087](ADR-087-password-strength-policy.md) | A password rule wherever a password is set | **PROPOSED** | Applied server-side and mirrored in the forms (`passwordPolicy.ts`). Revised to v1.1 in the same session: back to a length-only rule at 8 characters. Added to the index at merge time — the branch did not |
 | [ADR-088](ADR-088-email-address-policy.md) | One email address policy, server-side and mirrored in the forms | **PROPOSED** | `emailPolicy.ts` alongside the backend rule, so the form and the server agree on what an address is. Added to the index at merge time — the branch did not |
 | [ADR-089](ADR-089-attendance-report-mailed-on-sign-in.md) | The attendance report is mailed when somebody signs in | **PROPOSED** | Sent from the shared sender; `attendance_report_sent` (V63) keeps it to once. Renumbered from 086 at merge time — `dev` had taken it for the admin-app role block |
+| [ADR-090](ADR-090-revision-of-086-staff-roles-open-ax-renewal.md) | Revision of ADR-086 — Developer, Reviewer and Lead open AX Renewal again | **ACCEPTED** — implemented (in-session instruction; product-owner confirmation requested) | AX Renewal only: reads/comments floor at DEVELOPER by rank; write actions Admin-or-above or exactly Developer (ADR-040's carve-out back); the three roles land on the Member home (`/home`) after sign-in. The rest of the admin app stays [admin, super_admin] (ADR-086) |
 ---
 
 ## Recorded N/A — with rationale
