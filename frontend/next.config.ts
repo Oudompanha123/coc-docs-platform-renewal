@@ -13,6 +13,27 @@ const nextConfig: NextConfig = {
    * output directory.
    */
   output: "standalone",
+
+  /**
+   * `/my-claude-usage` moved into `/account/settings`'s own Claude Usage
+   * section (ADR-091) rather than staying its own page. A real HTTP 308
+   * here (not a client-side `router.replace`) so the redirect is permanent
+   * for crawlers/caches too, and so a query string — the CLI browser-login
+   * flow's `?cli=signed-in` (ADR-060) — and the `#claude-usage` fragment
+   * both survive: Next passes an unmatched incoming query string through to
+   * the destination unchanged, and a fragment in `destination` is just
+   * appended to the `Location` header, which the browser's own anchor-scroll
+   * then honors once the page renders — no extra code needed either side.
+   */
+  async redirects() {
+    return [
+      {
+        source: "/my-claude-usage",
+        destination: "/account/settings#claude-usage",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

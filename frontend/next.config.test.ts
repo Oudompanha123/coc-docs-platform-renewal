@@ -1,0 +1,20 @@
+import { describe, expect, it } from "vitest";
+import nextConfig from "./next.config";
+
+/**
+ * The actual redirect behavior (a real 308, query string and fragment both
+ * preserved) is verified by hand against a running server — Vitest can't
+ * drive Next's own routing layer. This instead pins the one thing a typo or
+ * an accidental deletion here would silently break: the redirect rule
+ * `next.config.ts` hands back to Next.js (ADR-091).
+ */
+describe("next.config.ts redirects", () => {
+  it("permanently redirects /my-claude-usage to the Claude Usage section on /account/settings", async () => {
+    const redirects = await nextConfig.redirects?.();
+    expect(redirects).toContainEqual({
+      source: "/my-claude-usage",
+      destination: "/account/settings#claude-usage",
+      permanent: true,
+    });
+  });
+});
