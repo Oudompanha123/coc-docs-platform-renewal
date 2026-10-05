@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
+  INVALID_LOGIN_MESSAGE,
   SessionExpiredError,
   changePassword,
   createUsageToken,
@@ -74,10 +75,31 @@ describe("loginWithPassword", () => {
     expect(result).toEqual(account);
   });
 
-  it("throws a generic AuthApiError on a non-ok response (UC-004 E-3: no reason is exposed)", async () => {
+  it("says the login email or password is invalid when the backend refuses them (401)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 401 })));
 
-    await expect(loginWithPassword("a@example.com", "wrong")).rejects.toBeInstanceOf(AuthApiError);
+    const refusal = loginWithPassword("a@example.com", "wrong");
+
+    await expect(refusal).rejects.toBeInstanceOf(AuthApiError);
+    await expect(refusal).rejects.toThrow("Invalid Login email, or password.");
+  });
+
+  it("gives the same message whatever the reason — no account, wrong password, not yet approved (UC-004 E-3)", async () => {
+    // All three are one indistinguishable 401 from the backend; the message
+    // must not hint at which one it was.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 401 })));
+
+    await expect(loginWithPassword("nobody@example.com", "x")).rejects.toThrow(INVALID_LOGIN_MESSAGE);
+    await expect(loginWithPassword("pending@example.com", "right-password")).rejects.toThrow(INVALID_LOGIN_MESSAGE);
+  });
+
+  it.each([500, 503, 400])("does not call the credentials invalid for a %s — it asks to try again", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status })));
+
+    const refusal = loginWithPassword("a@example.com", "hunter2222");
+
+    await expect(refusal).rejects.toThrow(/try again/i);
+    await expect(refusal).rejects.not.toThrow(INVALID_LOGIN_MESSAGE);
   });
 
   it("throws a connection-failure AuthApiError when fetch itself rejects", async () => {

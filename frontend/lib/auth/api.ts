@@ -204,6 +204,14 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
  * cookie by the time this rejects; the caller is expected to collect a code
  * and call {@link verifyMfaLogin} next.
  */
+/**
+ * What a refused password sign-in says. The backend answers 401 alike for a
+ * wrong password, an email with no account, and an account that may not sign
+ * in yet (pending or deactivated) — one message for all of them, so the
+ * login form never tells anyone which emails have accounts (UC-004 E-3).
+ */
+export const INVALID_LOGIN_MESSAGE = "Invalid Login email, or password.";
+
 export async function loginWithPassword(email: string, password: string): Promise<AuthenticatedAccount> {
   let response: Response;
   try {
@@ -216,8 +224,13 @@ export async function loginWithPassword(email: string, password: string): Promis
   } catch {
     throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
   }
+  if (response.status === 401) {
+    throw new AuthApiError(INVALID_LOGIN_MESSAGE);
+  }
   if (!response.ok) {
-    throw new AuthApiError("Login failed. Check your email and password, or your account may not be approved yet.");
+    // Not a judgement on the credentials (a server error, a refused request):
+    // saying "invalid" here would send someone to retype a correct password.
+    throw new AuthApiError("Login couldn't be completed right now. Please try again.");
   }
   const body = (await response.json()) as AuthenticatedAccount | MfaRequiredBody;
   if ("mfaRequired" in body && body.mfaRequired) {
