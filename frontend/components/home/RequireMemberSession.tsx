@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
+import { AX_RENEWAL_STAFF_ROLES } from "@/lib/auth/landing";
 import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
@@ -22,7 +23,13 @@ import { useSession } from "@/lib/auth/SessionProvider";
 export function RequireMemberSession({ children }: { children: ReactNode }) {
   const { status, user } = useSession();
   const router = useRouter();
-  const canView = user?.role === "user" || user?.role === "admin" || user?.role === "super_admin";
+  // Developer, Reviewer and Lead too: they land here after signing in
+  // (ADR-090). `role` is the highest role held.
+  const canView =
+    user?.role === "user" ||
+    user?.role === "admin" ||
+    user?.role === "super_admin" ||
+    (user?.role != null && AX_RENEWAL_STAFF_ROLES.includes(user.role));
 
   // Was this mount ever authenticated? Distinguishes a visitor arriving
   // anonymous fresh (send to /login, the only sane default) from a caller

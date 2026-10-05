@@ -24,12 +24,14 @@ import { rememberIdToken, takeIdToken } from "@/lib/auth/idTokenMemory";
 import { keycloakLogoutUrl } from "@/lib/auth/keycloakLogout";
 import { rememberSignInOutcome, takeSignInOutcome } from "@/lib/auth/signInOutcome";
 import { safeNextPath } from "@/lib/auth/cliAuthorize";
+import { offerToSaveCredential, readFilledCredentials } from "@/lib/auth/browserCredentials";
 
 /** Where a signed-in account lands — `landingPathFor`, shared with the bare
  *  domain's redirect (`app/page.tsx`) so the two can never disagree. A
  *  temporary password buys entry to exactly one place regardless of role;
- *  Admin, Super Admin, Developer, Reviewer and Lead land on the Overview
- *  dashboard (ADR-071); a plain "user" gets the Member home (ADR-033). A
+ *  Admin and Super Admin land on the Overview dashboard; a plain "user"
+ *  (ADR-033) and Developer, Reviewer and Lead (ADR-090) get the Member
+ *  home. A
  *  signed-out or `guest` caller never reaches this function at all (there
  *  is no successful login to return an account from). */
 function postLoginDestination(account: AuthenticatedAccount): string {
@@ -137,17 +139,24 @@ function LoginForm() {
   // updates are async; this check is synchronous).
   const googleSignInInFlight = useRef(false);
 
-  function validate() {
+  function validate(id: string, pw: string) {
     const next: typeof errors = {};
-    if (!identifier.trim()) next.identifier = "Enter your email, phone, or name.";
-    if (!password) next.password = "Enter your password.";
+    if (!id.trim()) next.identifier = "Enter your email, phone, or name.";
+    if (!pw) next.password = "Enter your password.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!validate()) return;
+    // What the browser autofilled, if it has not told React yet — the fields
+    // can show saved credentials before any input event has fired.
+    const filled = readFilledCredentials(e.currentTarget);
+    const id = identifier || filled.username;
+    const pw = password || filled.password;
+    if (id !== identifier) setIdentifier(id);
+    if (pw !== password) setPassword(pw);
+    if (!validate(id, pw)) return;
 
     setIsSubmitting(true);
     setFeedback(null);
@@ -155,8 +164,10 @@ function LoginForm() {
       // rememberMe has nothing to bind to server-side: session TTL is one
       // fixed, system-wide value by design (AMB-006/ADR-011 — deliberately
       // no per-role or "remember me" variant), so it isn't sent.
-      const account = await loginWithPassword(identifier, password);
+      const account = await loginWithPassword(id, pw);
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+      // Accepted: let the browser offer to save these for next time.
+      void offerToSaveCredential(id, pw, account.displayName);
       // A temporary password (revision of ADR-017) buys entry to exactly one
       // place: Create New Password. Everything else refuses this session
       // until that happens, so sending it anywhere else would just bounce.
@@ -190,6 +201,8 @@ function LoginForm() {
     try {
       const account = await verifyMfaLogin(otpCode);
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
+      // The password was right a step ago; only now is the sign-in complete.
+      void offerToSaveCredential(identifier, password, account.displayName);
       setIsRedirecting(true);
       router.push(destinationFor(account));
     } catch (err) {
@@ -384,6 +397,8 @@ function LoginForm() {
       ) : (
         <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
           <FormField
+            id="login-identifier"
+            name="username"
             label="Email"
             value={identifier}
             onChange={setIdentifier}
@@ -395,6 +410,7 @@ function LoginForm() {
 
           <PasswordField
             id="login-password"
+            name="password"
             label="Password"
             value={password}
             onChange={setPassword}
