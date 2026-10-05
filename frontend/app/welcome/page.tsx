@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
-import { NavDropdown } from "@/components/welcome/NavDropdown";
+import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
+import { ReportsNavDropdown } from "@/components/welcome/ReportsNavDropdown";
 import { ScrollReveal } from "@/components/welcome/ScrollReveal";
 import { GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { TONE_STYLES } from "@/components/dashboard/tone";
@@ -186,9 +187,8 @@ export default function WelcomePage() {
             >
               {HOME_LINK.label}
             </a>
-            {FALLBACK_NAV.map((product) => (
-              <NavDropdown key={product.key} product={product} isDark={isDark} onRequireAuth={setAuthGate} />
-            ))}
+            <ProductsNavDropdown products={FALLBACK_NAV} isDark={isDark} onRequireAuth={setAuthGate} />
+            <ReportsNavDropdown isDark={isDark} onRequireAuth={setAuthGate} />
           </nav>
 
           <div className="flex items-center gap-3">

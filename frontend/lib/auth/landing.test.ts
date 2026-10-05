@@ -19,8 +19,8 @@ describe("landingPathFor", () => {
     expect(landingPathFor({ role: "developer", mustChangePassword: true })).toBe("/create-password");
   });
 
-  it("keeps a plain user on the Member home", () => {
-    expect(landingPathFor({ role: "user" })).toBe("/home");
+  it.each(["user", "developer"] as const)("sends a %s to the Member home", (role) => {
+    expect(landingPathFor({ role })).toBe("/home");
   });
 
   it("sends a guest, or no role at all, to the public page", () => {

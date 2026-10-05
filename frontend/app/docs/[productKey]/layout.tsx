@@ -58,7 +58,7 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div data-shell="home" className="min-h-screen bg-white">
       {/* Header stays in normal flow here (`static`, overriding its own
           `sticky` class) rather than staying pinned like it does on /home —
           once the tab bar below reaches the top of the viewport and pins
