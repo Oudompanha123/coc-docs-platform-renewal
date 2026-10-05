@@ -34,6 +34,18 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
     onChange({ ...value, [key]: val });
   }
 
+  /** Both fields empty removes the second button entirely, rather than saving an empty one. */
+  function setSecondaryCta(field: "label" | "href", val: string) {
+    const next = { label: value.secondaryCta?.label ?? "", href: value.secondaryCta?.href ?? "", [field]: val };
+    if (next.label === "" && next.href === "") {
+      const rest = { ...value };
+      delete rest.secondaryCta;
+      onChange(rest);
+      return;
+    }
+    onChange({ ...value, secondaryCta: next });
+  }
+
   /** The raw, not-yet-defaulted entry for one OS — what its own inputs read
    *  from, as opposed to `resolveHeroDownloadButton`'s fully-defaulted view
    *  (which a bare input must never show as if it were typed in). A legacy
@@ -135,6 +147,33 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
         <FormField label="CTA link" required>
           <input className={fieldInputClass} value={value.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} />
         </FormField>
+      </div>
+      <div>
+        <span className="text-xs font-semibold text-muted">Second button</span>
+        <p className="mt-0.5 text-xs text-muted">
+          Optional, shown beside the CTA. A path such as /ax-renewal, or an https:// URL. Leave both empty to hide it.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-4">
+          <FormField label="Second button label">
+            <input
+              className={fieldInputClass}
+              value={value.secondaryCta?.label ?? ""}
+              onChange={(e) => setSecondaryCta("label", e.target.value)}
+            />
+          </FormField>
+          <FormField label="Second button link">
+            <input
+              className={fieldInputClass}
+              value={value.secondaryCta?.href ?? ""}
+              onChange={(e) => setSecondaryCta("href", e.target.value)}
+            />
+          </FormField>
+        </div>
+        {value.secondaryCta && !isValidHeroDownloadUrl(value.secondaryCta.href) && (
+          <p role="alert" className="mt-1 text-xs font-medium text-danger">
+            Use a path starting with / or an https:// URL — this button stays hidden until it is one.
+          </p>
+        )}
       </div>
 
       <div>

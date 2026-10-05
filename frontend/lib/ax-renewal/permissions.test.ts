@@ -15,12 +15,12 @@ describe("axRenewalPermissions", () => {
     return { role, roles };
   }
 
-  it("lets an Admin on the project edit, but not confirm", () => {
+  it("lets an Admin on the project edit and confirm — the backend's floor since ADR-086", () => {
     expect(axRenewalPermissions(as("admin"), member)).toEqual({
       onProject: true,
       canCreate: true,
       canEdit: true,
-      canConfirm: false,
+      canConfirm: true,
     });
   });
 
@@ -52,9 +52,19 @@ describe("axRenewalPermissions", () => {
   });
 
   it("does not let rank stand in for holding Developer", () => {
-    // An Admin out-ranks Developer but does not hold it — ADR-039/062's
-    // exactAuthority() rule, mirrored.
-    expect(axRenewalPermissions(as("admin"), member).canConfirm).toBe(false);
+    // Reviewer and Lead out-rank Developer but do not hold it — the
+    // exactAuthority() rule (ADR-090), mirrored.
+    expect(axRenewalPermissions(as("lead", ["user", "lead"]), member).canConfirm).toBe(false);
+    expect(axRenewalPermissions(as("reviewer", ["user", "reviewer"]), member).canConfirm).toBe(false);
+  });
+
+  it("gives a Developer who is not on the project nothing", () => {
+    expect(axRenewalPermissions(as("developer", ["user", "developer"]), outsider)).toEqual({
+      onProject: false,
+      canCreate: false,
+      canEdit: false,
+      canConfirm: false,
+    });
   });
 
   it("offers nothing on a project it has not loaded yet", () => {

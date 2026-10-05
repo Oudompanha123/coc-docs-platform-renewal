@@ -12,13 +12,15 @@ type FormFieldProps = {
   icon: ReactNode;
   error?: string;
   autoComplete?: string;
+  /** The field's form name — what password managers and `FormData` identify it by (e.g. "username", "password"). */
+  name?: string;
   id?: string;
 };
 
 const fieldClasses =
   "w-full rounded-xl border border-border py-3 pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 transition-colors";
 
-export function FormField({ label, type = "text", value, onChange, placeholder, icon, error, autoComplete, id }: FormFieldProps) {
+export function FormField({ label, type = "text", value, onChange, placeholder, icon, error, autoComplete, id, name }: FormFieldProps) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const errorId = `${fieldId}-error`;
@@ -32,6 +34,7 @@ export function FormField({ label, type = "text", value, onChange, placeholder, 
         <span className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">{icon}</span>
         <input
           id={fieldId}
+          name={name}
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -94,7 +97,7 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
 
 type PasswordFieldProps = Omit<FormFieldProps, "type" | "icon"> & { icon: ReactNode };
 
-export function PasswordField({ label, value, onChange, placeholder, icon, error, autoComplete, id }: PasswordFieldProps) {
+export function PasswordField({ label, value, onChange, placeholder, icon, error, autoComplete, id, name }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   const generatedId = useId();
   const fieldId = id ?? generatedId;
@@ -109,6 +112,7 @@ export function PasswordField({ label, value, onChange, placeholder, icon, error
         <span className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">{icon}</span>
         <input
           id={fieldId}
+          name={name}
           type={visible ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}

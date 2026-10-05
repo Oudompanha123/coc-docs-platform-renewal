@@ -38,72 +38,72 @@ beforeEach(() => {
   sessionRole.current = "user";
 });
 
-describe("MemberHeader — Claude Usage link (ADR-052 v1.6: its own page again, not a section on /home)", () => {
-  it("renders a Claude Usage link, next to Home and Products, pointing at its own route", () => {
+describe("MemberHeader — Claude Usage nav link retired (moved into /account/settings)", () => {
+  it("renders no Claude Usage link anywhere in the top nav", () => {
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-
-    const link = screen.getByRole("link", { name: "Claude Usage" });
-    expect(link).toHaveAttribute("href", "/my-claude-usage");
-    // Same nav row as Home/Products, not the right-side icon cluster.
-    expect(screen.getByRole("link", { name: "Home" }).parentElement).toBe(link.parentElement);
+    expect(screen.queryByRole("link", { name: "Claude Usage" })).not.toBeInTheDocument();
   });
 
-  it("is a real navigation — no click-time scroll interception left over from the on-page-section design", () => {
+  it("still shows no admin-only navigation for a plain user", () => {
     render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-    const link = screen.getByRole("link", { name: "Claude Usage" });
-    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
-    const prevented = !link.dispatchEvent(event);
-
-    // Not prevented: the browser's own navigation to the href runs.
-    expect(prevented).toBe(false);
-  });
-
-  it("is marked active when already on /my-claude-usage", () => {
-    pathname.current = "/my-claude-usage";
-    render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-
-    expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveClass("border-brand-purple", "text-ink");
-  });
-
-  it("does not render any admin-only navigation for a plain user", () => {
-    render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-
     expect(screen.queryByText("Open Dashboard")).not.toBeInTheDocument();
   });
 
-  it("points admin/super_admin at the team dashboard (/claude-usage) instead of the personal view", () => {
+  it("renders no Claude Usage link for admin/super_admin either — unaffected by role", () => {
     for (const role of ["admin", "super_admin"]) {
       sessionRole.current = role;
       const { unmount } = render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-
-      expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveAttribute("href", "/claude-usage");
-
+      expect(screen.queryByRole("link", { name: "Claude Usage" })).not.toBeInTheDocument();
       unmount();
     }
   });
-
-  it("marks the admin's Claude Usage link active on /claude-usage, not /my-claude-usage", () => {
-    sessionRole.current = "super_admin";
-    pathname.current = "/claude-usage";
-    render(<MemberHeader products={PRODUCTS} onOpenProfile={vi.fn()} />);
-
-    expect(screen.getByRole("link", { name: "Claude Usage" })).toHaveClass("border-brand-purple", "text-ink");
-  });
 });
 
-describe("MemberHeader — user menu", () => {
-  it("offers My Profile and, under it, My Settings linking to /my-settings", async () => {
+describe("MemberHeader — user menu (Profile / Settings / Log out)", () => {
+  async function openUserMenu() {
     const user = userEvent.setup();
-    const onOpenProfile = vi.fn();
-    render(<MemberHeader products={PRODUCTS} onOpenProfile={onOpenProfile} />);
+    render(<MemberHeader products={PRODUCTS} />);
+    await user.click(screen.getByRole("button", { name: /dana lee/i }));
+  }
 
-    await user.click(screen.getByRole("button", { name: /Dana Lee/ }));
-    const items = screen.getAllByRole("menuitem");
-    expect(items[0]).toHaveTextContent("My Profile");
-    expect(items[1]).toHaveTextContent("My Settings");
-    expect(items[1]).toHaveAttribute("href", "/my-settings");
-
-    await user.click(items[0]!);
-    expect(onOpenProfile).toHaveBeenCalledOnce();
+  it("Profile goes to /account/settings#account, not a modal callback", async () => {
+    await openUserMenu();
+    expect(screen.getByRole("menuitem", { name: "Profile" })).toHaveAttribute(
+      "href",
+      "/account/settings#account",
+    );
   });
+
+  it("Settings sits between Profile and Log out, pointing at /account/settings", async () => {
+    await openUserMenu();
+    const items = screen.getAllByRole("menuitem").map((el) => el.textContent);
+    const profileIndex = items.findIndex((t) => t === "Profile");
+    const settingsIndex = items.findIndex((t) => t === "Settings");
+    const logoutIndex = items.findIndex((t) => t?.includes("Log out"));
+
+    expect(settingsIndex).toBeGreaterThan(profileIndex);
+    expect(settingsIndex).toBeLessThan(logoutIndex);
+    expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute("href", "/account/settings");
+  });
+
+  it("highlights Settings when already on /account/settings", async () => {
+    pathname.current = "/account/settings";
+    await openUserMenu();
+    expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveClass("text-brand-purple");
+  });
+
+  it("does not highlight Settings elsewhere", async () => {
+    await openUserMenu();
+    expect(screen.getByRole("menuitem", { name: "Settings" })).not.toHaveClass("text-brand-purple");
+  });
+
+  it.each(["admin", "super_admin"])(
+    "has no Open Dashboard item for %s either — moved to the Settings side menu",
+    async (role) => {
+      sessionRole.current = role;
+      await openUserMenu();
+      const items = screen.getAllByRole("menuitem").map((el) => el.textContent);
+      expect(items).toEqual(["Profile", "Settings", "Log out"]);
+    },
+  );
 });

@@ -40,8 +40,12 @@ function formatDay(isoDate: string): string {
 }
 
 function Card({ title, children, className = "" }: { title: string; children: ReactNode; className?: string }) {
+  // No shadow: this component is nested inside /account/settings's own
+  // Claude Usage card, which already has one — a shadow here would double
+  // up. rounded-xl (not this file's -elsewhere- rounded-[10px]) matches
+  // that outer card's own corner radius, per that task's explicit ask.
   return (
-    <section className={`rounded-[10px] border border-border bg-white p-6 shadow-sm ${className}`}>
+    <section className={`rounded-xl border border-border bg-white p-6 ${className}`}>
       <h3 className="text-sm font-semibold text-dash-ink">{title}</h3>
       {children}
     </section>
@@ -161,18 +165,21 @@ function SubscriptionCard({ usdPerMonth }: { usdPerMonth: number }) {
 }
 
 /**
- * "My Claude Usage" — rendered by its own route, `/my-claude-usage`
- * (ADR-052 v1.6). `/claude-usage` is a separate, admin/super_admin-only page
- * — see `app/(shell)/claude-usage/page.tsx`.
+ * "My Claude Usage" — a section inside `/account/settings` now (ADR-094,
+ * revising ADR-052 v1.6's own route), reached via the Settings side menu
+ * rather than its own top-nav link or page; `/my-claude-usage` permanently
+ * redirects to `/account/settings#claude-usage` (`next.config.ts`).
+ * `/claude-usage` is a separate, admin/super_admin-only page — see
+ * `app/(shell)/claude-usage/page.tsx` — untouched by that move.
  *
- * Tokens are the headline, dollars are not (ADR-065): Today's Usage and
- * Weekly Usage (against the weekly soft budget) first, then Model Usage over
- * the selected window, then the Reference API Cost and the Subscription as
- * two separate cards. The API figure is never subtracted from, or compared
- * with, the subscription price — they answer different questions. Every
- * figure comes from `GET /api/v1/claude-usage/me`, which the backend
- * resolves from the session and prices server-side (ADR-058) — nothing is
- * priced here, so the cost is always exactly the sum of its per-model lines.
+ * Tokens are the headline, dollars are not (ADR-065): the Reference API Cost
+ * and the Subscription price as two separate cards first (never subtracted
+ * from or compared with each other — they answer different questions), then
+ * Model Usage — one row per (day, model) over the selected window — then the
+ * Daily usage history chart. Every figure comes from
+ * `GET /api/v1/claude-usage/me`, which the backend resolves from the session
+ * and prices server-side (ADR-058) — nothing is priced here, so the cost is
+ * always exactly the sum of its per-model lines.
  *
  * Does **not** render `DownloadConfigPanel` (removed on direct developer
  * instruction) — the setup guide's own `push-usage.mjs` download link
@@ -239,7 +246,7 @@ export function MyClaudeUsageSection() {
             <SubscriptionCard usdPerMonth={dashboard?.subscriptionUsdPerMonth ?? 0} />
           </div>
 
-          <section className="mt-6 rounded-[10px] border border-border bg-white p-6 shadow-sm">
+          <section className="mt-6 rounded-xl border border-border bg-white p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-dash-ink">Model Usage</h3>
               <div>
@@ -263,7 +270,7 @@ export function MyClaudeUsageSection() {
             <ModelUsageTable rows={usage?.recent ?? []} emptyLabel={range.label.toLowerCase()} />
           </section>
 
-          <div className="mt-8 rounded-[10px] border border-border bg-white p-5 shadow-sm">
+          <div className="mt-8 rounded-xl border border-border bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-dash-ink">Daily usage history</h3>

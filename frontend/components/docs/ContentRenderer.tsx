@@ -8,7 +8,12 @@ import { DocsCodeBlock } from "./DocsCodeBlock";
 import { DownloadIcon } from "@/components/layout/icons";
 import { HERO_DOWNLOAD_OS_ICON } from "./os-icons";
 import { ICON_MAP } from "@/lib/docs/icon-map";
-import { HERO_DOWNLOAD_OS_ORDER, isValidHeroDownloadUrl, resolveHeroDownloadButton } from "@/lib/docs/content-types";
+import {
+  HERO_DOWNLOAD_OS_ORDER,
+  isShownSecondaryCta,
+  isValidHeroDownloadUrl,
+  resolveHeroDownloadButton,
+} from "@/lib/docs/content-types";
 import type { DocContent, DownloadLink } from "@/lib/docs/content-types";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { createUsageToken } from "@/lib/auth/api";
@@ -127,6 +132,10 @@ function renderInline(text: string): React.ReactNode {
  *  `docs` = inside the standalone /docs layout (text-ink). Same content
  *  shapes render in either shell — only the heading token differs, since
  *  that's the one class the admin dark-mode override actually needs. */
+/** The hero's second button: the same pill as the primary, outlined rather than filled. */
+const HERO_SECONDARY_CTA_CLASS =
+  "inline-flex items-center justify-center rounded-full border border-brand-purple/40 bg-white px-6 py-3 text-sm font-semibold text-brand-purple shadow-sm transition-colors hover:border-brand-purple hover:bg-brand-purple/5";
+
 export function ContentRenderer({ content, variant }: { content: DocContent; variant: "admin" | "docs" }) {
   const heading = variant === "admin" ? "text-dash-ink" : "text-ink";
 
@@ -151,13 +160,31 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
             existed. Row 2 (16px below) is the download buttons, which no
             longer share this row — four buttons crowded into one flex-wrap
             line used to leave Linux stranded alone on a second line. */}
-        <div className={`mt-7 flex ${isSplit ? "justify-center sm:justify-start" : "justify-center"}`}>
+        <div className={`mt-7 flex flex-wrap gap-3 ${isSplit ? "justify-center sm:justify-start" : "justify-center"}`}>
           <Link
             href={content.ctaHref}
             className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
           >
             {content.ctaLabel}
           </Link>
+          {/* An optional second button beside it — e.g. straight into the
+              AX Renewal workspace from its docs. Same URL rule as the
+              download buttons: a same-site path, or https:// (new tab). */}
+          {isShownSecondaryCta(content.secondaryCta) &&
+            (content.secondaryCta.href.startsWith("https://") ? (
+              <a
+                href={content.secondaryCta.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={HERO_SECONDARY_CTA_CLASS}
+              >
+                {content.secondaryCta.label}
+              </a>
+            ) : (
+              <Link href={content.secondaryCta.href} className={HERO_SECONDARY_CTA_CLASS}>
+                {content.secondaryCta.label}
+              </Link>
+            ))}
         </div>
         {downloadButtons.length > 0 && (
           <div

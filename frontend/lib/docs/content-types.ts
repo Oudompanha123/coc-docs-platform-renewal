@@ -25,6 +25,12 @@ export type HeroContent = {
   subline: string;
   ctaLabel: string;
   ctaHref: string;
+  /** An optional second button beside the primary CTA — AX Renewal's docs,
+   *  for one, link straight to the workspace itself. Absent for existing
+   *  saved content. Renders only with both a label and a valid link: a
+   *  same-site path ("/ax-renewal") or an https:// URL, the same rule the
+   *  download buttons use. */
+  secondaryCta?: HeroSecondaryCta;
   eyebrow: string;
   sectionHeading: string;
   sectionIntro: string;
@@ -40,6 +46,13 @@ export type HeroContent = {
    *  A button renders only when its own OS's URL is filled in. */
   downloadButtons?: HeroDownloadButtons;
 };
+
+export type HeroSecondaryCta = { label: string; href: string };
+
+/** Whether a hero's second button is complete enough to show. */
+export function isShownSecondaryCta(cta: HeroSecondaryCta | undefined): cta is HeroSecondaryCta {
+  return cta != null && cta.label.trim() !== "" && cta.href !== "" && isValidHeroDownloadUrl(cta.href);
+}
 
 export type HeroDownloadOs = "windows" | "macos" | "linux";
 

@@ -22,6 +22,15 @@ const DOCS_NAV = [
   { label: "FAQ", href: "/docs/faq", icon: QuestionIcon },
 ];
 
+/**
+ * Where the brand mark and "Back to site" lead: the bare domain, which sends
+ * each visitor where they belong (`app/page.tsx` → `landingPathFor`) — the
+ * public page when signed out, the Member home for a signed-in user, the
+ * Overview for an admin. Both links used to hard-code `/welcome`, so a member
+ * reading the docs was sent off their own home to the public page.
+ */
+export const DOCS_SITE_HOME_HREF = "/";
+
 export function DocsSidebar() {
   const pathname = usePathname();
   const products = useNavStructure();
@@ -30,7 +39,7 @@ export function DocsSidebar() {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
       <div className="sticky top-0 flex h-screen flex-col overflow-y-auto px-4 py-6">
-        <Link href="/welcome" className="flex items-center gap-2.5 px-2">
+        <Link href={DOCS_SITE_HOME_HREF} className="flex items-center gap-2.5 px-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-blue text-white">
             <DocumentIcon className="h-4 w-4" />
           </div>
@@ -88,7 +97,7 @@ export function DocsSidebar() {
           )}
         </div>
 
-        <Link href="/welcome" className="px-3 text-xs font-medium text-muted hover:text-ink">
+        <Link href={DOCS_SITE_HOME_HREF} className="px-3 text-xs font-medium text-muted hover:text-ink">
           ← Back to site
         </Link>
       </div>

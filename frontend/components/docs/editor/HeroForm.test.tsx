@@ -176,3 +176,51 @@ describe("HeroForm — Download buttons", () => {
     expect(screen.queryByText("Add a URL to show this button.")).not.toBeInTheDocument();
   });
 });
+
+describe("HeroForm — Second button", () => {
+  it("starts empty when there is no second button", () => {
+    render(<HeroForm value={baseHero()} onChange={vi.fn()} />);
+
+    expect(screen.getByLabelText("Second button label")).toHaveValue("");
+    expect(screen.getByLabelText("Second button link")).toHaveValue("");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows a saved second button", () => {
+    render(<HeroForm value={baseHero({ secondaryCta: { label: "AX Renewal", href: "/ax-renewal" } })} onChange={vi.fn()} />);
+
+    expect(screen.getByLabelText("Second button label")).toHaveValue("AX Renewal");
+    expect(screen.getByLabelText("Second button link")).toHaveValue("/ax-renewal");
+  });
+
+  it("commits a label and a link as the second button", async () => {
+    const user = userEvent.setup();
+    const spy = vi.fn();
+    render(<Controlled initial={baseHero()} onChangeSpy={spy} />);
+
+    await user.type(screen.getByLabelText("Second button label"), "AX Renewal");
+    await user.type(screen.getByLabelText("Second button link"), "/ax-renewal");
+
+    expect(spy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ secondaryCta: { label: "AX Renewal", href: "/ax-renewal" } }),
+    );
+  });
+
+  it("clearing both fields removes the second button rather than saving an empty one", async () => {
+    const user = userEvent.setup();
+    const spy = vi.fn();
+    render(<Controlled initial={baseHero({ secondaryCta: { label: "X", href: "/x" } })} onChangeSpy={spy} />);
+
+    await user.clear(screen.getByLabelText("Second button label"));
+    await user.clear(screen.getByLabelText("Second button link"));
+
+    const last = spy.mock.calls.at(-1)?.[0] as HeroContent;
+    expect("secondaryCta" in last).toBe(false);
+  });
+
+  it("warns about a link it would not show", () => {
+    render(<HeroForm value={baseHero({ secondaryCta: { label: "AX Renewal", href: "http://localhost:3000/ax-renewal" } })} onChange={vi.fn()} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Use a path starting with / or an https:// URL");
+  });
+});

@@ -8,6 +8,7 @@ import { AxRenewalStatusBar } from "@/components/ax-renewal/AxRenewalStatusBar";
 import { AxRenewalThemeSync } from "@/components/ax-renewal/AxRenewalThemeSync";
 import { AxRenewalTopbar } from "@/components/ax-renewal/AxRenewalTopbar";
 import { RequireSession } from "@/components/layout/RequireSession";
+import { AX_RENEWAL_ROLES } from "@/lib/auth/landing";
 import { AxRenewalProjectProvider } from "@/lib/ax-renewal/AxRenewalProjectContext";
 import { useResizableWidth } from "@/lib/ax-renewal/useResizableWidth";
 import { SessionProvider } from "@/lib/auth/SessionProvider";
@@ -49,7 +50,9 @@ function AxRenewalShell({ children }: { children: ReactNode }) {
   });
 
   return (
-    <RequireSession>
+    // Developer, Reviewer and Lead too (ADR-090) — the one admin-app area they
+    // may open; every other admin page keeps RequireSession's default.
+    <RequireSession allowRoles={AX_RENEWAL_ROLES}>
       <AxRenewalThemeSync />
       <AxRenewalProjectProvider>
         {/* Two rows, not one: content, then a footer spanning every column
