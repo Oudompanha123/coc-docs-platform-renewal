@@ -1,7 +1,21 @@
 import { DISPLAY_ROLE_ORDER, ROLE_LABELS, type AccountStatus, type DisplayRole } from "@/lib/mock/users-roles";
+import { FilterDropdown, type FilterOption } from "./FilterDropdown";
 
 export type StatusFilter = AccountStatus | "all";
 export type RoleFilter = DisplayRole | "all";
+
+const ROLE_OPTIONS: FilterOption<RoleFilter>[] = [
+  { value: "all", label: "All Roles" },
+  ...DISPLAY_ROLE_ORDER.map((r) => ({ value: r, label: ROLE_LABELS[r] })),
+];
+
+/** Dots in the same colours as `StatusBadge`, so the filter and the table read alike. */
+const STATUS_OPTIONS: FilterOption<StatusFilter>[] = [
+  { value: "all", label: "All Status" },
+  { value: "active", label: "Active", dotClassName: "bg-[#1f9d6b]" },
+  { value: "pending", label: "Pending", dotClassName: "bg-amber-500" },
+  { value: "deactivated", label: "Deactivated", dotClassName: "bg-muted" },
+];
 
 function RoleGlyphIcon({ className }: { className?: string }) {
   return (
@@ -57,45 +71,27 @@ export function FilterBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search by name, email, or role..."
-          className="w-full rounded-xl border border-border py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+          className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-ink shadow-sm placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
         />
       </div>
 
-      <div className="relative">
-        <RoleGlyphIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <select
-          value={role}
-          onChange={(e) => onRoleChange(e.target.value as RoleFilter)}
-          className="appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-        >
-          <option value="all">All Roles</option>
-          {DISPLAY_ROLE_ORDER.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
-        <svg viewBox="0 0 24 24" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-          <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      <FilterDropdown<RoleFilter>
+        label="Role"
+        icon={<RoleGlyphIcon className="h-4 w-4" />}
+        value={role}
+        onChange={onRoleChange}
+        options={ROLE_OPTIONS}
+        className="sm:w-48"
+      />
 
-      <div className="relative">
-        <StatusGlyphIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <select
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value as StatusFilter)}
-          className="appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="pending">Pending</option>
-          <option value="deactivated">Deactivated</option>
-        </select>
-        <svg viewBox="0 0 24 24" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-          <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      <FilterDropdown<StatusFilter>
+        label="Status"
+        icon={<StatusGlyphIcon className="h-4 w-4" />}
+        value={status}
+        onChange={onStatusChange}
+        options={STATUS_OPTIONS}
+        className="sm:w-48"
+      />
     </div>
   );
 }

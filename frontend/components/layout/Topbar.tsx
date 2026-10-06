@@ -21,7 +21,7 @@ import {
   BellIcon,
   ChevronDownIcon,
   LogOutIcon,
-  MailIcon,
+  AuditIcon,
   MenuIcon,
   MoonIcon,
   PersonIcon,
@@ -357,7 +357,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             active={openMenu === "mail"}
             onClick={() => toggleMenu("mail")}
           >
-            <MailIcon className="h-5 w-5" />
+            <AuditIcon className="h-5 w-5" />
           </CountBadge>
 
           {openMenu === "mail" && (
@@ -541,7 +541,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
     </header>
 
-    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} editHref="/settings" />}
 
     {approving && (
       <ApproveRegistrationModal

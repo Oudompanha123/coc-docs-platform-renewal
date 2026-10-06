@@ -3,11 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfileCard } from "./ProfileCard";
 
-const { updateProfile, refresh } = vi.hoisted(() => ({ updateProfile: vi.fn(), refresh: vi.fn() }));
+const { updateProfile, uploadAvatar, removeAvatar, refresh } = vi.hoisted(() => ({
+  updateProfile: vi.fn(),
+  uploadAvatar: vi.fn(),
+  removeAvatar: vi.fn(),
+  refresh: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/auth/api")>("@/lib/auth/api");
-  return { ...actual, updateProfile };
+  return { ...actual, updateProfile, uploadAvatar, removeAvatar };
 });
 
 const { sessionUser } = vi.hoisted(() => ({
@@ -26,6 +31,7 @@ vi.mock("@/lib/auth/SessionProvider", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   sessionUser.displayName = "Dana Lee";
+  sessionUser.avatarUrl = null;
 });
 
 describe("ProfileCard", () => {
@@ -130,5 +136,29 @@ describe("ProfileCard", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(onError).toHaveBeenCalledWith("network down");
+  });
+});
+
+describe("ProfileCard photo", () => {
+  it("Change photo is disabled until photo upload is available", () => {
+    render(<ProfileCard department={null} onSaved={vi.fn()} onError={vi.fn()} />);
+    expect(screen.getByLabelText("Upload profile photo")).toBeDisabled();
+  });
+
+  it("Remove is disabled when there is no photo", () => {
+    render(<ProfileCard department={null} onSaved={vi.fn()} onError={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Remove" })).toBeDisabled();
+  });
+
+  it("removes the photo and refreshes the session", async () => {
+    sessionUser.avatarUrl = "https://example.com/a.png";
+    removeAvatar.mockResolvedValue({});
+    const user = userEvent.setup();
+    render(<ProfileCard department={null} onSaved={vi.fn()} onError={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(removeAvatar).toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalled();
   });
 });

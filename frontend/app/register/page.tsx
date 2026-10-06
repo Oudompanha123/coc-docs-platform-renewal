@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { CodeField, FormField, PasswordField } from "@/components/auth/FormField";
+import { FormField, PasswordField } from "@/components/auth/FormField";
+import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { LockIcon, MailIcon, PersonIcon, PlusIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
+import { Spinner } from "@/components/layout/Spinner";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
@@ -25,6 +27,15 @@ const STEPS = ["Account", "Verify", "Confirm"];
 
 /** Matches the backend's cooldown (`RegistrationOtpService.RESEND_COOLDOWN`, ADR-021) — a UI countdown, not what actually enforces it. */
 const RESEND_COOLDOWN_SECONDS = 60;
+
+/** Matches the backend's code lifetime (`RegistrationOtpService.TTL`, ADR-021) — shown as a countdown; the backend decides. */
+const CODE_TTL_SECONDS = 10 * 60;
+
+/** "9:41" for 581 seconds. */
+function minutesSeconds(total: number): string {
+  const s = Math.max(0, total);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
 
 /**
  * Register — three steps (ADR-021, revision of ADR-014/017): submit
@@ -57,18 +68,34 @@ export default function RegisterPage() {
   const [codeError, setCodeError] = useState<string | undefined>();
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [doneMessage, setDoneMessage] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  // A ref as well as state: auto-submit on the sixth digit and a Verify click
+  // can land in the same moment, before the state update disables anything.
+  const verifyInFlight = useRef(false);
+  // When the current code was sent — the expiry countdown runs from here, and
+  // a resend restarts it.
+  const [codeSentAt, setCodeSentAt] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  // Both countdowns are worked out from when the code was sent, on one
+  // clock — not by counting ticks, which drift (a background tab slows its
+  // timers) and fell behind each other here. Clamped, so a clock that has not
+  // caught up yet never shows more than the full time.
+  const secondsSinceSent = Math.max(0, Math.floor((now - codeSentAt) / 1000));
+  const expiresIn = CODE_TTL_SECONDS - secondsSinceSent;
+  const resendCooldown = Math.max(0, RESEND_COOLDOWN_SECONDS - secondsSinceSent);
 
-  // Counts the resend cooldown down to zero once a second while step "code"
-  // is showing. A UI convenience only — the backend is what actually refuses
-  // an early resend (429), this just keeps the button looking disabled until
-  // that would succeed.
+  // The clock both countdowns read (resend cooldown, code expiry), and the
+  // cursor in the boxes on arrival. The cooldown is a UI convenience only —
+  // the backend is what actually refuses an early resend (429); this just
+  // keeps the button looking disabled until that would succeed.
   useEffect(() => {
-    if (step !== "code" || resendCooldown <= 0) return;
-    const timer = setInterval(() => setResendCooldown((s) => Math.max(s - 1, 0)), 1000);
+    if (step !== "code") return;
+    codeInputRef.current?.focus();
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [step, resendCooldown]);
+  }, [step]);
 
   function validate() {
     const next: FormErrors = {};
@@ -101,7 +128,7 @@ export default function RegisterPage() {
       await register({ email, displayName: fullName, password });
       setCode("");
       setCodeError(undefined);
-      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      setCodeSentAt(Date.now());
       setStep("code");
     } catch (err) {
       if (err instanceof EmailAlreadyRegisteredError) {
@@ -117,22 +144,35 @@ export default function RegisterPage() {
 
   async function handleVerify(e: FormEvent) {
     e.preventDefault();
-    if (code.length !== 6) {
+    await verify(code);
+  }
+
+  async function verify(value: string) {
+    if (verifyInFlight.current) return;
+    if (value.length !== 6) {
       setCodeError("Enter the 6-digit code.");
       return;
     }
 
+    verifyInFlight.current = true;
     setIsVerifying(true);
     setCodeError(undefined);
     try {
-      const result = await verifyRegistrationCode(email, code);
+      const result = await verifyRegistrationCode(email, value);
       setDoneMessage(result.message);
       setStep("done");
     } catch (err) {
       // Expired, incorrect, or too many attempts are distinct, backend-authored
       // messages safe to show as-is (RegistrationOtpService.verify, ADR-021).
       setCodeError(err instanceof AuthApiError ? err.message : "Couldn't verify that code. Please try again.");
+      // Ready for the next try: focused, with the old code selected so typing
+      // replaces it.
+      requestAnimationFrame(() => {
+        codeInputRef.current?.focus();
+        codeInputRef.current?.select();
+      });
     } finally {
+      verifyInFlight.current = false;
       setIsVerifying(false);
     }
   }
@@ -143,7 +183,9 @@ export default function RegisterPage() {
     try {
       await resendRegistrationCode(email);
       setCode("");
-      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      setCodeSentAt(Date.now());
+      setNow(Date.now());
+      codeInputRef.current?.focus();
     } catch (err) {
       setCodeError(err instanceof AuthApiError ? err.message : "Couldn't resend the code. Please try again.");
     } finally {
@@ -166,49 +208,99 @@ export default function RegisterPage() {
       >
         <h1 className="text-3xl font-extrabold text-ink">Verify Your Email</h1>
         <p className="mt-2 text-sm text-muted">
-          We&apos;ve sent a 6-digit code to <span className="font-semibold text-ink">{email}</span>. It expires in 10
-          minutes.
+          We&apos;ve sent a 6-digit code to <span className="font-semibold text-ink">{email}</span>. Enter it below to
+          finish creating your account.
         </p>
 
         <div className="mt-6">
           <Stepper steps={STEPS} currentIndex={1} />
         </div>
 
-        {codeError && (
-          <div role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {codeError}
-          </div>
-        )}
+        <form className="mt-7 space-y-6" onSubmit={handleVerify} noValidate>
+          <div>
+            <OtpCodeInput
+              ref={codeInputRef}
+              id="register-code"
+              label="Verification Code"
+              value={code}
+              onChange={(value) => {
+                setCode(value);
+                if (codeError) setCodeError(undefined);
+              }}
+              // Submits on its own once the sixth digit is in — no extra click.
+              onComplete={(value) => void verify(value)}
+              invalid={codeError !== undefined}
+              disabled={isVerifying}
+              describedBy={codeError ? "register-code-error" : "register-code-hint"}
+            />
 
-        <form className="mt-6 space-y-5" onSubmit={handleVerify} noValidate>
-          <CodeField label="Verification Code" value={code} onChange={setCode} />
+            {codeError ? (
+              <p
+                id="register-code-error"
+                role="alert"
+                className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+              >
+                <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7.5v5.5M12 16.5h.01" strokeLinecap="round" />
+                </svg>
+                <span>{codeError}</span>
+              </p>
+            ) : (
+              <p id="register-code-hint" className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {expiresIn > 0 ? (
+                    <>
+                      Code expires in{" "}
+                      <span className="font-semibold tabular-nums text-ink">{minutesSeconds(expiresIn)}</span>
+                    </>
+                  ) : (
+                    <span className="font-semibold text-red-600">Code expired — send a new one below</span>
+                  )}
+                </span>
+                <span className="whitespace-nowrap">Submits automatically</span>
+              </p>
+            )}
+          </div>
 
           <button
             type="submit"
             disabled={isVerifying}
             aria-busy={isVerifying}
-            className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
+            {isVerifying && <Spinner />}
             {isVerifying ? "Verifying…" : "Verify Email"}
           </button>
         </form>
 
-        <div className="mt-6 flex flex-col items-center gap-3 text-sm text-muted">
-          <p>
-            Didn&apos;t get a code?{" "}
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={isResending || resendCooldown > 0}
-              className="font-semibold text-brand-purple hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
-            >
-              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : isResending ? "Resending…" : "Resend code"}
-            </button>
-          </p>
-          <button type="button" onClick={() => setStep("form")} className="font-semibold text-brand-purple hover:underline">
-            Wrong email? Go back
+        <div className="mt-5 rounded-xl border border-border bg-page px-4 py-3 text-center text-sm text-muted">
+          Didn&apos;t get a code? Check your spam folder, or{" "}
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={isResending || resendCooldown > 0}
+            className="font-semibold text-brand-purple hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
+          >
+            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : isResending ? "Resending…" : "Resend code"}
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setStep("form")}
+          disabled={isVerifying}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Wrong email? Go back
+        </button>
       </AuthShell>
     );
   }

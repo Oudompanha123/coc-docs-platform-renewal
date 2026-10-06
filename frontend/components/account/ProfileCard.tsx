@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { UserAvatar } from "@/components/layout/UserAvatar";
-import { updateProfile } from "@/lib/auth/api";
+import { removeAvatar, updateProfile, uploadAvatar } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,6 +23,11 @@ function initialsOf(name: string): string {
   const second = words.length > 1 ? words[1]!.charAt(0) : "";
   return (first + second).toUpperCase();
 }
+
+// Advisory only, same as ProfileModal's (CONST-TECH-07): the backend's
+// S3AvatarStorage re-decodes the bytes and is what actually decides.
+const ALLOWED_AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 /**
  * 1–50 chars, trimmed, no markup — advisory only, matching every other
@@ -54,6 +59,45 @@ export function ProfileCard({
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   const dirty = displayName.trim() !== savedName && displayName.trim().length > 0;
+  const [avatarBusy, setAvatarBusy] = useState(false);
+
+  async function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset now so choosing the same file again still fires this handler.
+    e.target.value = "";
+    if (!file) return;
+    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+      onError("Photos must be PNG, JPEG, or WebP.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      onError("That photo is too large — please choose one under 2 MB.");
+      return;
+    }
+    setAvatarBusy(true);
+    try {
+      await uploadAvatar(file);
+      await refresh();
+      onSaved();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Couldn't upload that photo.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setAvatarBusy(true);
+    try {
+      await removeAvatar();
+      await refresh();
+      onSaved();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Couldn't remove that photo.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
 
   function handleCancel() {
     setDisplayName(savedName);
@@ -101,19 +145,30 @@ export function ProfileCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            disabled
-            title="Coming soon"
+          {/* Disabled until object storage is configured on this deployment
+              (ADR-026; provider still [DEFERRED], ADR-012 §2) — without it
+              every upload is refused server-side anyway. */}
+          <label
+            aria-disabled="true"
+            title="Photo upload is not available yet"
             className="cursor-not-allowed rounded-full border border-border px-3.5 py-1.5 text-sm font-semibold text-dash-ink opacity-50"
           >
-            Change photo
-          </button>
+            {avatarBusy ? "Uploading…" : "Change photo"}
+            <input
+              type="file"
+              aria-label="Upload profile photo"
+              accept={Array.from(ALLOWED_AVATAR_TYPES).join(",")}
+              className="sr-only"
+              disabled
+              onChange={(e) => void handleAvatarChange(e)}
+            />
+          </label>
           <button
             type="button"
-            disabled
-            title="Coming soon"
-            className="cursor-not-allowed rounded-full border border-border px-3.5 py-1.5 text-sm font-semibold text-dash-ink opacity-50"
+            onClick={() => void handleRemoveAvatar()}
+            disabled={avatarBusy || !user?.avatarUrl}
+            title={user?.avatarUrl ? undefined : "No photo to remove"}
+            className="rounded-full border border-border px-3.5 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             Remove
           </button>
