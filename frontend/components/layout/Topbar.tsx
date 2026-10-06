@@ -541,7 +541,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
     </header>
 
-    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} editHref="/settings" />}
 
     {approving && (
       <ApproveRegistrationModal
