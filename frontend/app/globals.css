@@ -1242,6 +1242,19 @@ select:focus-visible {
   outline: none !important;
 }
 
+/* The one exception: OtpCodeInput's real input is invisible, spread over the
+   six digit boxes that show what it holds and which box is next. The rule
+   above drew a blue frame round the whole row of boxes; here the boxes are
+   the focus indicator. Higher specificity, and after it, so it wins. */
+input.otp-code-input[type="text"],
+input.otp-code-input[type="text"]:focus,
+input.otp-code-input[type="text"]:focus-visible {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* Standardized resting border-radius on the same text-like input set as
    the focus rule above, applied regardless of focus state. Same
    important-override reasoning: these elements carry Tailwind rounded
