@@ -1,7 +1,13 @@
 "use client";
 
 import type { HrmsAttendanceCheck, HrmsAttendanceReport } from "@/lib/notify/activity";
-import { actualTimeOrNull, filterAttendanceRows } from "@/lib/attendance/stats";
+import {
+  actualTimeOrNull,
+  filterAttendanceRows,
+  statusKindsPresent,
+  type AttendanceStatusFilter,
+} from "@/lib/attendance/stats";
+import { AttendanceStatusSelect } from "./AttendanceStatusSelect";
 import { InitialsAvatar } from "./InitialsAvatar";
 import { StatusPill } from "./StatusPill";
 
@@ -32,12 +38,23 @@ export function AttendanceTable({
   report,
   search,
   onSearchChange,
+  status,
+  onStatusChange,
 }: {
   report: HrmsAttendanceReport;
   search: string;
   onSearchChange: (value: string) => void;
+  status: AttendanceStatusFilter;
+  onStatusChange: (next: AttendanceStatusFilter) => void;
 }) {
-  const rows = filterAttendanceRows(report.rows, search);
+  const rows = filterAttendanceRows(report.rows, search, status);
+
+  // Computed from the whole report, not from `rows`: options derived from the
+  // filtered set would remove the option that is currently selected, and the
+  // only way back would be reloading the page.
+  const outOptions = statusKindsPresent(report.rows, "out");
+  const inOptions = statusKindsPresent(report.rows, "in");
+  const filtered = search.trim() !== "" || status.out != null || status.in != null;
 
   // A department's schedule is uniform across its rows in every report seen
   // so far — the footer takes the first row's scheduled times as
@@ -48,13 +65,40 @@ export function AttendanceTable({
   return (
     <div className="overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
           <h3 className="text-sm font-bold text-dash-ink">{report.department || "(no department found)"}</h3>
           <span className="rounded-full bg-page px-2.5 py-0.5 text-xs font-semibold text-muted">
             {report.rows.length} members
           </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <AttendanceStatusSelect
+              label="Out status"
+              options={outOptions}
+              value={status.out ?? null}
+              onChange={(out) => onStatusChange({ ...status, out })}
+            />
+            <AttendanceStatusSelect
+              label="In status"
+              options={inOptions}
+              value={status.in ?? null}
+              onChange={(next) => onStatusChange({ ...status, in: next })}
+            />
+            {filtered && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSearchChange("");
+                  onStatusChange({});
+                }}
+                className="rounded-xl border border-border px-3 py-2 text-sm text-muted transition-colors hover:text-ink"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
+
         <div className="relative w-full sm:w-[260px]">
           <svg
             viewBox="0 0 24 24"
@@ -114,7 +158,12 @@ export function AttendanceTable({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted">
-                  No one matches “{search}”.
+                  {/* Naming the filter that emptied the table, rather than
+                      always blaming the search box — with a status filter set
+                      and the search empty, “No one matches ””” read as a bug. */}
+                  {search.trim() !== ""
+                    ? `No one matches “${search}”.`
+                    : "No one matches these statuses."}
                 </td>
               </tr>
             )}
