@@ -1092,47 +1092,78 @@ button:not(:disabled) {
   transition: opacity 300ms ease 100ms;
 }
 
-/* LoadingDim's spinner — ported from the 로딩DIM.html reference's
-   .lds-spinner (loading.io's 12-blade fade-chase spinner). Geometry and
-   timing match that file exactly; blade angle/delay are set inline per
-   child in LoadingDim.tsx since they differ per blade. */
-.lds-spinner {
-  display: inline-block;
-  position: relative;
-  width: 86px;
-  height: 86px;
+/* LoadingDim — the full-screen overlay for signing in and out (and the
+   new-tab "View site" page). A brand ring rather than the 12 black blades
+   ported from the old 로딩DIM.html reference: a purple-to-blue gradient arc
+   with a rounded head over a faint track, turning continuously, on a soft
+   blurred overlay that follows the theme. The standalone copy in
+   LoadingDim.tsx (loadingDimStandaloneHtml) mirrors these values. */
+.loading-dim {
+  background-color: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
 }
 
-.lds-spinner span {
+:root[data-theme="dark"] .loading-dim {
+  background-color: rgba(10, 10, 16, 0.66);
+}
+
+.loading-dim-label {
+  color: #2d2a4a;
+}
+
+:root[data-theme="dark"] .loading-dim-label {
+  color: #e7e5f4;
+}
+
+.cdp-spinner {
+  position: relative;
+  display: inline-block;
+  width: 56px;
+  height: 56px;
+}
+
+/* The faint full circle the arc travels round. */
+.cdp-spinner::before {
+  content: "";
   position: absolute;
   inset: 0;
-  animation-name: lds-spinner;
-  animation-duration: 1.2s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  transform-origin: 43px 43px;
+  border-radius: 9999px;
+  border: 5px solid rgba(109, 60, 224, 0.14);
 }
 
-.lds-spinner span::after {
+.cdp-spinner-arc {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  /* Transparent at the tail, full brand colour at the head (12 o'clock). */
+  background: conic-gradient(from 0deg, rgba(109, 60, 224, 0) 0deg, #6d3ce0 210deg, #4c6ff0 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+  animation: cdp-spin 0.9s linear infinite;
+}
+
+/* The rounded head: a dot sitting on the arc's leading end. */
+.cdp-spinner-arc::after {
   content: "";
-  display: block;
   position: absolute;
   top: 0;
-  left: 40px;
-  width: 7px;
-  height: 17px;
-  border-radius: 4px 4px 0 0;
-  background: #000;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 9999px;
+  background: #4c6ff0;
 }
 
-@keyframes lds-spinner {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
+@keyframes cdp-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
+
+/* With motion reduced, the blanket rule below ends every animation at once —
+   the ring then simply rests, still visibly a loading indicator. */
 
 /* Blanket reduced-motion safety net — the two @media blocks above only cover
    the two keyframe-based entrance animations by name. Every hover/press

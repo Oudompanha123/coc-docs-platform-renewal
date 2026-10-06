@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ShellProvider } from "@/lib/layout/ShellContext";
 import type { AdminAccount } from "@/lib/admin/accounts";
@@ -113,5 +114,72 @@ describe("UsersRolesPage — ?invite deep link", () => {
 
     await screen.findByRole("tab", { name: "Users" });
     expect(screen.queryByText("Add User")).not.toBeInTheDocument();
+  });
+});
+
+/** Users → a filter that matches nobody shows a clear empty state, not a bare table header. */
+describe("Users & Roles — no users match the filter", () => {
+  it("says No users found, names the filter, and clears it back to everyone", async () => {
+    highlight = null;
+    invite = null;
+    const user = userEvent.setup();
+    renderPage();
+    expect(await screen.findByText("Dana Lee")).toBeInTheDocument();
+
+    // The only account is an Admin, so filtering by Lead matches nobody.
+    await user.click(screen.getByRole("button", { name: "Role: All Roles" }));
+    await user.click(screen.getByRole("option", { name: "Lead" }));
+
+    expect(await screen.findByText("No users found")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("No users match Lead.");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(await screen.findByText("Dana Lee")).toBeInTheDocument();
+    expect(screen.queryByText("No users found")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Role: All Roles" })).toBeInTheDocument();
+  });
+
+  it("names every filter applied, search included", async () => {
+    highlight = null;
+    invite = null;
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Dana Lee");
+
+    await user.click(screen.getByRole("button", { name: "Status: All Status" }));
+    await user.click(screen.getByRole("option", { name: "Deactivated" }));
+    await user.type(screen.getByPlaceholderText("Search by name, email, or role..."), "zed");
+
+    expect(await screen.findByRole("status")).toHaveTextContent("No users match Deactivated · “zed”.");
+  });
+});
+
+/**
+ * The card around the tabs used to be overflow-hidden, which cut off any
+ * dropdown reaching past its bottom edge: with one applicant on Pending,
+ * "Approve as" showed only User. jsdom does no layout, so the guard is that
+ * nothing between the open list and the page clips it.
+ */
+describe("Users & Roles — Pending, Approve as", () => {
+  it("lists every role, with no clipping container around the list", async () => {
+    highlight = null;
+    invite = null;
+    const { listPending } = await import("@/lib/admin/accounts");
+    vi.mocked(listPending).mockResolvedValueOnce([
+      { id: "p1", email: "new.person@example.com", displayName: "New Person", role: "guest", avatarUrl: null, status: "pending" },
+    ]);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("tab", { name: /Pending/ }));
+    await user.click(await screen.findByRole("button", { name: "Role for new.person@example.com: User" }));
+
+    const list = screen.getByRole("listbox");
+    expect(screen.getAllByRole("option")).toHaveLength(6);
+    for (let el = list.parentElement; el; el = el.parentElement) {
+      expect(el.className).not.toMatch(/\boverflow-(hidden|auto|y-auto|y-hidden)\b/);
+    }
   });
 });

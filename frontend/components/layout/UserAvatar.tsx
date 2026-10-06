@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 /**
  * The signed-in user's picture, falling back to their initials.
@@ -21,6 +21,10 @@ import { useState } from "react";
  * <p>`referrerPolicy="no-referrer"` because Google serves avatars from
  * lh3.googleusercontent.com and rejects some requests that carry a referrer,
  * which shows up as an avatar that loads for you and not for a colleague.
+ *
+ * <p>`fallback` replaces the initials, for a caller that wants a default
+ * picture instead (the Pending queue's {@code DefaultAvatar}). It is shown in
+ * both no-picture states: none supplied, and one that would not load.
  */
 export function UserAvatar({
   avatarUrl,
@@ -28,6 +32,7 @@ export function UserAvatar({
   name,
   className = "",
   style,
+  fallback,
 }: {
   avatarUrl: string | null;
   initials: string;
@@ -40,6 +45,8 @@ export function UserAvatar({
    * runtime, which a static Tailwind class can't express.
    */
   style?: React.CSSProperties;
+  /** Shown instead of the initials when there is no usable picture. */
+  fallback?: ReactNode;
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -58,6 +65,8 @@ export function UserAvatar({
       />
     );
   }
+
+  if (fallback) return <>{fallback}</>;
 
   return (
     <span

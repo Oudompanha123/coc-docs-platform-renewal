@@ -111,4 +111,64 @@ describe("AddAccountModal", () => {
     expect(onClose).toHaveBeenCalled();
     expect(onAdd).not.toHaveBeenCalled();
   });
+
+  it("submits on Enter in the email field, too", async () => {
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AddAccountModal onClose={vi.fn()} onAdd={onAdd} />);
+
+    await user.type(screen.getByLabelText("Email"), "enter.key@example.com{Enter}");
+
+    expect(onAdd).toHaveBeenCalledWith("enter.key@example.com", "user");
+  });
+
+  it("starts with the cursor in the email field", () => {
+    render(<AddAccountModal onClose={vi.fn()} onAdd={vi.fn()} />);
+
+    expect(screen.getByLabelText("Email")).toHaveFocus();
+  });
+
+  it("closes from the header's ✕ without submitting", async () => {
+    const onAdd = vi.fn();
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<AddAccountModal onClose={onClose} onAdd={onAdd} />);
+
+    await user.click(screen.getByRole("button", { name: "Close add user" }));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("announces an error and marks the field invalid, then clears both on the next keystroke", async () => {
+    const user = userEvent.setup();
+    render(<AddAccountModal onClose={vi.fn()} onAdd={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Add Account" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter an email address.");
+    expect(screen.getByLabelText("Email")).toHaveAttribute("aria-invalid", "true");
+
+    await user.type(screen.getByLabelText("Email"), "a");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("holds Cancel, ✕ and Add Account while the account is being created, and sends it once", async () => {
+    let finish!: () => void;
+    const onAdd = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const user = userEvent.setup();
+    render(<AddAccountModal onClose={vi.fn()} onAdd={onAdd} />);
+
+    await user.type(screen.getByLabelText("Email"), "slow@example.com");
+    await user.click(screen.getByRole("button", { name: "Add Account" }));
+
+    expect(screen.getByRole("button", { name: /Adding/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close add user" })).toBeDisabled();
+    await user.type(screen.getByLabelText("Email"), "{Enter}");
+    expect(onAdd).toHaveBeenCalledTimes(1);
+
+    finish();
+    expect(await screen.findByRole("button", { name: "Add Account" })).toBeEnabled();
+  });
 });

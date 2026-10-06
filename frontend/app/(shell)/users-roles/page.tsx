@@ -13,6 +13,7 @@ import { Pagination } from "@/components/users-roles/Pagination";
 import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal";
 import { PendingTab } from "@/components/users-roles/PendingTab";
 import { RolesTab } from "@/components/users-roles/RolesTab";
+import { UsersEmptyState } from "@/components/users-roles/UsersEmptyState";
 import {
   createAccount,
   listAccounts,
@@ -398,7 +399,10 @@ function UsersRolesPageInner() {
       pageSubtitle="Manage who has access to Coc Docs Platform and what they can do"
       titleIcon={<UsersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
     >
-      <div className="overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
+      {/* No overflow-hidden: it cut off any dropdown that reaches past the
+          card's bottom edge — with one applicant, "Approve as" showed only
+          User of its six roles. Nothing in here paints to the corners. */}
+      <div className="rounded-[10px] border border-border bg-white shadow-sm">
         <div role="tablist" className="flex gap-6 border-b border-border px-6 pt-5">
           <button
             type="button"
@@ -527,23 +531,39 @@ function UsersRolesPageInner() {
             <div className="px-6 pb-6">
               {!loading && (
                 <div className="animate-entrance">
-                  <AccountsTable
-                    accounts={visible}
-                    onDeactivate={setDeactivateTarget}
-                    onReactivate={handleReactivate}
-                    onDelete={setDeleteTarget}
-                    onOpen={(account) => setDetailId(account.id)}
-                  />
+                  {filtered.length === 0 ? (
+                    // Instead of a table with a header and nothing under it.
+                    <UsersEmptyState
+                      search={search}
+                      role={roleFilter}
+                      status={statusFilter}
+                      onClearFilters={() => {
+                        setSearch("");
+                        setRoleFilter("all");
+                        setStatusFilter("all");
+                      }}
+                    />
+                  ) : (
+                    <AccountsTable
+                      accounts={visible}
+                      onDeactivate={setDeactivateTarget}
+                      onReactivate={handleReactivate}
+                      onDelete={setDeleteTarget}
+                      onOpen={(account) => setDetailId(account.id)}
+                    />
+                  )}
                 </div>
               )}
             </div>
-            <Pagination
-              total={filtered.length}
-              page={page}
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-            />
+            {filtered.length > 0 && (
+              <Pagination
+                total={filtered.length}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            )}
           </>
         ) : tab === "pending" ? (
           <PendingTab
