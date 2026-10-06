@@ -10,12 +10,12 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * a deliberate copy of `RequireSession`, not a shared import, because the
  * floor is different on both ends: `RequireSession` admits `admin`/
  * `super_admin` for the sidebar shell; this admits `user` as its real
- * audience, `developer` the same way since ADR-092 (reviewer/lead still
- * excluded — ADR-086's own grouping of those three no longer moves as one),
- * plus `admin`/`super_admin` as a read-only preview (the admin Sidebar's
- * "View site" link opens this page directly, the same way it used to open
- * `/welcome`, and an admin needs to actually see the page to preview it
- * rather than being bounced back to `/overview`).
+ * audience, Developer/Reviewer/Lead the same way since ADR-090 (revising
+ * ADR-086 — AX Renewal reopened to those three, and they land here on sign-in
+ * same as a plain user), plus `admin`/`super_admin` as a read-only preview
+ * (the admin Sidebar's "View site" link opens this page directly, the same
+ * way it used to open `/welcome`, and an admin needs to actually see the page
+ * to preview it rather than being bounced back to `/overview`).
  *
  * <p>Same courtesy-not-control caveat as `RequireSession`: every route this
  * covers is also enforced server-side (the tasks/nav/docs-content reads this
@@ -26,7 +26,7 @@ export function RequireMemberSession({ children }: { children: ReactNode }) {
   const { status, user } = useSession();
   const router = useRouter();
   // Developer, Reviewer and Lead too: they land here after signing in
-  // (ADR-093). `role` is the highest role held.
+  // (ADR-090). `role` is the highest role held.
   const canView =
     user?.role === "user" ||
     user?.role === "admin" ||

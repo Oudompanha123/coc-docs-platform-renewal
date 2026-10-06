@@ -1,10 +1,10 @@
-# ADR-091: Claude Usage Moves Into Settings; Profile Becomes a Popup
+# ADR-094: Claude Usage Moves Into Settings; Profile Becomes a Popup
 
 > **Status**: ACCEPTED — implemented (PM decision, direct in-session instruction)
 > **Date**: 2026-10-02
 > **Author**: AI (Claude Sonnet 5), on direct in-session instruction
 > **Approver**: the user (product owner), in-session task instruction. Recorded here as a transcription of that explicit instruction, not a self-approval, the same way ADR-093 records its own (`CONST-PROC-01`, HARNESS-PROCESS-STANDARD §4.8 CQ3).
-> **Related ADR**: Revises ADR-052 (`/my-claude-usage` as its own route) and ADR-060 (the CLI browser-login redirect target, left functionally unchanged — see §2.3). Revises the earlier `/account/settings` ADR's "Profile" section naming. Drafted and implemented as "ADR-086"; renumbered to 091 on merging `dev`, whose own unrelated work had already renumbered the admin-app role-block ADR onto 086 first.
+> **Related ADR**: Revises ADR-052 (`/my-claude-usage` as its own route) and ADR-060 (the CLI browser-login redirect target, left functionally unchanged — see §2.3). Revises the earlier `/account/settings` ADR's "Profile" section naming. Drafted and implemented as "ADR-086", then renumbered to "ADR-091" on merging `dev` once (whose own unrelated work had already renumbered the admin-app role-block ADR onto 086 first), then to 094 on merging `dev` again — a second, parallel branch had independently claimed 090/091/092 for its own staff-roles/account-delete/email-logo work by the time this one reached `dev`.
 
 ---
 
@@ -57,3 +57,4 @@ The existing card (avatar, name, email, role, department, display-name editing) 
 | Date | Version | Changes | Author |
 |------|------|------|--------|
 | 2026-10-02 | 1.0 | Initial draft, written alongside Step 2 | AI (Claude Sonnet 5) |
+| 2026-10-06 | 1.1 | Renumbered 086 → 091 → 094 across two `dev` merges; no content change | AI (Claude Sonnet 5) |
