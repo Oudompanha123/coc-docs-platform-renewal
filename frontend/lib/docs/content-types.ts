@@ -25,6 +25,12 @@ export type HeroContent = {
   subline: string;
   ctaLabel: string;
   ctaHref: string;
+  /** An optional second button beside the primary CTA — AX Renewal's docs,
+   *  for one, link straight to the workspace itself. Absent for existing
+   *  saved content. Renders only with both a label and a valid link: a
+   *  same-site path ("/ax-renewal") or an https:// URL, the same rule the
+   *  download buttons use. */
+  secondaryCta?: HeroSecondaryCta;
   eyebrow: string;
   sectionHeading: string;
   sectionIntro: string;
@@ -34,7 +40,115 @@ export type HeroContent = {
    *  dedicated shape for (e.g. a comparison table), reduced to prose rather
    *  than dropped. */
   closingNote?: string;
+  /** Secondary "Download for ___" buttons shown beside the primary CTA, one
+   *  URL per OS — absent entirely for existing saved content (never written
+   *  by an older editor), so there is nothing here for old rows to break on.
+   *  A button renders only when its own OS's URL is filled in. */
+  downloadButtons?: HeroDownloadButtons;
 };
+
+export type HeroSecondaryCta = { label: string; href: string };
+
+/** Whether a hero's second button is complete enough to show. */
+export function isShownSecondaryCta(cta: HeroSecondaryCta | undefined): cta is HeroSecondaryCta {
+  return cta != null && cta.label.trim() !== "" && cta.href !== "" && isValidHeroDownloadUrl(cta.href);
+}
+
+export type HeroDownloadOs = "windows" | "macos" | "linux";
+
+/** Rendering order for the Hero's download buttons, and the editor's cards — Get started, then Windows, macOS, Linux. */
+export const HERO_DOWNLOAD_OS_ORDER: HeroDownloadOs[] = ["windows", "macos", "linux"];
+
+export const HERO_DOWNLOAD_OS_LABEL: Record<HeroDownloadOs, string> = {
+  windows: "Windows",
+  macos: "macOS",
+  linux: "Linux",
+};
+
+/**
+ * One OS's download button, as the admin edits it: whether it's shown,
+ * its own label/URL/version/size. Every field is optional — `resolveHeroDownloadButton`
+ * is what turns a (possibly very sparse) one of these into the values a
+ * caller actually renders with, defaults included.
+ */
+export type HeroDownloadButton = {
+  /** Explicit show/hide, set the moment an admin clicks the toggle.
+   *  Undefined means "no explicit choice yet" — resolved to "on exactly
+   *  when a URL is already present", which is what makes old saved content
+   *  (a bare URL string, next) behave exactly as it always did. */
+  show?: boolean;
+  label?: string;
+  url?: string;
+  /** Free text, e.g. "v2.1.0" — never parsed or compared, just displayed. */
+  version?: string;
+  /** Free text, e.g. "84 MB" — same as {@link version}. */
+  size?: string;
+};
+
+/**
+ * Each OS's settings. A plain URL string is the pre-upgrade shape — every
+ * row saved by the first Download-buttons editor, before label/version/size/
+ * show existed — kept forever as a valid alternative rather than migrated:
+ * `docs_content.body` is schemaless JSON with no migration step of its own,
+ * so an old row must keep meaning exactly what it always meant.
+ */
+export type HeroDownloadButtons = Partial<Record<HeroDownloadOs, HeroDownloadButton | string>>;
+
+/** A {@link HeroDownloadButton} with every default already applied — what a renderer or the editor's own inputs actually read from. */
+export type ResolvedHeroDownloadButton = {
+  show: boolean;
+  label: string;
+  url: string;
+  version: string;
+  size: string;
+};
+
+/**
+ * Resolves one OS's raw, possibly-sparse-or-legacy {@link HeroDownloadButtons}
+ * entry into the values a caller renders with — the one place "old content
+ * loads with no errors and shows the same buttons" (AC #8) and "empty label
+ * falls back to Download for {OS}" (AC #4) both live, so the renderer and
+ * the editor's own display can never disagree about either rule.
+ */
+export function resolveHeroDownloadButton(
+  os: HeroDownloadOs,
+  raw: HeroDownloadButton | string | undefined,
+): ResolvedHeroDownloadButton {
+  const entry: HeroDownloadButton = typeof raw === "string" ? { url: raw } : (raw ?? {});
+  const url = entry.url ?? "";
+  const label = entry.label?.trim();
+  return {
+    show: entry.show ?? url !== "",
+    label: label ? label : `Download for ${HERO_DOWNLOAD_OS_LABEL[os]}`,
+    url,
+    version: entry.version ?? "",
+    size: entry.size ?? "",
+  };
+}
+
+/**
+ * Whether a Hero download-button URL is safe to persist and render as a
+ * link: exactly `https://` (a real, parseable one — not just the right
+ * prefix) or a same-site relative path starting with a single `/`. Plain
+ * `http://`, `javascript:`, `data:` and every other scheme are refused —
+ * stricter than `lib/content/validate.ts`'s `isSafeHref`, which still allows
+ * `http:`, because a binary download is a stronger target for a swapped
+ * scheme than most links this app renders.
+ *
+ * <p>An empty string is valid too — it is this field's "no button" state —
+ * so the editor can run this on every keystroke without special-casing
+ * blank first.
+ */
+export function isValidHeroDownloadUrl(value: string): boolean {
+  if (value === "") return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  if (!value.startsWith("https://")) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 export type DownloadLink = {
   label: string;

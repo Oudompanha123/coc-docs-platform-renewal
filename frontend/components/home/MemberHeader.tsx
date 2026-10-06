@@ -7,26 +7,30 @@ import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { ActivityAvatar } from "@/components/layout/ActivityAvatar";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
+  BarChartIcon,
   BellIcon,
+  CalendarCheckIcon,
   ChevronDownIcon,
+  GearIcon,
   LayersIcon,
   LogOutIcon,
   MailIcon,
   PersonIcon,
-  ReturnIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
+import { ProfileModal } from "@/components/layout/ProfileModal";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
+import { MemberThemeSync } from "@/components/home/MemberThemeSync";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-type MenuKey = "bell" | "mail" | "user" | "products";
+type MenuKey = "bell" | "mail" | "user" | "products" | "reports";
 
 /**
  * Which half of a panel's list is showing. Mirrors the admin Topbar's, and is
@@ -125,27 +129,90 @@ function ProductsDropdown({
 }
 
 /**
+ * Reports & Records dropdown — a single-column list, deliberately built so
+ * more items can be added later rather than hand-coding one link. Styled
+ * after {@link ProductsDropdown}'s own active/hover treatment, just a
+ * single column instead of a 2-col grid since there is only ever a handful
+ * of report kinds, not a whole product catalogue.
+ */
+function ReportsDropdown({ onClose }: { onClose: () => void }) {
+  const pathname = usePathname();
+  const attendanceActive = pathname === "/reports/attendance";
+
+  return (
+    <div
+      role="menu"
+      className="absolute left-0 top-[72px] z-30 w-72 rounded-2xl border border-border bg-white p-2 shadow-xl"
+    >
+      <Link
+        href="/reports/attendance"
+        role="menuitem"
+        onClick={onClose}
+        className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-brand-purple/10 ${
+          attendanceActive ? "bg-brand-purple/10" : ""
+        }`}
+      >
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-purple ${
+            attendanceActive ? "bg-brand-purple/20" : "bg-brand-purple/10"
+          }`}
+        >
+          <CalendarCheckIcon className="h-[18px] w-[18px]" />
+        </span>
+        <span className="min-w-0">
+          <span className={`block truncate text-sm font-medium ${attendanceActive ? "text-brand-purple" : "text-ink"}`}>
+            Attendance
+          </span>
+          <span className="block truncate text-xs text-muted">Your daily check-in &amp; out</span>
+        </span>
+      </Link>
+
+      {/* Not a link: a placeholder so the menu's "room for more" shape is
+          visible before a second report kind actually exists. */}
+      <div className="flex cursor-not-allowed items-start gap-3 rounded-xl px-3 py-2.5 opacity-60">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted">
+          <BarChartIcon className="h-[18px] w-[18px]" />
+        </span>
+        <span className="min-w-0">
+          <span className="flex items-center gap-1.5 truncate text-sm font-medium text-muted">
+            More reports
+            <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold text-muted">Later</span>
+          </span>
+          <span className="block truncate text-xs text-muted">New items can be added here</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * The signed-in Member's header for `/home`.
- * Nav: Home | Products ▾
+ * Nav: Home | Products ▾ | Claude Usage | Reports & Records ▾
  * Right: Notifications, Activity, User chip.
  */
 // onOpenNotifications is gone from this header on purpose: notification
-// settings now live inside the Profile modal (PushNotificationsCard), so the
-// user menu here is Profile and Log out. HomeFooter still takes the prop and
-// still opens that modal -- this removal is scoped to the header.
+// settings now live on /account/settings, so the user menu here is
+// Profile, Settings, and Log out.
+//
+// `onOpenProfile` is accepted (not required) only so existing callers that
+// still pass it down to HomeFooter's own, separate Profile trigger don't
+// need to change. This header's own "Profile" item opens its own
+// ProfileModal instead, so it works on every page that renders this header —
+// including /account/settings, which passes no callback.
 export function MemberHeader({
   products,
-  onOpenProfile,
 }: {
   products: NavProduct[];
-  onOpenProfile: () => void;
+  onOpenProfile?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
+  const reportsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useCurrentUser();
-  const { user: sessionUser, signOut, isSigningOut } = useSession();
+  const { signOut, isSigningOut } = useSession();
   const notifications = useNotifications();
   const activity = useActivityFeed();
   // Same rule as the admin Topbar's panel: this lists what the badge counts and
@@ -192,14 +259,14 @@ export function MemberHeader({
     }
   }, [openMenu]);
 
-  const canManage = sessionUser?.role === "admin" || sessionUser?.role === "super_admin";
-
   const isProductsActive =
     pathname?.startsWith("/docs/") || pathname?.startsWith("/admin/products");
+  const isReportsActive = pathname?.startsWith("/reports/") ?? false;
+  const isSettingsActive = pathname?.startsWith("/account/settings") ?? false;
 
   // Close right-side cluster on outside click
   useEffect(() => {
-    if (!openMenu || openMenu === "products") return;
+    if (!openMenu || openMenu === "products" || openMenu === "reports") return;
     function onClick(e: MouseEvent) {
       if (clusterRef.current && !clusterRef.current.contains(e.target as Node))
         setOpenMenu(null);
@@ -219,23 +286,48 @@ export function MemberHeader({
     return () => document.removeEventListener("mousedown", onClick);
   }, [openMenu]);
 
+  // Close reports dropdown on outside click
+  useEffect(() => {
+    if (openMenu !== "reports") return;
+    function onClick(e: MouseEvent) {
+      if (reportsRef.current && !reportsRef.current.contains(e.target as Node))
+        setOpenMenu(null);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [openMenu]);
+
   function toggleMenu(key: MenuKey) {
     setOpenMenu((current) => (current === key ? null : key));
   }
 
   const navLinkClass = (active: boolean) =>
-    `flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
-      active ? "border-brand-purple font-bold text-ink" : "border-transparent text-muted"
+    `header-nav-link flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
+      active ? "header-nav-link-active border-brand-purple font-bold text-ink" : "border-transparent text-muted"
     }`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
+    <>
+      <MemberThemeSync />
+      <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
 
-        {/* Logo */}
+        {/* Logo — two images, dark mode's own CSS (globals.css) shows/hides
+            each one; no JS theme read needed, consistent with how every
+            other dark-mode rule in this shell works. */}
         <Link href="/home" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-[55px] w-auto rounded-lg" />
+          <img
+            src="/logo-coc-docs-platform.png"
+            alt="Coc Docs Platform"
+            className="logo-light h-[55px] w-auto rounded-lg"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-coc-docs-platform-dark-mode.png"
+            alt="Coc Docs Platform"
+            className="logo-dark hidden h-[55px] w-auto rounded-lg"
+          />
         </Link>
 
         {/* Primary nav */}
@@ -270,26 +362,37 @@ export function MemberHeader({
             )}
           </div>
 
-          {/* Claude Usage — its own page again (ADR-052 v1.6, revising
-              v1.5's embedded-section-on-/home design): `/my-claude-usage`
-              renders `MyClaudeUsageSection` directly rather than the caller
-              scrolling to a section on /home. A real navigation, not a
-              scroll intercept.
+          {/* Claude Usage's own nav link retired: the personal view moved
+              into /account/settings's own Claude Usage section instead of
+              being a page of its own (/my-claude-usage now redirects
+              there). Admin/super_admin still reach the team-wide roster,
+              `/claude-usage`, from the admin sidebar's own ADMINISTRATION
+              section (nav-config.ts) — unaffected, unchanged. */}
 
-              Role-branched target, not the url itself: admin/super_admin
-              go to `/claude-usage` (the team-wide roster, `AdminClaudeUsageView`)
-              — the same `canManage` check "Open Dashboard" above already
-              uses — since without this, no nav link anywhere reaches that
-              page at all (the sidebar has had none since ADR-047 v1.2, and
-              this link used to be the one path admin/super_admin also had
-              to their own personal view, not the team one). Everyone else
-              still goes to their personal `/my-claude-usage`. */}
-          <Link
-            href={canManage ? "/claude-usage" : "/my-claude-usage"}
-            className={navLinkClass(canManage ? pathname === "/claude-usage" : pathname === "/my-claude-usage")}
-          >
-            Claude Usage
-          </Link>
+          {/* Reports & Records dropdown — Attendance today, built so a
+              second report kind has somewhere to go without another nav
+              item. Visible to every role that reaches this header at all
+              (RequireMemberSession already gates that), including
+              `user`/`developer`, who have no admin-app equivalent since
+              ADR-086. */}
+          <div ref={reportsRef} className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={openMenu === "reports"}
+              onClick={() => toggleMenu("reports")}
+              className={`${navLinkClass(isReportsActive)} gap-1`}
+            >
+              Reports &amp; Records
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform duration-150 ${
+                  openMenu === "reports" ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {openMenu === "reports" && <ReportsDropdown onClose={() => setOpenMenu(null)} />}
+          </div>
         </nav>
 
         {/* Right-side chrome */}
@@ -502,7 +605,7 @@ export function MemberHeader({
             </button>
 
             {openMenu === "user" && (
-              <div role="menu" className={`${PANEL_CLASSES} w-64`}>
+              <div role="menu" className={`${PANEL_CLASSES} w-[200px]`}>
                 <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                   <UserAvatar
                     avatarUrl={user?.avatarUrl ?? null}
@@ -519,23 +622,26 @@ export function MemberHeader({
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => { setOpenMenu(null); onOpenProfile(); }}
+                    onClick={() => {
+                      setOpenMenu(null);
+                      setShowProfile(true);
+                    }}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
                     Profile
                   </button>
-                  {canManage && (
-                    <Link
-                      href="/overview"
-                      role="menuitem"
-                      onClick={() => setOpenMenu(null)}
-                      className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
-                    >
-                      <ReturnIcon className="h-4 w-4 text-muted" />
-                      Open Dashboard
-                    </Link>
-                  )}
+                  <Link
+                    href="/account/settings"
+                    role="menuitem"
+                    onClick={() => setOpenMenu(null)}
+                    className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors hover:bg-page ${
+                      isSettingsActive ? "bg-brand-purple/10 text-brand-purple" : "text-ink"
+                    }`}
+                  >
+                    <GearIcon className={`h-4 w-4 ${isSettingsActive ? "text-brand-purple" : "text-muted"}`} />
+                    Settings
+                  </Link>
                 </div>
                 <div className="border-t border-border py-1">
                   <button
@@ -557,6 +663,8 @@ export function MemberHeader({
       </div>
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
+    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </header>
+    </>
   );
 }

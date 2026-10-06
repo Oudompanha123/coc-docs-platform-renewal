@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { PasswordField } from "./FormField";
 import { LockIcon } from "./icons";
 import { AuthApiError, changePassword } from "@/lib/auth/api";
+import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
 
 type Errors = Partial<Record<"currentPassword" | "newPassword" | "confirmPassword", string>>;
 
@@ -54,7 +55,7 @@ export function ChangePasswordForm({
     const next: Errors = {};
     if (hasPassword && !currentPassword) next.currentPassword = "Enter your current password.";
     if (!newPassword) next.newPassword = "Create a new password.";
-    else if (newPassword.length < 8) next.newPassword = "Password must be at least 8 characters.";
+    else if (!isPasswordAcceptable(newPassword)) next.newPassword = passwordViolations(newPassword).join(" ");
     if (!confirmPassword) next.confirmPassword = "Confirm your new password.";
     else if (newPassword && confirmPassword && newPassword !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";

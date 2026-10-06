@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClaudeUsageActivityDay, ClaudeUsageMember, ClaudeUsageMemberActivity } from "@/lib/admin/claudeUsage";
@@ -165,6 +165,25 @@ describe("UserActivityModal", () => {
     expect(rows[0]).toHaveTextContent("45m");
     expect(rows[1]).toHaveTextContent("09:15 – 09:42");
     expect(rows[1]).toHaveTextContent("27m");
+    // Two sessions fit on one page, so there is nothing to page through.
+    expect(within(duration).queryByRole("button", { name: "Next page" })).not.toBeInTheDocument();
+  });
+
+  it("pages the session list five at a time", async () => {
+    const many = Array.from({ length: 7 }, (_, i) => ({
+      ...sessions[0],
+      startedAt: `2026-09-16T0${i + 1}:00:00Z`,
+      endedAt: `2026-09-16T0${i + 1}:30:00Z`,
+    }));
+    fetchMemberActivity.mockResolvedValue({ ...ACTIVITY, sessions: many });
+    const user = userEvent.setup();
+    renderModal();
+    const duration = await screen.findByRole("region", { name: "Duration" });
+    const rows = () => within(within(duration).getByRole("list", { name: "Sessions" })).getAllByRole("listitem");
+
+    expect(rows()).toHaveLength(5);
+    await user.click(within(duration).getByRole("button", { name: "Next page" }));
+    expect(rows()).toHaveLength(2);
   });
 
   it("charts token usage by project", async () => {
@@ -235,12 +254,66 @@ describe("UserActivityModal", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Only an admin");
   });
 
+  it("fits its content in every state — no fixed full-screen height", async () => {
+    const { unmount } = render(<UserActivityModal member={MEMBER} avatarColor="#4c6ff0" onClose={vi.fn()} />);
+    await screen.findByRole("region", { name: "Summary" });
+    const panel = () => screen.getByRole("dialog").parentElement!.parentElement!;
+    expect(panel()).not.toHaveClass("h-full");
+    expect(panel()).toHaveClass("overflow-y-auto");
+    unmount();
+
+    fetchMemberActivity.mockResolvedValue({ ...ACTIVITY, projects: [], sessions: [], days: [] });
+    renderModal();
+    await screen.findByText("No usage reported in this range.");
+    expect(panel()).not.toHaveClass("h-full");
+  });
+
+  it("keeps the current view, marked busy, while a new range loads — no collapse to the loading line", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await screen.findByRole("region", { name: "Summary" });
+
+    let resolve!: (value: ClaudeUsageMemberActivity) => void;
+    fetchMemberActivity.mockReturnValue(new Promise((r) => (resolve = r)));
+    await user.click(screen.getByRole("button", { name: "Last 7 days" }));
+
+    expect(screen.getByRole("region", { name: "Summary" })).toBeInTheDocument();
+    expect(screen.getByText("Updating…")).toBeInTheDocument();
+    expect(screen.queryByText("Loading activity…")).not.toBeInTheDocument();
+
+    resolve(ACTIVITY);
+    await waitFor(() => expect(screen.queryByText("Updating…")).not.toBeInTheDocument());
+  });
+
+  it("has one dim layer, beside the panel rather than around it, that fades in and out", async () => {
+    const user = userEvent.setup();
+    const onClose = renderModal();
+    await screen.findByRole("region", { name: "Summary" });
+
+    const dims = document.querySelectorAll("[data-modal-dim]");
+    expect(dims).toHaveLength(1);
+    const dim = dims[0]!;
+    const panel = screen.getByRole("dialog").parentElement!.parentElement!;
+    // Nested, the two opacities multiply and the white panel flashes in.
+    expect(dim.contains(panel)).toBe(false);
+    expect(dim).toHaveClass("transition-opacity", "duration-250", "ease-in-out");
+    await waitFor(() => expect(dim).toHaveClass("opacity-100"));
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(dim).toHaveClass("opacity-0");
+    expect(onClose).not.toHaveBeenCalled();
+    // Removed when its own fade-out ends, not before.
+    fireEvent.transitionEnd(dim, { propertyName: "opacity" });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("closes on Escape", async () => {
     const user = userEvent.setup();
     const onClose = renderModal();
     await screen.findByRole("region", { name: "Summary" });
 
     await user.keyboard("{Escape}");
-    expect(onClose).toHaveBeenCalled();
+    // After the fade-out, not instantly.
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 });

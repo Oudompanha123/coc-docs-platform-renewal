@@ -142,7 +142,7 @@ describe("LoginPage password form", () => {
 
   it("shows the failure message when the API call is refused", async () => {
     loginWithPassword.mockRejectedValue(
-      new Error("Login failed. Check your email and password, or your account may not be approved yet."),
+      new Error("Invalid Login email, or password."),
     );
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -152,7 +152,7 @@ describe("LoginPage password form", () => {
     await user.click(screen.getByRole("button", { name: "Login" }));
 
     expect(
-      await screen.findByText("Login failed. Check your email and password, or your account may not be approved yet."),
+      await screen.findByText("Invalid Login email, or password."),
     ).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
@@ -380,5 +380,112 @@ describe("LoginPage TOTP second factor", () => {
 
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(verifyMfaLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe("LoginPage browser autofill", () => {
+  const store = vi.fn();
+  class FakePasswordCredential {
+    constructor(public data: { id: string; password: string; name?: string }) {}
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    store.mockResolvedValue(undefined);
+    Object.defineProperty(window, "PasswordCredential", { value: FakePasswordCredential, configurable: true, writable: true });
+    Object.defineProperty(navigator, "credentials", { value: { store }, configurable: true });
+  });
+
+  function account() {
+    return { id: "1", email: "person@example.com", displayName: "Person Example", role: "user", mustChangePassword: false };
+  }
+
+  it("marks the fields the way password managers look for them", () => {
+    render(<LoginPage />);
+
+    const email = screen.getByLabelText("Email");
+    const password = screen.getByLabelText("Password");
+    expect(email).toHaveAttribute("name", "username");
+    expect(email).toHaveAttribute("autocomplete", "username");
+    expect(email).toHaveAttribute("id", "login-identifier");
+    expect(password).toHaveAttribute("name", "password");
+    expect(password).toHaveAttribute("autocomplete", "current-password");
+    expect(password).toHaveAttribute("type", "password");
+    expect(email.closest("form")).toBe(password.closest("form"));
+  });
+
+  it("signs in with what the browser autofilled, even before it fired any input event", async () => {
+    loginWithPassword.mockResolvedValue(account());
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    // Set straight on the DOM, the way an autofill can land before React
+    // hears about it: no input or change event.
+    (screen.getByLabelText("Email") as HTMLInputElement).value = "person@example.com";
+    (screen.getByLabelText("Password") as HTMLInputElement).value = "hunter2222";
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    await waitFor(() => expect(loginWithPassword).toHaveBeenCalledWith("person@example.com", "hunter2222"));
+    expect(screen.queryByText("Enter your email, phone, or name.")).not.toBeInTheDocument();
+  });
+
+  it("offers the browser the credentials once the sign-in is accepted", async () => {
+    loginWithPassword.mockResolvedValue(account());
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    await waitFor(() => expect(store).toHaveBeenCalledTimes(1));
+    const saved = store.mock.calls[0]?.[0] as FakePasswordCredential;
+    expect(saved).toBeInstanceOf(FakePasswordCredential);
+    expect(saved.data).toEqual({ id: "person@example.com", password: "hunter2222", name: "Person Example" });
+  });
+
+  it("offers nothing when the sign-in is refused", async () => {
+    loginWithPassword.mockRejectedValue(new Error("Invalid email or password."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    expect(await screen.findByText("Invalid email or password.")).toBeInTheDocument();
+    expect(store).not.toHaveBeenCalled();
+  });
+
+  it("offers the credentials only after the second factor too", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    verifyMfaLogin.mockResolvedValue(account());
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.type(await screen.findByLabelText("Authentication Code"), "123456");
+    expect(store).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+
+    await waitFor(() => expect(store).toHaveBeenCalledTimes(1));
+    expect((store.mock.calls[0]?.[0] as FakePasswordCredential).data.password).toBe("hunter2222");
+  });
+
+  it("still signs in where the browser has no credential support", async () => {
+    Object.defineProperty(window, "PasswordCredential", { value: undefined, configurable: true, writable: true });
+    loginWithPassword.mockResolvedValue(account());
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "person@example.com");
+    await user.type(screen.getByLabelText("Password"), "hunter2222");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    expect(await screen.findByText("Login successful. Welcome, Person Example!")).toBeInTheDocument();
+    expect(store).not.toHaveBeenCalled();
   });
 });

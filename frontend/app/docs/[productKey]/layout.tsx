@@ -10,6 +10,8 @@ import { HomeFooter } from "@/components/home/HomeFooter";
 import { ProductTabBar } from "@/components/docs/ProductTabBar";
 import { ProductDocsProvider } from "@/components/docs/ProductDocsContext";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
+import { canViewProductDocs } from "@/lib/docs/product-access";
+import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
  * Owns everything that should stay mounted across a tab click — header,
@@ -43,12 +45,20 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  // AX Renewal's docs are for those who can use AX Renewal (ADR-090): a
+  // plain user is told so instead of shown the pages. Every other product is
+  // open at once; a withheld one waits for the session, so its pages never
+  // flash up for someone they are about to be withheld from.
+  const { status, user } = useSession();
+  const permitted = canViewProductDocs(productKey, user?.role);
+  const deciding = !permitted && status === "loading";
+
   if (products && (!product || (resolvedSlug !== undefined && !activeItem))) {
     notFound();
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div data-shell="home" className="min-h-screen bg-white">
       {/* Header stays in normal flow here (`static`, overriding its own
           `sticky` class) rather than staying pinned like it does on /home —
           once the tab bar below reaches the top of the viewport and pins
@@ -71,7 +81,18 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="relative mx-auto max-w-5xl px-6 py-10">
-          {product && activeItem ? (
+          {product && activeItem && deciding ? null : product && activeItem && !permitted ? (
+            <div role="alert" className="mx-auto mt-10 max-w-md rounded-2xl border border-border bg-white p-8 text-center shadow-sm">
+              <p className="text-lg font-bold text-ink">You don&rsquo;t have permission to access this page.</p>
+              <p className="mt-2 text-sm text-muted">{product.label} is available to developers, reviewers, leads and admins.</p>
+              <Link
+                href="/home"
+                className="mt-5 inline-flex rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              >
+                Back to Products
+              </Link>
+            </div>
+          ) : product && activeItem ? (
             <>
               <p className="text-sm text-muted">
                 <Link href="/home" className="hover:text-ink">
@@ -83,7 +104,12 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
               <p className="mt-1 text-sm text-muted">Browse guides and references for {product.label}</p>
 
               <div className="mt-6">
-                <ProductTabBar productKey={product.key} items={product.items} activeSlug={activeItem.slug} />
+                <ProductTabBar
+                  productKey={product.key}
+                  items={product.items}
+                  activeSlug={activeItem.slug}
+                  align={product.key === "usage" ? "start" : "center"}
+                />
               </div>
 
               <ProductDocsProvider value={{ product, activeItem }}>{children}</ProductDocsProvider>

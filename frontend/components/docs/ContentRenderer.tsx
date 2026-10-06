@@ -6,7 +6,14 @@ import { DocStep } from "./DocStep";
 import { DocsCallout } from "./DocsCallout";
 import { DocsCodeBlock } from "./DocsCodeBlock";
 import { DownloadIcon } from "@/components/layout/icons";
+import { HERO_DOWNLOAD_OS_ICON } from "./os-icons";
 import { ICON_MAP } from "@/lib/docs/icon-map";
+import {
+  HERO_DOWNLOAD_OS_ORDER,
+  isShownSecondaryCta,
+  isValidHeroDownloadUrl,
+  resolveHeroDownloadButton,
+} from "@/lib/docs/content-types";
 import type { DocContent, DownloadLink } from "@/lib/docs/content-types";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { createUsageToken } from "@/lib/auth/api";
@@ -125,22 +132,93 @@ function renderInline(text: string): React.ReactNode {
  *  `docs` = inside the standalone /docs layout (text-ink). Same content
  *  shapes render in either shell — only the heading token differs, since
  *  that's the one class the admin dark-mode override actually needs. */
+/** The hero's second button: the same pill as the primary, outlined rather than filled. */
+const HERO_SECONDARY_CTA_CLASS =
+  "inline-flex items-center justify-center rounded-full border border-brand-purple/40 bg-white px-6 py-3 text-sm font-semibold text-brand-purple shadow-sm transition-colors hover:border-brand-purple hover:bg-brand-purple/5";
+
 export function ContentRenderer({ content, variant }: { content: DocContent; variant: "admin" | "docs" }) {
   const heading = variant === "admin" ? "text-dash-ink" : "text-ink";
 
   if (content.kind === "hero") {
     const isSplit = content.layout === "split";
+    // Resolved once per OS — turns a legacy bare-URL string or a sparse
+    // { show, label, url, version, size } object into every field a caller
+    // needs, defaults included (resolveHeroDownloadButton). Only the ones
+    // that resolve to shown-with-a-valid-URL render a button at all — an
+    // empty downloadButtons (or none of the three set) leaves the Hero
+    // looking exactly like it did before this field existed.
+    const downloadButtons = HERO_DOWNLOAD_OS_ORDER.map((os) => ({
+      os,
+      ...resolveHeroDownloadButton(os, content.downloadButtons?.[os]),
+    })).filter((button) => button.show && isValidHeroDownloadUrl(button.url) && button.url !== "");
     const heroText = (
       <>
         <h1 className={`text-3xl font-extrabold ${heading}`}>{content.heading}</h1>
         <p className={`mt-3 text-lg font-medium ${heading}`}>{content.tagline}</p>
         <p className="mt-1 text-sm text-muted">{content.subline}</p>
-        <Link
-          href={content.ctaHref}
-          className="mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-        >
-          {content.ctaLabel}
-        </Link>
+        {/* Row 1 — Get started alone, unchanged from before this field
+            existed. Row 2 (16px below) is the download buttons, which no
+            longer share this row — four buttons crowded into one flex-wrap
+            line used to leave Linux stranded alone on a second line. */}
+        <div className={`mt-7 flex flex-wrap gap-3 ${isSplit ? "justify-center sm:justify-start" : "justify-center"}`}>
+          <Link
+            href={content.ctaHref}
+            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+          >
+            {content.ctaLabel}
+          </Link>
+          {/* An optional second button beside it — e.g. straight into the
+              AX Renewal workspace from its docs. Same URL rule as the
+              download buttons: a same-site path, or https:// (new tab). */}
+          {isShownSecondaryCta(content.secondaryCta) &&
+            (content.secondaryCta.href.startsWith("https://") ? (
+              <a
+                href={content.secondaryCta.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={HERO_SECONDARY_CTA_CLASS}
+              >
+                {content.secondaryCta.label}
+              </a>
+            ) : (
+              <Link href={content.secondaryCta.href} className={HERO_SECONDARY_CTA_CLASS}>
+                {content.secondaryCta.label}
+              </Link>
+            ))}
+        </div>
+        {downloadButtons.length > 0 && (
+          <div
+            className={`mt-4 flex flex-col items-stretch gap-3 sm:flex-row ${
+              isSplit ? "sm:justify-start" : "sm:justify-center"
+            }`}
+          >
+            {downloadButtons.map(({ os, url, label, version, size }) => {
+              const Icon = HERO_DOWNLOAD_OS_ICON[os];
+              // isValidHeroDownloadUrl only ever lets this be an https://
+              // URL or a same-site path starting with "/" — so "starts with
+              // https://" is exactly "is an external URL" here, never a
+              // false positive from some other scheme slipping through.
+              const external = url.startsWith("https://");
+              const meta = [version, size].filter((part) => part !== "").join(" · ");
+              return (
+                <a
+                  key={os}
+                  href={url}
+                  {...(external ? { rel: "noopener noreferrer" } : {})}
+                  className="flex w-full min-w-[200px] items-center gap-3 rounded-xl border border-border bg-white py-2.5 pl-2.5 pr-4 shadow-sm transition-all duration-150 hover:-translate-y-px hover:border-indigo-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:w-auto"
+                >
+                  <span className={`hero-download-tile hero-download-tile--${os} flex h-11 w-11 shrink-0 items-center justify-center rounded-xl`}>
+                    <Icon className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 text-left">
+                    <span className="block truncate text-sm font-semibold text-dash-ink">{label}</span>
+                    {meta !== "" && <span className="block truncate text-xs text-muted">{meta}</span>}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        )}
       </>
     );
 

@@ -28,8 +28,19 @@ export function HomeFooter({
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-2.5">
+            {/* Two images, dark mode's own CSS (globals.css) shows/hides each one — see MemberHeader.tsx's own logo for the same pattern. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-            <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-[55px] w-auto rounded-md" />
+            <img
+              src="/logo-coc-docs-platform.png"
+              alt="Coc Docs Platform"
+              className="logo-light h-[55px] w-auto rounded-md"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+            <img
+              src="/logo-coc-docs-platform-dark-mode-white.png"
+              alt="Coc Docs Platform"
+              className="logo-dark hidden h-[55px] w-auto rounded-md"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">

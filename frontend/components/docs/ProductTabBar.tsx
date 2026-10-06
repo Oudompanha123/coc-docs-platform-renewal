@@ -35,10 +35,13 @@ export function ProductTabBar({
   productKey,
   items,
   activeSlug,
+  align = "center",
 }: {
   productKey: string;
   items: NavItem[];
   activeSlug: string;
+  /** `start` left-aligns the tabs instead of centering them. */
+  align?: "center" | "start";
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -128,7 +131,16 @@ export function ProductTabBar({
         <div className={pinned ? "mx-auto max-w-5xl px-6" : ""}>
           <div ref={barRef} className="rounded-[10px] bg-white p-2 shadow-md">
             <div className="relative">
-              <div ref={scrollerRef} className="no-scrollbar relative flex gap-2 overflow-x-auto">
+              {/* Centered by auto margins on the first/last tab, not
+                  `justify-center`: auto margins collapse to 0 once the tabs
+                  overflow, so the row still scrolls to its first tab, which
+                  `justify-center` would push out of reach on the left. */}
+              <div
+                ref={scrollerRef}
+                className={`no-scrollbar relative flex gap-2 overflow-x-auto ${
+                  align === "center" ? "[&>a:first-of-type]:ml-auto [&>a:last-of-type]:mr-auto" : ""
+                }`}
+              >
                 {pill && (
                   <span
                     aria-hidden="true"

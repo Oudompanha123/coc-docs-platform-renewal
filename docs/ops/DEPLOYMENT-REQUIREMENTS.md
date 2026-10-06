@@ -179,8 +179,39 @@ variable has a working default or degrades to a documented state:
 | Database | `DB_NAME` `DB_USER` `DB_SCHEMA` `DB_POOL_MAX` `DB_BIND_ADDRESS` |
 | Keycloak | `KEYCLOAK_ADMIN_USER` `KEYCLOAK_DB_NAME` `KEYCLOAK_REALM` `KEYCLOAK_VERSION` `KEYCLOAK_CLIENT_ID` |
 | Sizing / TLS | `BACKEND_MEMORY` `FRONTEND_MEMORY` `SESSION_TTL` `CERTBOT_STAGING` |
-| HRMS attendance (shared inbox) | `APP_HRMS_ENABLED` `APP_HRMS_HOST` `APP_HRMS_PORT` `APP_HRMS_USERNAME` `APP_HRMS_PASSWORD` `APP_HRMS_SENDER` `APP_HRMS_FOLDER` `APP_HRMS_POLL_CRON` |
+| HRMS attendance | `APP_HRMS_ENABLED` `APP_HRMS_SENDER` — and optionally `APP_HRMS_HOST` `APP_HRMS_PORT` `APP_HRMS_FOLDER` `APP_HRMS_POLL_CRON` `APP_HRMS_USERNAME` `APP_HRMS_PASSWORD` |
 | Per-account mail credentials (ADR-063, ADR-077) | `APP_SECURITY_ENCRYPTION_KEY` |
+
+### 6.0 A shared HRMS mailbox is optional (ADR-084)
+
+`APP_HRMS_USERNAME` and `APP_HRMS_PASSWORD` name **one** mailbox the platform logs
+into on a timer. In practice that is somebody's personal Gmail, and its App
+Password then lives in `infra/.env` where everyone with access to the host can
+read it.
+
+Leaving both blank is supported and preferred. The feature then reads only the
+inboxes of accounts that stored their own credential through
+`/api/v1/me/mail-credential`, and fetches each report with the credential of
+whoever owns it. No mailbox secret is held in deployment configuration at all.
+
+What you still need either way:
+
+- `APP_HRMS_ENABLED=true`
+- `APP_HRMS_SENDER` — the HRMS address. **Required**, because it is the filter
+  that keeps a poll to the HRMS mail and out of the rest of a mailbox. Blank
+  switches the feature off rather than widening the search.
+- `APP_SECURITY_ENCRYPTION_KEY` — without it no account can store a credential,
+  so with no shared mailbox either, nothing is read at all.
+
+The startup log distinguishes the three states:
+
+| Log line | Meaning |
+|---|---|
+| `HRMS: polling imap.gmail.com:993/INBOX, as a …` | a shared mailbox is configured |
+| `HRMS: no shared mailbox configured …` | per-account only — normal, not an error |
+| `HRMS: polling is enabled but incomplete — app.hrms.sender must be set` | misconfigured |
+
+---
 
 ### 6.1 `APP_SECURITY_ENCRYPTION_KEY` — read this before the first deploy
 

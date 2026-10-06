@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
@@ -27,7 +27,18 @@ type SidebarProps = {
   onClose: () => void;
 };
 
-function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
+function NavLink({
+  item,
+  active,
+  onClick,
+  trailingAction,
+}: {
+  item: NavItem;
+  active: boolean;
+  onClick?: () => void;
+  /** e.g. the PRODUCTS section's remove button — `group-hover`/`group-focus-visible` on it key off this Link's own `group` class, not an external wrapper. */
+  trailingAction?: ReactNode;
+}) {
   const Icon = item.icon;
   return (
     <Link
@@ -36,14 +47,15 @@ function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; on
       target={item.newTab ? "_blank" : undefined}
       rel={item.newTab ? "noopener noreferrer" : undefined}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue ${
+      className={`group relative flex h-[42px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue ${
         active
           ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow"
           : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
       }`}
     >
       <Icon className="h-[18px] w-[18px] shrink-0" />
-      {item.label}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {trailingAction}
     </Link>
   );
 }
@@ -106,8 +118,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const content = (
-    <div className="flex h-full flex-col bg-sidebar px-4 py-5">
-      <div className="flex items-center justify-between px-1">
+    <div className="admin-sidebar flex h-full flex-col bg-sidebar px-0 py-5">
+      <div className="flex items-center justify-between px-4">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
           <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="h-8 w-auto rounded-lg" />
@@ -122,7 +134,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="mt-6 flex-1 space-y-6 overflow-y-auto">
+      <nav className="mt-6 flex-1 space-y-6 overflow-y-auto px-4">
         <div className="space-y-1">
           <NavLink item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
         </div>
@@ -132,21 +144,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <p className="px-3 text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
             {section.items.map((item) =>
               section.label === "PRODUCTS" ? (
-                <div key={item.href} className="group flex items-center gap-1">
-                  <div className="min-w-0 flex-1">
-                    <NavLink item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
-                  </div>
-                  {canManage && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProduct(item.href.slice(1), item.label)}
-                      aria-label={`Remove ${item.label}`}
-                      className="shrink-0 rounded-lg p-2 text-sidebar-muted opacity-0 transition-opacity hover:bg-sidebar-hover hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
-                    >
-                      <XIcon className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isNavItemActive(pathname, item.href)}
+                  onClick={onClose}
+                  trailingAction={
+                    canManage && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          // This button now sits inside the Link's own anchor
+                          // (moved in from an external sibling) — without
+                          // these, a click would also follow the link.
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeleteProduct(item.href.slice(1), item.label);
+                        }}
+                        aria-label={`Remove ${item.label}`}
+                        className="absolute right-[5px] top-1/2 -translate-y-1/2 shrink-0 rounded-lg p-2 text-sidebar-muted opacity-0 transition-opacity hover:bg-sidebar-hover hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <XIcon className="h-3.5 w-3.5" />
+                      </button>
+                    )
+                  }
+                />
               ) : (
                 <NavLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
               ),
@@ -205,7 +227,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-white/10 pt-4">
+      <div className="space-y-3 border-t border-white/10 px-4 pt-4">
         {/* Opens in a new tab rather than navigating away: this is the same
             admin session previewing the Member landing page (ADR-033), not
             leaving the admin app. /home admits admin/super_admin as a

@@ -73,6 +73,15 @@
   color-scheme: dark;
 }
 
+/* Both forms: a descendant (the common case) AND the shell element itself,
+   when a page root carries both data-shell="home" and bg-white on the same
+   div (app/(member)/home/page.tsx, reports/attendance/page.tsx,
+   account/settings/page.tsx) — a plain descendant selector never matches an
+   element against itself, so without the second form each of those pages'
+   own background silently stayed light-mode white, same bug this file's
+   own [data-shell="ax-renewal"].bg-white rule below already solved for
+   that one shell alone. */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]).bg-white,
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-white {
   background-color: #1e1a30;
 }
@@ -109,6 +118,14 @@
   color: #f2effa;
 }
 
+/* The header's bell/mail icon buttons (MemberHeader.tsx) are the only
+   current user of this opacity variant — easy to miss since plain
+   .text-ink is covered above but an opacity-suffixed class is its own,
+   separate generated utility and needs its own rule. */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-ink\/70 {
+  color: rgb(242 239 250 / 70%);
+}
+
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-muted {
   color: #8a93a8;
 }
@@ -130,6 +147,42 @@
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f8fafc\],
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:bg-\[\#f8fafc\]:hover {
   background-color: #2a2545;
+}
+
+/* ConnectedAccountsCard's Linked/Not-linked chips (Settings — Connected
+   accounts) — literal hex, same reasoning as #f8fafc above. Translucent
+   tints over the card's own dark surface rather than the light tints'
+   near-white fills, brightened text so it still clears AA on that surface. */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#e1f5ec\] {
+  background-color: rgb(31 157 107 / 16%);
+}
+
+/* The chip's own text color, and separately the small status dot's fill
+   (a different element — not combined into one rule, or the chip's own
+   translucent .bg-[#e1f5ec] pill below would be overridden by this dot's
+   solid background-color instead, since both share this exact hex). */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#1f9d6b\] {
+  color: #34d399;
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#1f9d6b\] {
+  background-color: #34d399;
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#fffbeb\] {
+  background-color: rgb(217 119 6 / 14%);
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-\[\#f5d896\] {
+  border-color: rgb(217 119 6 / 35%);
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#b45309\] {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f5d896\]\/60 {
+  background-color: rgb(217 119 6 / 22%);
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:text-dash-ink:hover {
@@ -190,6 +243,52 @@
   box-shadow: 0 20px 40px rgb(0 0 0 / 55%), 0 8px 16px rgb(0 0 0 / 40%);
 }
 
+/* Hero download button — icon tile (ContentRenderer.tsx). A soft 3D white
+   tile with a per-brand hover glow, both expressed as literal multi-layer
+   box-shadows no Tailwind utility class can hold, and a per-brand
+   `:hover` rule, which an inline style cannot express at all — hence a
+   dedicated class here rather than arbitrary-value utilities. The
+   class names are specific enough to this one feature that the hover rule
+   needs no further scoping; the dark-mode override follows the exact same
+   :is(admin, ax-renewal, home) + data-theme="dark" scoping every other dark
+   rule in this file already uses. */
+.hero-download-tile {
+  background: linear-gradient(145deg, #ffffff, #eef1f6);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 4px 10px rgba(17, 24, 39, 0.08),
+    0 1px 2px rgba(17, 24, 39, 0.06),
+    inset 0 1px 0 #ffffff,
+    inset 0 -2px 4px rgba(17, 24, 39, 0.04);
+  transition: box-shadow 150ms;
+}
+
+a:hover .hero-download-tile--windows {
+  box-shadow:
+    0 0 0 4px rgba(56, 189, 248, 0.15),
+    0 6px 16px rgba(37, 99, 235, 0.25);
+}
+
+a:hover .hero-download-tile--macos {
+  box-shadow:
+    0 0 0 4px rgba(156, 163, 175, 0.18),
+    0 6px 16px rgba(107, 114, 128, 0.22);
+}
+
+a:hover .hero-download-tile--linux {
+  box-shadow:
+    0 0 0 4px rgba(245, 158, 11, 0.15),
+    0 6px 16px rgba(245, 158, 11, 0.22);
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hero-download-tile {
+  background: linear-gradient(145deg, #2a2d3e, #1e2030);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 /* True-black dark theme, AX Renewal only (ax-renewal-black-theme.png) —
    more specific than the shared :is(admin, ax-renewal, home) block above,
    so these win for this shell without touching admin/home's navy dark
@@ -203,9 +302,126 @@
   --color-page: #161616;
 }
 
+/* The admin shell's own page backdrop, on direct request — #1a1a1a, same
+   value as the member landing area's below, rather than the plain dark
+   default (#121018) every shell otherwise falls back to. Same pattern as
+   ax-renewal's own --color-page override just above: a shell-scoped
+   custom-property redefinition, no per-class override list needed since
+   every .bg-page use already reads var(--color-page) at runtime. */
+:root[data-theme="dark"] [data-shell="admin"] {
+  --color-page: #1a1a1a;
+}
+
+/* The admin shell's cards/panels (.bg-white) — same #1a1a1a as the page
+   backdrop above, on direct request (the first pass only changed the
+   backdrop, not these boxes, which still read the shared block's navy
+   #1e1a30). Same both-forms pattern as ax-renewal's own .bg-white override
+   just below: the compound self-referencing selector in case some admin
+   root element ever carries data-shell="admin" and .bg-white together, plus
+   the ordinary descendant form for every card/panel beneath it. */
+:root[data-theme="dark"] [data-shell="admin"].bg-white,
+:root[data-theme="dark"] [data-shell="admin"] .bg-white {
+  background-color: #1a1a1a;
+}
+
+/* The admin sidebar (Sidebar.tsx), on direct request — same #1a1a1a as the
+   backdrop and cards. Targets its own .admin-sidebar marker class, not the
+   shared .bg-sidebar utility directly: that utility is also DocsCodeBlock's
+   code-block background and the public /welcome preview's own (differently
+   themed) mockup, neither of which should follow this admin-only change. */
+:root[data-theme="dark"] [data-shell="admin"] .admin-sidebar {
+  background-color: #1a1a1a;
+}
+
 :root[data-theme="dark"] [data-shell="ax-renewal"].bg-white,
 :root[data-theme="dark"] [data-shell="ax-renewal"] .bg-white {
   background-color: #1c1c1c;
+}
+
+/* The member landing area's own dark background, on direct request —
+   #1a1a1a rather than the shared block's navy-tinted #1e1a30. Same
+   specificity-wins-by-source-order trick as the ax-renewal override just
+   above: a plain [data-shell="home"] selector, not wrapped in :is(), so it
+   wins only for this shell without touching admin's shared navy dark theme
+   (its own request, not asked for here — CLAUDE.md "NOT allowed: admin app
+   pages and styles"). */
+:root[data-theme="dark"] [data-shell="home"].bg-white,
+:root[data-theme="dark"] [data-shell="home"] .bg-white {
+  background-color: #1a1a1a;
+}
+
+/* --color-brand-purple itself, on direct request — not --color-brand-blue,
+   left alone, so the two-stop gradient CTAs (e.g. "Continue with Jex3.0")
+   become white-to-blue rather than losing the gradient entirely. Unlike
+   every other token in this file, this one needs no per-class override
+   list: it's declared in a plain @theme block (not @theme inline), on
+   purpose, specifically so every utility that uses it — .text-brand-purple,
+   .border-brand-purple, .bg-brand-purple, .from-brand-purple, and their
+   /NN opacity variants alike — reads var(--color-brand-purple) at runtime
+   instead of Tailwind inlining the literal hex at build time. Redefining it
+   once here is enough; no need to duplicate this on the member-landing
+   rules above that already special-case .text-brand-purple specifically
+   (settings-nav-item-active, header-nav-link-active) — they still apply
+   and simply agree with this value now rather than redefine it. */
+:root[data-theme="dark"] [data-shell="home"] {
+  --color-brand-purple: #ffffff;
+}
+
+/* Every CTA button on the landing pages that used the brand-purple-to-blue
+   gradient (home/page.tsx's "Continue with Jex3.0", ProfileCard's "Save
+   changes", the attendance Export button, meeting's avatar badge, the
+   product docs page's "Get started" — every .from-brand-purple.to-brand-blue
+   element that also carries .text-white) goes flat #3574f0 instead, on
+   direct request — same flat blue this file's own ax-renewal section
+   already uses in place of a gradient. background-image: none first, since
+   Tailwind's gradient utilities set that, not background-color, and the
+   two coexisting would leave the (now pointless) gradient painted on top.
+   Text goes back to white (the element's own .text-white, explicit here
+   rather than left to the cascade) — its first, narrower version was dark
+   ink, needed only while the gradient's left stop was white; now that the
+   whole button is this one solid blue, white reads better again. */
+:root[data-theme="dark"] [data-shell="home"] .from-brand-purple.to-brand-blue.text-white {
+  background-image: none;
+  background-color: #3574f0;
+  color: #ffffff;
+}
+
+/* Settings side menu (SettingsSideMenu.tsx), on direct request: a hovered
+   inactive item's text goes plain white, and the active item's text drops
+   the brand-purple accent for the same plain white — both marker classes
+   (not real Tailwind utilities, so inert in light mode on their own) rather
+   than reusing .text-brand-purple/.hover\:text-dash-ink directly, which
+   would also repaint every other use of those two classes in this shell. */
+:root[data-theme="dark"] [data-shell="home"] .settings-nav-item:hover {
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] [data-shell="home"] .settings-nav-item-active {
+  color: #ffffff;
+}
+
+/* MemberHeader.tsx's top nav (Home / Products / Reports & Records), same
+   request and same marker-class technique: hover and the active tab's
+   bottom border both drop the brand-purple accent for plain white. */
+:root[data-theme="dark"] [data-shell="home"] .header-nav-link:hover {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+:root[data-theme="dark"] [data-shell="home"] .header-nav-link-active {
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+/* Logo in the header (MemberHeader.tsx) and footer (HomeFooter.tsx): the
+   light file and an all-white dark-mode file both render; this just swaps
+   which one is visible, no JS theme read needed. */
+:root[data-theme="dark"] [data-shell="home"] .logo-light {
+  display: none;
+}
+
+:root[data-theme="dark"] [data-shell="home"] .logo-dark {
+  display: inline-block;
 }
 
 /* Flat IDE-authentic color scheme, dark theme only, replacing the gradient
@@ -677,6 +893,15 @@ html {
   scrollbar-color: #ccc transparent;
 }
 
+/* Pinned down explicitly on every `.overflow-y-auto` element itself, not
+   left to inherit from `html` above — same reasoning as AX Renewal's <main>
+   rule further down: support for `scrollbar-width` is inconsistent enough
+   across engines that a directly overflowing element is worth setting on
+   its own rather than trusting inheritance alone. */
+.overflow-y-auto {
+  scrollbar-width: thin;
+}
+
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -840,28 +1065,31 @@ button:not(:disabled) {
   }
 }
 
-/* TopProgressBar's indeterminate sliding fill — an nprogress-style bar with
-   no known end time, so it loops a slide-and-grow motion instead of a real
-   0-to-100% fill. Covered by the blanket reduced-motion rule below like any
-   other animation. */
-@keyframes top-progress-bar-slide {
-  0% {
-    transform: translateX(-100%) scaleX(0.4);
+/* TopProgressBar's fill — the full width of the screen. It grows from the
+   left edge towards 90% while the next page loads (fast, then slower: there
+   is no real percentage to show, so it never claims to have finished), then
+   jumps to 100% and fades once the page has arrived. `forwards` holds the
+   grow's end state, so under the blanket reduced-motion rule below — which
+   ends every animation at once — the bar shows at its full extent instead of
+   freezing part-way across, as the old sliding segment did. */
+@keyframes top-progress-bar-grow {
+  from {
+    width: 0%;
   }
-  50% {
-    transform: translateX(20%) scaleX(1);
-  }
-  100% {
-    transform: translateX(100%) scaleX(0.4);
+  to {
+    width: 90%;
   }
 }
 
-.top-progress-bar-fill {
-  animation-name: top-progress-bar-slide;
-  animation-duration: 1.1s;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  transform-origin: left center;
+.top-progress-bar-grow {
+  width: 0%;
+  animation: top-progress-bar-grow 8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+
+.top-progress-bar-done {
+  width: 100%;
+  opacity: 0;
+  transition: opacity 300ms ease 100ms;
 }
 
 /* LoadingDim's spinner — ported from the 로딩DIM.html reference's

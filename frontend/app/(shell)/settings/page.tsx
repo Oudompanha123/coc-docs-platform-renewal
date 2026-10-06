@@ -7,6 +7,7 @@ import { ProfileCard } from "@/components/settings/ProfileCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 import { NotificationsCard } from "@/components/settings/NotificationsCard";
 import { PushNotificationsCard } from "@/components/settings/PushNotificationsCard";
+import { MailCredentialCard } from "@/components/settings/MailCredentialCard";
 import { SecurityTab } from "@/components/settings/SecurityTab";
 import { AccordionSection } from "@/components/settings/AccordionSection";
 import { DangerZoneCard } from "@/components/settings/DangerZoneCard";
@@ -62,6 +63,13 @@ export default function SettingsPage() {
                 without it nothing can be enabled at all (ADR-025). */}
             <PushNotificationsCard />
             <NotificationsCard />
+            {/* Opting in to sending your own attendance mail from your own
+                address, and to this app reading your inbox for it (ADR-063,
+                ADR-084). Here rather than under Security because it is a
+                notification preference in practice -- it decides who your
+                report comes from -- and because Security is an accordion that
+                is easy to never open. */}
+            <MailCredentialCard />
           </SettingsCard>
         </div>
       </div>

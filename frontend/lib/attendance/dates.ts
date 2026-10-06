@@ -90,6 +90,36 @@ export function isFutureDate(iso: string): boolean {
 }
 
 /**
+ * Every ISO date from `a` to `b` inclusive, in calendar order regardless of
+ * which argument comes first — backs the calendar popup's mouse-drag select,
+ * where the pointer can move either direction from where the drag started.
+ */
+export function isoRangeBetween(a: string, b: string): string[] {
+  const [start, end] = a <= b ? [a, b] : [b, a];
+  const days: string[] = [];
+  for (let cur = start; cur <= end; cur = addDays(cur, 1)) {
+    days.push(cur);
+  }
+  return days;
+}
+
+/**
+ * The Monday–Sunday week containing `iso` — this codebase's own week-start
+ * convention (matching {@link buildMonthGrid}'s Monday-first grid, not a
+ * Sunday-start assumption). Used only to decorate the calendar popup's Week
+ * mode with a row highlight; nothing here changes what date is fetched.
+ */
+export function weekRangeOf(iso: string): { start: string; end: string } {
+  const d = parseIsoDate(iso);
+  const mondayOffset = (d.getDay() + 6) % 7; // Date#getDay(): 0=Sun..6=Sat, shifted to 0=Mon..6=Sun
+  const start = new Date(d);
+  start.setDate(d.getDate() - mondayOffset);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { start: toIsoDate(start), end: toIsoDate(end) };
+}
+
+/**
  * A Monday-first grid of ISO dates for one month — `null` for the leading
  * blank cells before the 1st. Just enough cells to cover the month itself;
  * no trailing days borrowed from next month, which the task's own "day
