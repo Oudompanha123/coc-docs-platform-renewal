@@ -276,7 +276,11 @@ export function MyClaudeUsageSection() {
                 <h3 className="text-sm font-bold text-dash-ink">Daily usage history</h3>
                 <p className="text-xs text-muted">Last 30 days · input (purple) stacked under output (blue)</p>
               </div>
-              <p className="text-xs text-muted">Last reported: {formatLastUpdated(dashboard?.lastUpdated ?? null)}</p>
+              <div className="text-right text-xs text-muted">
+                {/* A scan that found nothing new uploads nothing, so the two differ (ADR-095). */}
+                <p>Last scan: {formatLastUpdated(dashboard?.lastScanAt ?? null)}</p>
+                <p>Last usage update: {formatLastUpdated(dashboard?.lastUpdated ?? null)}</p>
+              </div>
             </div>
             <div className="mt-5">
               <MyUsageHistoryChart data={dashboard?.daily ?? []} today={dashboard?.today} />

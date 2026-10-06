@@ -75,6 +75,24 @@ describe("MyClaudeUsageSection (ADR-058, ADR-065)", () => {
     expect(screen.queryByRole("heading", { name: "Recent Usage" })).toBeNull();
   });
 
+  it("shows Last scan apart from Last usage update — a scan with nothing new moves only the first (ADR-095)", async () => {
+    const uploaded = "2026-10-06T07:50:00Z"; // the 14:50 upload
+    const scanned = "2026-10-06T09:00:00Z"; // the 16:00 scan that found nothing new
+    fetchMyUsage.mockResolvedValue({ ...DASHBOARD, lastUpdated: uploaded, lastScanAt: scanned });
+    const fmt = (iso: string) =>
+      new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+    render(<MyClaudeUsageSection />);
+
+    expect(await screen.findByText(`Last scan: ${fmt(scanned)}`)).toBeTruthy();
+    expect(screen.getByText(`Last usage update: ${fmt(uploaded)}`)).toBeTruthy();
+  });
+
+  it("says Never for a scan time an older backend does not send", async () => {
+    render(<MyClaudeUsageSection />);
+    expect(await screen.findByText("Last scan: Never")).toBeTruthy();
+  });
+
   it("labels the dollar figure Reference API Cost, with the not-a-charge note and per-model lines", async () => {
     render(<MyClaudeUsageSection />);
 

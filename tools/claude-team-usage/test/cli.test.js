@@ -204,8 +204,8 @@ describe('scan', () => {
     assert.equal(backend.requests.length, 0);
   });
 
-  it('succeeds without sending anything when there is no usage today', async () => {
-    backend = await fakeBackend(() => ({ status: 200, body: { action: 'created' } }));
+  it('sends no usage when there is none today — only the scan check-in (ADR-095)', async () => {
+    backend = await fakeBackend(() => ({ status: 200, body: { action: 'scan-recorded' } }));
     saveLogin(configHome, { ingestUrl: backend.url });
     writeTranscript(projects, 'proj/old.jsonl', [
       usageLine({ id: 'm', requestId: 'r', model: 'claude-sonnet-5', input: 1, output: 1, timestamp: '2020-01-01T00:00:00Z' }),
@@ -213,6 +213,14 @@ describe('scan', () => {
     const res = await runCli(['scan'], { env: env() });
     assert.equal(res.code, 0, res.stderr);
     assert.match(res.stdout, /no usage found/);
+    assert.deepEqual(backend.requests.map((r) => [r.url, r.body]), [['/api/ingest/scan', { email: 'dana@example.com' }]]);
+  });
+
+  it('--dry-run never checks in', async () => {
+    backend = await fakeBackend(() => ({ status: 200, body: {} }));
+    saveLogin(configHome, { ingestUrl: backend.url });
+    const res = await runCli(['scan', '--dry-run'], { env: env() });
+    assert.equal(res.code, 0, res.stderr);
     assert.equal(backend.requests.length, 0);
   });
 
@@ -271,6 +279,47 @@ describe('scan', () => {
     assert.equal(res.code, 1);
     assert.match(res.stderr, /upload failed for \d{4}-\d{2}-\d{2}: HTTP 500 boom/);
     assert.equal(backend.requests.length, 2);
+  });
+
+  describe('a run started by Task Scheduler (`scan --scheduled`) brackets its log entry', () => {
+    // What scheduled-scan.log tells apart: Task Scheduler did not fire (no `====`
+    // line, written by cmd), the CLI failed, no usage, upload failed, uploaded.
+    const HEADER = /^claude-team-usage \d+\.\d+\.\d+ \| started \d{4}-\d\d-\d\d \d\d:\d\d:\d\d \| node .+ \| cli .+bin[\\/]cli\.js$/m;
+
+    it('uploaded: header with version, Node.js and CLI paths, then result and exit code', async () => {
+      backend = await fakeBackend(() => ({ status: 200, body: { action: 'created' } }));
+      saveLogin(configHome, { ingestUrl: backend.url });
+      oneResponse();
+      const res = await runCli(['scan', '--scheduled'], { env: env() });
+      assert.equal(res.code, 0, res.stderr);
+      assert.match(res.stderr, HEADER);
+      assert.ok(res.stderr.includes(`| node ${process.execPath} |`));
+      assert.match(res.stderr, /^---- result: uploaded \| exit 0 \| finished /m);
+      assert.ok(!res.stderr.includes(TOKEN), 'never logs the token');
+    });
+
+    it('no-usage, upload-failed and cli-failed are each their own result', async () => {
+      backend = await fakeBackend(() => ({ status: 500, body: { detail: 'boom' } }));
+      saveLogin(configHome, { ingestUrl: backend.url });
+      let res = await runCli(['scan', '--scheduled'], { env: env() });
+      assert.match(res.stderr, /^---- result: no-usage \| exit 0/m);
+
+      oneResponse();
+      res = await runCli(['scan', '--scheduled'], { env: env() });
+      assert.equal(res.code, 1);
+      assert.match(res.stderr, /^---- result: upload-failed \| exit 1/m);
+
+      res = await runCli(['scan', '--scheduled'], { env: env({ CLAUDE_PROJECTS_DIR: path.join(projects, 'nope') }) });
+      assert.equal(res.code, 1);
+      assert.match(res.stderr, /^---- result: cli-failed \| exit 1/m);
+    });
+
+    it('a manual scan writes neither line', async () => {
+      backend = await fakeBackend(() => ({ status: 200, body: { action: 'created' } }));
+      saveLogin(configHome, { ingestUrl: backend.url });
+      const res = await runCli(['scan'], { env: env() });
+      assert.doesNotMatch(res.stderr, /---- result:|\| started /);
+    });
   });
 
   it('fails when the server is unreachable', async () => {

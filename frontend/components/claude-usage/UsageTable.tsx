@@ -157,7 +157,15 @@ export function UsageTable({
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-xs text-muted">{formatLastActive(member.lastActiveAt)}</td>
+                  <td className="px-4 py-4 text-xs text-muted">
+                    {formatLastActive(member.lastActiveAt)}
+                    {/* The reporter's last check-in, which moves even when nothing new was uploaded (ADR-095). */}
+                    {member.lastScanAt !== undefined && (
+                      <div className="mt-0.5 text-[11px]">
+                        {member.lastScanAt ? `Scanned ${formatLastActive(member.lastScanAt)}` : "No scan recorded"}
+                      </div>
+                    )}
+                  </td>
                 </tr>
               );
             })}

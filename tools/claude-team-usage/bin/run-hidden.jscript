@@ -1,0 +1,26 @@
+// Windows Task Scheduler entry point for the scheduled scan (see src/schedule.js).
+//
+// Task Scheduler starts this through wscript.exe, a windowless program, so no
+// console window ever appears on the desktop. It runs
+//   cmd /d /c "(echo ==== %DATE% %TIME% & "<node>" "<cli>" <args...>) >> "<log>" 2>&1"
+// with its window hidden, waits for it, and exits with its exit code, so Task
+// Scheduler's Last Result is still the CLI's own.
+//
+// Arguments: <node> <cli> <log> <cli args...>. JScript, not VBScript, which
+// Windows is phasing out.
+//
+// req: FR-USAGE-002, ADR-060
+
+var args = WScript.Arguments;
+if (args.length < 3) WScript.Quit(2);
+
+var quote = function (s) { return '"' + s + '"'; };
+var run = [quote(args(0)), quote(args(1))];
+for (var i = 3; i < args.length; i++) run.push(args(i));
+
+var shell = new ActiveXObject('WScript.Shell');
+var cmd = shell.ExpandEnvironmentStrings('%ComSpec%');
+var line = quote(cmd) + ' /d /c "(echo ==== %DATE% %TIME% & ' + run.join(' ') + ') >> ' + quote(args(2)) + ' 2>&1"';
+
+// 0 = hidden window, true = wait and return its exit code.
+WScript.Quit(shell.Run(line, 0, true));
