@@ -11,7 +11,6 @@ import {
   LayersIcon,
   PersonIcon,
   PulseIcon,
-  RenewIcon,
   SettingsIcon,
   UsersIcon,
 } from "./icons";
@@ -32,10 +31,13 @@ export type NavItem = {
   roles?: readonly Role[];
   /**
    * Opens in a new browser tab instead of navigating the current one, same
-   * as the "View site" link pinned below the sections. Set for AX Renewal:
-   * it is a separate workspace from the admin/editing screens around it, not
-   * a step in the same flow, so replacing the current tab's content would
-   * strand whatever the caller was doing there.
+   * as the "View site" link pinned below the sections. For an item that is a
+   * separate workspace rather than a step in the same flow, where replacing
+   * the current tab's content would strand whatever the caller was doing.
+   *
+   * <p>No item sets it today. AX Renewal, the one that did, was removed from
+   * the sidebar; the option stays because `Sidebar`'s `NavLink` still honours
+   * it and the next separate-workspace link will want it.
    */
   newTab?: boolean;
 };
@@ -104,24 +106,14 @@ const STATIC_SECTIONS: NavSection[] = [
       { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
     ],
   },
-  {
-    // Kept as its own section (not folded into ADMINISTRATION) purely for
-    // visual grouping now — the reason it used to need separating, a
-    // `developer`/`reviewer`/`lead` account seeing a section literally
-    // titled "ADMINISTRATION" over just this one link, no longer applies:
-    // ADR-086 retired all three roles' access, so only admin/super_admin —
-    // who already see the ADMINISTRATION section above — ever see this one.
-    label: "DEVELOPER",
-    items: [
-      {
-        label: "AX Renewal",
-        href: "/ax-renewal",
-        icon: RenewIcon,
-        roles: ["admin", "super_admin"],
-        newTab: true,
-      },
-    ],
-  },
+  // No DEVELOPER section any more. It existed to hold one item, the AX Renewal
+  // workspace link, and both went together — a section left with no items is
+  // dropped by `visibleNavSections` anyway, so keeping the heading behind would
+  // have rendered nothing while still reading as live config.
+  //
+  // This removes the sidebar's advertisement of the workspace, not access to
+  // it: /ax-renewal is still a route, and who may call it is still decided by
+  // the backend on every request, not by what this file lists.
 ];
 
 /** Standalone item pinned above the user card at the bottom of the sidebar. */
