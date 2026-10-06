@@ -212,6 +212,14 @@ export async function loginWithIdToken(idToken: string): Promise<AuthenticatedAc
  */
 export const INVALID_LOGIN_MESSAGE = "Invalid Login email, or password.";
 
+/**
+ * The one refusal that names its reason (ADR-095): the right password on a
+ * registration an administrator has not approved yet. The backend answers 403
+ * only when the password was right, so this tells the applicant what is
+ * happening without telling anyone else that the address is registered.
+ */
+export const PENDING_APPROVAL_MESSAGE = "Your account is pending admin approval.";
+
 export async function loginWithPassword(email: string, password: string): Promise<AuthenticatedAccount> {
   let response: Response;
   try {
@@ -226,6 +234,9 @@ export async function loginWithPassword(email: string, password: string): Promis
   }
   if (response.status === 401) {
     throw new AuthApiError(INVALID_LOGIN_MESSAGE);
+  }
+  if (response.status === 403) {
+    throw new RegistrationPendingError(PENDING_APPROVAL_MESSAGE);
   }
   if (!response.ok) {
     // Not a judgement on the credentials (a server error, a refused request):

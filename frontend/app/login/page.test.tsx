@@ -158,6 +158,29 @@ describe("LoginPage password form", () => {
   });
 });
 
+describe("LoginPage pending approval", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("tells someone whose registration is not approved yet that it is pending, as a notice — not an error", async () => {
+    const { RegistrationPendingError } = await import("@/lib/auth/api");
+    loginWithPassword.mockRejectedValue(new RegistrationPendingError("Your account is pending admin approval."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText("Email"), "applicant@example.com");
+    await user.type(screen.getByLabelText("Password"), "right-password");
+    await user.click(screen.getByRole("button", { name: "Login" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Your account is pending admin approval.");
+    // The amber "pending" notice, not the red error.
+    expect(notice).toHaveClass("bg-amber-50");
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
 describe("LoginPage Google sign-in", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -332,7 +355,7 @@ describe("LoginPage TOTP second factor", () => {
     expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
   });
 
-  it("verifies the code and redirects on success", async () => {
+  it("verifies the code on its own once six digits are in, and redirects", async () => {
     loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
     verifyMfaLogin.mockResolvedValue({
       id: "1",
@@ -345,12 +368,50 @@ describe("LoginPage TOTP second factor", () => {
     render(<LoginPage />);
     await submitPassword(user);
 
+    // No click: the sixth digit submits it.
     await user.type(await screen.findByLabelText("Authentication Code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Verify" }));
 
     await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledWith("123456"));
+    expect(verifyMfaLogin).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("Login successful. Welcome, Person Example!")).toBeInTheDocument();
     expect(push).toHaveBeenCalledWith("/overview");
+  });
+
+  it("does not submit until the sixth digit, and Verify asks for all six", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    await user.type(await screen.findByLabelText("Authentication Code"), "12345");
+    expect(verifyMfaLogin).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Enter the 6-digit code.");
+    expect(verifyMfaLogin).not.toHaveBeenCalled();
+  });
+
+  it("accepts a pasted code, ignoring anything that is not a digit", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    verifyMfaLogin.mockResolvedValue({ id: "1", email: "person@example.com", displayName: "Person Example", role: "user", mustChangePassword: false });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    (await screen.findByLabelText("Authentication Code")).focus();
+    await user.paste("123 456");
+
+    await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledWith("123456"));
+  });
+
+  it("says which account the code is for, and when the next one comes", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    expect(await screen.findByText("person@example.com")).toBeInTheDocument();
+    expect(screen.getByText(/New code in/)).toHaveTextContent(/New code in \d{1,2}s/);
   });
 
   it("shows an error and stays on the OTP step when the code is wrong", async () => {
@@ -361,13 +422,22 @@ describe("LoginPage TOTP second factor", () => {
     await submitPassword(user);
 
     await user.type(await screen.findByLabelText("Authentication Code"), "000000");
-    await user.click(screen.getByRole("button", { name: "Verify" }));
 
     expect(
       await screen.findByText("That code is incorrect. Please check the time on your device and try again."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Authentication Code")).toBeInTheDocument();
+    const field = screen.getByLabelText("Authentication Code");
+    expect(field).toHaveAttribute("aria-invalid", "true");
     expect(push).not.toHaveBeenCalled();
+
+    // Verify retries the same code...
+    await user.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledTimes(2));
+
+    // ...and typing again clears the error.
+    await user.type(field, "1");
+    expect(screen.queryByText(/That code is incorrect/)).not.toBeInTheDocument();
+    expect(field).not.toHaveAttribute("aria-invalid");
   });
 
   it("returns to the credentials step via Back to login", async () => {
@@ -466,10 +536,11 @@ describe("LoginPage browser autofill", () => {
     await user.type(screen.getByLabelText("Email"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2222");
     await user.click(screen.getByRole("button", { name: "Login" }));
-    await user.type(await screen.findByLabelText("Authentication Code"), "123456");
+    await user.type(await screen.findByLabelText("Authentication Code"), "12345");
     expect(store).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Verify" }));
+    // The sixth digit submits the code; only an accepted one offers to save.
+    await user.type(screen.getByLabelText("Authentication Code"), "6");
 
     await waitFor(() => expect(store).toHaveBeenCalledTimes(1));
     expect((store.mock.calls[0]?.[0] as FakePasswordCredential).data.password).toBe("hunter2222");

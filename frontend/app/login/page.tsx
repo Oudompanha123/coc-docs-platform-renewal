@@ -4,7 +4,8 @@ import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { CodeField, FormField, PasswordField } from "@/components/auth/FormField";
+import { FormField, PasswordField } from "@/components/auth/FormField";
+import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
@@ -86,6 +87,11 @@ function LoginForm() {
   const [otpCode, setOtpCode] = useState("");
   const [otpError, setOtpError] = useState<string | undefined>();
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+  // A ref as well as state: auto-submit on the sixth digit and a Verify click
+  // can land in the same moment, before the state update disables anything.
+  const otpInFlight = useRef(false);
+  const otpSecondsLeft = useTotpSecondsLeft(step === "otp");
 
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   // Set once either sign-in path has succeeded and the redirect is under way.
@@ -182,6 +188,12 @@ function LoginForm() {
         setStep("otp");
         return;
       }
+      if (err instanceof RegistrationPendingError) {
+        // Not a wrong password: the account exists and is waiting for an
+        // administrator (ADR-095) — the amber notice, not the red error.
+        setFeedback({ type: "pending", message: err.message });
+        return;
+      }
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setFeedback({ type: "error", message });
     } finally {
@@ -191,15 +203,21 @@ function LoginForm() {
 
   async function handleVerifyOtp(e: FormEvent) {
     e.preventDefault();
-    if (otpCode.length !== 6) {
+    await verifyOtp(otpCode);
+  }
+
+  async function verifyOtp(code: string) {
+    if (otpInFlight.current) return;
+    if (code.length !== 6) {
       setOtpError("Enter the 6-digit code.");
       return;
     }
 
+    otpInFlight.current = true;
     setIsVerifyingOtp(true);
     setOtpError(undefined);
     try {
-      const account = await verifyMfaLogin(otpCode);
+      const account = await verifyMfaLogin(code);
       setFeedback({ type: "success", message: `Login successful. Welcome, ${account.displayName}!` });
       // The password was right a step ago; only now is the sign-in complete.
       void offerToSaveCredential(identifier, password, account.displayName);
@@ -207,7 +225,14 @@ function LoginForm() {
       router.push(destinationFor(account));
     } catch (err) {
       setOtpError(err instanceof Error ? err.message : "Couldn't verify that code. Please try again.");
+      // Ready for the next try: the field is focused with the old code
+      // selected, so typing replaces it.
+      requestAnimationFrame(() => {
+        otpInputRef.current?.focus();
+        otpInputRef.current?.select();
+      });
     } finally {
+      otpInFlight.current = false;
       setIsVerifyingOtp(false);
     }
   }
@@ -300,12 +325,15 @@ function LoginForm() {
         subheading="Enter the 6-digit code from your authenticator app to finish signing in."
       >
         <h1 className="text-3xl font-extrabold text-ink">Enter Your Code</h1>
-        <p className="mt-2 text-sm text-muted">Open your authenticator app and enter the current 6-digit code.</p>
+        <p className="mt-2 text-sm text-muted">
+          Open your authenticator app and enter the 6-digit code for{" "}
+          <span className="font-semibold text-ink">{identifier.trim() || "your account"}</span>.
+        </p>
 
         {feedback && (
           <div
             role="alert"
-            className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${feedback.type === "success"
+            className={`mt-5 rounded-xl border px-4 py-3 text-sm ${feedback.type === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : feedback.type === "pending"
                 ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -315,25 +343,68 @@ function LoginForm() {
             {feedback.message}
           </div>
         )}
-        {otpError && (
-          <div role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {otpError}
-          </div>
-        )}
 
         {isRedirecting ? (
           <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
             <p>Redirecting to your dashboard…</p>
           </div>
         ) : (
-          <form className="mt-6 space-y-5" onSubmit={handleVerifyOtp} noValidate>
-            <CodeField id="login-otp-code" label="Authentication Code" value={otpCode} onChange={setOtpCode} />
+          <form className="mt-7 space-y-6" onSubmit={handleVerifyOtp} noValidate>
+            <div>
+              <OtpCodeInput
+                ref={otpInputRef}
+                id="login-otp-code"
+                label="Authentication Code"
+                value={otpCode}
+                onChange={(code) => {
+                  setOtpCode(code);
+                  if (otpError) setOtpError(undefined);
+                }}
+                // Submits on its own once the sixth digit is in — no extra click.
+                onComplete={(code) => void verifyOtp(code)}
+                invalid={otpError !== undefined}
+                disabled={isVerifyingOtp}
+                describedBy={otpError ? "login-otp-error" : "login-otp-hint"}
+              />
+
+              {otpError ? (
+                <p
+                  id="login-otp-error"
+                  role="alert"
+                  className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+                >
+                  <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7.5v5.5M12 16.5h.01" strokeLinecap="round" />
+                  </svg>
+                  <span>{otpError}</span>
+                </p>
+              ) : (
+                <p id="login-otp-hint" className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+                  <span className="flex items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className="relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-brand-purple/10"
+                    >
+                      <span
+                        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue transition-[width] duration-1000 ease-linear"
+                        style={{ width: `${(otpSecondsLeft / 30) * 100}%` }}
+                      />
+                    </span>
+                    <span className="whitespace-nowrap">
+                      New code in <span className="font-semibold tabular-nums text-ink">{otpSecondsLeft}s</span>
+                    </span>
+                  </span>
+                  <span className="whitespace-nowrap">Submits automatically</span>
+                </p>
+              )}
+            </div>
 
             <button
               type="submit"
               disabled={isVerifyingOtp}
               aria-busy={isVerifyingOtp}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isVerifyingOtp && <Spinner />}
               {isVerifyingOtp ? "Verifying…" : "Verify"}
@@ -342,8 +413,12 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => setStep("credentials")}
-              className="w-full text-center text-sm font-semibold text-brand-purple hover:underline"
+              disabled={isVerifyingOtp}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
             >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               Back to login
             </button>
           </form>
@@ -480,6 +555,23 @@ function LoginForm() {
     </AuthShell>
     </>
   );
+}
+
+/**
+ * Seconds until the authenticator app shows its next code — TOTP steps are
+ * fixed 30-second windows of Unix time (RFC 6238), so this needs nothing from
+ * the server. Ticks only while `active`.
+ */
+function useTotpSecondsLeft(active: boolean): number {
+  const compute = () => 30 - (Math.floor(Date.now() / 1000) % 30);
+  const [left, setLeft] = useState(compute);
+  useEffect(() => {
+    if (!active) return;
+    setLeft(compute());
+    const id = setInterval(() => setLeft(compute()), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+  return left;
 }
 
 export default function LoginPage() {
