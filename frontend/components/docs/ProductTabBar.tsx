@@ -35,10 +35,13 @@ export function ProductTabBar({
   productKey,
   items,
   activeSlug,
+  align = "center",
 }: {
   productKey: string;
   items: NavItem[];
   activeSlug: string;
+  /** `start` left-aligns the tabs instead of centering them. */
+  align?: "center" | "start";
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -134,7 +137,9 @@ export function ProductTabBar({
                   `justify-center` would push out of reach on the left. */}
               <div
                 ref={scrollerRef}
-                className="no-scrollbar relative flex gap-2 overflow-x-auto [&>a:first-of-type]:ml-auto [&>a:last-of-type]:mr-auto"
+                className={`no-scrollbar relative flex gap-2 overflow-x-auto ${
+                  align === "center" ? "[&>a:first-of-type]:ml-auto [&>a:last-of-type]:mr-auto" : ""
+                }`}
               >
                 {pill && (
                   <span

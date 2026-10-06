@@ -104,7 +104,12 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
               <p className="mt-1 text-sm text-muted">Browse guides and references for {product.label}</p>
 
               <div className="mt-6">
-                <ProductTabBar productKey={product.key} items={product.items} activeSlug={activeItem.slug} />
+                <ProductTabBar
+                  productKey={product.key}
+                  items={product.items}
+                  activeSlug={activeItem.slug}
+                  align={product.key === "usage" ? "start" : "center"}
+                />
               </div>
 
               <ProductDocsProvider value={{ product, activeItem }}>{children}</ProductDocsProvider>

@@ -21,6 +21,7 @@ import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
+import { ProfileModal } from "@/components/layout/ProfileModal";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -195,9 +196,9 @@ function ReportsDropdown({ onClose }: { onClose: () => void }) {
 //
 // `onOpenProfile` is accepted (not required) only so existing callers that
 // still pass it down to HomeFooter's own, separate Profile trigger don't
-// need to change — this header's own "Profile" item no longer opens that
-// modal (it navigates to /account/settings#account instead, same
-// destination "Settings" opens), so it is never called from here.
+// need to change. This header's own "Profile" item opens its own
+// ProfileModal instead, so it works on every page that renders this header —
+// including /account/settings, which passes no callback.
 export function MemberHeader({
   products,
 }: {
@@ -205,6 +206,7 @@ export function MemberHeader({
   onOpenProfile?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
   const reportsRef = useRef<HTMLDivElement>(null);
@@ -617,15 +619,18 @@ export function MemberHeader({
                   </div>
                 </div>
                 <div className="py-1">
-                  <Link
-                    href="/account/settings#account"
+                  <button
+                    type="button"
                     role="menuitem"
-                    onClick={() => setOpenMenu(null)}
+                    onClick={() => {
+                      setOpenMenu(null);
+                      setShowProfile(true);
+                    }}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
                     Profile
-                  </Link>
+                  </button>
                   <Link
                     href="/account/settings"
                     role="menuitem"
@@ -658,6 +663,7 @@ export function MemberHeader({
       </div>
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
+    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
     </header>
     </>
   );

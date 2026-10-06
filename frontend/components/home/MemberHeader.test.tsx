@@ -6,6 +6,9 @@ import { MemberHeader } from "./MemberHeader";
 
 const { pathname } = vi.hoisted(() => ({ pathname: { current: "/home" } }));
 vi.mock("next/navigation", () => ({ usePathname: () => pathname.current }));
+vi.mock("@/components/layout/ProfileModal", () => ({
+  ProfileModal: () => <div data-testid="profile-modal" />,
+}));
 
 vi.mock("@/lib/auth/useCurrentUser", () => ({
   useCurrentUser: () => ({ name: "Dana Lee", role: "User", initials: "DL", avatarUrl: null }),
@@ -66,12 +69,14 @@ describe("MemberHeader — user menu (Profile / Settings / Log out)", () => {
     await user.click(screen.getByRole("button", { name: /dana lee/i }));
   }
 
-  it("Profile goes to /account/settings#account, not a modal callback", async () => {
-    await openUserMenu();
-    expect(screen.getByRole("menuitem", { name: "Profile" })).toHaveAttribute(
-      "href",
-      "/account/settings#account",
-    );
+  it("Profile opens the profile popup instead of navigating", async () => {
+    const user = userEvent.setup();
+    render(<MemberHeader products={PRODUCTS} />);
+    await user.click(screen.getByRole("button", { name: /dana lee/i }));
+    const profile = screen.getByRole("menuitem", { name: "Profile" });
+    expect(profile).not.toHaveAttribute("href");
+    await user.click(profile);
+    expect(screen.getByTestId("profile-modal")).toBeInTheDocument();
   });
 
   it("Settings sits between Profile and Log out, pointing at /account/settings", async () => {
