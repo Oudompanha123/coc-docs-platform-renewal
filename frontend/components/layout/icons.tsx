@@ -200,6 +200,26 @@ export function MailIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/**
+ * The topbar's Activity — the audit trail, not mail: a clock wound back, the
+ * usual sign for history. Replaced the envelope, which suggested messages.
+ */
+export function AuditIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M3.75 12A8.25 8.25 0 1 0 12 3.75a8.9 8.9 0 0 0-6.16 2.5L3.75 8.25"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M3.75 4v4.25H8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 7.75V12l2.9 1.75" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

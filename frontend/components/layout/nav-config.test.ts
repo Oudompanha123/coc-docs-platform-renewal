@@ -132,43 +132,35 @@ describe("visibleNavSections", () => {
     });
   });
 
-  describe("AX Renewal (ADR-086, retiring ADR-040/ADR-068's Developer/Reviewer/Lead carve-outs)", () => {
-    it("shows it to an admin and a super admin with no other role needed", () => {
-      expect(labelsFor(["admin"])).toContain("AX Renewal");
-      expect(labelsFor(["super_admin"])).toContain("AX Renewal");
+  describe("AX Renewal is gone from the sidebar", () => {
+    // It used to sit alone under a DEVELOPER heading, admin/super_admin only,
+    // opening in a new tab. Both the item and the section that existed to hold
+    // it were removed together.
+    //
+    // These assert the removal rather than deleting the old cases outright: an
+    // item re-added by accident — or a DEVELOPER section revived for something
+    // else — should fail here and be a deliberate decision, not a silent one.
+    //
+    // Note what is *not* claimed. Removing the link removed no access: the
+    // /ax-renewal route still exists and the backend still decides who may
+    // call it, per the "Presentation only" contract on visibleNavSections.
+    it.each([["super_admin"], ["admin"], ["user"], ["guest"]] as const)(
+      "shows no AX Renewal item to a caller holding %s",
+      (role) => {
+        expect(labelsFor([role])).not.toContain("AX Renewal");
+      },
+    );
+
+    it("has no DEVELOPER section for any role", () => {
+      for (const roles of [["super_admin"], ["admin"], ["user"], ["developer"]] as const) {
+        const headings = visibleNavSections([...roles], FIXTURE_PRODUCTS).map((s) => s.label);
+        expect(headings).not.toContain("DEVELOPER");
+      }
     });
 
-    it("hides it from a plain user holding no other role", () => {
-      expect(labelsFor(["user"])).not.toContain("AX Renewal");
-    });
-
-    it("hides it from a plain user who also holds the developer role", () => {
-      expect(labelsFor(["user", "developer"])).not.toContain("AX Renewal");
-    });
-
-    it.each(["reviewer", "lead"] as const)("hides it from a plain user who also holds the %s role", (role) => {
-      expect(labelsFor(["user", role])).not.toContain("AX Renewal");
-    });
-
-    it("lives in its own DEVELOPER section, not folded into ADMINISTRATION", () => {
-      // The section label is cosmetic now — only admin/super_admin ever see
-      // it, the same roles that already see ADMINISTRATION above it.
-      const sections = visibleNavSections(["super_admin"], FIXTURE_PRODUCTS);
-      const developerSection = sections.find((s) => s.label === "DEVELOPER");
-      expect(developerSection?.items.map((i) => i.label)).toEqual(["AX Renewal"]);
-      expect(sections.map((s) => s.label)).toContain("ADMINISTRATION");
-    });
-
-    it("drops the DEVELOPER heading for a caller who holds none of the qualifying roles", () => {
-      const headings = visibleNavSections(["user"], FIXTURE_PRODUCTS).map((s) => s.label);
-      expect(headings).not.toContain("DEVELOPER");
-    });
-
-    it("opens in a new tab rather than replacing the current one", () => {
-      const sections = visibleNavSections(["super_admin"], FIXTURE_PRODUCTS);
-      const developerSection = sections.find((s) => s.label === "DEVELOPER");
-      const axRenewal = developerSection?.items.find((i) => i.label === "AX Renewal");
-      expect(axRenewal?.newTab).toBe(true);
+    it("leaves ADMINISTRATION standing — only the one section below it went", () => {
+      const headings = visibleNavSections(["super_admin"], FIXTURE_PRODUCTS).map((s) => s.label);
+      expect(headings).toContain("ADMINISTRATION");
     });
   });
 });

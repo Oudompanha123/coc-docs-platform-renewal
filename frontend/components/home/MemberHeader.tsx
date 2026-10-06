@@ -14,7 +14,7 @@ import {
   GearIcon,
   LayersIcon,
   LogOutIcon,
-  MailIcon,
+  AuditIcon,
   PersonIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
@@ -493,7 +493,7 @@ export function MemberHeader({
               active={openMenu === "mail"}
               onClick={() => toggleMenu("mail")}
             >
-              <MailIcon className="h-5 w-5" />
+              <AuditIcon className="h-5 w-5" />
             </CountIcon>
 
             {openMenu === "mail" && (
