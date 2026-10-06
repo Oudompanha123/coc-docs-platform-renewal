@@ -3,6 +3,7 @@ import {
   AuthApiError,
   EmailAlreadyRegisteredError,
   INVALID_LOGIN_MESSAGE,
+  RegistrationPendingError,
   SessionExpiredError,
   changePassword,
   createUsageToken,
@@ -91,6 +92,15 @@ describe("loginWithPassword", () => {
 
     await expect(loginWithPassword("nobody@example.com", "x")).rejects.toThrow(INVALID_LOGIN_MESSAGE);
     await expect(loginWithPassword("pending@example.com", "right-password")).rejects.toThrow(INVALID_LOGIN_MESSAGE);
+  });
+
+  it("says the account is pending admin approval when the backend says so (403, right password only)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, { ok: false, status: 403 })));
+
+    const refusal = loginWithPassword("applicant@example.com", "right-password");
+
+    await expect(refusal).rejects.toBeInstanceOf(RegistrationPendingError);
+    await expect(refusal).rejects.toThrow("Your account is pending admin approval.");
   });
 
   it.each([500, 503, 400])("does not call the credentials invalid for a %s — it asks to try again", async (status) => {

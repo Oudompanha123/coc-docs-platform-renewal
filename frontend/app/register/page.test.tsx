@@ -124,7 +124,7 @@ describe("RegisterPage", () => {
       await screen.findByRole("heading", { name: "Verify Your Email" });
     }
 
-    it("confirms the code and shows the pending-approval message", async () => {
+    it("confirms the code on its own once six digits are in, and shows the pending-approval message", async () => {
       const user = userEvent.setup();
       await reachCodeStep(user);
       verifyRegistrationCode.mockResolvedValue({
@@ -133,12 +133,13 @@ describe("RegisterPage", () => {
           "Your email is verified and your registration has been received. An administrator has to approve it before you can sign in.",
       });
 
+      // No click: the sixth digit submits it.
       await user.type(screen.getByLabelText("Verification Code"), "123456");
-      await user.click(screen.getByRole("button", { name: "Verify Email" }));
 
       await waitFor(() =>
         expect(verifyRegistrationCode).toHaveBeenCalledWith("new.person@example.com", "123456"),
       );
+      expect(verifyRegistrationCode).toHaveBeenCalledTimes(1);
       expect(await screen.findByRole("heading", { name: "Registration Received" })).toBeInTheDocument();
       expect(
         screen.getByText(
@@ -154,10 +155,82 @@ describe("RegisterPage", () => {
       verifyRegistrationCode.mockRejectedValue(new AuthApiError("That code is incorrect. Please try again."));
 
       await user.type(screen.getByLabelText("Verification Code"), "000000");
-      await user.click(screen.getByRole("button", { name: "Verify Email" }));
 
       expect(await screen.findByText("That code is incorrect. Please try again.")).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Verify Your Email" })).toBeInTheDocument();
+      const field = screen.getByLabelText("Verification Code");
+      expect(field).toHaveAttribute("aria-invalid", "true");
+
+      // Verify Email retries the same code...
+      await user.click(screen.getByRole("button", { name: "Verify Email" }));
+      await waitFor(() => expect(verifyRegistrationCode).toHaveBeenCalledTimes(2));
+
+      // ...and typing again clears the error.
+      await user.type(field, "1");
+      expect(screen.queryByText("That code is incorrect. Please try again.")).not.toBeInTheDocument();
+      expect(field).not.toHaveAttribute("aria-invalid");
+    });
+
+    it("does not submit until the sixth digit, and Verify Email asks for all six", async () => {
+      const user = userEvent.setup();
+      await reachCodeStep(user);
+
+      await user.type(screen.getByLabelText("Verification Code"), "12345");
+      expect(verifyRegistrationCode).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("button", { name: "Verify Email" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Enter the 6-digit code.");
+      expect(verifyRegistrationCode).not.toHaveBeenCalled();
+    });
+
+    it("accepts the code pasted from the email, ignoring spaces", async () => {
+      const user = userEvent.setup();
+      await reachCodeStep(user);
+      verifyRegistrationCode.mockResolvedValue({ status: "PENDING", message: "received" });
+
+      screen.getByLabelText("Verification Code").focus();
+      await user.paste("123 456");
+
+      await waitFor(() => expect(verifyRegistrationCode).toHaveBeenCalledWith("new.person@example.com", "123456"));
+    });
+
+    it("starts with the cursor in the code and shows how long it has left", async () => {
+      const user = userEvent.setup();
+      await reachCodeStep(user);
+
+      expect(screen.getByLabelText("Verification Code")).toHaveFocus();
+      expect(screen.getByText(/Code expires in/)).toHaveTextContent(/Code expires in (10:00|9:5\d)/);
+    });
+
+    it("says when the code has expired", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup();
+      await reachCodeStep(user);
+
+      // Both countdowns are computed from the time the code was sent, so jump
+      // the clock and let one tick read it.
+      vi.setSystemTime(Date.now() + 10 * 60_000 + 1_000);
+      await vi.advanceTimersByTimeAsync(1_100);
+
+      expect(await screen.findByText(/Code expired — send a new one below/)).toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it("a resend clears the boxes and restarts both countdowns", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const user = userEvent.setup();
+      await reachCodeStep(user);
+      await user.type(screen.getByLabelText("Verification Code"), "12");
+      resendRegistrationCode.mockResolvedValue({ message: "sent again", expiresInSeconds: 600 });
+
+      vi.setSystemTime(Date.now() + 61_000);
+      await vi.advanceTimersByTimeAsync(1_100);
+      await user.click(await screen.findByRole("button", { name: "Resend code" }));
+
+      await waitFor(() => expect(screen.getByLabelText("Verification Code")).toHaveValue(""));
+      expect(screen.getByRole("button", { name: /Resend in (60|59)s/ })).toBeDisabled();
+      expect(screen.getByText(/Code expires in/)).toHaveTextContent(/Code expires in (10:00|9:5\d)/);
+      vi.useRealTimers();
     });
 
     it("disables resend during the cooldown, then allows it once elapsed", async () => {
