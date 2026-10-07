@@ -87,7 +87,10 @@ export interface MyClaudeUsageDashboard {
   todayOutputTokens: number;
   todayTotalTokens: number;
   daily: MyClaudeUsagePoint[];
+  /** The last usage upload (newest `reported_at`) — "Last usage update". */
   lastUpdated: string | null;
+  /** When the caller's reporter last finished a scan, uploaded or not (ADR-097) — "Last scan". Absent from an older backend. */
+  lastScanAt?: string | null;
   /** The caller's own row rolled up over today, same shape as an admin per-user row; null until they first report. */
   todayUsage: ClaudeUsageMember | null;
   usage: MyClaudeUsageBreakdown;

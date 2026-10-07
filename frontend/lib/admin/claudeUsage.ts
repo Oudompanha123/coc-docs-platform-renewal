@@ -51,6 +51,9 @@ export interface ClaudeUsageMember {
    *  When the scan ran, not when Claude was used -- label it "Last reported", never "Last active". The name is
    *  the API's wire field and stays as-is. */
   lastActiveAt: string | null;
+  /** ISO instant their reporter last finished a scan, whether or not it uploaded anything (ADR-097) — "Last scan".
+   *  `lastActiveAt` only moves on an upload. Null when none is recorded; absent from a backend older than V65. */
+  lastScanAt?: string | null;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;

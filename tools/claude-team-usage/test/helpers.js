@@ -8,7 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 export const CLI = fileURLToPath(new URL('../bin/cli.js', import.meta.url));
 
-/** Env stripped of anything that could leak a real login or real transcripts into a test. */
+/**
+ * Env stripped of anything that could leak a real login or real transcripts into a test.
+ * A CLI child process never touches the real Task Scheduler: `login` and a
+ * non-scheduled `scan` would otherwise create or repair the machine's task.
+ */
 export function cleanEnv(extra = {}) {
   const env = { ...process.env };
   for (const key of [
@@ -25,7 +29,7 @@ export function cleanEnv(extra = {}) {
   ]) {
     delete env[key];
   }
-  return { ...env, CLAUDE_TEAM_USAGE_BROWSER: 'none', ...extra };
+  return { ...env, CLAUDE_TEAM_USAGE_BROWSER: 'none', CLAUDE_TEAM_USAGE_AUTO_SCHEDULE: 'off', ...extra };
 }
 
 export function tmpDir(prefix) {

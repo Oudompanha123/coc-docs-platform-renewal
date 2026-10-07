@@ -61,15 +61,23 @@ After the first sign-in, a scheduled run works unattended. A run with no termina
 never opens a browser. If it isn't signed in, it exits 1 and tells you to run
 `claude-team-usage login` once.
 
-**Windows** — set up automatically by your first `claude-team-usage scan` in a terminal,
-right after sign-in. Each later terminal `scan` checks the task is still there and adds it
-back if it is missing; it never creates a second one. For troubleshooting:
+**Windows** — set up automatically by `claude-team-usage login`, and by your first
+`claude-team-usage scan` (from any terminal, Git Bash included). Each later `login` or `scan`
+checks the task still runs **this** installation, and re-registers it in place if Node.js or
+the CLI has moved or gone; it never creates a second one. For troubleshooting:
 
 ```bat
-claude-team-usage schedule status    :: last run, its result, next run, and the latest log
-claude-team-usage schedule remove    :: stop the automatic scans (scan won't re-add them)
+claude-team-usage schedule status    :: Node.js/CLI it runs, last run, its result, next run, latest log
+claude-team-usage schedule remove    :: stop the automatic scans (login/scan won't re-add them)
 claude-team-usage schedule           :: turn them back on / refresh after moving Node.js
+claude-team-usage schedule test      :: TESTING ONLY: also scan every 5 min for 24 h (`test 2` = every 2 min)
 ```
+
+The task must point at a copy that stays put: install with `npm install -g claude-team-usage`.
+A copy run from a git checkout, `npm link`, the `npx` cache or a temp folder is refused, with a
+message saying so (an existing working task is left as it is). `schedule test` keeps the normal
+11:00 and 16:00 triggers and ends by itself after 24 hours; `schedule` alone ends it at once.
+Set `CLAUDE_TEAM_USAGE_AUTO_SCHEDULE=off` on a machine (e.g. CI) that should never get the task.
 
 The task is a Task Scheduler task named `claude-team-usage`:
 
@@ -80,8 +88,13 @@ The task is a Task Scheduler task named `claude-team-usage`:
 - Each run is a plain `scan`, so it catches up on anything not yet reported, including
   usage after the previous 16:00 run.
 - Each run is limited to 15 minutes and appends to
-  `%APPDATA%\claude-team-usage\scheduled-scan.log`.
-- A small console window may appear for a few seconds while it runs.
+  `%APPDATA%\claude-team-usage\scheduled-scan.log`: a `====` line (Task Scheduler fired), a
+  header with the version, Node.js and CLI paths, the scan's output, then
+  `---- result: uploaded | no-usage | up-to-date | upload-failed | cli-failed | exit N`.
+  No `====` line at the expected time means Task Scheduler did not start it (PC off,
+  asleep, or logged out); a `====` line with no header means Node.js itself could not start.
+- It runs with no window: Task Scheduler starts `wscript.exe bin\run-hidden.jscript`, which
+  runs the scan hidden and hands its exit code back as **Last Result**.
 
 Run it now to test: `schtasks /Run /TN claude-team-usage`, then `claude-team-usage schedule status`.
 A last result of `0` plus a `sent … tokens` line in the log means the upload worked;
