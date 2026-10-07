@@ -55,6 +55,14 @@ A project is the **name** of the git repository folder you worked in, e.g.
 After upgrading from 0.2.x, days already reported are re-sent once to add their
 activity. `claude-team-usage scan --days 30` fills in the last 30 days.
 
+**Scan log** (since 0.4.0): each scan also sends one short record of how it went, for
+the admin **View Logs** page: which steps ran (find transcripts, parse, deduplicate,
+calculate, check for new usage, upload), whether each succeeded, the counts (files,
+responses, duplicates, new tokens), how long it took, and the CLI version. A failed
+step adds its error message, with your token masked and your home folder shown as `~`.
+"No new usage" counts as a successful scan. If the server can't be reached, the record
+waits in `scan-logs-pending.json` and is sent by the next scan. `--dry-run` sends none.
+
 ## Scheduled runs
 
 After the first sign-in, a scheduled run works unattended. A run with no terminal
@@ -113,6 +121,7 @@ A last result of `0` plus a `sent … tokens` line in the log means the upload w
 |---|---|
 | Transcripts read | `CLAUDE_PROJECTS_DIR` if set, else `$CLAUDE_CONFIG_DIR/projects`, else `~/.claude/projects` and `~/.config/claude/projects` |
 | Saved sign-in | Windows: `%APPDATA%\claude-team-usage\credentials.json` · macOS/Linux: `~/.config/claude-team-usage/credentials.json` (mode 600) |
+| Unsent scan logs | `scan-logs-pending.json` in the same folder (at most 50; empty once delivered) |
 
 The saved token can only report usage for your own account. To disconnect a machine,
 revoke it under **My Claude Usage → Connected machines**.
@@ -140,6 +149,8 @@ USER_EMAIL=you@company.com  INGEST_URL=https://<coc-docs>/api/ingest  INGEST_SEC
 
 ## Troubleshooting
 
+- **First stop**: an admin can open **Claude Usage → View Logs** and see each of your
+  scans, the step it failed at, and the error — no need to send `scheduled-scan.log`.
 - **Browser didn't open**: the CLI prints the address. Open it on this same computer.
 - **`SELF_SIGNED_CERT_IN_CHAIN`**: a corporate proxy is intercepting HTTPS. Set
   `NODE_EXTRA_CA_CERTS` to its root CA. Don't disable certificate checks.

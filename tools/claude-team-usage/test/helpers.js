@@ -86,15 +86,24 @@ export function startCli(args, { env } = {}) {
  * A stand-in for POST /api/ingest. `respond(req, body)` returns { status, body };
  * every request is recorded in `requests`.
  */
-export async function fakeBackend(respond) {
+export async function fakeBackend(respond, { scanLog = () => ({ status: 200, body: { action: 'recorded' } }) } = {}) {
   const requests = [];
+  // Scan-log records (ADR-099) are kept apart, answered by `scanLog`, so a
+  // test about uploads and check-ins counts only those.
+  const scanLogs = [];
   const server = http.createServer((req, res) => {
     let raw = '';
     req.on('data', (c) => (raw += c));
     req.on('end', () => {
       const body = raw ? JSON.parse(raw) : null;
-      requests.push({ method: req.method, url: req.url, headers: req.headers, body });
-      const out = respond(req, body, requests.length) ?? { status: 404, body: {} };
+      let out;
+      if (req.url.endsWith('/scan-log')) {
+        scanLogs.push({ method: req.method, url: req.url, headers: req.headers, body });
+        out = scanLog(req, body) ?? { status: 404, body: {} };
+      } else {
+        requests.push({ method: req.method, url: req.url, headers: req.headers, body });
+        out = respond(req, body, requests.length) ?? { status: 404, body: {} };
+      }
       res.writeHead(out.status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(out.body ?? {}));
     });
@@ -105,6 +114,7 @@ export async function fakeBackend(respond) {
     origin: `http://127.0.0.1:${port}`,
     url: `http://127.0.0.1:${port}/api/ingest`,
     requests,
+    scanLogs,
     close: () => new Promise((resolve) => server.close(resolve)),
   };
 }

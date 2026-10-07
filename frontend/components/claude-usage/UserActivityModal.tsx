@@ -5,6 +5,7 @@ import { Modal } from "@/components/users-roles/Modal";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "@/components/layout/icons";
+import { BudgetOverrideInput } from "@/components/claude-usage/BudgetOverrideInput";
 import {
   fetchMemberActivity,
   formatLastActive,
@@ -49,10 +50,16 @@ export function UserActivityModal({
   member,
   avatarColor,
   onClose,
+  onRemove,
+  onBudgetChange,
 }: {
   member: ClaudeUsageMember;
   avatarColor: string;
   onClose: () => void;
+  /** When given, the header offers "Remove" (tracking only — the caller confirms it). */
+  onRemove?: (member: ClaudeUsageMember) => void;
+  /** When given, the header offers the soft-budget override (null = team default). */
+  onBudgetChange?: (member: ClaudeUsageMember, tokens: number | null) => void;
 }) {
   const today = useMemo(() => reportDate(), []);
   const [preset, setPreset] = useState<ActivityPreset>("today");
@@ -161,7 +168,17 @@ export function UserActivityModal({
           </button>
         </div>
 
-        <MemberHeader member={member} avatarColor={avatarColor} lastActivity={lastActivity} />
+        <MemberHeader member={member} avatarColor={avatarColor} lastActivity={lastActivity} onRemove={onRemove} />
+
+        {onBudgetChange && member.status !== "removed" && (
+          <div className="mt-4 flex flex-col gap-2 rounded-[10px] border border-border bg-page px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-dash-ink">Soft budget</p>
+              <p className="text-xs text-muted">Weekly; scales to the period selected on the dashboard. Leave empty for the team default.</p>
+            </div>
+            <BudgetOverrideInput member={member} onChange={onBudgetChange} />
+          </div>
+        )}
 
         {selectedDay ? (
           <DayDetail day={selectedDay} onBack={() => setSelectedDay(null)} />
@@ -347,32 +364,53 @@ function MemberHeader({
   member,
   avatarColor,
   lastActivity,
+  onRemove,
 }: {
   member: ClaudeUsageMember;
   avatarColor: string;
   /** The latest activity the detail knows of; falls back to the dashboard's last report. */
   lastActivity: string | null;
+  onRemove?: (member: ClaudeUsageMember) => void;
 }) {
   // A real session end is activity; the fallback is only when the scan last reported.
   const last = lastActivity ?? member.lastActiveAt;
   const label = lastActivity ? "Last active" : "Last reported";
   const activeToday = !!lastActivity && isToday(lastActivity);
   return (
-    <div className="mt-5 flex items-center gap-4">
-      <UserAvatar
-        avatarUrl={member.avatarUrl}
-        name={member.displayName}
-        initials={initialsOf(member.displayName)}
-        className="h-14 w-14 shrink-0 !text-lg shadow-sm"
-        style={{ backgroundColor: avatarColor }}
-      />
-      <div className="min-w-0">
-        <p className="truncate text-lg font-semibold text-dash-ink">{member.displayName}</p>
-        <p className="truncate text-sm text-muted">{member.email}</p>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-          <span aria-hidden="true" className={`h-2 w-2 rounded-full ${activeToday ? "bg-[#1f9d6b]" : "bg-[#c4c4d0]"}`} />
-          {label} · {formatLastActive(last)}
-        </p>
+    <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
+        <UserAvatar
+          avatarUrl={member.avatarUrl}
+          name={member.displayName}
+          initials={initialsOf(member.displayName)}
+          className="h-14 w-14 shrink-0 !text-lg shadow-sm"
+          style={{ backgroundColor: avatarColor }}
+        />
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold text-dash-ink">{member.displayName}</p>
+          <p className="truncate text-sm text-muted">{member.email}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+            <span aria-hidden="true" className={`h-2 w-2 rounded-full ${activeToday ? "bg-[#1f9d6b]" : "bg-[#c4c4d0]"}`} />
+            {label} · {formatLastActive(last)}
+          </p>
+        </div>
+      </div>
+      {/* Remove lives here now, not in the Team roster list. */}
+      <div className="flex shrink-0 items-center gap-3">
+        {onRemove &&
+          (member.status !== "removed" ? (
+            <button
+              type="button"
+              onClick={() => onRemove(member)}
+              className="inline-flex items-center rounded-[4px] bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
+            >
+              Remove
+            </button>
+          ) : (
+            <span className="inline-flex cursor-not-allowed items-center rounded-[4px] bg-page px-4 py-1.5 text-sm font-semibold text-muted">
+              Removed
+            </span>
+          ))}
       </div>
     </div>
   );

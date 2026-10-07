@@ -167,7 +167,16 @@ class SecurityRulesTest {
     // the same reason: which routes the chain admits, not what the handshake does.
     @MockitoBean com.coc.docs.claudeusage.ClaudeUsageCliAuthService claudeUsageCliAuthService;
 
+    // Both Claude Usage controllers take it (ADR-099) — mocked for the same reason.
+    @MockitoBean com.coc.docs.claudeusage.ClaudeUsageScanLogService claudeUsageScanLogService;
+
     @MockitoBean com.coc.docs.axrenewal.AxRenewalService axRenewalService;
+
+    // AnnouncementController and AdminAnnouncementController are in this
+    // slice (ADR-098). Mocked for the same reason as the rest: this class
+    // asserts which routes the chain admits; AnnouncementServiceTest owns
+    // what publishing does.
+    @MockitoBean com.coc.docs.announcement.AnnouncementService announcementService;
 
     @TestConfiguration
     static class Beans {
@@ -498,6 +507,44 @@ class SecurityRulesTest {
     }
 
     @Nested
+    @DisplayName("announcements (ADR-098)")
+    class Announcements {
+
+        @Test
+        void a_plain_user_reads_live_announcements() throws Exception {
+            java.time.Instant now = java.time.Instant.now();
+            org.mockito.Mockito.when(announcementService.liveForReader(org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(new com.coc.docs.announcement.Announcement(
+                            java.util.UUID.randomUUID(), "Title", "Body", "info", "published", null, 2,
+                            now, null, now, now, null));
+            mvc.perform(get("/api/v1/announcements").with(as(AppRole.USER))).andExpect(status().isOk());
+            mvc.perform(get("/api/v1/announcements/" + java.util.UUID.randomUUID()).with(as(AppRole.USER)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void a_caller_with_no_session_reads_nothing() throws Exception {
+            mvc.perform(get("/api/v1/announcements")).andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void a_plain_user_cannot_manage_them() throws Exception {
+            mvc.perform(get("/api/v1/admin/announcements").with(as(AppRole.USER))).andExpect(status().isForbidden());
+            mvc.perform(post("/api/v1/admin/announcements/" + java.util.UUID.randomUUID() + "/publish")
+                            .with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void an_admin_manages_them() throws Exception {
+            // The editorial floor, not super_admin: an announcement is content.
+            mvc.perform(get("/api/v1/admin/announcements").with(as(AppRole.ADMIN))).andExpect(status().isOk());
+            mvc.perform(delete("/api/v1/admin/announcements/" + java.util.UUID.randomUUID()).with(as(AppRole.ADMIN)))
+                    .andExpect(status().isNoContent());
+        }
+    }
+
+    @Nested
     @DisplayName("notifications")
     class Notifications {
 
@@ -774,6 +821,24 @@ class SecurityRulesTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"email\":\"a@example.com\"}"))
                     .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void ingest_scan_log_is_reachable_without_a_session() throws Exception {
+            // Same permitAll() as /api/ingest/scan (ADR-099): the 401 comes from
+            // the controller's own bearer check, past the filter chain.
+            mvc.perform(post("/api/ingest/scan-log")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"scanId\":\"" + java.util.UUID.randomUUID() + "\",\"email\":\"a@example.com\","
+                                    + "\"startedAt\":\"2026-10-07T04:00:00Z\",\"finishedAt\":\"2026-10-07T04:00:08Z\"}"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void scan_logs_are_admin_only() throws Exception {
+            mvc.perform(get("/api/v1/admin/claude-usage/scan-logs")).andExpect(status().isUnauthorized());
+            mvc.perform(get("/api/v1/admin/claude-usage/scan-logs").with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
         }
 
         @Test

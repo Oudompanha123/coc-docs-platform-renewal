@@ -68,11 +68,21 @@ describe("visibleNavSections", () => {
       "Users & Roles",
       "Attendance",
       "Claude Usage",
+      "Announcements",
     ]);
-    // A plain admin (not super_admin) sees Attendance and Claude Usage but
-    // not Users & Roles — the section survives with just those two items,
-    // rather than dropping entirely.
-    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual(["Attendance", "Claude Usage"]);
+    // A plain admin (not super_admin) sees everything but Users & Roles — the
+    // section survives without it, rather than dropping entirely.
+    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual([
+      "Attendance",
+      "Claude Usage",
+      "Announcements",
+    ]);
+  });
+
+  it("shows Announcements to admins only — readers get them in the bell, not the sidebar (ADR-098)", () => {
+    expect(labelsFor(["admin"])).toContain("Announcements");
+    expect(labelsFor(["super_admin"])).toContain("Announcements");
+    expect(labelsFor(["user"])).not.toContain("Announcements");
   });
 
   it("builds the PRODUCTS section from the live nav structure, not a hardcoded list", () => {

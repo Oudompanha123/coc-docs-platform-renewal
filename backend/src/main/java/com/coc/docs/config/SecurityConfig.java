@@ -282,6 +282,9 @@ public class SecurityConfig {
                         // Its scan-only sibling (ADR-097): same controller, same
                         // bearer check, records only when the reporter scanned.
                         .requestMatchers(HttpMethod.POST, "/api/ingest/scan").permitAll()
+                        // And its scan-log sibling (ADR-099): same controller, same
+                        // bearer check, records how one scan went.
+                        .requestMatchers(HttpMethod.POST, "/api/ingest/scan-log").permitAll()
 
                         // The claude-team-usage CLI's code exchange (ADR-060): a CLI
                         // has no session either. Protected by a one-time, two-minute
@@ -560,6 +563,18 @@ public class SecurityConfig {
                         // widens it.
                         // // req: FR-OPS-001, NFR-SEC-PII, ADR-093
                         .requestMatchers(HttpMethod.GET, "/api/v1/me/security")
+                        .hasRole(AppRole.USER.name())
+
+                        // --- Announcements, read side (ADR-098) ---------------
+                        // Its own prefix rather than /api/v1/admin/**: every
+                        // signed-in role reads announcements, and the admin floor
+                        // below would refuse a plain `user`. GET only -- the
+                        // writes live under /api/v1/admin/announcements and keep
+                        // the admin floor. Not a hole in it: the service returns
+                        // only published, unexpired announcements and answers 404
+                        // for a draft, so nothing an admin has in progress leaks.
+                        // // req: ADR-098
+                        .requestMatchers(HttpMethod.GET, "/api/v1/announcements", "/api/v1/announcements/*")
                         .hasRole(AppRole.USER.name())
 
                         // --- editorial writes and admin reads ----------------

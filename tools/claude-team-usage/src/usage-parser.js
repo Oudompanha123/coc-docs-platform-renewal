@@ -152,6 +152,9 @@ export function collectDays(projectsDirs, dates, { activity = new ActivityCollec
   let skipped = 0;
   let duplicates = 0;
   let lines = 0;
+  // Whole files that could not be read — reported as a scan warning (ADR-099),
+  // unlike a half-flushed last line, which every live session has.
+  let unreadableFiles = 0;
 
   for (const file of files) {
     let contents;
@@ -159,6 +162,7 @@ export function collectDays(projectsDirs, dates, { activity = new ActivityCollec
       contents = fs.readFileSync(file, 'utf8');
     } catch {
       skipped++; // a session being written right now, or a permissions hiccup
+      unreadableFiles++;
       continue;
     }
 
@@ -246,7 +250,7 @@ export function collectDays(projectsDirs, dates, { activity = new ActivityCollec
     if (days.has(day)) days.get(day).activity = detail;
   }
 
-  return { days, counted, skipped, duplicates, lines, files: files.length, totalFiles: allFiles.length };
+  return { days, counted, skipped, unreadableFiles, duplicates, lines, files: files.length, totalFiles: allFiles.length };
 }
 
 /**

@@ -23,10 +23,8 @@ function formatCost(n: number): string {
  *
  *  Reference-tool parity: only people who actually reported tokens in the
  *  selected period appear here, same as the original tool's UserTable —
- *  someone tracked but quiet this period simply isn't a row. Role/Remove and
- *  budget-override management for the full roster (including anyone with no
- *  activity this period) live in {@link TeamRosterPanel} and
- *  {@link BudgetOverridesPanel} instead, which are period-independent. */
+ *  someone tracked but quiet this period simply isn't a row. Remove and the
+ *  soft-budget override live in the row's detail popup (UserActivityModal). */
 export function UsageTable({
   members,
   emptyMessage = "No usage reported by anyone in this period.",
@@ -75,8 +73,8 @@ export function UsageTable({
               <th className="px-4 py-3">Total Tokens</th>
               <th className="px-4 py-3">Cost</th>
               <th className="px-4 py-3">Soft Budget</th>
-              {/* reported_at -- when the scan last reached the backend, not when Claude was last used. */}
-              <th className="px-4 py-3">Last Reported</th>
+              {/* last_scan_at -- the reporter's last check-in, with or without new tokens (ADR-097). */}
+              <th className="px-4 py-3">Last Scan</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -158,13 +156,9 @@ export function UsageTable({
                     </div>
                   </td>
                   <td className="px-4 py-4 text-xs text-muted">
-                    {formatLastActive(member.lastActiveAt)}
-                    {/* The reporter's last check-in, which moves even when nothing new was uploaded (ADR-097). */}
-                    {member.lastScanAt !== undefined && (
-                      <div className="mt-0.5 text-[11px]">
-                        {member.lastScanAt ? `Scanned ${formatLastActive(member.lastScanAt)}` : "No scan recorded"}
-                      </div>
-                    )}
+                    {/* One time only: the reporter's last check-in, which moves even when nothing
+                        new was uploaded — an upload touches it too (ADR-097). */}
+                    {member.lastScanAt ? formatLastActive(member.lastScanAt) : "No scan recorded"}
                   </td>
                 </tr>
               );
