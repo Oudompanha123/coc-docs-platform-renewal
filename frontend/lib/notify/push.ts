@@ -362,6 +362,15 @@ async function forgetToken(): Promise<void> {
  *
  * @returns a function that stops listening, for React to call on unmount.
  */
+/**
+ * The system's own logo for a browser banner — `app/icon.png`, copied to a
+ * fixed public path because Next serves the app-router icon under a hashed
+ * URL that the service worker (a static file) cannot know. Square, because
+ * every browser crops a notification icon to one; the wide header logos would
+ * be squashed. `public/firebase-messaging-sw.js` uses the same path.
+ */
+export const NOTIFICATION_ICON = "/notification-icon.png";
+
 export async function listenForForegroundPush(): Promise<() => void> {
   if (!isBackgroundPushConfigured() || !isNotificationsEnabled()) {
     return () => {};
@@ -375,7 +384,7 @@ export async function listenForForegroundPush(): Promise<() => void> {
       if (Notification.permission !== "granted") return;
       new Notification(payload.notification?.title ?? "Coc Docs Platform", {
         body: payload.notification?.body ?? "",
-        icon: "/favicon.ico",
+        icon: payload.data?.icon || NOTIFICATION_ICON,
         // Same tag as the service worker, so a foreground and a background
         // copy of the same event replace one another rather than stacking.
         tag: payload.data?.type ?? "coc-docs",
