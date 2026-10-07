@@ -75,8 +75,8 @@ export function UsageTable({
               <th className="px-4 py-3">Total Tokens</th>
               <th className="px-4 py-3">Cost</th>
               <th className="px-4 py-3">Soft Budget</th>
-              {/* reported_at -- when the scan last reached the backend, not when Claude was last used. */}
-              <th className="px-4 py-3">Last Reported</th>
+              {/* last_scan_at -- the reporter's last check-in, with or without new tokens (ADR-095). */}
+              <th className="px-4 py-3">Last Scan</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -158,13 +158,9 @@ export function UsageTable({
                     </div>
                   </td>
                   <td className="px-4 py-4 text-xs text-muted">
-                    {formatLastActive(member.lastActiveAt)}
-                    {/* The reporter's last check-in, which moves even when nothing new was uploaded (ADR-095). */}
-                    {member.lastScanAt !== undefined && (
-                      <div className="mt-0.5 text-[11px]">
-                        {member.lastScanAt ? `Scanned ${formatLastActive(member.lastScanAt)}` : "No scan recorded"}
-                      </div>
-                    )}
+                    {/* One time only: the reporter's last check-in, which moves even when nothing
+                        new was uploaded — an upload touches it too (ADR-095). */}
+                    {member.lastScanAt ? formatLastActive(member.lastScanAt) : "No scan recorded"}
                   </td>
                 </tr>
               );
