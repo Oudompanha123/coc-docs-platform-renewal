@@ -21,6 +21,7 @@ import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
+import { ProfilePopup } from "@/components/home/ProfilePopup";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -195,9 +196,10 @@ function ReportsDropdown({ onClose }: { onClose: () => void }) {
 //
 // `onOpenProfile` is accepted (not required) only so existing callers that
 // still pass it down to HomeFooter's own, separate Profile trigger don't
-// need to change — this header's own "Profile" item no longer opens that
-// modal (it navigates to /account/settings#account instead, same
-// destination "Settings" opens), so it is never called from here.
+// need to change — this header's own "Profile" item opens its own
+// `ProfilePopup` (read-only), never that older, editable modal, so this
+// prop is never called from here. "Settings" still navigates to
+// /account/settings directly, same as ProfilePopup's own "Open settings".
 export function MemberHeader({
   products,
 }: {
@@ -205,7 +207,9 @@ export function MemberHeader({
   onOpenProfile?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
+  const userChipRef = useRef<HTMLButtonElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
   const reportsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -583,6 +587,7 @@ export function MemberHeader({
           {/* User chip */}
           <div className="relative ml-1">
             <button
+              ref={userChipRef}
               type="button"
               onClick={() => toggleMenu("user")}
               aria-haspopup="menu"
@@ -617,15 +622,18 @@ export function MemberHeader({
                   </div>
                 </div>
                 <div className="py-1">
-                  <Link
-                    href="/account/settings#account"
+                  <button
+                    type="button"
                     role="menuitem"
-                    onClick={() => setOpenMenu(null)}
+                    onClick={() => {
+                      setOpenMenu(null);
+                      setShowProfilePopup(true);
+                    }}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
                     <PersonIcon className="h-4 w-4 text-muted" />
                     Profile
-                  </Link>
+                  </button>
                   <Link
                     href="/account/settings"
                     role="menuitem"
@@ -658,6 +666,14 @@ export function MemberHeader({
       </div>
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
+    {showProfilePopup && (
+      <ProfilePopup
+        onClose={() => {
+          setShowProfilePopup(false);
+          userChipRef.current?.focus();
+        }}
+      />
+    )}
     </header>
     </>
   );

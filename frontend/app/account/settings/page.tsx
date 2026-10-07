@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MemberHeader } from "@/components/home/MemberHeader";
 import { SettingsSideMenu } from "@/components/account/SettingsSideMenu";
+import { SettingsTabPanels } from "@/components/account/SettingsTabPanels";
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { AppearanceCard } from "@/components/account/AppearanceCard";
 import { ConnectedAccountsCard, type HrmsLinkState } from "@/components/account/ConnectedAccountsCard";
@@ -12,6 +13,13 @@ import { SettingsToast, type SettingsToastState } from "@/components/account/Set
 import { useProductStats } from "@/lib/docs/useProductStats";
 import { fetchMyAttendance } from "@/lib/me/attendance";
 import { todayIso } from "@/lib/attendance/dates";
+import { useSession } from "@/lib/auth/SessionProvider";
+import {
+  DEFAULT_SETTINGS_SECTION,
+  getVisibleSettingsSections,
+  resolveSettingsSectionFromHash,
+  type SettingsSectionId,
+} from "@/lib/account/settingsSections";
 
 /**
  * `/account/settings` — every signed-in account's own profile, appearance,
@@ -22,33 +30,62 @@ import { todayIso } from "@/lib/attendance/dates";
  * comment. `/my-claude-usage` permanently redirects to `#claude-usage`
  * (`next.config.ts`, ADR-094).
  *
- * An incoming `#profile` hash (the section's old id, before the ADR-094
- * rename to `#account`) is rewritten and re-scrolled on mount, so an old
- * bookmark or external link still lands in the right place.
+ * Sections are tabs, not stacked cards: exactly one is visible at a time
+ * (`SettingsTabPanels`), selected by `SettingsSideMenu` (a real
+ * `role="tablist"`) and kept in sync with the URL hash. Every section stays
+ * mounted regardless of which is shown, so switching tabs never loses
+ * unsaved state (an in-progress Account edit, the Claude Usage period
+ * dropdown). An incoming `#profile` hash (the section's old id, before the
+ * ADR-094 rename to `#account`) is rewritten on mount, same as an unknown or
+ * role-hidden hash falling back to Account — see `resolveSettingsSectionFromHash`.
  *
  * The HRMS link status (department + linked/not-linked) is fetched once
  * here, from `GET /api/v1/me/attendance` — there is no dedicated "my HRMS
  * link" endpoint — and handed to both the Account card (Department field)
  * and the Connected accounts card, so a single request backs both rather
  * than each card asking separately.
- *
- * Card content (Account/Appearance/Notifications/Claude usage/Connected
- * accounts/Security/Sessions) is built out incrementally; each card owns
- * its own `<section id="...">`, which is the scroll-spy anchor
- * `SettingsSideMenu` observes — Notifications and Sessions, not yet built
- * (ADR-093), still render that same placeholder shape so the anchor exists
- * either way.
  */
 export default function AccountSettingsPage() {
   const productStats = useProductStats();
+  const { user } = useSession();
+  const canSeeClaudeUsage = user?.role === "user" || user?.role === "admin" || user?.role === "super_admin";
+  const visibleSections = getVisibleSettingsSections(canSeeClaudeUsage);
+
   const [toast, setToast] = useState<SettingsToastState>(null);
   const [hrmsLink, setHrmsLink] = useState<HrmsLinkState>({ kind: "loading" });
   const [department, setDepartment] = useState<string | null>(null);
+  const [active, setActive] = useState<SettingsSectionId>(DEFAULT_SETTINGS_SECTION);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // A tab switch never scrolls the page on its own — but if the just-
+  // switched-to content area isn't on screen (e.g. the previous panel was
+  // tall, the user scrolled down to read it, and the new one is shorter),
+  // leaving the scroll position alone would strand the viewport over blank
+  // space below the now-shorter page. Only that case gets corrected, and
+  // instantly (no smooth scroll) — a visible jump there would be its own
+  // kind of distracting.
+  const revealContentTopIfHidden = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const isVisible = rect.top >= 0 && rect.top <= window.innerHeight * 0.75;
+    if (!isVisible) el.scrollIntoView({ block: "start", behavior: "auto" });
+  }, []);
+
+  const activate = useCallback(
+    (id: SettingsSectionId) => {
+      setActive(id);
+      window.history.replaceState(null, "", `#${id}`);
+      revealContentTopIfHidden();
+    },
+    [revealContentTopIfHidden],
+  );
 
   useEffect(() => {
-    if (window.location.hash !== "#profile") return;
-    window.history.replaceState(null, "", "#account");
-    document.getElementById("account")?.scrollIntoView({ block: "start" });
+    const resolved = resolveSettingsSectionFromHash(window.location.hash, visibleSections);
+    setActive(resolved);
+    window.history.replaceState(null, "", `#${resolved}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount only, to read the hash the page loaded with.
   }, []);
 
   const loadHrmsLink = useCallback(() => {
@@ -89,27 +126,46 @@ export default function AccountSettingsPage() {
         </div>
 
         <div className="mt-8 flex flex-col gap-[18px] md:flex-row md:items-start">
-          <SettingsSideMenu />
+          <SettingsSideMenu active={active} onActivate={activate} />
 
-          <div className="min-w-0 flex-1 space-y-[18px]">
-            <ProfileCard
-              department={department}
-              onSaved={() => setToast({ kind: "success", message: "Profile saved." })}
-              onError={(message) => setToast({ kind: "error", message })}
+          <div ref={contentRef} data-testid="settings-content" className="min-w-0 flex-1">
+            <SettingsTabPanels
+              active={active}
+              panels={[
+                {
+                  id: "account",
+                  content: (
+                    <ProfileCard
+                      department={department}
+                      onSaved={() => setToast({ kind: "success", message: "Profile saved." })}
+                      onError={(message) => setToast({ kind: "error", message })}
+                    />
+                  ),
+                },
+                { id: "appearance", content: <AppearanceCard /> },
+                {
+                  id: "notifications",
+                  content: (
+                    <section className="rounded-[10px] border border-border bg-white p-6 shadow-sm">
+                      <h2 className="text-base font-bold text-dash-ink">Notifications</h2>
+                    </section>
+                  ),
+                },
+                ...(canSeeClaudeUsage
+                  ? [{ id: "claude-usage" as const, content: <ClaudeUsageCard /> }]
+                  : []),
+                { id: "connected-accounts", content: <ConnectedAccountsCard state={hrmsLink} /> },
+                { id: "security", content: <SecurityCard /> },
+                {
+                  id: "sessions",
+                  content: (
+                    <section className="rounded-[10px] border border-border bg-white p-6 shadow-sm">
+                      <h2 className="text-base font-bold text-dash-ink">Sessions</h2>
+                    </section>
+                  ),
+                },
+              ]}
             />
-            <AppearanceCard />
-            <section
-              id="notifications"
-              className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm"
-            >
-              <h2 className="text-base font-bold text-dash-ink">Notifications</h2>
-            </section>
-            <ClaudeUsageCard />
-            <ConnectedAccountsCard state={hrmsLink} />
-            <SecurityCard />
-            <section id="sessions" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
-              <h2 className="text-base font-bold text-dash-ink">Sessions</h2>
-            </section>
           </div>
         </div>
       </main>
