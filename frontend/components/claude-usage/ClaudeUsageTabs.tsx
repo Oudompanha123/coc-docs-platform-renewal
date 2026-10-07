@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/claude-usage", label: "Dashboard" },
-  { href: "/claude-usage/logs", label: "View Logs" },
+  { href: "/claude-usage/logs", label: "Scan Logs" },
 ] as const;
 
 /** The Claude Usage section's own pages, as links. Same underline-tab look as

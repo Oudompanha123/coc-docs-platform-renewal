@@ -22,6 +22,7 @@ export function Modal({
   animated = false,
   closing = false,
   onExited,
+  placement = "center",
 }: {
   title?: string;
   onClose: () => void;
@@ -43,6 +44,9 @@ export function Modal({
   closing?: boolean;
   /** With `animated`: the fade-out has finished — the caller unmounts now. */
   onExited?: () => void;
+  /** `right`: a full-height side drawer that slides in from the right edge
+   *  instead of a centered card. Same dim, scroll lock and exit handling. */
+  placement?: "center" | "right";
 }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -92,16 +96,22 @@ export function Modal({
   }
 
   const fade = animated ? ` transition-opacity duration-250 ease-in-out ${shown ? "opacity-100" : "opacity-0"}` : "";
-  const panelFade = animated
-    ? ` transition-[opacity,transform] duration-250 ease-in-out ${shown ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]"}`
-    : "";
+  const drawer = placement === "right";
+  const panelFade = !animated
+    ? ""
+    : drawer
+      ? ` transition-transform duration-250 ease-out motion-reduce:transition-none ${shown ? "translate-x-0" : "translate-x-full"}`
+      : ` transition-[opacity,transform] duration-250 ease-in-out ${shown ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]"}`;
   const bodyClasses = [title ? "mt-4" : "", bodyClassName ?? ""].filter(Boolean).join(" ");
 
   // The dim is its own layer, a sibling of the panel rather than its parent,
   // so fading it never fades the panel too — nested, the two opacities
   // multiplied and a near-full-screen white panel flashed in.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-[50px]" onClick={onClose}>
+    <div
+      className={drawer ? "fixed inset-0 z-50 flex justify-end" : "fixed inset-0 z-50 flex items-center justify-center px-4 py-[50px]"}
+      onClick={onClose}
+    >
       <div aria-hidden="true" data-modal-dim className={`absolute inset-0 bg-black/40${fade}`} onTransitionEnd={onDimTransitionEnd} />
       <div
         className={`relative ${className}${panelFade}`}

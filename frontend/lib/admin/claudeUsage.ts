@@ -353,7 +353,7 @@ export function formatLastActive(iso: string | null): string {
 }
 
 // ---------------------------------------------------------------------------
-// Scan logs — the View Logs page (ADR-096)
+// Scan logs — the Scan Logs page (ADR-096)
 // ---------------------------------------------------------------------------
 
 /** Derived server-side from the steps. "No new usage" is `success`. */
@@ -371,7 +371,7 @@ export type ScanStepKey =
   | "upload"
   | "complete";
 
-/** One `claude-team-usage scan`, as a row of the View Logs table. Counts are null when the scan never reached them. */
+/** One `claude-team-usage scan`, as a row of the Scan Logs table. Counts are null when the scan never reached them. */
 export interface ScanLogSummary {
   id: string;
   /** Human-readable, e.g. `SCAN-20261007-110001-3F2A`. */

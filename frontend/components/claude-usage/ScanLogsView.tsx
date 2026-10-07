@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AppShell } from "@/components/layout/AppShell";
 import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
-import { ScanLogDetailModal } from "@/components/claude-usage/ScanLogDetailModal";
+import { ScanLogDrawer } from "@/components/claude-usage/ScanLogDrawer";
 import { ScanLogTable } from "@/components/claude-usage/ScanLogTable";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { Pagination } from "@/components/users-roles/Pagination";
@@ -23,7 +23,7 @@ import {
 } from "@/lib/claudeUsage/scanLogs";
 import { useVisiblePolling } from "@/lib/claudeUsage/useVisiblePolling";
 
-/** How often an open, visible View Logs page re-reads the range. */
+/** How often an open, visible Scan Logs page re-reads the range. */
 export const SCAN_LOG_POLL_INTERVAL_MS = 15_000;
 
 const TITLE_ICON = <DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
@@ -40,9 +40,10 @@ const FIELD =
   "rounded-xl border border-border bg-white py-2.5 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15";
 
 /**
- * `/claude-usage/logs` — View Logs (ADR-096): every `claude-team-usage scan`
- * the team's PCs ran, how each ended, and where a failed one stopped. Admin
- * only, like the rest of `/claude-usage`.
+ * `/claude-usage/logs` — Scan Logs (ADR-096): every `claude-team-usage scan`
+ * the team's PCs ran, how each ended, and — for one that didn't fully work —
+ * the problem and how to fix it, in a side drawer. Admin only, like the rest
+ * of `/claude-usage`.
  *
  * The date range is fetched from the server; person, status and search
  * filter the loaded rows here, like Users & Roles. The summary cards count
@@ -127,7 +128,8 @@ export function ScanLogsView() {
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const current = Math.min(page, pageCount);
-  const visible = filtered.slice((current - 1) * pageSize, current * pageSize);
+  // Memoized so the memo'd table skips a redraw when an auto-refresh brings back the same rows.
+  const visible = useMemo(() => filtered.slice((current - 1) * pageSize, current * pageSize), [filtered, current, pageSize]);
   const filtersActive = person !== "all" || status !== "all" || search.trim() !== "";
 
   function clearFilters() {
@@ -140,8 +142,8 @@ export function ScanLogsView() {
 
   return (
     <AppShell
-      pageTitle="View Logs"
-      pageSubtitle="Monitor Claude Usage scan activity and troubleshoot scan failures."
+      pageTitle="Scan Logs"
+      pageSubtitle="View and monitor Claude usage scan activities from all users."
       titleIcon={TITLE_ICON}
     >
       <ClaudeUsageTabs />
@@ -189,8 +191,9 @@ export function ScanLogsView() {
         <SelectField label="Status" value={status} onChange={(v) => setStatus(v as StatusFilter)}>
           <option value="all">All statuses</option>
           <option value="success">Success</option>
-          <option value="warning">Warning</option>
+          <option value="partial">Partial</option>
           <option value="failed">Failed</option>
+          <option value="no-usage">No Usage</option>
         </SelectField>
         <div className="relative w-full lg:w-[280px]">
           <svg
@@ -245,17 +248,17 @@ export function ScanLogsView() {
       ) : data ? (
         <>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <UsageStatCard icon={BarChartIcon} label="Total Scans" value={summary.total.toLocaleString("en-US")} tone="purple" note={rangeNote(preset, range)} />
-            <UsageStatCard icon={CheckCircleIcon} label="Successful" value={summary.success.toLocaleString("en-US")} tone="green" note="Including scans with no new usage" />
-            <UsageStatCard icon={WarningIcon} label="Warnings" value={summary.warning.toLocaleString("en-US")} tone="orange" note="Completed, with something to check" />
-            <UsageStatCard icon={XIcon} label="Failed" value={summary.failed.toLocaleString("en-US")} tone="red" note="Stopped before finishing" />
             <UsageStatCard
-              icon={ClockIcon}
-              label="Last Scan"
-              value={summary.last ? timeOnly(summary.last.startedAt) : "—"}
-              tone="blue"
-              note={summary.last ? `${dayPart(summary.last.startedAt)} · ${personName(summary.last)}` : "No scans in this range"}
+              icon={BarChartIcon}
+              label="Total Scans"
+              value={summary.total.toLocaleString("en-US")}
+              tone="purple"
+              note={summary.last ? `Last: ${formatScanTime(summary.last.startedAt)} · ${personName(summary.last)}` : rangeNote(preset, range)}
             />
+            <UsageStatCard icon={CheckCircleIcon} label="Success" value={summary.success.toLocaleString("en-US")} tone="green" note="Usage uploaded" />
+            <UsageStatCard icon={ClockIcon} label="No Usage" value={summary["no-usage"].toLocaleString("en-US")} tone="blue" note="Nothing new to upload" />
+            <UsageStatCard icon={WarningIcon} label="Partial" value={summary.partial.toLocaleString("en-US")} tone="orange" note="Retried by the next scan" />
+            <UsageStatCard icon={XIcon} label="Failed" value={summary.failed.toLocaleString("en-US")} tone="red" note="Needs a fix on the PC" />
           </div>
 
           <div className="mt-4 overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
@@ -302,7 +305,7 @@ export function ScanLogsView() {
         </>
       ) : null}
 
-      {selected && <ScanLogDetailModal log={selected} onClose={closeDetail} />}
+      {selected && <ScanLogDrawer key={selected.id} log={selected} onClose={closeDetail} />}
     </AppShell>
   );
 }
@@ -354,13 +357,4 @@ function rangeNote(preset: RangePreset, range: { from: string; to: string }): st
   if (preset !== "custom") return option?.label ?? "";
   const fmt = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   return range.from === range.to ? fmt(range.from) : `${fmt(range.from)} – ${fmt(range.to)}`;
-}
-
-function timeOnly(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-}
-
-/** "Today" / "Yesterday" / "Oct 5" — the day half of formatScanTime. */
-function dayPart(iso: string): string {
-  return formatScanTime(iso).split(",").slice(0, -1).join(",") || formatScanTime(iso);
 }

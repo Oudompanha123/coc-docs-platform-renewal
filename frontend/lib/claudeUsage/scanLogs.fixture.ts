@@ -1,6 +1,6 @@
 import type { ScanLogSummary } from "@/lib/admin/claudeUsage";
 
-/** A View Logs row for tests: an ordinary scheduled scan that uploaded 15,240 new tokens. */
+/** A Scan Logs row for tests: an ordinary scheduled scan that uploaded 15,240 new tokens. */
 export function scanLog(overrides: Partial<ScanLogSummary> = {}): ScanLogSummary {
   return {
     id: "log-1",

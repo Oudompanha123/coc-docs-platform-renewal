@@ -42,6 +42,19 @@ const failed = scanLog({
   errorMessage: "upload failed for 2026-10-07: nothing is listening at https://docs.example/api/ingest. Is the Coc Docs backend running?",
 });
 const noNewUsage = scanLog({ id: "log-3", uploadStatus: "not-needed", newTokens: 0 });
+const authFailed = scanLog({
+  id: "log-4",
+  memberId: "m-3",
+  email: "vanna@example.com",
+  displayName: "Vanna",
+  status: "failed",
+  uploadStatus: "failed",
+  newTokens: 900,
+  daysUploaded: 0,
+  errorStep: "upload",
+  errorMessage:
+    "upload failed for 2026-10-07: rejected (401): your token is invalid or has been revoked. Run `claude-team-usage login` to sign in again.",
+});
 
 /** The value shown on a summary card, found by its label. */
 function card(label: string): string {
@@ -61,31 +74,41 @@ describe("ScanLogsView", () => {
     render(<ScanLogsView />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Loading scan logs…");
-    expect(screen.getByRole("heading", { name: "View Logs" })).toBeInTheDocument();
-    expect(screen.getByText("Monitor Claude Usage scan activity and troubleshoot scan failures.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View Logs" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Scan Logs" })).toBeInTheDocument();
+    expect(screen.getByText("View and monitor Claude usage scan activities from all users.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Scan Logs" })).toHaveAttribute("aria-current", "page");
 
-    resolve(list([scanLog(), failed, noNewUsage]));
+    resolve(list([scanLog(), failed, noNewUsage, authFailed]));
     await screen.findByText("Scan history");
 
-    expect(card("Total Scans")).toBe("3");
-    expect(card("Successful")).toBe("2");
-    expect(card("Warnings")).toBe("0");
+    expect(card("Total Scans")).toBe("4");
+    expect(card("Success")).toBe("1");
+    expect(card("No Usage")).toBe("1");
+    expect(card("Partial")).toBe("1");
     expect(card("Failed")).toBe("1");
+    const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
+    expect(headers.slice(0, 5)).toEqual(["User", "Scan Time", "Status", "Result", "Duration"]);
+
     const rows = screen.getAllByRole("row").slice(1);
-    expect(rows).toHaveLength(3);
-    expect(within(rows[1]!).getByText("Failed")).toBeInTheDocument();
-    expect(within(rows[1]!).getByText("at Upload Usage / Check-in")).toBeInTheDocument();
-    expect(within(rows[2]!).getByText("Success")).toBeInTheDocument();
-    expect(within(rows[2]!).getByText("No new usage")).toBeInTheDocument();
+    expect(rows).toHaveLength(4);
+    expect(within(rows[0]!).getByText("Success")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("Usage uploaded")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("15,240 tokens")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("Partial")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("Upload failed — server unreachable")).toBeInTheDocument();
+    expect(within(rows[2]!).getByText("No Usage")).toBeInTheDocument();
+    expect(within(rows[2]!).getByText("No usage found")).toBeInTheDocument();
+    expect(within(rows[3]!).getByText("Failed")).toBeInTheDocument();
+    expect(within(rows[3]!).getByText("Authentication failed")).toBeInTheDocument();
+    expect(screen.queryByText(/rejected \(401\)/)).not.toBeInTheDocument(); // the raw error stays out of the table
   });
 
-  it("no new usage counts as successful, never as a warning or failure", async () => {
+  it("no new usage is its own outcome, never partial or failed", async () => {
     fetchScanLogs.mockResolvedValue(list([noNewUsage]));
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
-    expect(card("Successful")).toBe("1");
-    expect(card("Warnings")).toBe("0");
+    expect(card("No Usage")).toBe("1");
+    expect(card("Partial")).toBe("0");
     expect(card("Failed")).toBe("0");
   });
 
@@ -102,9 +125,9 @@ describe("ScanLogsView", () => {
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
 
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "failed" } });
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "partial" } });
     expect(screen.getAllByRole("row")).toHaveLength(2);
-    expect(card("Successful")).toBe("1"); // the cards ignore the status filter
+    expect(card("Success")).toBe("1"); // the cards ignore the status filter
 
     fireEvent.change(screen.getByLabelText("Search scan logs"), { target: { value: "nobody-matches-this" } });
     expect(screen.getByText("No scans match these filters")).toBeInTheDocument();
@@ -200,52 +223,102 @@ describe("ScanLogsView", () => {
     });
   });
 
-  describe("detail", () => {
+  describe("detail drawer", () => {
     const detail: ScanLogDetail = {
-      summary: failed,
+      summary: authFailed,
       steps: [
-        { key: "start", status: "success", at: failed.startedAt, detail: "Started by the daily schedule" },
-        { key: "find-transcripts", status: "success", at: failed.startedAt, detail: "118 transcript file(s) found" },
-        { key: "parse-usage", status: "success", at: failed.startedAt, detail: "127 usage line(s) read" },
-        { key: "deduplicate", status: "success", at: failed.startedAt, detail: "163 duplicate record(s) merged" },
-        { key: "calculate-usage", status: "success", at: failed.startedAt, detail: "15,240 token(s) across 1 day(s)" },
-        { key: "check-new-usage", status: "success", at: failed.startedAt, detail: "1 day(s) to report" },
-        { key: "upload", status: "failed", at: failed.finishedAt, detail: "upload failed for 2026-10-07" },
+        { key: "start", status: "success", at: authFailed.startedAt, detail: "Started by the daily schedule" },
+        { key: "find-transcripts", status: "success", at: authFailed.startedAt, detail: "118 transcript file(s) found" },
+        { key: "parse-usage", status: "success", at: authFailed.startedAt, detail: "127 usage line(s) read" },
+        { key: "deduplicate", status: "success", at: authFailed.startedAt, detail: "163 duplicate record(s) merged" },
+        { key: "calculate-usage", status: "success", at: authFailed.startedAt, detail: "900 token(s) across 1 day(s)" },
+        { key: "check-new-usage", status: "success", at: authFailed.startedAt, detail: "1 day(s) to report" },
+        { key: "upload", status: "failed", at: authFailed.finishedAt, detail: "upload failed for 2026-10-07" },
         { key: "complete", status: "skipped", at: null, detail: "" },
       ],
     };
 
-    it("loads the timeline, and shows where a failed scan stopped and why", async () => {
-      fetchScanLogs.mockResolvedValue(list([failed]));
-      let resolve!: (value: ScanLogDetail) => void;
-      fetchScanLogDetail.mockReturnValue(new Promise((r) => (resolve = r)));
+    async function openDrawerFor(log = authFailed) {
+      fetchScanLogs.mockResolvedValue(list([log]));
       render(<ScanLogsView />);
       await screen.findByText("Scan history");
+      fireEvent.click(screen.getAllByRole("row")[1]!); // the whole row opens it
+      return screen.getByRole("dialog");
+    }
 
-      fireEvent.click(screen.getByRole("button", { name: /View details of the scan by Dara/ }));
-      const dialog = screen.getByRole("dialog");
-      expect(within(dialog).getByText("Loading scan steps…")).toBeInTheDocument();
-      expect(within(dialog).getByText(failed.scanRef)).toBeInTheDocument();
-      expect(fetchScanLogDetail).toHaveBeenCalledWith("log-2");
+    it("explains a failed login in plain words, with copyable commands to fix it", async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+      const drawer = await openDrawerFor();
 
-      resolve(detail);
-      const steps = await within(dialog).findAllByRole("listitem");
-      expect(steps).toHaveLength(8);
-      expect(within(steps[6]!).getByRole("img", { name: "Failed" })).toBeInTheDocument();
-      expect(within(steps[7]!).getByText("Not run.")).toBeInTheDocument();
-      expect(within(dialog).getByText("Error")).toBeInTheDocument();
-      expect(within(dialog).getAllByText("Upload Usage / Check-in").length).toBeGreaterThan(0);
-      expect(within(dialog).getByText(/nothing is listening at/)).toBeInTheDocument();
+      expect(within(drawer).getByRole("heading", { name: "Scan details" })).toBeInTheDocument();
+      expect(within(drawer).getByText("Vanna")).toBeInTheDocument();
+      expect(within(drawer).getByText("Authentication failed")).toBeInTheDocument();
+      expect(within(drawer).getByText("Your Claude Usage login has expired or is invalid.")).toBeInTheDocument();
+      expect(within(drawer).getByText("Run the login command to refresh your credentials.")).toBeInTheDocument();
+      expect(within(drawer).getByText("claude-team-usage login")).toBeInTheDocument();
+      expect(within(drawer).getByText("claude-team-usage scan")).toBeInTheDocument();
+
+      fireEvent.click(within(drawer).getAllByRole("button", { name: "Copy" })[0]!);
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith("claude-team-usage login"));
     });
 
-    it("a detail that cannot load says so in place of the timeline", async () => {
+    it("keeps technical details collapsed, and fetches the timeline only when opened", async () => {
+      let resolve!: (value: ScanLogDetail) => void;
+      fetchScanLogDetail.mockReturnValue(new Promise((r) => (resolve = r)));
+      const drawer = await openDrawerFor();
+
+      const toggle = within(drawer).getByRole("button", { name: "Technical details" });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(within(drawer).queryByText(/rejected \(401\)/)).not.toBeInTheDocument();
+      expect(fetchScanLogDetail).not.toHaveBeenCalled();
+
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(within(drawer).getByText("AUTH_FAILED (HTTP 401)")).toBeInTheDocument();
+      expect(within(drawer).getByText(/rejected \(401\)/)).toBeInTheDocument();
+      expect(within(drawer).getAllByText("Upload Usage / Check-in").length).toBeGreaterThan(0);
+      expect(within(drawer).getByText("Loading scan steps…")).toBeInTheDocument();
+      expect(fetchScanLogDetail).toHaveBeenCalledTimes(1);
+      expect(fetchScanLogDetail).toHaveBeenCalledWith("log-4");
+
+      resolve(detail);
+      await within(drawer).findByText("Not run.");
+      const timeline = within(drawer)
+        .getAllByRole("listitem")
+        .filter((li) => li.querySelector("[role=img]"));
+      expect(timeline).toHaveLength(8);
+      expect(within(timeline[6]!).getByRole("img", { name: "Failed" })).toBeInTheDocument();
+      expect(within(timeline[7]!).getByText("Not run.")).toBeInTheDocument();
+    });
+
+    it("a successful scan shows what it uploaded, with nothing to fix", async () => {
+      const drawer = await openDrawerFor(scanLog());
+      expect(within(drawer).getByText("Usage uploaded successfully")).toBeInTheDocument();
+      expect(within(drawer).getByText(/15,240 new tokens/)).toBeInTheDocument();
+      expect(within(drawer).queryByText("How to fix")).not.toBeInTheDocument();
+    });
+
+    it("the chevron button opens the same drawer, once", async () => {
       fetchScanLogs.mockResolvedValue(list([failed]));
-      fetchScanLogDetail.mockRejectedValue(new Error("scan log not found"));
       render(<ScanLogsView />);
       await screen.findByText("Scan history");
       fireEvent.click(screen.getByRole("button", { name: /View details of the scan by Dara/ }));
-      const dialog = screen.getByRole("dialog");
-      expect(await within(dialog).findByText("scan log not found")).toBeInTheDocument();
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+      expect(within(screen.getByRole("dialog")).getByText("Upload failed — server unreachable")).toBeInTheDocument();
+    });
+
+    it("a timeline that cannot load says so in place of the steps", async () => {
+      fetchScanLogDetail.mockRejectedValue(new Error("scan log not found"));
+      const drawer = await openDrawerFor();
+      fireEvent.click(within(drawer).getByRole("button", { name: "Technical details" }));
+      expect(await within(drawer).findByText("scan log not found")).toBeInTheDocument();
+    });
+
+    it("Escape closes it", async () => {
+      await openDrawerFor();
+      fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
   });
 });

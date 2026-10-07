@@ -1,6 +1,6 @@
-import type { ScanLogSummary, ScanStatus, ScanStepKey } from "@/lib/admin/claudeUsage";
+import type { ScanLogSummary, ScanStepKey } from "@/lib/admin/claudeUsage";
 
-// req: FR-USAGE-002, ADR-096 — the View Logs page's own logic, kept out of the components.
+// req: FR-USAGE-002, ADR-096 — the Scan Logs page's own logic, kept out of the components.
 
 export const STEP_LABELS: Record<ScanStepKey, string> = {
   start: "Start Scan",
@@ -13,13 +13,28 @@ export const STEP_LABELS: Record<ScanStepKey, string> = {
   complete: "Complete",
 };
 
-export const STATUS_LABELS: Record<ScanStatus, string> = {
+/**
+ * What a scan means to an admin, read from the record's own status and upload
+ * fields — no new server data. The CLI's `status` alone can't tell "the PC
+ * counted usage but the upload didn't land" (retried by the next scan) from
+ * "nothing works until someone signs in again"; this does.
+ *
+ * - success  — scanned and uploaded new usage
+ * - no-usage — scanned fine, nothing new to upload
+ * - partial  — finished with a warning, or counted usage it couldn't upload
+ *              for a passing reason (network, server); the next scan retries
+ * - failed   — stopped, and stays stopped until someone fixes the cause
+ */
+export type ScanOutcome = "success" | "partial" | "failed" | "no-usage";
+
+export const OUTCOME_LABELS: Record<ScanOutcome, string> = {
   success: "Success",
-  warning: "Warning",
+  partial: "Partial",
   failed: "Failed",
+  "no-usage": "No Usage",
 };
 
-export type StatusFilter = ScanStatus | "all";
+export type StatusFilter = ScanOutcome | "all";
 
 export interface ScanLogFilters {
   /** `ScanPerson.key`, or "all". */
@@ -35,11 +50,8 @@ export interface ScanPerson {
   email: string;
 }
 
-export interface ScanSummary {
+export interface ScanSummary extends Record<ScanOutcome, number> {
   total: number;
-  success: number;
-  warning: number;
-  failed: number;
   /** The newest scan in the set, whatever its status. */
   last: ScanLogSummary | null;
 }
@@ -106,45 +118,247 @@ export function peopleIn(logs: ScanLogSummary[]): ScanPerson[] {
 }
 
 export function summarize(logs: ScanLogSummary[]): ScanSummary {
-  const summary: ScanSummary = { total: logs.length, success: 0, warning: 0, failed: 0, last: null };
+  const summary: ScanSummary = { total: logs.length, success: 0, partial: 0, failed: 0, "no-usage": 0, last: null };
   for (const log of logs) {
-    summary[log.status]++;
+    summary[scanOutcome(log)]++;
     if (!summary.last || Date.parse(log.startedAt) > Date.parse(summary.last.startedAt)) summary.last = log;
   }
   return summary;
 }
 
-/** Search covers who, the scan ID, the error and the CLI version — what an admin would paste in from a report. */
+/** Search covers who, the scan ID, the problem, the raw error and the CLI version — what an admin would paste in from a report. */
 export function filterLogs(logs: ScanLogSummary[], filters: ScanLogFilters): ScanLogSummary[] {
   const needle = filters.search.trim().toLowerCase();
   return logs.filter((log) => {
     if (filters.person !== "all" && personKey(log) !== filters.person) return false;
-    if (filters.status !== "all" && log.status !== filters.status) return false;
+    if (filters.status !== "all" && scanOutcome(log) !== filters.status) return false;
     if (!needle) return true;
-    return [personName(log), log.email, log.scanRef, log.errorMessage ?? "", log.cliVersion ?? ""].some((field) =>
-      field.toLowerCase().includes(needle),
-    );
+    return [
+      personName(log),
+      log.email,
+      log.scanRef,
+      diagnoseScan(log)?.problem ?? "",
+      log.errorMessage ?? "",
+      log.cliVersion ?? "",
+    ].some((field) => field.toLowerCase().includes(needle));
   });
 }
 
+export function scanOutcome(log: ScanLogSummary): ScanOutcome {
+  if (log.status === "failed") return diagnoseScan(log)?.retriedNextScan ? "partial" : "failed";
+  if (log.status === "warning") return "partial";
+  return log.uploadStatus === "not-needed" ? "no-usage" : "success";
+}
+
+/** The table's Result cell: short enough to scan down a long list. */
+export function resultText(log: ScanLogSummary): string {
+  const diagnosis = diagnoseScan(log);
+  if (diagnosis) return diagnosis.problem;
+  if (log.uploadStatus === "not-needed") return "No usage found";
+  return "Usage uploaded";
+}
+
+/** One step of a fix. `command` renders as a copyable terminal line. */
+export interface FixStep {
+  text: string;
+  command?: string;
+}
+
+export interface ScanDiagnosis {
+  /** Stable, for the Technical details panel and for searching a report. */
+  code: string;
+  /** A few words: the table's Result and the drawer's Problem heading. */
+  problem: string;
+  /** One or two plain sentences: what happened, for someone who isn't a developer. */
+  description: string;
+  fix: FixStep[];
+  /** The usage is still on the PC and the next scan sends it — what makes a failure "partial". */
+  retriedNextScan: boolean;
+}
+
+const LOGIN: FixStep = { text: "Run the login command to refresh your credentials.", command: "claude-team-usage login" };
+const SCAN_AGAIN: FixStep = { text: "Then run the scan again.", command: "claude-team-usage scan" };
+const SCAN_VERBOSE: FixStep = {
+  text: "Run the scan again with details, and send the output to the Coc Docs team if it fails again.",
+  command: "claude-team-usage scan --verbose",
+};
+
 /**
- * One sentence an admin can read without opening the timeline. "No new usage"
- * is reported as a success — the scan and its check-in worked.
+ * Known failures, matched on the CLI's own error text (tools/claude-team-usage
+ * src/upload.js, src/config.js). First match wins, so the specific cases sit
+ * above the general ones — Vercel's 401 above the app's own 401.
  */
-export function resultMessage(log: ScanLogSummary): string {
-  if (log.status === "failed") {
-    const where = log.errorStep ? ` at "${STEP_LABELS[log.errorStep]}"` : "";
-    return `Scan failed${where}.${log.errorMessage ? ` ${log.errorMessage}` : ""}`;
+const KNOWN_FAILURES: { pattern: RegExp; diagnosis: Omit<ScanDiagnosis, "retriedNextScan">; retriedNextScan: boolean }[] = [
+  {
+    pattern: /deployment protection/i,
+    retriedNextScan: false,
+    diagnosis: {
+      code: "BLOCKED_BY_HOST",
+      problem: "Blocked before reaching Coc Docs",
+      description: "The hosting provider's access protection turned the upload away before it reached the app.",
+      fix: [
+        { text: "Set VERCEL_AUTOMATION_BYPASS_SECRET on this PC to the deployment's Protection Bypass for Automation secret." },
+        SCAN_AGAIN,
+      ],
+    },
+  },
+  {
+    pattern: /\(401\)|token is invalid|been revoked|not signed in/i,
+    retriedNextScan: false,
+    diagnosis: {
+      code: "AUTH_FAILED",
+      problem: "Authentication failed",
+      description: "Your Claude Usage login has expired or is invalid.",
+      fix: [LOGIN, SCAN_AGAIN],
+    },
+  },
+  {
+    pattern: /\(403\)/,
+    retriedNextScan: false,
+    diagnosis: {
+      code: "WRONG_ACCOUNT",
+      problem: "Signed in as someone else",
+      description: "The login saved on this PC belongs to a different account, so the server refused usage for this email.",
+      fix: [{ ...LOGIN, text: "Sign in again as yourself." }, SCAN_AGAIN],
+    },
+  },
+  {
+    pattern: /certificate|NODE_EXTRA_CA_CERTS|SELF_SIGNED|UNABLE_TO_VERIFY/i,
+    retriedNextScan: false,
+    diagnosis: {
+      code: "CERTIFICATE_UNTRUSTED",
+      problem: "Secure connection blocked",
+      description: "A proxy or security agent on this PC is intercepting HTTPS, and the reporter doesn't trust its certificate.",
+      fix: [
+        { text: "Ask IT for the proxy's root certificate and set NODE_EXTRA_CA_CERTS to that file. Never turn certificate checks off." },
+        SCAN_AGAIN,
+      ],
+    },
+  },
+  {
+    pattern: /damaged|incomplete|COC_DOCS_URL|USER_EMAIL/,
+    retriedNextScan: false,
+    diagnosis: {
+      code: "LOGIN_SETTINGS_DAMAGED",
+      problem: "Login settings damaged",
+      description: "The reporter's saved login on this PC is missing or unreadable.",
+      fix: [LOGIN, SCAN_AGAIN],
+    },
+  },
+  {
+    pattern: /no ingest route|\b404\b/i,
+    retriedNextScan: false,
+    diagnosis: {
+      code: "WRONG_SERVER_ADDRESS",
+      problem: "Wrong server address",
+      description: "The server address saved on this PC doesn't lead to Coc Docs' upload route.",
+      fix: [{ ...LOGIN, text: "Sign in again to refresh the server address." }, SCAN_AGAIN],
+    },
+  },
+  {
+    pattern: /cannot resolve the host|ENOTFOUND|EAI_AGAIN/,
+    retriedNextScan: true,
+    diagnosis: {
+      code: "SERVER_NOT_FOUND",
+      problem: "Upload failed — server not found",
+      description:
+        "This PC couldn't look up the Coc Docs server, usually because it was offline or off the VPN. The usage is still on the PC and is sent with the next scan.",
+      fix: [
+        { text: "Check the PC is online, and on the VPN if your network needs it." },
+        { ...LOGIN, text: "If it keeps failing, sign in again to refresh the server address." },
+        SCAN_AGAIN,
+      ],
+    },
+  },
+  {
+    pattern: /nothing is listening|ECONNREFUSED|ECONNRESET|ETIMEDOUT|no response from|fetch failed|socket hang up/i,
+    retriedNextScan: true,
+    diagnosis: {
+      code: "SERVER_UNREACHABLE",
+      problem: "Upload failed — server unreachable",
+      description:
+        "The Coc Docs server didn't answer. The usage is still on the PC and is sent with the next scan.",
+      fix: [{ text: "Check the Coc Docs server is running and reachable from this PC." }, SCAN_AGAIN],
+    },
+  },
+  {
+    pattern: /HTTP 5\d\d/,
+    retriedNextScan: true,
+    diagnosis: {
+      code: "SERVER_ERROR",
+      problem: "Upload failed — server error",
+      description: "The Coc Docs server hit an error while saving the usage. The usage is still on the PC and is sent with the next scan.",
+      fix: [{ text: "Check the backend logs for errors around this scan's time." }, SCAN_AGAIN],
+    },
+  },
+];
+
+/**
+ * The plain-language problem and fix for a scan that didn't fully succeed;
+ * null for one that did. Never returns the raw error as the problem — that
+ * belongs in Technical details, which is where a stack trace would land too.
+ */
+export function diagnoseScan(log: ScanLogSummary): ScanDiagnosis | null {
+  if (log.status === "warning") {
+    return {
+      code: "COMPLETED_WITH_WARNINGS",
+      problem: "Completed with warnings",
+      description:
+        "The scan finished, but one step needs a look — for example, some transcript files couldn't be read, or the check-in wasn't recorded. Technical details shows which step.",
+      fix: [{ text: "Run the scan again. If the warning stays, check the step marked in Technical details.", command: "claude-team-usage scan" }],
+      retriedNextScan: true,
+    };
   }
-  const outcome =
-    log.uploadStatus === "uploaded"
-      ? `${formatCount(log.newTokens)} new tokens reported.`
-      : log.uploadStatus === "not-needed"
-        ? "No new usage found."
-        : "";
-  const lead = log.status === "warning" ? "Scan completed with warnings." : "Scan completed successfully.";
-  const tail = log.status === "warning" ? "See the timeline for details." : "";
-  return [lead, outcome, tail].filter(Boolean).join(" ");
+  if (log.status !== "failed") return null;
+
+  const message = log.errorMessage ?? "";
+  const known = KNOWN_FAILURES.find((f) => f.pattern.test(message));
+  if (known) return { ...known.diagnosis, retriedNextScan: known.retriedNextScan };
+
+  switch (log.errorStep) {
+    case "upload":
+      return {
+        code: "UPLOAD_FAILED",
+        problem: "Upload failed",
+        description: "The scan counted the usage but couldn't upload it. The usage is still on the PC and is sent with the next scan.",
+        fix: [SCAN_AGAIN, SCAN_VERBOSE],
+        retriedNextScan: true,
+      };
+    case "find-transcripts":
+      return {
+        code: "TRANSCRIPTS_UNREADABLE",
+        problem: "Couldn't read Claude Code history",
+        description: "The reporter couldn't open the Claude Code history on this PC.",
+        fix: [{ text: "Make sure Claude Code has been used on this PC, under the same Windows account." }, SCAN_VERBOSE],
+        retriedNextScan: false,
+      };
+    case "parse-usage":
+    case "deduplicate":
+    case "calculate-usage":
+    case "check-new-usage":
+      return {
+        code: "PROCESSING_FAILED",
+        problem: "Couldn't process usage",
+        description: "The reporter found the Claude Code history but couldn't work out the usage from it.",
+        fix: [SCAN_VERBOSE],
+        retriedNextScan: false,
+      };
+    default:
+      return {
+        code: "SCAN_STOPPED",
+        problem: "Scan stopped",
+        description: "The scan stopped before it finished.",
+        fix: [SCAN_VERBOSE],
+        retriedNextScan: false,
+      };
+  }
+}
+
+/** "AUTH_FAILED (HTTP 401)" — the diagnosis code, plus the HTTP status when the error carries one. */
+export function errorCode(log: ScanLogSummary, diagnosis: ScanDiagnosis): string {
+  const http = /\((\d{3})\)|HTTP (\d{3})/.exec(log.errorMessage ?? "");
+  const status = http?.[1] ?? http?.[2];
+  return status ? `${diagnosis.code} (HTTP ${status})` : diagnosis.code;
 }
 
 /** ISO calendar date (YYYY-MM-DD) in the browser's own zone. */
