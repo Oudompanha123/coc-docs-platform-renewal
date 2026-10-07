@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ScanLogDetail, ScanLogList } from "@/lib/admin/claudeUsage";
 import { scanLog } from "@/lib/claudeUsage/scanLogs.fixture";
-import { ScanLogsView } from "./ScanLogsView";
+import { SCAN_LOG_POLL_INTERVAL_MS, ScanLogsView } from "./ScanLogsView";
 
 // req: FR-USAGE-002, ADR-096
 
@@ -130,6 +130,74 @@ describe("ScanLogsView", () => {
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
     await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02"));
+  });
+
+  describe("auto-refresh", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("shows a new scan without a manual Refresh, and the button stays as it was", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      fetchScanLogs.mockResolvedValue(list([scanLog()]));
+      render(<ScanLogsView />);
+      await screen.findByText("Scan history");
+      expect(screen.getAllByRole("row")).toHaveLength(2);
+
+      fetchScanLogs.mockResolvedValue(list([failed, scanLog()]));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SCAN_LOG_POLL_INTERVAL_MS);
+      });
+
+      expect(screen.getAllByRole("row")).toHaveLength(3);
+      expect(screen.getByRole("button", { name: "Refresh" })).toBeEnabled(); // a poll never shows "Refreshing…"
+    });
+
+    it("polls the date range currently chosen", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      fetchScanLogs.mockResolvedValue(list());
+      render(<ScanLogsView />);
+      await screen.findByText("Scan history");
+      fireEvent.change(screen.getByLabelText("Date range"), { target: { value: "custom" } });
+      fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
+      fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
+      await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02"));
+
+      const calls = fetchScanLogs.mock.calls.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SCAN_LOG_POLL_INTERVAL_MS);
+      });
+      expect(fetchScanLogs).toHaveBeenCalledTimes(calls + 1);
+      expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02");
+    });
+
+    it("a failed poll keeps the rows on screen and raises no error", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      fetchScanLogs.mockResolvedValueOnce(list([scanLog(), failed])).mockRejectedValueOnce(new Error("Couldn't reach the server."));
+      render(<ScanLogsView />);
+      await screen.findByText("Scan history");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SCAN_LOG_POLL_INTERVAL_MS);
+      });
+
+      expect(fetchScanLogs).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.getAllByRole("row")).toHaveLength(3);
+    });
+
+    it("stops polling once the page is closed", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      fetchScanLogs.mockResolvedValue(list());
+      const { unmount } = render(<ScanLogsView />);
+      await screen.findByText("Scan history");
+      unmount();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(SCAN_LOG_POLL_INTERVAL_MS * 3);
+      });
+      expect(fetchScanLogs).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("detail", () => {

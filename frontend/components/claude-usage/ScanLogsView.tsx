@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
@@ -21,6 +21,10 @@ import {
   type RangePreset,
   type StatusFilter,
 } from "@/lib/claudeUsage/scanLogs";
+import { useVisiblePolling } from "@/lib/claudeUsage/useVisiblePolling";
+
+/** How often an open, visible View Logs page re-reads the range. */
+export const SCAN_LOG_POLL_INTERVAL_MS = 15_000;
 
 const TITLE_ICON = <DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
 
@@ -48,6 +52,9 @@ const FIELD =
  * Kept distinct from the dashboard's two timestamps: "Last scan" is the
  * latest check-in, "Last reported" the latest upload; this page is the
  * history of every scan behind them.
+ *
+ * Re-reads the range every SCAN_LOG_POLL_INTERVAL_MS while the tab is
+ * visible, so a scan run with the page open shows up on its own.
  */
 export function ScanLogsView() {
   const [preset, setPreset] = useState<RangePreset>("7d");
@@ -66,22 +73,48 @@ export function ScanLogsView() {
   const range = preset === "custom" ? custom : presetRange(preset)!;
   const rangeInvalid = range.from > range.to;
 
-  const load = useCallback(async () => {
-    if (rangeInvalid) return;
-    setLoading(true);
-    try {
-      setData(await fetchScanLogs(range.from, range.to));
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Couldn't load scan logs.");
-    } finally {
-      setLoading(false);
-    }
-  }, [range.from, range.to, rangeInvalid]);
+  // Only the newest request may write state: a poll still in flight when the
+  // range changes must not overwrite the new range's rows.
+  const latestRequest = useRef(0);
+  const inFlight = useRef(false);
+
+  /**
+   * `background` is the auto-refresh: it never shows "Refreshing…", skips a
+   * tick while another load is running, and on failure keeps the rows on
+   * screen and tries again next tick rather than raising the error banner.
+   */
+  const load = useCallback(
+    async ({ background = false }: { background?: boolean } = {}) => {
+      if (rangeInvalid || (background && inFlight.current)) return;
+      const request = ++latestRequest.current;
+      inFlight.current = true;
+      if (!background) setLoading(true);
+      try {
+        const next = await fetchScanLogs(range.from, range.to);
+        if (request !== latestRequest.current) return;
+        // Same rows as before (the usual poll): keep the old object, so nothing re-renders.
+        setData((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+        setLoadError(null);
+      } catch (err) {
+        if (request !== latestRequest.current || background) return;
+        setLoadError(err instanceof Error ? err.message : "Couldn't load scan logs.");
+      } finally {
+        if (request === latestRequest.current) {
+          inFlight.current = false;
+          setLoading(false);
+        }
+      }
+    },
+    [range.from, range.to, rangeInvalid],
+  );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // A `claude-team-usage scan` posts its log on its own; show it without a manual Refresh.
+  const pollLogs = useCallback(() => load({ background: true }), [load]);
+  useVisiblePolling(pollLogs, SCAN_LOG_POLL_INTERVAL_MS, !rangeInvalid);
 
   // Any filter change starts again at page 1, or a narrower result can leave the table on an empty page.
   useEffect(() => setPage(1), [preset, custom, person, status, search]);
