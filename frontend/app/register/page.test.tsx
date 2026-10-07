@@ -33,6 +33,15 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
   }
 
+  it("links the agreement text to the real /terms and /privacy pages", () => {
+    render(<RegisterPage />);
+
+    expect(screen.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "/terms");
+    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/privacy");
+    // The checkbox stays the only labelable control inside the agreement label.
+    expect(screen.getByLabelText(/I agree to the/)).toHaveAttribute("type", "checkbox");
+  });
+
   it("never asks for a phone number", () => {
     render(<RegisterPage />);
     expect(screen.queryByLabelText("Phone Number")).not.toBeInTheDocument();

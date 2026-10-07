@@ -47,8 +47,8 @@ import {
 const HOME_LINK = { label: "Home", href: "/login" };
 
 const FOOTER_LEGAL_LINKS = [
-  { label: "Privacy", href: "#" },
-  { label: "Terms", href: "#" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
   { label: "Contact", href: "#" },
   { label: "Status", href: "#" },
 ];
