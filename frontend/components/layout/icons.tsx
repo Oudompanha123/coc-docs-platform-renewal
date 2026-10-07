@@ -625,3 +625,19 @@ export function CalendarCheckIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+
+/** The Announcements page's glyph — a megaphone (ADR-098). */
+export function MegaphoneIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4 10.2v3.6a1.2 1.2 0 0 0 1.2 1.2H7l6.6 4V5L7 9H5.2A1.2 1.2 0 0 0 4 10.2Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path d="M7 15l1.2 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M17 9a4 4 0 0 1 0 6M19.5 6.5a7.5 7.5 0 0 1 0 11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}

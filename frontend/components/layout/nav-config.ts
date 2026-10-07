@@ -9,6 +9,7 @@ import {
   FolderIcon,
   HomeIcon,
   LayersIcon,
+  MegaphoneIcon,
   PersonIcon,
   PulseIcon,
   SettingsIcon,
@@ -104,6 +105,9 @@ const STATIC_SECTIONS: NavSection[] = [
       // admin/super_admin reaches from this sidebar, same distinction
       // MemberHeader's own role-branched link already draws.
       { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
+      // admin and super_admin: writing an announcement is editorial work, the
+      // same /api/v1/admin/** admin floor publishing a page sits at (ADR-098).
+      { label: "Announcements", href: "/announcements", icon: MegaphoneIcon, roles: ["admin", "super_admin"] },
     ],
   },
   // No DEVELOPER section any more. It existed to hold one item, the AX Renewal

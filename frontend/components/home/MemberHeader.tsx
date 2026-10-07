@@ -15,12 +15,14 @@ import {
   LayersIcon,
   LogOutIcon,
   MailIcon,
+  MegaphoneIcon,
   PersonIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
+import { AnnouncementModal } from "@/components/announcements/AnnouncementModal";
 import { ProfilePopup } from "@/components/home/ProfilePopup";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
@@ -215,7 +217,12 @@ export function MemberHeader({
   const pathname = usePathname();
   const user = useCurrentUser();
   const { signOut, isSigningOut } = useSession();
-  const notifications = useNotifications();
+  // The announcement a bell row was clicked to open (ADR-098) — the one kind
+  // of bell row on this header that has something behind it to read.
+  const [openAnnouncement, setOpenAnnouncement] = useState<string | null>(null);
+  const notifications = useNotifications({
+    onOpenAnnouncement: (announcementId) => setOpenAnnouncement(announcementId),
+  });
   const activity = useActivityFeed();
   // Same rule as the admin Topbar's panel: this lists what the badge counts and
   // nothing else. A `user` never sees that header — /home is where this role
@@ -460,11 +467,26 @@ export function MemberHeader({
                         // did nothing would be worse than one that plainly
                         // acknowledges. "Notifications" in the footer opens the
                         // full list for anything that needs more than a glance.
-                        onClick={() => notifications.markRead(n.id)}
+                        //
+                        // The exception is an announcement (ADR-098), which is
+                        // for every reader and has its text behind it: that
+                        // click opens it, too.
+                        onClick={() => {
+                          notifications.markRead(n.id);
+                          if (n.type === "announcement.published") {
+                            void notifications.open(n);
+                            setOpenMenu(null);
+                          }
+                        }}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
                           n.read ? "" : "bg-brand-purple/5"
                         }`}
                       >
+                        {n.type === "announcement.published" && (
+                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
+                            <MegaphoneIcon className="h-4 w-4" />
+                          </span>
+                        )}
                         <span className="min-w-0 flex-1">
                           <span
                             className={`block truncate text-sm text-ink ${
@@ -666,6 +688,7 @@ export function MemberHeader({
       </div>
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
+    {openAnnouncement && <AnnouncementModal id={openAnnouncement} onClose={() => setOpenAnnouncement(null)} />}
     {showProfilePopup && (
       <ProfilePopup
         onClose={() => {
