@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   BarChartIcon,
@@ -15,98 +15,129 @@ import {
 } from "@/components/layout/icons";
 import { ShieldIcon } from "@/components/auth/icons";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { getVisibleSettingsSections, type SettingsSectionId } from "@/lib/account/settingsSections";
 
-type SectionDef = { id: string; label: string; Icon: (props: { className?: string }) => React.JSX.Element };
+type IconComponent = (props: { className?: string }) => React.JSX.Element;
 
-const BEFORE_CLAUDE_USAGE: SectionDef[] = [
-  { id: "account", label: "Account", Icon: PersonIcon },
-  { id: "appearance", label: "Appearance", Icon: SunIcon },
-  { id: "notifications", label: "Notifications", Icon: BellIcon },
-];
-/** Same floor `RequireMemberSession` always gave `/my-claude-usage` — hidden
- *  here for `developer`/`reviewer`/`lead`, who never reached it before this
- *  section moved off its own page and into this one (which, unlike that old
- *  page, is open to every signed-in role). */
-const CLAUDE_USAGE_SECTION: SectionDef = { id: "claude-usage", label: "Claude Usage", Icon: BarChartIcon };
-const AFTER_CLAUDE_USAGE: SectionDef[] = [
-  { id: "connected-accounts", label: "Connected accounts", Icon: LinkIcon },
-  { id: "security", label: "Security", Icon: ShieldIcon },
-  { id: "sessions", label: "Sessions", Icon: MonitorIcon },
-];
+const SECTION_LABELS: Record<SettingsSectionId, { label: string; Icon: IconComponent }> = {
+  account: { label: "Account", Icon: PersonIcon },
+  appearance: { label: "Appearance", Icon: SunIcon },
+  notifications: { label: "Notifications", Icon: BellIcon },
+  "claude-usage": { label: "Claude Usage", Icon: BarChartIcon },
+  "connected-accounts": { label: "Connected accounts", Icon: LinkIcon },
+  security: { label: "Security", Icon: ShieldIcon },
+  sessions: { label: "Sessions", Icon: MonitorIcon },
+};
+
+type ButtonRefs = React.MutableRefObject<Partial<Record<SettingsSectionId, HTMLButtonElement | null>>>;
 
 /**
- * The left side menu on `/account/settings` — scroll-spy anchors plus
- * (for `admin`/`super_admin` only) Open Dashboard and Log out. Renders both
- * the desktop sticky column and the mobile horizontal tab row itself, each
- * hidden at the other's breakpoint, so the page only ever mounts one of
- * these at a time — there's exactly one `IntersectionObserver` either way.
+ * The left side menu / tab list on `/account/settings` (ADR-094; switched
+ * from scroll-spy to a real `role="tablist"` afterward, on direct
+ * instruction) — one tab per section, plus (for `admin`/`super_admin` only)
+ * Open Dashboard and Log out as plain actions outside the tablist. Renders
+ * both the desktop sticky column and the mobile horizontal tab row, each
+ * hidden at the other's breakpoint via CSS only — both stay mounted, so
+ * there's exactly one set of button refs/keyboard handling per layout.
+ *
+ * <p>Selection is controlled by the parent (`active`/`onActivate`) so the
+ * page can keep the URL hash and the visible tabpanel in sync. This
+ * component owns only focus and the manual-activation keyboard pattern:
+ * arrow keys/Home/End move focus among tabs without selecting them; a
+ * native `<button>` already activates on Enter/Space via its own `onClick`.
  *
  * <p>Open Dashboard moved here from the header's user menu — same
- * `admin`/`super_admin` floor, same `/overview` destination. Unlike the
- * section buttons above it, it is a real navigation (`Link`, not
- * `scrollIntoView`), so it never participates in the scroll-spy and never
- * gets the active-section highlight.
- *
- * <p>Log out here is the same single-session sign-out the header's user
- * menu already offers — not "sign out of all devices", which is the
- * Sessions card's own, different action.
+ * `admin`/`super_admin` floor, same `/overview` destination. Log out here is
+ * the same single-session sign-out the header's user menu already offers.
  */
-export function SettingsSideMenu() {
-  const [active, setActive] = useState<string>("account");
+export function SettingsSideMenu({
+  active,
+  onActivate,
+}: {
+  active: SettingsSectionId;
+  onActivate: (id: SettingsSectionId) => void;
+}) {
   const { user, signOut, isSigningOut } = useSession();
   const canSeeClaudeUsage = user?.role === "user" || user?.role === "admin" || user?.role === "super_admin";
   const canOpenDashboard = user?.role === "admin" || user?.role === "super_admin";
-  const sections = canSeeClaudeUsage
-    ? [...BEFORE_CLAUDE_USAGE, CLAUDE_USAGE_SECTION, ...AFTER_CLAUDE_USAGE]
-    : [...BEFORE_CLAUDE_USAGE, ...AFTER_CLAUDE_USAGE];
+  const sections = getVisibleSettingsSections(canSeeClaudeUsage).map((id) => ({ id, ...SECTION_LABELS[id] }));
 
+  const [focusedId, setFocusedId] = useState<SettingsSectionId>(active);
+  useEffect(() => setFocusedId(active), [active]);
+
+  const desktopRefs: ButtonRefs = useRef({});
+  const mobileRefs: ButtonRefs = useRef({});
+
+  // The mobile row is the only one that scrolls horizontally — desktop's
+  // column always shows every tab at once — so only it needs the active
+  // one brought into view after a switch (e.g. one driven by the URL hash
+  // rather than a click inside the row itself).
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting);
-        if (visible.length === 0) return;
-        const topMost = visible.reduce((a, b) => (a.boundingClientRect.top <= b.boundingClientRect.top ? a : b));
-        setActive(topMost.target.id);
-      },
-      // Counts a section as "current" once it's past the sticky header, and
-      // stops counting it once it's scrolled more than 70% up the viewport —
-      // the next section below is then the one closest to the top.
-      { rootMargin: "-96px 0px -70% 0px", threshold: 0 },
-    );
-    for (const { id } of sections) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `sections` only ever changes when `canSeeClaudeUsage` does, and re-running per render would re-observe the same elements on every scroll-driven `setActive`.
-  }, [canSeeClaudeUsage]);
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    mobileRefs.current[active]?.scrollIntoView({
+      inline: "nearest",
+      block: "nearest",
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+  }, [active]);
 
-  function goTo(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.history.replaceState(null, "", `#${id}`);
-    setActive(id);
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number, refs: ButtonRefs) {
+    let nextIndex: number;
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        nextIndex = (index + 1) % sections.length;
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        nextIndex = (index - 1 + sections.length) % sections.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = sections.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const next = sections[nextIndex];
+    if (!next) return;
+    setFocusedId(next.id);
+    refs.current[next.id]?.focus();
   }
 
   return (
     <>
       <nav aria-label="Settings sections" className="hidden w-[220px] shrink-0 md:block">
         <div className="sticky top-20 space-y-1">
-          {sections.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => goTo(id)}
-              aria-current={active === id ? "true" : undefined}
-              className={`settings-nav-item flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
-                active === id
-                  ? "settings-nav-item-active bg-brand-purple/10 text-brand-purple"
-                  : "text-dash-ink hover:bg-page"
-              }`}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
-            </button>
-          ))}
+          <div role="tablist" aria-orientation="vertical" className="space-y-1">
+            {sections.map(({ id, label, Icon }, index) => (
+              <button
+                key={id}
+                ref={(el) => {
+                  desktopRefs.current[id] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`tab-${id}`}
+                aria-selected={active === id}
+                aria-controls={`panel-${id}`}
+                tabIndex={focusedId === id ? 0 : -1}
+                onClick={() => onActivate(id)}
+                onKeyDown={(e) => handleTabKeyDown(e, index, desktopRefs)}
+                className={`settings-nav-item flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                  active === id
+                    ? "settings-nav-item-active bg-brand-purple/10 text-brand-purple"
+                    : "text-dash-ink hover:bg-page"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="my-2 border-t border-border" />
           {canOpenDashboard && (
             <Link
@@ -131,15 +162,24 @@ export function SettingsSideMenu() {
       </nav>
 
       <nav
+        role="tablist"
         aria-label="Settings sections"
+        aria-orientation="horizontal"
         className="no-scrollbar-arrows -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 md:hidden"
       >
-        {sections.map(({ id, label, Icon }) => (
+        {sections.map(({ id, label, Icon }, index) => (
           <button
             key={id}
+            ref={(el) => {
+              mobileRefs.current[id] = el;
+            }}
             type="button"
-            onClick={() => goTo(id)}
-            aria-current={active === id ? "true" : undefined}
+            role="tab"
+            aria-selected={active === id}
+            aria-controls={`panel-${id}`}
+            tabIndex={focusedId === id ? 0 : -1}
+            onClick={() => onActivate(id)}
+            onKeyDown={(e) => handleTabKeyDown(e, index, mobileRefs)}
             className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               active === id
                 ? "settings-nav-item-active border-brand-purple bg-brand-purple/10 text-brand-purple"

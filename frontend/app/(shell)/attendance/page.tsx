@@ -10,7 +10,11 @@ import { AttendanceStatCard } from "@/components/attendance/AttendanceStatCard";
 import { AttendanceTable } from "@/components/attendance/AttendanceTable";
 import { fetchAttendanceReports, type HrmsAttendanceReport } from "@/lib/admin/attendance";
 import { downloadAttendanceXlsx } from "@/lib/attendance/export-attendance";
-import { computeAttendanceStats, filterAttendanceRows } from "@/lib/attendance/stats";
+import {
+  computeAttendanceStats,
+  filterAttendanceRows,
+  type AttendanceStatusFilter,
+} from "@/lib/attendance/stats";
 import { todayIso } from "@/lib/attendance/dates";
 
 export default function AttendancePage() {
@@ -24,6 +28,9 @@ export default function AttendancePage() {
   const [knownDepartments, setKnownDepartments] = useState<string[]>([]);
   const [department, setDepartment] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  // Here rather than inside AttendanceTable because Export reads it too --
+  // the file and the table have to agree about what is on screen.
+  const [status, setStatus] = useState<AttendanceStatusFilter>({});
   // Decorative for now — does not change which date, department, or rows are
   // fetched or shown. Wiring an actual week/month/year range is a separate,
   // later task.
@@ -73,8 +80,8 @@ export default function AttendancePage() {
   // be a surprise the moment anyone searched first (same reasoning as the
   // Users & Roles page's own `exportable`).
   const exportableRows = useMemo(
-    () => (selectedReport ? filterAttendanceRows(selectedReport.rows, search) : []),
-    [selectedReport, search],
+    () => (selectedReport ? filterAttendanceRows(selectedReport.rows, search, status) : []),
+    [selectedReport, search, status],
   );
 
   return (
@@ -170,7 +177,13 @@ export default function AttendancePage() {
               />
             </div>
 
-            <AttendanceTable report={selectedReport} search={search} onSearchChange={setSearch} />
+            <AttendanceTable
+              report={selectedReport}
+              search={search}
+              onSearchChange={setSearch}
+              status={status}
+              onStatusChange={setStatus}
+            />
           </>
         )}
       </div>

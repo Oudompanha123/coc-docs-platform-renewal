@@ -6,9 +6,6 @@ import { MemberHeader } from "./MemberHeader";
 
 const { pathname } = vi.hoisted(() => ({ pathname: { current: "/home" } }));
 vi.mock("next/navigation", () => ({ usePathname: () => pathname.current }));
-vi.mock("@/components/layout/ProfileModal", () => ({
-  ProfileModal: () => <div data-testid="profile-modal" />,
-}));
 
 vi.mock("@/lib/auth/useCurrentUser", () => ({
   useCurrentUser: () => ({ name: "Dana Lee", role: "User", initials: "DL", avatarUrl: null }),
@@ -16,7 +13,21 @@ vi.mock("@/lib/auth/useCurrentUser", () => ({
 
 const { sessionRole } = vi.hoisted(() => ({ sessionRole: { current: "user" as string } }));
 vi.mock("@/lib/auth/SessionProvider", () => ({
-  useSession: () => ({ user: { role: sessionRole.current }, signOut: vi.fn(), isSigningOut: false }),
+  useSession: () => ({
+    user: {
+      role: sessionRole.current,
+      displayName: "Dana Lee",
+      email: "dana@example.com",
+      avatarUrl: null,
+      lastSignInAt: null,
+    },
+    signOut: vi.fn(),
+    isSigningOut: false,
+  }),
+}));
+
+vi.mock("@/lib/me/attendance", () => ({
+  fetchMyAttendance: vi.fn().mockResolvedValue({ viewerLinked: false, department: null, rows: [] }),
 }));
 
 vi.mock("@/lib/notify/useNotifications", () => ({
@@ -69,14 +80,27 @@ describe("MemberHeader — user menu (Profile / Settings / Log out)", () => {
     await user.click(screen.getByRole("button", { name: /dana lee/i }));
   }
 
-  it("Profile opens the profile popup instead of navigating", async () => {
+  it("Profile opens the read-only profile popup — not a navigation, not the old editable modal", async () => {
     const user = userEvent.setup();
-    render(<MemberHeader products={PRODUCTS} />);
-    await user.click(screen.getByRole("button", { name: /dana lee/i }));
-    const profile = screen.getByRole("menuitem", { name: "Profile" });
-    expect(profile).not.toHaveAttribute("href");
-    await user.click(profile);
-    expect(screen.getByTestId("profile-modal")).toBeInTheDocument();
+    await openUserMenu();
+    const profileItem = screen.getByRole("menuitem", { name: "Profile" });
+    expect(profileItem.tagName).toBe("BUTTON");
+    expect(profileItem).not.toHaveAttribute("href");
+
+    await user.click(profileItem);
+
+    expect(screen.getByRole("dialog", { name: "Dana Lee" })).toBeInTheDocument();
+  });
+
+  it("closing the profile popup returns focus to the user chip", async () => {
+    const user = userEvent.setup();
+    await openUserMenu();
+    await user.click(screen.getByRole("menuitem", { name: "Profile" }));
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /dana lee/i })).toHaveFocus();
   });
 
   it("Settings sits between Profile and Log out, pointing at /account/settings", async () => {
