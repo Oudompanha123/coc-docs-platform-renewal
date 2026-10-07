@@ -345,3 +345,16 @@ describe("AX Renewal docs overview", () => {
     expect(screen.getByRole("link", { name: "AX Renewal" })).toHaveAttribute("href", "/ax-renewal");
   });
 });
+
+describe("Usage docs overview", () => {
+  it("Get Started opens the Setup guide every reader can open, not the admin-only dashboard", () => {
+    const overview = SEED_CONTENT[contentId("usage", "")];
+    if (overview?.kind !== "hero") throw new Error("expected the Usage overview to be a hero");
+
+    render(<ContentRenderer content={overview} variant="docs" />);
+
+    expect(screen.getByRole("link", { name: "Get Started" })).toHaveAttribute("href", "/docs/usage/setup-guide");
+    expect(screen.queryByRole("link", { name: "Open Claude Usage" })).not.toBeInTheDocument();
+    expect(SEED_CONTENT[contentId("usage", "setup-guide")]).toBeDefined(); // the page it points at exists
+  });
+});

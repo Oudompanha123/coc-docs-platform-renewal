@@ -34,6 +34,8 @@ import com.coc.docs.claudeusage.ClaudeUsageDashboard;
 import com.coc.docs.claudeusage.ClaudeUsageMemberUsage;
 import com.coc.docs.claudeusage.ClaudeUsageMyDashboard;
 import com.coc.docs.claudeusage.ClaudeUsageMyDashboardPoint;
+import com.coc.docs.claudeusage.ClaudeUsageScanLog;
+import com.coc.docs.claudeusage.ClaudeUsageScanLogService;
 import com.coc.docs.claudeusage.ClaudeUsageTotals;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
@@ -1380,6 +1382,104 @@ public final class ApiDtos {
     public record ClaudeUsageScanRequest(@NotBlank @Email String email) {}
 
     // -----------------------------------------------------------------------
+    // Claude Usage scan log (V66, ADR-099)
+    // -----------------------------------------------------------------------
+
+    /**
+     * {@code POST /api/ingest/scan-log}: one scan as the reporter recorded it.
+     * No {@code status} field — the backend derives it from {@code steps}.
+     * Field names match {@code claude-team-usage}'s {@code scan-log.js} exactly.
+     */
+    public record ClaudeUsageScanLogRequest(
+            @NotNull UUID scanId,
+            @NotBlank @Email String email,
+            String trigger,
+            @Size(max = 40) String cliVersion,
+            @NotNull Instant startedAt,
+            @NotNull Instant finishedAt,
+            Integer transcriptFiles,
+            Integer responses,
+            Integer duplicates,
+            Long newTokens,
+            Integer daysUploaded,
+            String uploadStatus,
+            @Size(max = 8) List<ClaudeUsageScanLogStepRequest> steps,
+            String errorStep,
+            @Size(max = 2000) String errorMessage) {
+
+        public ClaudeUsageScanLogService.Report toReport() {
+            return new ClaudeUsageScanLogService.Report(
+                    scanId, email, trigger, cliVersion, startedAt, finishedAt, transcriptFiles, responses, duplicates,
+                    newTokens, daysUploaded, uploadStatus,
+                    steps == null ? null : steps.stream()
+                            .map(s -> s == null ? null : new ClaudeUsageScanLog.Step(
+                                    s.key(), s.status(), s.at(), s.detail()))
+                            .toList(),
+                    errorStep, errorMessage);
+        }
+    }
+
+    public record ClaudeUsageScanLogStepRequest(String key, String status, Instant at, @Size(max = 2000) String detail) {}
+
+    /** A row of the View Logs table — no steps; {@link ClaudeUsageScanLogDetailResponse} carries those. */
+    public record ClaudeUsageScanLogSummaryResponse(
+            UUID id,
+            String scanRef,
+            UUID memberId,
+            String email,
+            String displayName,
+            String trigger,
+            String cliVersion,
+            Instant startedAt,
+            Instant finishedAt,
+            Instant receivedAt,
+            long durationMs,
+            String status,
+            String uploadStatus,
+            Integer transcriptFiles,
+            Integer responses,
+            Integer duplicates,
+            Long newTokens,
+            Integer daysUploaded,
+            String errorStep,
+            String errorMessage) {
+
+        public static ClaudeUsageScanLogSummaryResponse of(ClaudeUsageScanLog log) {
+            return new ClaudeUsageScanLogSummaryResponse(
+                    log.id(), log.scanRef(), log.memberId(), log.email(), log.displayName(), log.trigger(),
+                    log.cliVersion(), log.startedAt(), log.finishedAt(), log.receivedAt(), log.durationMs(),
+                    log.status(), log.uploadStatus(), log.transcriptFiles(), log.responses(), log.duplicates(),
+                    log.newTokens(), log.daysUploaded(), log.errorStep(), log.errorMessage());
+        }
+    }
+
+    public record ClaudeUsageScanLogStepResponse(String key, String status, Instant at, String detail) {}
+
+    public record ClaudeUsageScanLogDetailResponse(
+            ClaudeUsageScanLogSummaryResponse summary, List<ClaudeUsageScanLogStepResponse> steps) {
+
+        public static ClaudeUsageScanLogDetailResponse of(ClaudeUsageScanLog log) {
+            return new ClaudeUsageScanLogDetailResponse(
+                    ClaudeUsageScanLogSummaryResponse.of(log),
+                    log.steps().stream()
+                            .map(s -> new ClaudeUsageScanLogStepResponse(s.key(), s.status(), s.at(), s.detail()))
+                            .toList());
+        }
+    }
+
+    /** {@code truncated}: more scans started in the range than one response carries — narrow it. */
+    public record ClaudeUsageScanLogListResponse(
+            LocalDate from, LocalDate to, List<ClaudeUsageScanLogSummaryResponse> logs, boolean truncated) {
+
+        public static ClaudeUsageScanLogListResponse of(ClaudeUsageScanLogService.Page page) {
+            return new ClaudeUsageScanLogListResponse(
+                    page.from(), page.to(),
+                    page.logs().stream().map(ClaudeUsageScanLogSummaryResponse::of).toList(),
+                    page.truncated());
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Claude Usage ingest tokens (per-account /api/ingest credential, V35, ADR-047)
     // -----------------------------------------------------------------------
 
@@ -1885,5 +1985,94 @@ public final class ApiDtos {
     public record MySecurityResponse(String signInMethod, String email, List<SignInEventResponse> recentSignIns) {
 
         public record SignInEventResponse(String action, Instant occurredAt, String device) {}
+    }
+
+    // -----------------------------------------------------------------------
+    // Announcements (ADR-098)
+    // -----------------------------------------------------------------------
+
+    /**
+     * An announcement as an admin edits it: every field, every state.
+     *
+     * <p>{@code expired} is computed at response time rather than stored —
+     * see {@link com.coc.docs.announcement.Announcement#isExpired}.
+     */
+    public record AdminAnnouncementResponse(
+            UUID id,
+            String title,
+            String body,
+            String category,
+            String status,
+            boolean expired,
+            Instant expiresAt,
+            int versionNo,
+            Instant publishedAt,
+            String publishedByName,
+            Instant createdAt,
+            Instant updatedAt,
+            String updatedByName) {
+
+        public static AdminAnnouncementResponse of(com.coc.docs.announcement.Announcement a, boolean expired) {
+            return new AdminAnnouncementResponse(
+                    a.id(),
+                    a.title(),
+                    a.body(),
+                    a.category(),
+                    a.status(),
+                    expired,
+                    a.expiresAt(),
+                    a.versionNo(),
+                    a.publishedAt(),
+                    a.publishedByName(),
+                    a.createdAt(),
+                    a.updatedAt(),
+                    a.updatedByName());
+        }
+    }
+
+    /**
+     * An announcement as a reader sees it.
+     *
+     * <p>No status, version or editor names: a reader only ever receives a
+     * live announcement, and who wrote or last touched it is admin business.
+     */
+    public record AnnouncementResponse(
+            UUID id, String title, String body, String category, Instant publishedAt, Instant expiresAt) {
+
+        public static AnnouncementResponse of(com.coc.docs.announcement.Announcement a) {
+            return new AnnouncementResponse(
+                    a.id(), a.title(), a.body(), a.category(), a.publishedAt(), a.expiresAt());
+        }
+    }
+
+    /**
+     * Create or edit. Lengths are checked again, with reasons, by
+     * {@code AnnouncementService.validated}; these annotations are the cheap
+     * first wall against an oversized request.
+     *
+     * @param expiresAt null for "until unpublished"
+     */
+    public record AnnouncementRequest(
+            @NotBlank @Size(max = 150) String title,
+            @NotBlank @Size(max = 5000) String body,
+            String category,
+            Instant expiresAt) {
+
+        public com.coc.docs.announcement.AnnouncementService.Draft toDraft() {
+            return new com.coc.docs.announcement.AnnouncementService.Draft(title, body, category, expiresAt);
+        }
+    }
+
+    /** An edit names the version it was made against, so a stale one is refused (409). */
+    public record UpdateAnnouncementRequest(
+            @NotBlank @Size(max = 150) String title,
+            @NotBlank @Size(max = 5000) String body,
+            String category,
+            Instant expiresAt,
+            @NotNull Integer versionNo) {
+
+        public com.coc.docs.announcement.AnnouncementService.Draft toDraft() {
+            return new com.coc.docs.announcement.AnnouncementService.Draft(title, body, category, expiresAt);
+        }
     }
 }

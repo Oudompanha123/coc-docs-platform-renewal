@@ -128,7 +128,7 @@ export async function send(url, token, payload, opts = {}) {
   try {
     return await postOnce(url, token, payload, options);
   } catch (error) {
-    if (!(error instanceof UploadError) || !error.transient) throw error;
+    if (!(error instanceof UploadError) || !error.transient || options.retry === false) throw error;
     options.onRetry?.(error);
     await new Promise((resolve) => setTimeout(resolve, options.retryDelayMs));
     return postOnce(url, token, payload, options);

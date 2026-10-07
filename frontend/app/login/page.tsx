@@ -140,6 +140,16 @@ function LoginForm() {
     if (step === "otp") document.getElementById("login-otp-code")?.focus();
   }, [step]);
 
+  // Ready for the next try after a rejected code: focused, old code selected
+  // so typing replaces it. Waits for the field to be re-enabled — focusing it
+  // while still disabled (mid-request) is silently ignored by the browser.
+  useEffect(() => {
+    if (otpError && !isVerifyingOtp) {
+      otpInputRef.current?.focus();
+      otpInputRef.current?.select();
+    }
+  }, [otpError, isVerifyingOtp]);
+
   // A ref, not state: guards against a second click landing between the
   // first click and the state update that disables the button (React state
   // updates are async; this check is synchronous).
@@ -225,12 +235,6 @@ function LoginForm() {
       router.push(destinationFor(account));
     } catch (err) {
       setOtpError(err instanceof Error ? err.message : "Couldn't verify that code. Please try again.");
-      // Ready for the next try: the field is focused with the old code
-      // selected, so typing replaces it.
-      requestAnimationFrame(() => {
-        otpInputRef.current?.focus();
-        otpInputRef.current?.select();
-      });
     } finally {
       otpInFlight.current = false;
       setIsVerifyingOtp(false);

@@ -22,6 +22,7 @@ import {
   ChevronDownIcon,
   LogOutIcon,
   AuditIcon,
+  MegaphoneIcon,
   MenuIcon,
   MoonIcon,
   PersonIcon,
@@ -31,6 +32,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProfileModal } from "./ProfileModal";
+import { AnnouncementModal } from "@/components/announcements/AnnouncementModal";
 import { Spinner } from "./Spinner";
 import { useShell } from "@/lib/layout/ShellContext";
 
@@ -107,6 +109,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     // is its own full-screen app, not a page of this shell (ADR-075).
     onOpenProject: (projectId) =>
       window.open(`/ax-renewal?project=${encodeURIComponent(projectId)}`, "_blank", "noopener,noreferrer"),
+    onOpenAnnouncement: (announcementId) => setOpenAnnouncement(announcementId),
   });
   const visibleNotifications =
     notificationFilter === "unread"
@@ -142,6 +145,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // the button that ends it. Same reasoning: the answer to "was that you?"
   // belongs where the question was asked.
   const [reviewingSignIn, setReviewingSignIn] = useState<SessionSummary | null>(null);
+  // The announcement a bell row was clicked to open (ADR-098). Just the id:
+  // the modal fetches the current text itself.
+  const [openAnnouncement, setOpenAnnouncement] = useState<string | null>(null);
   // The HRMS report a feed row was clicked to open. Held here only while the
   // dialog is up; the report itself never reaches this component (ADR-042).
   const [openReport, setOpenReport] = useState<ActivityItem | null>(null);
@@ -309,6 +315,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         // the one thing nobody knows yet.
                         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
                           <ShieldIcon className="h-4 w-4" />
+                        </span>
+                      ) : n.type === "announcement.published" ? (
+                        // Nobody's face: an announcement is from the team, not
+                        // a person the reader needs to recognise.
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
+                          <MegaphoneIcon className="h-4 w-4" />
                         </span>
                       ) : (
                         <ApplicantAvatar
@@ -560,6 +572,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     )}
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
+
+    {openAnnouncement && <AnnouncementModal id={openAnnouncement} onClose={() => setOpenAnnouncement(null)} />}
     </div>
   );
 }

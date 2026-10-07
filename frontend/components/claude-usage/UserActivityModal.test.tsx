@@ -316,4 +316,39 @@ describe("UserActivityModal", () => {
     // After the fade-out, not instantly.
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
+
+  it("offers Remove in the header, with no Active badge", async () => {
+    const onRemove = vi.fn();
+    render(<UserActivityModal member={MEMBER} avatarColor="#4c6ff0" onClose={vi.fn()} onRemove={onRemove} />);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByText("Active")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
+    expect(onRemove).toHaveBeenCalledWith(MEMBER);
+  });
+
+  it("a removed member shows Removed, with nothing to click", () => {
+    render(
+      <UserActivityModal member={{ ...MEMBER, status: "removed" }} avatarColor="#4c6ff0" onClose={vi.fn()} onRemove={vi.fn()} />,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(within(dialog).getAllByText("Removed").length).toBeGreaterThan(0);
+  });
+
+  it("saves a soft-budget override from the popup on Enter, and empty means the default", () => {
+    const onBudgetChange = vi.fn();
+    render(<UserActivityModal member={MEMBER} avatarColor="#4c6ff0" onClose={vi.fn()} onBudgetChange={onBudgetChange} />);
+    const input = within(screen.getByRole("dialog")).getByRole("spinbutton", { name: /Soft budget for/ });
+    expect(input).toHaveAttribute("placeholder", "Default (1.2M)");
+
+    fireEvent.change(input, { target: { value: "2000000" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.blur(input);
+    expect(onBudgetChange).toHaveBeenCalledWith(MEMBER, 2_000_000);
+  });
+
+  it("no budget field without a handler", () => {
+    renderModal();
+    expect(within(screen.getByRole("dialog")).queryByRole("spinbutton", { name: /Soft budget for/ })).not.toBeInTheDocument();
+  });
 });

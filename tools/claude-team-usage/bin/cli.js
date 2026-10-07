@@ -144,6 +144,7 @@ async function main(argv) {
         // Anything but the scheduled task itself — Git Bash too, where stderr
         // is no TTY — checks the task exists and runs this installation.
         scheduled: opts.scheduled,
+        cliVersion: version,
       });
       return result.outcome;
     }
