@@ -55,6 +55,13 @@ const POLL_INTERVAL_MS = 60_000;
 const FEED_LIMIT = 20;
 
 /** Per account — one browser is regularly two people. */
+/**
+ * How many read marks are kept in storage beyond what is on screen. Ten times
+ * the window: plenty for a row to drop out and come back, small enough that
+ * the stored list stays a few kilobytes.
+ */
+const READ_MARK_CAP = FEED_LIMIT * 10;
+
 const STORAGE_PREFIX = "coc.activity.read.";
 
 export type ActivityItem = NotificationItem & { read: boolean };
@@ -140,20 +147,26 @@ export function useActivityFeed(): ActivityFeed {
       const next = await listNotifications(FEED_LIMIT);
       setItems(next);
 
-      // Prune to what is still in the window. The feed is newest-first and
-      // capped, so an id that has fallen out of it will never be rendered
-      // again and its mark is dead weight — without this the stored list grows
-      // for as long as the account exists.
+      // Bounded, not pruned to the window. This used to drop every mark whose
+      // id was not in the current twenty, on the reasoning that a newest-first
+      // feed never shows an older row again — but it does: the server reserves
+      // a share of the list for HRMS reports (NotificationFeedService), so a
+      // day with fewer reports hands those slots back to older activity, and
+      // rows already read came back unread. Marks for what is on screen are
+      // always kept; beyond that the most recent READ_MARK_CAP are, which
+      // still stops the stored list growing for as long as the account exists.
       const live = new Set(next.map((item) => item.id));
-      const kept = new Set([...readRef.current].filter((id) => live.has(id)));
-      if (kept.size !== readRef.current.size) {
-        apply(kept, accountId);
+      const current = [...readRef.current];
+      if (current.length > READ_MARK_CAP) {
+        const offScreen = current.filter((id) => !live.has(id));
+        const keepOffScreen = new Set(offScreen.slice(-(READ_MARK_CAP - live.size)));
+        apply(new Set(current.filter((id) => live.has(id) || keepOffScreen.has(id))), accountId);
       }
     } catch {
-      // This drives the topbar, which is on every page. An empty panel is
-      // wrong but harmless; a thrown error in a layout component takes the
-      // whole page down.
-      setItems([]);
+      // Keep what is on screen. This used to empty the panel, so one failed
+      // poll turned a list of read and unread rows into "Nothing recent".
+      // Never rethrown: this drives the topbar, which is on every page, and a
+      // thrown error in a layout component takes the whole page down.
     }
   }, [signedIn, accountId, apply]);
 

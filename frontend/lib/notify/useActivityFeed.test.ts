@@ -140,20 +140,61 @@ describe("useActivityFeed", () => {
       expect(second.result.current.count).toBe(2);
     });
 
-    it("are pruned to the feed window, so the list cannot grow forever", async () => {
+    it("survive a row dropping out of the window and coming back", async () => {
       const { result } = renderHook(() => useActivityFeed());
       await waitFor(() => expect(result.current.items).toHaveLength(2));
       act(() => result.current.markAllRead());
-      expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toHaveLength(2);
 
-      // a1 and a2 have aged out. A newest-first list can never show them
-      // again, so keeping their marks is dead weight.
-      listNotifications.mockResolvedValue([event("a9")]);
+      // The server hands a slot to an HRMS report, pushing a2 out...
+      listNotifications.mockResolvedValue([event("hrms:7"), event("a1")]);
+      await act(async () => {
+        await result.current.refresh();
+      });
+      // ...and gives it back the next day. It was read; it must still be.
+      listNotifications.mockResolvedValue([event("a1"), event("a2")]);
       await act(async () => {
         await result.current.refresh();
       });
 
-      expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual([]);
+      expect(result.current.items.find((i) => i.id === "a2")?.read).toBe(true);
+    });
+
+    it("are bounded, so the stored list cannot grow forever", async () => {
+      const { result } = renderHook(() => useActivityFeed());
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+      // Far more marks than the cap, every one off screen but the last two.
+      for (let batch = 0; batch < 12; batch++) {
+        const page = Array.from({ length: 20 }, (_, i) => event(`b${batch}-${i}`));
+        listNotifications.mockResolvedValue(page);
+        await act(async () => {
+          await result.current.refresh();
+        });
+        act(() => result.current.markAllRead());
+      }
+      await act(async () => {
+        await result.current.refresh();
+      });
+
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as string[];
+      expect(stored.length).toBeLessThanOrEqual(200);
+      // What is on screen keeps its marks whatever the cap.
+      expect(result.current.count).toBe(0);
+    });
+
+    it("keep the list on screen when a refresh fails", async () => {
+      const { result } = renderHook(() => useActivityFeed());
+      await waitFor(() => expect(result.current.items).toHaveLength(2));
+      act(() => result.current.markRead("a1"));
+
+      listNotifications.mockRejectedValue(new Error("network down"));
+      await act(async () => {
+        await result.current.refresh();
+      });
+
+      // It used to empty, reading as "Nothing recent" over unread rows.
+      expect(result.current.items.map((i) => i.id)).toEqual(["a1", "a2"]);
+      expect(result.current.count).toBe(1);
     });
 
     it("do not throw the topbar down when storage is unavailable", async () => {
