@@ -60,9 +60,57 @@ export function minutesLate(scheduled: string, actual: string): number | null {
  * hold more than the table beside it shows (same reasoning as
  * `export-users.ts`'s own filtered export).
  */
-export function filterAttendanceRows(rows: HrmsAttendanceRow[], search: string): HrmsAttendanceRow[] {
+export function filterAttendanceRows(
+  rows: HrmsAttendanceRow[],
+  search: string,
+  status: AttendanceStatusFilter = {},
+): HrmsAttendanceRow[] {
   const q = search.trim().toLowerCase();
-  return q.length === 0 ? rows : rows.filter((r) => r.name.toLowerCase().includes(q));
+  return rows.filter((r) => {
+    if (q.length > 0 && !r.name.toLowerCase().includes(q)) return false;
+    if (status.out && statusKind(r.yesterdayCheckOut.status) !== status.out) return false;
+    if (status.in && statusKind(r.todayCheckIn.status) !== status.in) return false;
+    return true;
+  });
+}
+
+/**
+ * The two status columns, filtered independently.
+ *
+ * <p>Independently and not as one control, because the columns answer
+ * different questions — "who did not check out last night" and "who was late
+ * in this morning" — and the useful queries combine them: a missed check-out
+ * *and* a late check-in is a different conversation from either alone.
+ *
+ * <p>Absent or null means "any", so an unset filter is the same shape as no
+ * filter at all and the Export button can pass whatever the table has without
+ * special-casing.
+ */
+export interface AttendanceStatusFilter {
+  out?: StatusKind | null;
+  in?: StatusKind | null;
+}
+
+/**
+ * The status kinds actually present in these rows, in a fixed order.
+ *
+ * <p>Offering a filter that cannot match anything is worse than offering
+ * fewer: somebody picks "Missed", sees an empty table, and cannot tell whether
+ * the filter is broken or the day was simply clean. This makes the options
+ * describe the data in front of them.
+ *
+ * <p>"other" is included only when something really did not parse as one of
+ * the three known kinds — it is the escape hatch {@link statusKind} keeps for
+ * wording HRMS has not used before, and it should stay invisible until it
+ * happens.
+ */
+export function statusKindsPresent(rows: HrmsAttendanceRow[], column: "out" | "in"): StatusKind[] {
+  const order: StatusKind[] = ["normal", "late", "missed", "other"];
+  const seen = new Set<StatusKind>();
+  for (const row of rows) {
+    seen.add(statusKind(column === "out" ? row.yesterdayCheckOut.status : row.todayCheckIn.status));
+  }
+  return order.filter((k) => seen.has(k));
 }
 
 export interface AttendanceStats {
