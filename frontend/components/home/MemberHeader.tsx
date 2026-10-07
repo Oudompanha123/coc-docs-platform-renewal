@@ -15,7 +15,6 @@ import {
   LayersIcon,
   LogOutIcon,
   MailIcon,
-  MegaphoneIcon,
   PersonIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
@@ -23,6 +22,7 @@ import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
 import { AnnouncementModal } from "@/components/announcements/AnnouncementModal";
+import { AnnouncementBellIcon } from "@/components/announcements/AnnouncementBellIcon";
 import { ProfilePopup } from "@/components/home/ProfilePopup";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
@@ -483,9 +483,7 @@ export function MemberHeader({
                         }`}
                       >
                         {n.type === "announcement.published" && (
-                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
-                            <MegaphoneIcon className="h-4 w-4" />
-                          </span>
+                          <AnnouncementBellIcon category={n.category} className="mt-0.5" />
                         )}
                         <span className="min-w-0 flex-1">
                           <span
