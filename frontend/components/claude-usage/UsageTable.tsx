@@ -23,10 +23,8 @@ function formatCost(n: number): string {
  *
  *  Reference-tool parity: only people who actually reported tokens in the
  *  selected period appear here, same as the original tool's UserTable —
- *  someone tracked but quiet this period simply isn't a row. Role/Remove and
- *  budget-override management for the full roster (including anyone with no
- *  activity this period) live in {@link TeamRosterPanel} and
- *  {@link BudgetOverridesPanel} instead, which are period-independent. */
+ *  someone tracked but quiet this period simply isn't a row. Remove and the
+ *  soft-budget override live in the row's detail popup (UserActivityModal). */
 export function UsageTable({
   members,
   emptyMessage = "No usage reported by anyone in this period.",

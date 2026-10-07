@@ -10,9 +10,8 @@ import {
   UsersIcon,
   WarningIcon,
 } from "@/components/layout/icons";
-import { BudgetOverridesPanel } from "@/components/claude-usage/BudgetOverridesPanel";
+import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
-import { TeamRosterPanel } from "@/components/claude-usage/TeamRosterPanel";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { UsageTable } from "@/components/claude-usage/UsageTable";
@@ -128,9 +127,11 @@ export function AdminClaudeUsageView() {
 
   const closeDetail = useCallback(() => setDetail(null), []);
 
-  function handleRemove(member: ClaudeUsageMember) {
+  // From the detail popup: close it first, so the confirmation is the only dialog on screen.
+  const handleRemove = useCallback((member: ClaudeUsageMember) => {
+    setDetail(null);
     setRemoveTarget(member);
-  }
+  }, []);
 
   function handleConfirmRemove(member: ClaudeUsageMember) {
     setRemoveTarget(null);
@@ -153,6 +154,8 @@ export function AdminClaudeUsageView() {
       pageSubtitle="Track opt-in Claude Code usage and estimated API-equivalent cost across your team"
       titleIcon={TITLE_ICON}
     >
+      <ClaudeUsageTabs />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex items-center gap-1 self-start rounded-[10px] border border-border bg-white p-1 shadow-sm">
           <button
@@ -258,10 +261,6 @@ export function AdminClaudeUsageView() {
             <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
             <UsageTable members={members} onSelect={(member, avatarColor) => setDetail({ member, avatarColor })} />
           </div>
-
-          <TeamRosterPanel members={members} onRemove={handleRemove} />
-
-          <BudgetOverridesPanel members={members} onOverrideChange={handleBudgetOverrideChange} />
         </>
       )}
 
@@ -270,6 +269,8 @@ export function AdminClaudeUsageView() {
           member={members.find((m) => m.id === detail.member.id) ?? detail.member}
           avatarColor={detail.avatarColor}
           onClose={closeDetail}
+          onRemove={handleRemove}
+          onBudgetChange={handleBudgetOverrideChange}
         />
       )}
 
