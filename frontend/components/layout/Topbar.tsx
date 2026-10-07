@@ -22,7 +22,6 @@ import {
   ChevronDownIcon,
   LogOutIcon,
   AuditIcon,
-  MegaphoneIcon,
   MenuIcon,
   MoonIcon,
   PersonIcon,
@@ -33,6 +32,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProfileModal } from "./ProfileModal";
 import { AnnouncementModal } from "@/components/announcements/AnnouncementModal";
+import { AnnouncementBellIcon } from "@/components/announcements/AnnouncementBellIcon";
 import { Spinner } from "./Spinner";
 import { useShell } from "@/lib/layout/ShellContext";
 
@@ -318,10 +318,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         </span>
                       ) : n.type === "announcement.published" ? (
                         // Nobody's face: an announcement is from the team, not
-                        // a person the reader needs to recognise.
-                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple">
-                          <MegaphoneIcon className="h-4 w-4" />
-                        </span>
+                        // a person the reader needs to recognise. Its
+                        // category's icon instead.
+                        <AnnouncementBellIcon category={n.category} className="mt-0.5" />
                       ) : (
                         <ApplicantAvatar
                           name={n.subjectName ?? n.title}

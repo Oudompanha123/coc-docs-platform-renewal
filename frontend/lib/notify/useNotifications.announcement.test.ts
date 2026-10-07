@@ -93,6 +93,8 @@ describe("useNotifications — an announcement reaches every reader's bell (ADR-
     await waitFor(() => expect(result.current.items).toHaveLength(1));
     expect(result.current.items[0]?.title).toBe("Announcement");
     expect(result.current.items[0]?.detail).toBe("Maintenance on Friday");
+    // Drives the bell's per-category icon.
+    expect(result.current.items[0]?.category).toBe("maintenance");
   });
 
   it("falls back to the fixed sentence when the row carries no title", async () => {
