@@ -15,11 +15,23 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src
 
+# Retries and a connection TTL, because this builds over a slow link: an
+# `npm ci` on the same host takes twenty minutes, and Maven was giving up on
+# transfers rather than finishing them. Three attempts turns a dropped
+# connection into a pause instead of a failed deploy.
+#
+# Not `-q` on either Maven run. Quiet keeps the ERROR lines but drops the
+# line above them that names the artifact, which is the only line worth
+# having when a deploy fails on a dependency.
+ENV MAVEN_OPTS="-Dmaven.wagon.http.retryHandler.count=3 \
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
+    -Dmaven.wagon.rto=120000"
+
 # The pom alone first, so that `go-offline` is cached against it. Copying the
 # sources at the same time would re-download every dependency whenever any
 # source file changed, which on this project is most builds.
 COPY backend/pom.xml ./
-RUN mvn -B -q dependency:go-offline
+RUN mvn -B dependency:go-offline
 
 COPY backend/src ./src
 
@@ -28,7 +40,11 @@ COPY backend/src ./src
 # would need docker-in-docker for no benefit, because the same tests run in CI
 # where they belong. A deployment build compiles a commit that was already
 # tested — it is not the place to find out.
-RUN mvn -B -q -DskipTests package
+#
+# `go-offline` does not actually fetch everything — plugins and some
+# test-scoped transitives are resolved here instead — so this step still
+# needs the network, which is why it is the one that failed.
+RUN mvn -B -DskipTests package
 
 # ---------------------------------------------------------------------------
 # Run
