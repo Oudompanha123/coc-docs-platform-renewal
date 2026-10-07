@@ -118,6 +118,14 @@ function render(n: InboxNotification): { title: string; detail: string } {
         title: "Run reviewed",
         detail: body || "Your AX Renewal implementation run was reviewed",
       };
+    // ADR-098. The title rides in the payload for the bell only — the push
+    // that went with it carried the fixed `body`. Opening it fetches the
+    // current text, so an edit made after publishing is what is read.
+    case "announcement.published":
+      return {
+        title: "Announcement",
+        detail: typeof n.payload.title === "string" && n.payload.title ? n.payload.title : body || "There is a new announcement",
+      };
     default:
       return { title: "Notification", detail: body || "Something happened" };
   }
@@ -240,6 +248,13 @@ export function useNotifications(
      * can never be added to a project.
      */
     onOpenProject?: (projectId: string) => void;
+    /**
+     * Called with the announcement's id when an announcement notification is
+     * opened (ADR-098). The caller shows it — both headers mount the same
+     * `AnnouncementModal`, which fetches the current text and says so plainly
+     * if it has been withdrawn since.
+     */
+    onOpenAnnouncement?: (announcementId: string) => void;
   } = {},
 ): Notifications {
   // Refs so the polling effect does not restart every render just because the
@@ -250,6 +265,8 @@ export function useNotifications(
   onOpenSignIn.current = options.onOpenSignIn;
   const onOpenProject = useRef(options.onOpenProject);
   onOpenProject.current = options.onOpenProject;
+  const onOpenAnnouncement = useRef(options.onOpenAnnouncement);
+  onOpenAnnouncement.current = options.onOpenAnnouncement;
 
   const { status, refresh: refreshSession } = useSession();
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -281,6 +298,11 @@ export function useNotifications(
       item.type === "ax-renewal.run-reviewed"
     ) {
       onOpenProject.current?.(item.targetId);
+      return;
+    }
+    // No lookup here either: the modal's own fetch is the check.
+    if (item.type === "announcement.published") {
+      onOpenAnnouncement.current?.(item.targetId);
       return;
     }
     try {
@@ -385,7 +407,7 @@ export function useNotifications(
   }, []);
 
   // A notification clicked while the app was closed lands here, as
-  // ?approve=<id> or ?session=<id> on whatever page the service worker
+  // ?approve=<id>, ?session=<id> or ?announcement=<id> (ADR-098) on whatever page the service worker
   // opened. Acted on once the inbox has loaded; the parameter is then removed
   // so a refresh does not reopen it.
   useEffect(() => {
@@ -394,13 +416,15 @@ export function useNotifications(
     const url = new URL(window.location.href);
     const wantedSession = url.searchParams.get("session");
     const wantedAccount = url.searchParams.get("approve");
-    if (!wantedSession && !wantedAccount) return;
+    const wantedAnnouncement = url.searchParams.get("announcement");
+    if (!wantedSession && !wantedAccount && !wantedAnnouncement) return;
 
-    const wanted = wantedSession ?? wantedAccount;
+    const wanted = wantedSession ?? wantedAccount ?? wantedAnnouncement;
     const item = items.find((n) => n.targetId === wanted);
 
     url.searchParams.delete("session");
     url.searchParams.delete("approve");
+    url.searchParams.delete("announcement");
     window.history.replaceState({}, "", url.toString());
 
     if (item) void open(item);
