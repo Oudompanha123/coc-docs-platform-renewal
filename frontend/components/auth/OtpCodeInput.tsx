@@ -36,7 +36,14 @@ export const OtpCodeInput = forwardRef<
   const activeIndex = Math.min(value.length, LENGTH - 1);
 
   function handle(raw: string) {
-    const digits = raw.replace(/\D/g, "").slice(0, LENGTH);
+    let digits = raw.replace(/\D/g, "");
+    // A full code is already in (say, one just rejected) and more digits
+    // arrive after it: they start the next code. Cutting to the first six
+    // would keep the old code and silently drop every new keystroke.
+    if (value.length === LENGTH && digits.length > LENGTH && digits.startsWith(value)) {
+      digits = digits.slice(LENGTH);
+    }
+    digits = digits.slice(0, LENGTH);
     onChange(digits);
     if (digits.length === LENGTH && digits !== value) onComplete?.(digits);
   }

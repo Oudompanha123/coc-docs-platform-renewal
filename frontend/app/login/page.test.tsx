@@ -440,6 +440,28 @@ describe("LoginPage TOTP second factor", () => {
     expect(field).not.toHaveAttribute("aria-invalid");
   });
 
+  it("lets a new code be typed straight over a rejected one", async () => {
+    loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
+    verifyMfaLogin.mockRejectedValueOnce(new Error("That code is incorrect."));
+    verifyMfaLogin.mockResolvedValueOnce({ id: "1", email: "person@example.com", displayName: "Person Example", role: "user", mustChangePassword: false });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await submitPassword(user);
+
+    const field = await screen.findByLabelText("Authentication Code");
+    await user.type(field, "121211");
+    await screen.findByText("That code is incorrect.");
+    // Focus comes back once the request settles, so the next code needs no click.
+    await waitFor(() => expect(field).toHaveFocus());
+
+    // The caret sits after the old code (no selection): the new digits must
+    // still replace it rather than be dropped.
+    await user.type(field, "654321", { initialSelectionStart: 6, initialSelectionEnd: 6 });
+
+    expect(field).toHaveValue("654321");
+    await waitFor(() => expect(verifyMfaLogin).toHaveBeenLastCalledWith("654321"));
+  });
+
   it("returns to the credentials step via Back to login", async () => {
     loginWithPassword.mockRejectedValue(new MfaRequiredError("Enter the 6-digit code from your authenticator app."));
     const user = userEvent.setup();

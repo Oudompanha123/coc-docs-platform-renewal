@@ -97,6 +97,16 @@ export default function RegisterPage() {
     return () => clearInterval(timer);
   }, [step]);
 
+  // Ready for the next try after a rejected code: focused, old code selected
+  // so typing replaces it. Waits for the field to be re-enabled — focusing it
+  // while still disabled (mid-request) is silently ignored by the browser.
+  useEffect(() => {
+    if (codeError && !isVerifying) {
+      codeInputRef.current?.focus();
+      codeInputRef.current?.select();
+    }
+  }, [codeError, isVerifying]);
+
   function validate() {
     const next: FormErrors = {};
     if (!fullName.trim()) next.fullName = "Enter your full name.";
@@ -165,12 +175,6 @@ export default function RegisterPage() {
       // Expired, incorrect, or too many attempts are distinct, backend-authored
       // messages safe to show as-is (RegistrationOtpService.verify, ADR-021).
       setCodeError(err instanceof AuthApiError ? err.message : "Couldn't verify that code. Please try again.");
-      // Ready for the next try: focused, with the old code selected so typing
-      // replaces it.
-      requestAnimationFrame(() => {
-        codeInputRef.current?.focus();
-        codeInputRef.current?.select();
-      });
     } finally {
       verifyInFlight.current = false;
       setIsVerifying(false);
