@@ -10,7 +10,7 @@ import {
   markNotificationRead,
   type InboxNotification,
 } from "@/lib/notify/inbox-api";
-import { ensureBackgroundPushRegistered, isNotificationsEnabled } from "@/lib/notify/push";
+import { ensureBackgroundPushRegistered, isNotificationsEnabled, NOTIFICATION_ICON } from "@/lib/notify/push";
 import { subscribeToNotifications } from "@/lib/notify/stream";
 
 /**
@@ -53,6 +53,12 @@ export type NotificationItem = {
   iconUrl: string | null;
   /** The applicant's name, when this is about one — for the avatar's initials. */
   subjectName: string | null;
+  /**
+   * An announcement's category (`info` / `update` / `maintenance` /
+   * `important`, ADR-098), for the bell's per-category icon. Null for every
+   * other type, and for an announcement row stored before it was recorded.
+   */
+  category: string | null;
 };
 
 export type Notifications = {
@@ -149,6 +155,7 @@ function toItem(n: InboxNotification): NotificationItem {
     targetId: n.targetId,
     iconUrl: typeof n.payload.iconUrl === "string" ? n.payload.iconUrl : null,
     subjectName: typeof n.payload.subjectName === "string" ? n.payload.subjectName : null,
+    category: typeof n.payload.category === "string" ? n.payload.category : null,
   };
 }
 
@@ -217,7 +224,11 @@ function alertBrowser(item: NotificationItem, onClick: () => void) {
     }
     const banner = new Notification(item.title, {
       body: item.detail,
-      icon: item.iconUrl ?? (item.subjectName ? initialsIcon(item.subjectName) : undefined),
+      // Somebody's picture when the notification is about a person, their
+      // initials when they have none, and otherwise the system's own logo —
+      // never the browser's generic default, which says nothing about where
+      // the banner came from.
+      icon: item.iconUrl ?? (item.subjectName ? initialsIcon(item.subjectName) : NOTIFICATION_ICON),
       tag: item.type,
     });
 

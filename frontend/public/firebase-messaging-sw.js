@@ -42,11 +42,11 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title ?? "Coc Docs Platform";
   self.registration.showNotification(title, {
     body: payload.notification?.body ?? "",
-    // The applicant picture when the provider gave one. A password
-    // registration has none, and an app logo would say nothing about who this
-    // is — so the banner simply goes without rather than showing a mark the
-    // reader learns to ignore.
-    icon: payload.data?.icon || undefined,
+    // The subject's picture when there is one (an applicant with a provider
+    // photo); otherwise the system's own logo, so the banner says where it
+    // came from instead of showing the browser's generic default icon. Same
+    // path as NOTIFICATION_ICON in lib/notify/push.ts.
+    icon: payload.data?.icon || "/notification-icon.png",
     // Collapses repeats: five registrations while the browser is closed
     // replace one another rather than stacking five identical banners. The
     // count is wrong either way — the queue is the authority — and one
