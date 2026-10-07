@@ -15,16 +15,23 @@ export interface InboxNotification {
   id: string;
   /** `NotificationType.key()` — "auth.new-device", "registration.pending", "ax-renewal.member-added", "ax-renewal.run-ready", "ax-renewal.comment-added", "ax-renewal.run-reviewed", "announcement.published". */
   type: string;
-  /** What it is about, for the deep link. Null for one about nothing in particular. */
-  targetId: string | null;
+  /**
+   * What it is about, for the deep link. Absent (or null) for one about
+   * nothing in particular — the backend omits null fields from its JSON.
+   */
+  targetId?: string | null;
   /**
    * The facts its type needs. `body` is always present, so a build that does
    * not recognise `type` still has something true to show.
    */
   payload: { body?: string; iconUrl?: string } & Record<string, unknown>;
   createdAt: string;
-  /** Null until this account has seen it. Server-side, so it follows the person. */
-  readAt: string | null;
+  /**
+   * When this account saw it; **absent** until then, because the backend
+   * omits null fields from its JSON. Test with `!= null`, never `!== null`.
+   * Server-side, so it follows the person.
+   */
+  readAt?: string | null;
 }
 
 export interface Inbox {

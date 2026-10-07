@@ -150,9 +150,13 @@ function toItem(n: InboxNotification): NotificationItem {
     type: n.type,
     title,
     detail,
-    read: n.readAt !== null,
+    // `!= null`, not `!== null`: the backend leaves null fields out of its
+    // JSON, so an unread row arrives with no `readAt` at all — `undefined`.
+    // The strict check read that as "read", so every notification counted in
+    // the badge was hidden from the Unread tab and drew no unread dot.
+    read: n.readAt != null,
     createdAt: n.createdAt,
-    targetId: n.targetId,
+    targetId: n.targetId ?? null,
     iconUrl: typeof n.payload.iconUrl === "string" ? n.payload.iconUrl : null,
     subjectName: typeof n.payload.subjectName === "string" ? n.payload.subjectName : null,
     category: typeof n.payload.category === "string" ? n.payload.category : null,
@@ -289,6 +293,22 @@ export function useNotifications(
 
   const signedIn = status === "authenticated";
 
+  // The list as last rendered, for markRead to ask "was this unread?" without
+  // a state updater that would run twice under StrictMode.
+  const itemsRef = useRef<NotificationItem[]>(items);
+  itemsRef.current = items;
+
+  /**
+   * Bumped by every local read (one row or all). A refresh remembers the
+   * value it started with and throws its answer away if that value has moved:
+   * the server answered before the write landed, so its read state is older
+   * than what the person is looking at. Without this, a poll or stream
+   * refresh in flight during a click put the row straight back into "Unread"
+   * — and, the Unread tab being live, back in front of the person — until the
+   * next poll a minute later.
+   */
+  const readEpoch = useRef(0);
+
   /**
    * Finds what an item is about and opens the dialog for it.
    *
@@ -342,8 +362,12 @@ export function useNotifications(
       setUnreadCount(0);
       return;
     }
+    const startedAt = readEpoch.current;
     try {
       const inbox = await fetchInbox();
+      // Stale: a read happened while this was in flight. The write's own
+      // follow-up refresh (markRead / markAllRead) brings the true state.
+      if (readEpoch.current !== startedAt) return;
       const next = inbox.items.map(toItem);
       setItems(next);
       setUnreadCount(inbox.unreadCount);
@@ -368,12 +392,16 @@ export function useNotifications(
         // session state and RequireSession knows what to do when it turns
         // anonymous.
         void refreshSession();
+        setItems([]);
+        setUnreadCount(0);
+        return;
       }
-      // Anything else: the bell keeps what it had. This drives the topbar on
-      // every page, and a thrown error in a layout component takes the page
-      // down.
-      setItems([]);
-      setUnreadCount(0);
+      // Anything else — the network blinked, the server restarted — the bell
+      // keeps what it had, as this comment always said it did. It used to
+      // empty the list and zero the badge instead, so one failed poll showed
+      // "You're all caught up" over notifications that were still unread.
+      // Never rethrown: this drives the topbar on every page, and a thrown
+      // error in a layout component takes the page down.
     }
   }, [signedIn, refreshSession, open]);
 
@@ -400,22 +428,39 @@ export function useNotifications(
     };
   }, [refresh, signedIn]);
 
-  const markRead = useCallback((id: string) => {
-    // Optimistic: the row is already read from the reader's point of view, and
-    // making them watch a round trip to see a dot disappear would be worse
-    // than being briefly wrong. The next poll corrects it either way.
-    setItems((prev) =>
-      prev.map((item) => (item.id === id && !item.read ? { ...item, read: true } : item)),
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-    void markNotificationRead(id);
-  }, []);
+  const markRead = useCallback(
+    (id: string) => {
+      // Both headers call this on every click, read rows included. Only an
+      // unread row changes anything: decrementing for one already read made
+      // the badge drift below the real count each time somebody reopened an
+      // old notification from "All".
+      const target = itemsRef.current.find((item) => item.id === id);
+      if (!target || target.read) return;
+
+      // Optimistic: the row is already read from the reader's point of view,
+      // and making them watch a round trip to see a dot disappear would be
+      // worse than being briefly wrong.
+      readEpoch.current += 1;
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      // Then the server's word, once the write has landed — which also puts
+      // the row back if the write failed, rather than leaving a read dot the
+      // server never heard about.
+      void markNotificationRead(id)
+        .catch(() => undefined)
+        .then(() => refresh());
+    },
+    [refresh],
+  );
 
   const markAllRead = useCallback(() => {
+    readEpoch.current += 1;
     setItems((prev) => prev.map((item) => ({ ...item, read: true })));
     setUnreadCount(0);
-    void markAllNotificationsRead();
-  }, []);
+    void markAllNotificationsRead()
+      .catch(() => undefined)
+      .then(() => refresh());
+  }, [refresh]);
 
   // A notification clicked while the app was closed lands here, as
   // ?approve=<id>, ?session=<id> or ?announcement=<id> (ADR-098) on whatever page the service worker
