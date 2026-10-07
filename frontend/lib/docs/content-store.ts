@@ -827,8 +827,9 @@ export const SEED_CONTENT: Partial<Record<string, DocContent>> = {
     heading: "Usage",
     tagline: "Track your team's Claude Code token usage in one place.",
     subline: "Token counts, API-equivalent costs, and active users — updated each time a teammate runs the reporter.",
-    ctaLabel: "Open Claude Usage",
-    ctaHref: "/claude-usage",
+    // A docs CTA, open to every reader — not the admin-only /claude-usage dashboard.
+    ctaLabel: "Get Started",
+    ctaHref: "/docs/usage/setup-guide",
     eyebrow: "Overview",
     sectionHeading: "One tool, full team visibility.",
     sectionIntro:

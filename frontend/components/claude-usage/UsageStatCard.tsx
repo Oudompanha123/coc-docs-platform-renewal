@@ -13,7 +13,7 @@ export function UsageStatCard({
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   label: string;
   value: string;
-  tone: "purple" | "blue" | "green" | "orange";
+  tone: "purple" | "blue" | "green" | "orange" | "red";
   note?: string;
 }) {
   const tileFill = {
@@ -21,6 +21,7 @@ export function UsageStatCard({
     blue: "bg-[linear-gradient(135deg,#4C6FF0,#6D3CE0)]",
     green: "bg-[linear-gradient(135deg,#20A163,#3EC98B)]",
     orange: "bg-[linear-gradient(135deg,#E8763F,#F0B429)]",
+    red: "bg-[linear-gradient(135deg,#D94F4F,#E8763F)]",
   }[tone];
 
   return (

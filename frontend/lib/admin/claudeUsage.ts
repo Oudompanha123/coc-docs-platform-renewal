@@ -351,3 +351,84 @@ export function formatLastActive(iso: string | null): string {
   if (elapsed < 2 * dayMs) return `Yesterday, ${time}`;
   return when.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
+
+// ---------------------------------------------------------------------------
+// Scan logs — the Scan Logs page (ADR-099)
+// ---------------------------------------------------------------------------
+
+/** Derived server-side from the steps. "No new usage" is `success`. */
+export type ScanStatus = "success" | "warning" | "failed";
+/** `skipped`: the step never ran, because an earlier one failed. */
+export type ScanStepStatus = ScanStatus | "skipped";
+export type ScanUploadStatus = "uploaded" | "not-needed" | "failed" | "not-attempted";
+export type ScanStepKey =
+  | "start"
+  | "find-transcripts"
+  | "parse-usage"
+  | "deduplicate"
+  | "calculate-usage"
+  | "check-new-usage"
+  | "upload"
+  | "complete";
+
+/** One `claude-team-usage scan`, as a row of the Scan Logs table. Counts are null when the scan never reached them. */
+export interface ScanLogSummary {
+  id: string;
+  /** Human-readable, e.g. `SCAN-20261007-110001-3F2A`. */
+  scanRef: string;
+  memberId: string | null;
+  email: string;
+  /** Roster display name; null when the email is not on the roster. */
+  displayName: string | null;
+  trigger: "scheduled" | "manual";
+  cliVersion: string | null;
+  /** The PC's own clock. */
+  startedAt: string;
+  finishedAt: string;
+  /** Server time on arrival — later than `finishedAt` for a record that waited in the PC's queue. */
+  receivedAt: string;
+  durationMs: number;
+  status: ScanStatus;
+  uploadStatus: ScanUploadStatus;
+  transcriptFiles: number | null;
+  responses: number | null;
+  duplicates: number | null;
+  /** Growth over what that PC had already reported — 0 for "no new usage". */
+  newTokens: number | null;
+  daysUploaded: number | null;
+  errorStep: ScanStepKey | null;
+  errorMessage: string | null;
+}
+
+export interface ScanLogStep {
+  key: ScanStepKey;
+  status: ScanStepStatus;
+  /** Null for a step that never ran. */
+  at: string | null;
+  detail: string;
+}
+
+export interface ScanLogDetail {
+  summary: ScanLogSummary;
+  /** All eight steps, in timeline order. */
+  steps: ScanLogStep[];
+}
+
+export interface ScanLogList {
+  from: string;
+  to: string;
+  /** Newest first. */
+  logs: ScanLogSummary[];
+  /** More scans started in the range than one response carries. */
+  truncated: boolean;
+}
+
+/** Scans that started on `from`..`to` (ISO dates, inclusive). */
+export function fetchScanLogs(from: string, to: string): Promise<ScanLogList> {
+  const params = new URLSearchParams({ from, to });
+  return request<ScanLogList>(`/scan-logs?${params.toString()}`);
+}
+
+export function fetchScanLogDetail(id: string): Promise<ScanLogDetail> {
+  return request<ScanLogDetail>(`/scan-logs/${encodeURIComponent(id)}`);
+}
