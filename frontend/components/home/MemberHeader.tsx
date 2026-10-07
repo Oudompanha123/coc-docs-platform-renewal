@@ -14,14 +14,14 @@ import {
   GearIcon,
   LayersIcon,
   LogOutIcon,
-  AuditIcon,
+  MailIcon,
   PersonIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
-import { ProfileModal } from "@/components/layout/ProfileModal";
+import { ProfilePopup } from "@/components/home/ProfilePopup";
 import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -196,9 +196,10 @@ function ReportsDropdown({ onClose }: { onClose: () => void }) {
 //
 // `onOpenProfile` is accepted (not required) only so existing callers that
 // still pass it down to HomeFooter's own, separate Profile trigger don't
-// need to change. This header's own "Profile" item opens its own
-// ProfileModal instead, so it works on every page that renders this header —
-// including /account/settings, which passes no callback.
+// need to change — this header's own "Profile" item opens its own
+// `ProfilePopup` (read-only), never that older, editable modal, so this
+// prop is never called from here. "Settings" still navigates to
+// /account/settings directly, same as ProfilePopup's own "Open settings".
 export function MemberHeader({
   products,
 }: {
@@ -206,8 +207,9 @@ export function MemberHeader({
   onOpenProfile?: () => void;
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
+  const userChipRef = useRef<HTMLButtonElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
   const reportsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -495,7 +497,7 @@ export function MemberHeader({
               active={openMenu === "mail"}
               onClick={() => toggleMenu("mail")}
             >
-              <AuditIcon className="h-5 w-5" />
+              <MailIcon className="h-5 w-5" />
             </CountIcon>
 
             {openMenu === "mail" && (
@@ -585,6 +587,7 @@ export function MemberHeader({
           {/* User chip */}
           <div className="relative ml-1">
             <button
+              ref={userChipRef}
               type="button"
               onClick={() => toggleMenu("user")}
               aria-haspopup="menu"
@@ -624,7 +627,7 @@ export function MemberHeader({
                     role="menuitem"
                     onClick={() => {
                       setOpenMenu(null);
-                      setShowProfile(true);
+                      setShowProfilePopup(true);
                     }}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
                   >
@@ -663,7 +666,14 @@ export function MemberHeader({
       </div>
 
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
-    {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+    {showProfilePopup && (
+      <ProfilePopup
+        onClose={() => {
+          setShowProfilePopup(false);
+          userChipRef.current?.focus();
+        }}
+      />
+    )}
     </header>
     </>
   );
