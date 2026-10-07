@@ -24,6 +24,9 @@ import { buildPayloads, candidateProjectDirs, collectDays, existingDirs, lastDay
 
 export class CliError extends Error {}
 
+/** The transcripts were read and totalled, but sending them failed — told apart from a CLI failure in the scheduled log. */
+export class UploadFailedError extends CliError {}
+
 /** Claude Code's own default transcript retention (`cleanupPeriodDays`) — older days are usually gone locally. */
 export const LOOKBACK_DAYS = 30;
 
@@ -50,6 +53,31 @@ async function credentialsFor({ dryRun, io, interactive, loginOptions }) {
   return login({ io, ...loginOptions });
 }
 
+/** `POST /api/ingest/scan` — the scan-only sibling of the ingest URL the login saved. */
+export const scanUrl = (ingestUrl) => `${String(ingestUrl).replace(/\/+$/, '')}/scan`;
+
+/**
+ * A scan that uploaded nothing (no usage, or every day already reported) still
+ * tells Coc Docs it ran, so the dashboard's "Last scan" moves while "Last
+ * reported" keeps meaning the last upload (ADR-097). Sends only the email — no
+ * usage, so nothing is duplicated. An upload records the scan time itself, so
+ * this is never sent after one. Never fails the scan: the usage is already
+ * correct on the server, and this is only the check-in time.
+ */
+async function recordScanTime({ creds, io, fetchImpl, verbose }) {
+  try {
+    const res = await send(scanUrl(creds.ingestUrl), creds.token, { email: creds.email }, {
+      bypassToken: String(process.env.VERCEL_AUTOMATION_BYPASS_SECRET ?? '').trim() || undefined,
+      fetchImpl,
+      onRetry: (e) => verbose && io.err(`[debug] scan time: first attempt failed: ${e.message} — retrying once`),
+    });
+    io.info(res.action === 'not-tracked' ? '  scan time not recorded: this account has not reported any usage yet' : '  scan time recorded');
+  } catch (error) {
+    const why = error?.status === 404 ? 'this Coc Docs server does not record scan times yet' : error.message;
+    io.err(`warning: could not record the scan time (${why}). Your usage is unaffected.`);
+  }
+}
+
 /**
  * `days` given: exactly the last N days. Otherwise: from the day before the
  * last clean scan (one day of overlap covers a session running past midnight),
@@ -70,6 +98,7 @@ export async function scan({
   verbose = false,
   io,
   interactive = false,
+  scheduled = !interactive,
   fetchImpl,
   loginOptions = {},
   now,
@@ -77,11 +106,11 @@ export async function scan({
 }) {
   const creds = await credentialsFor({ dryRun, io, interactive, loginOptions });
 
-  // A person at a terminal with a saved login (just signed in, or any later
-  // run): make sure the daily 11:00/16:00 task exists, then carry on with this
-  // scan. Only ever from a terminal — the scheduled run itself has none, so it
-  // never registers anything and never reaches the browser sign-in above.
-  if (interactive && !dryRun && creds && creds.source !== 'environment') ensureSchedule({ io });
+  // Any run a person started (a terminal, Git Bash included) with a saved
+  // login: make sure the daily 11:00/16:00 task exists and still runs this
+  // installation, then carry on with this scan. Never from the run Task
+  // Scheduler started — it does not rewrite the task it is running from.
+  if (!scheduled && !dryRun && creds && creds.source !== 'environment') ensureSchedule({ io });
 
   const candidates = candidateProjectDirs();
   const dirs = existingDirs(candidates);
@@ -122,7 +151,8 @@ export async function scan({
   if (payloads.length === 0) {
     finish();
     io.out(`no usage found for ${range}`);
-    return { sent: 0, payloads };
+    if (!dryRun && creds) await recordScanTime({ creds, io, fetchImpl, verbose });
+    return { sent: 0, payloads, outcome: 'no-usage' };
   }
 
   for (const { payload, total } of payloads) {
@@ -147,7 +177,7 @@ export async function scan({
         2,
       ),
     );
-    return { sent: 0, payloads };
+    return { sent: 0, payloads, outcome: 'dry-run' };
   }
 
   // An explicit --days backfill sends its whole window; a plain scan only what is new.
@@ -155,7 +185,8 @@ export async function scan({
   if (due.length === 0) {
     finish();
     io.out(`nothing new to report for ${range} — ${payloads.length} day(s) already up to date`);
-    return { sent: 0, payloads: due };
+    await recordScanTime({ creds, io, fetchImpl, verbose });
+    return { sent: 0, payloads: due, outcome: 'up-to-date' };
   }
 
   io.info(`uploading to ${creds.ingestUrl} as ${creds.displayName} <${creds.email}>`);
@@ -176,7 +207,7 @@ export async function scan({
       io.info(`  ${payload.date}  ${fmt(total)} tokens  ✓ ${res.action ?? 'accepted'}`);
     } catch (error) {
       const done = sent ? ` (${sent} of ${due.length} day(s) were sent before this)` : '';
-      throw new CliError(`upload failed for ${payload.date}: ${error.message}${done}`, { cause: error });
+      throw new UploadFailedError(`upload failed for ${payload.date}: ${error.message}${done}`, { cause: error });
     }
   }
   finish();
@@ -185,5 +216,5 @@ export async function scan({
   const sentRange = due.length === 1 ? due[0].payload.date : `${due[0].payload.date}..${due[due.length - 1].payload.date}`;
   io.out(`sent ${fmt(totalTokens)} tokens for ${sentRange} (${creds.displayName} <${creds.email}>)`);
   if (creds.dashboardUrl) io.out(`view it at ${creds.dashboardUrl}`);
-  return { sent, payloads: due };
+  return { sent, payloads: due, outcome: 'uploaded' };
 }

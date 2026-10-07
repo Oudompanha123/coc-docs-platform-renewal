@@ -185,6 +185,38 @@
   background-color: rgb(217 119 6 / 22%);
 }
 
+/* ProfilePopup's own "Not linked" status dot — ConnectedAccountsCard's own
+   not-linked chip above has no solid dot of its own to borrow a rule from,
+   so this is new, same recipe as every other literal-hex chip here. */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#b45309\] {
+  background-color: #fbbf24;
+}
+
+/* ProfilePopup's name heading and its three non-solid role chips (Super
+   Admin's solid #5b4fe8 fill needs no override, same reasoning as the
+   brand-purple solids above). */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#24216b\] {
+  color: #f2effa;
+}
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f3f4f6\] {
+  background-color: rgb(107 114 128 / 16%);
+}
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#374151\] {
+  color: #d1d5db;
+}
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#ecfdf5\] {
+  background-color: rgb(4 120 87 / 16%);
+}
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#047857\] {
+  color: #34d399;
+}
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#e0e7ff\] {
+  background-color: rgb(67 56 202 / 16%);
+}
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#4338ca\] {
+  color: #818cf8;
+}
+
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:text-dash-ink:hover {
   color: #f2effa;
 }
@@ -980,6 +1012,43 @@ html {
   background: #332e4d;
 }
 
+/* Every other scrollbar, on request — admin's and AX Renewal's own <main>
+   (the internal containers above only ever set width/height, never color,
+   so they fell back to the global #ccc thumb), and the document-level
+   scrollbar on /home and its siblings, which have no internal overflow
+   container of their own (min-h-screen, not h-screen/overflow-hidden), so
+   the thing that actually scrolls is <html> itself — reached here with
+   :has(), not a descendant selector, since html is an *ancestor* of
+   [data-shell="home"], never a descendant of it. Same muted-slate #332e4d
+   already used for ax-renewal's nav above, for one consistent dark
+   scrollbar everywhere rather than a different shade per shell. */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"]) main {
+  scrollbar-color: #332e4d transparent;
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"]) main::-webkit-scrollbar-thumb {
+  background: #332e4d;
+}
+
+:root[data-theme="dark"]:has([data-shell="home"]) {
+  scrollbar-color: #332e4d transparent;
+}
+
+:root[data-theme="dark"]:has([data-shell="home"])::-webkit-scrollbar-thumb {
+  background: #332e4d;
+}
+
+/* /welcome's own dark toggle is separate from the shared data-theme
+   mechanism (see WelcomePage's own effect in app/welcome/page.tsx) — same
+   #332e4d, applied through its own marker class instead. */
+html.welcome-dark-scroll {
+  scrollbar-color: #332e4d transparent;
+}
+
+html.welcome-dark-scroll::-webkit-scrollbar-thumb {
+  background: #332e4d;
+}
+
 /* Tailwind v4 resolves @theme color tokens to a static literal at build
    time (confirmed by inspecting the compiled output — e.g.
    `.bg-page { background-color: rgb(238,240,248) }`, not `var(...)`), so
@@ -1061,6 +1130,53 @@ button:not(:disabled) {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-tab-content {
+    animation: none;
+  }
+}
+
+/* `/account/settings`'s tab switch — unlike `.animate-tab-content` above,
+   every section there must stay mounted (so unsaved edits and the Claude
+   Usage dropdown survive a tab switch), so this can't be a key-based
+   remount fade-in. `SettingsTabPanels` instead toggles these two classes
+   against its own JS phase state machine: fade the outgoing panel out,
+   then fade + slide the incoming one in once the first finishes. */
+@keyframes settings-tabpanel-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes settings-tabpanel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-tabpanel-exit {
+  animation-name: settings-tabpanel-out;
+  animation-duration: 120ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.settings-tabpanel-enter {
+  animation-name: settings-tabpanel-in;
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-tabpanel-exit,
+  .settings-tabpanel-enter {
     animation: none;
   }
 }

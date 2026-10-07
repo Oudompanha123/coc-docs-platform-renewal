@@ -10,7 +10,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { LOOKBACK_DAYS, scanWindow } from '../src/scan.js';
 import { lastDays, ymd } from '../src/usage-parser.js';
-import { cleanEnv, fakeBackend, runCli, saveLogin, tmpDir, usageLine, writeTranscript } from './helpers.js';
+import { cleanEnv, fakeBackend, runCli, saveLogin, TOKEN, tmpDir, usageLine, writeTranscript } from './helpers.js';
 
 let projects;
 let configHome;
@@ -25,6 +25,9 @@ const ago = (hours) => new Date(Date.now() - hours * HOUR).toISOString();
 const env = () => cleanEnv({ CLAUDE_PROJECTS_DIR: projects, CLAUDE_TEAM_USAGE_CONFIG_DIR: configHome });
 const scan = (...args) => runCli(['scan', ...args], { env: env() });
 const onDashboard = () => Object.values(dashboard).reduce((n, v) => n + v, 0);
+/** Usage uploads only — a scan that uploads nothing still checks in at /api/ingest/scan. */
+const uploads = () => backend.requests.filter((r) => r.url === '/api/ingest');
+const scanCheckIns = () => backend.requests.filter((r) => r.url === '/api/ingest/scan');
 const ledger = () => JSON.parse(fs.readFileSync(path.join(configHome, 'reported.json'), 'utf8'));
 
 /** 100K output tokens in one response, `hours` ago — "the morning, before the reset". */
@@ -37,6 +40,8 @@ beforeEach(async () => {
   failing = false;
   backend = await fakeBackend((req, body) => {
     if (failing) return { status: 503, body: { detail: 'down' } };
+    // The scan-only check-in (ADR-097) carries no usage; it never touches the totals.
+    if (req.url === '/api/ingest/scan') return { status: 200, body: { action: 'scan-recorded' } };
     dashboard[body.date] = body.input + body.output;
     return { status: 200, body: { action: 'updated' } };
   });
@@ -55,7 +60,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     const res = await scan('--days', '1');
     assert.equal(res.code, 0, res.stderr);
     assert.match(res.stdout, /no usage found/);
-    assert.equal(backend.requests.length, 0);
+    assert.equal(uploads().length, 0);
   });
 
   it('case 1 — usage before the reset, scanned after it: the 100K is reported', async () => {
@@ -79,7 +84,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     const res = await scan();
 
     assert.equal(res.code, 0, res.stderr);
-    assert.equal(backend.requests.length, 1);
+    assert.equal(uploads().length, 1);
     assert.equal(onDashboard(), 100_000);
   });
 
@@ -87,13 +92,60 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     writeTranscript(projects, 'proj/morning.jsonl', [morning(30)]);
 
     assert.equal((await scan()).code, 0);
-    assert.equal(backend.requests.length, 1);
+    assert.equal(uploads().length, 1);
 
     const second = await scan();
     assert.equal(second.code, 0, second.stderr);
-    assert.equal(backend.requests.length, 1, 'nothing re-sent');
+    assert.equal(uploads().length, 1, 'nothing re-sent');
     assert.match(second.stdout, /nothing new to report/);
     assert.equal(onDashboard(), 100_000);
+  });
+
+  describe('last scan vs last usage update (ADR-097)', () => {
+    it('unchanged usage: no upload, only a scan check-in carrying just the email', async () => {
+      writeTranscript(projects, 'proj/morning.jsonl', [morning(30)]);
+      await scan();
+      assert.equal(uploads().length, 1);
+      assert.equal(scanCheckIns().length, 0, 'an upload records the scan itself — no check-in after one');
+
+      const second = await scan('--verbose');
+      assert.equal(second.code, 0, second.stderr);
+      assert.equal(uploads().length, 1, 'identical usage is not re-uploaded');
+      assert.equal(scanCheckIns().length, 1);
+      const [checkIn] = scanCheckIns();
+      assert.deepEqual(checkIn.body, { email: 'dana@example.com' }, 'no usage in it');
+      assert.equal(checkIn.headers.authorization, `Bearer ${TOKEN}`);
+      assert.match(second.stderr, /scan time recorded/);
+      assert.equal(onDashboard(), 100_000, 'totals untouched');
+    });
+
+    it('changed usage: uploaded through /api/ingest, with no separate check-in', async () => {
+      const file = writeTranscript(projects, 'proj/today.jsonl', [morning(2)]);
+      await scan();
+      fs.appendFileSync(file, `${usageLine({ id: 'msg_pm', requestId: 'req_pm', model: 'claude-opus-5-5', input: 0, output: 20, timestamp: ago(1) })}\n`);
+
+      const second = await scan();
+      assert.equal(second.code, 0, second.stderr);
+      assert.equal(uploads().length, 2, 'the grown day is uploaded');
+      assert.equal(scanCheckIns().length, 0);
+      assert.equal(onDashboard(), 100_020);
+    });
+
+    it('a server without /api/ingest/scan: the scan still succeeds, with a warning', async () => {
+      await backend.close();
+      backend = await fakeBackend((req, body) => {
+        if (req.url !== '/api/ingest') return null; // 404, like a server from before this change
+        dashboard[body.date] = body.input + body.output;
+        return { status: 200, body: { action: 'updated' } };
+      });
+      saveLogin(configHome, { ingestUrl: backend.url });
+      writeTranscript(projects, 'proj/morning.jsonl', [morning(30)]);
+      await scan();
+      const second = await scan();
+      assert.equal(second.code, 0, second.stderr);
+      assert.match(second.stdout, /nothing new to report/);
+      assert.match(second.stderr, /could not record the scan time \(this Coc Docs server does not record scan times yet\)/);
+    });
   });
 
   it('case 4 — 100K before the reset and 50K after: the dashboard ends at 150K', async () => {
@@ -105,7 +157,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     const res = await scan();
 
     assert.equal(res.code, 0, res.stderr);
-    assert.equal(backend.requests.length, 2);
+    assert.equal(uploads().length, 2);
     assert.equal(onDashboard(), 150_000, 'the day is re-sent as its whole new total, not +50K on top');
   });
 
@@ -143,7 +195,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     const res = await scan();
 
     assert.equal(res.code, 0, res.stderr);
-    assert.equal(backend.requests.length, 0);
+    assert.equal(uploads().length, 0);
     assert.match(res.stdout, /nothing new to report/);
   });
 
@@ -183,7 +235,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
 
     const res = await scan();
     assert.equal(res.code, 0, res.stderr);
-    assert.equal(backend.requests.length, 1);
+    assert.equal(uploads().length, 1);
     assert.equal(onDashboard(), 150_000);
   });
 
@@ -191,7 +243,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     writeTranscript(projects, 'proj/morning.jsonl', [morning(30)]);
     assert.equal((await scan()).code, 0);
     assert.equal((await scan('--days', '3')).code, 0);
-    assert.equal(backend.requests.length, 2);
+    assert.equal(uploads().length, 2);
   });
 
   it('--dry-run neither reads nor writes the record', async () => {
@@ -199,7 +251,7 @@ describe('scan: unreported usage, whatever Claude reset in between', () => {
     const res = await scan('--dry-run');
     assert.equal(res.code, 0, res.stderr);
     assert.equal(fs.existsSync(path.join(configHome, 'reported.json')), false);
-    assert.equal(backend.requests.length, 0);
+    assert.equal(uploads().length, 0);
   });
 });
 

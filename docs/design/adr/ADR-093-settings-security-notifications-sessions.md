@@ -1,10 +1,10 @@
-# ADR-090: Real Security, Notifications, and Sessions on `/account/settings`
+# ADR-093: Real Security, Notifications, and Sessions on `/account/settings`
 
 > **Status**: ACCEPTED — implemented (PM decision, direct in-session instruction)
 > **Date**: 2026-10-02
 > **Author**: AI (Claude Sonnet 5), on direct in-session instruction
 > **Approver**: the user (product owner) — "Decision (product owner): build all 3 for real — no Coming soon for these." Recorded here as a transcription of that explicit instruction, not a self-approval, the same way ADR-070/ADR-071 record their own (`CONST-PROC-01`, HARNESS-PROCESS-STANDARD §4.8 CQ3).
-> **Related ADR**: Extends ADR-041 (notification preferences), ADR-027 (device/session description), ADR-006 (audit logging). Supersedes nothing — the two previous Settings-page ADRs (schema/editor work) left Security absent and Notifications/Sessions as placeholders; this is the follow-up that fills them in. Drafted and implemented as "ADR-085"; renumbered to 090 on merging `dev`, whose own unrelated ADR-084..089 (shared-inbox-optional, Gmail OAuth, the renamed admin-app role block, password/email policy, attendance-report mail) landed first.
+> **Related ADR**: Extends ADR-041 (notification preferences), ADR-027 (device/session description), ADR-006 (audit logging). Supersedes nothing — the two previous Settings-page ADRs (schema/editor work) left Security absent and Notifications/Sessions as placeholders; this is the follow-up that fills them in. Drafted and implemented as "ADR-085", then renumbered to "ADR-090" on merging `dev` once (whose own unrelated ADR-084..089 landed first), then to 093 on merging `dev` again — a second, parallel branch had independently claimed 090/091/092 for its own staff-roles/account-delete/email-logo work by the time this one reached `dev`.
 
 ---
 
@@ -61,3 +61,4 @@ A new `SessionService.revokeAllExceptCurrent(caller)` plus `DELETE /api/v1/auth/
 | Date | Version | Changes | Author |
 |------|------|------|--------|
 | 2026-10-02 | 1.0 | Initial draft, written alongside Step 2 (Security card) | AI (Claude Sonnet 5) |
+| 2026-10-06 | 1.1 | Renumbered 085 → 090 → 093 across two `dev` merges; no content change | AI (Claude Sonnet 5) |

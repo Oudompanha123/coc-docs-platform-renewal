@@ -151,6 +151,17 @@ export default function WelcomePage() {
   const isDark = theme === "dark";
   const [authGate, setAuthGate] = useState<string | null>(null);
 
+  // This page's own dark toggle is local component state, not the shared
+  // data-theme mechanism (see this component's own top comment) — so the
+  // document-level scrollbar (styled in globals.css off that same shared
+  // attribute) needs its own, separate marker. A class on <html>, not
+  // data-theme itself, so it can never collide with the real one if a
+  // visitor signs in later in the same tab.
+  useEffect(() => {
+    document.documentElement.classList.toggle("welcome-dark-scroll", isDark);
+    return () => document.documentElement.classList.remove("welcome-dark-scroll");
+  }, [isDark]);
+
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     function onScroll() {
