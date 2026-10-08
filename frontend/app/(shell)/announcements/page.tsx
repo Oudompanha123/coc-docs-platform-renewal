@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { MegaphoneIcon, PlusIcon, TrashIcon, WarningIcon } from "@/components/layout/icons";
 import { AnnouncementCategoryBadge } from "@/components/announcements/AnnouncementCategoryBadge";
 import { AnnouncementEditorModal } from "@/components/announcements/AnnouncementEditorModal";
+import { markdownToPlainText } from "@/lib/markdown/parse";
 import {
   AnnouncementConfirmModal,
   type AnnouncementAction,
@@ -126,7 +127,10 @@ export default function AnnouncementsPage() {
     return (items ?? []).filter(
       (a) =>
         matchesFilter(a, filter) &&
-        (query === "" || a.title.toLowerCase().includes(query) || a.body.toLowerCase().includes(query)),
+        (query === "" ||
+          a.title.toLowerCase().includes(query) ||
+          // The words, not the Markdown: "maintenance on friday" finds "**Maintenance** on Friday".
+          markdownToPlainText(a.body).toLowerCase().includes(query)),
     );
   }, [items, filter, search]);
 
@@ -270,7 +274,7 @@ export default function AnnouncementsPage() {
                 <thead className="bg-page text-xs font-semibold uppercase tracking-wide text-muted">
                   <tr>
                     <th className="px-4 py-2.5">Announcement</th>
-                    <th className="px-4 py-2.5">Category</th>
+                    <th className="px-4 py-2.5">Type</th>
                     <th className="px-4 py-2.5">Status</th>
                     <th className="px-4 py-2.5">Published</th>
                     <th className="px-4 py-2.5">Expires</th>
@@ -282,7 +286,7 @@ export default function AnnouncementsPage() {
                     <tr key={a.id} className="align-top transition-colors hover:bg-[#f8fafc]">
                       <td className="max-w-[320px] px-4 py-3">
                         <p className="truncate font-semibold text-dash-ink">{a.title}</p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-muted">{a.body}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-muted">{markdownToPlainText(a.body)}</p>
                         <p className="mt-1 text-[11px] text-muted">
                           Updated {formatDate(a.updatedAt)}
                           {a.updatedByName ? ` by ${a.updatedByName}` : ""}

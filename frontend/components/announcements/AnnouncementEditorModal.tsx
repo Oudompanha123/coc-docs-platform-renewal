@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { Spinner } from "@/components/layout/Spinner";
+import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
 import {
   createAnnouncement,
   publishAnnouncement,
@@ -33,6 +34,10 @@ const INPUT_CLASS =
  *
  * <p>Editing a published announcement has no publish button: it is already
  * live, and saving takes effect for readers at once.
+ *
+ * <p>The message is Markdown, written in {@link MarkdownEditor} — toolbar,
+ * shortcuts and a Preview tab — and stored as the Markdown text itself
+ * (ADR-102). The 5000-character limit counts that text.
  */
 export function AnnouncementEditorModal({
   announcement,
@@ -101,7 +106,7 @@ export function AnnouncementEditorModal({
     <Modal
       title={announcement ? "Edit announcement" : "New announcement"}
       onClose={saving ? () => {} : onClose}
-      className="w-full max-w-xl overflow-y-auto rounded-[10px] border border-border bg-white p-6 shadow-xl"
+      className="w-full max-w-2xl overflow-y-auto rounded-[10px] border border-border bg-white p-6 shadow-xl"
     >
       <form onSubmit={onSubmit} className="space-y-4">
         {isLive && (
@@ -132,23 +137,32 @@ export function AnnouncementEditorModal({
         <AnnouncementCategoryPicker value={category} onChange={setCategory} disabled={saving !== null} />
 
 
-        <label className="block">
-          <span className="flex items-baseline justify-between text-sm font-semibold text-dash-ink">
+        <div>
+          <label
+            htmlFor="announcement-body"
+            className="flex items-baseline justify-between text-sm font-semibold text-dash-ink"
+          >
             Message
             <span className="text-xs font-normal text-muted">
               {body.length}/{MAX_BODY}
             </span>
-          </span>
-          <textarea
+          </label>
+          <MarkdownEditor
+            id="announcement-body"
             value={body}
+            onChange={setBody}
             maxLength={MAX_BODY}
-            onChange={(e) => setBody(e.target.value)}
-            rows={7}
-            placeholder="What do people need to know? Line breaks are kept."
+            rows={6}
+            placeholder="What do people need to know? Use the toolbar or Markdown for formatting."
             required
-            className={`${INPUT_CLASS} resize-y`}
+            disabled={saving !== null}
+            describedBy="announcement-body-hint"
           />
-        </label>
+          <p id="announcement-body-hint" className="mt-1.5 text-xs text-muted">
+            Markdown supported: **bold**, _italic_, # headings, - lists, [links](https://…), ``` code ```, &gt; quotes,
+            and [colored text]{"{"}color=red{"}"}.
+          </p>
+        </div>
 
         <AnnouncementExpiryField value={expiresAt} onChange={setExpiresAt} disabled={saving !== null} />
 
