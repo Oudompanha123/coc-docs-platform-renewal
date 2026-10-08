@@ -1,5 +1,6 @@
 "use client";
 
+import { avatarSrc } from "@/lib/account/avatarSrc";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useSession } from "@/lib/auth/SessionProvider";
@@ -247,7 +248,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
           {user?.avatarUrl && !avatarLoadFailed ? (
             // eslint-disable-next-line @next/next/no-img-element -- the host is whichever the identity provider or S3AvatarStorage chose, same reasoning as UserAvatar's own <img>.
             <img
-              src={user.avatarUrl}
+              src={avatarSrc(user.avatarUrl) ?? undefined}
               alt={name}
               referrerPolicy="no-referrer"
               onError={() => setAvatarLoadFailed(true)}

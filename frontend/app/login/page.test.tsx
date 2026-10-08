@@ -430,14 +430,19 @@ describe("LoginPage TOTP second factor", () => {
     expect(field).toHaveAttribute("aria-invalid", "true");
     expect(push).not.toHaveBeenCalled();
 
-    // Verify retries the same code...
-    await user.click(screen.getByRole("button", { name: "Verify" }));
-    await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledTimes(2));
+    // The rejected code is cleared and the field focused for the next one.
+    await waitFor(() => expect(field).toHaveValue(""));
+    await waitFor(() => expect(field).toHaveFocus());
 
-    // ...and typing again clears the error.
+    // Typing clears the error...
     await user.type(field, "1");
     expect(screen.queryByText(/That code is incorrect/)).not.toBeInTheDocument();
     expect(field).not.toHaveAttribute("aria-invalid");
+
+    // ...and completing a new code submits it, same as the first time.
+    await user.type(field, "23456");
+    await waitFor(() => expect(verifyMfaLogin).toHaveBeenCalledTimes(2));
+    expect(verifyMfaLogin).toHaveBeenLastCalledWith("123456");
   });
 
   it("lets a new code be typed straight over a rejected one", async () => {

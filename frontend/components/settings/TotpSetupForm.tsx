@@ -5,6 +5,8 @@ import { CodeField, PasswordField } from "@/components/auth/FormField";
 import { LockIcon } from "@/components/auth/icons";
 import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupMaterial } from "@/lib/auth/api";
 
+const CODE_FIELD_ID = "totp-setup-code";
+
 /**
  * The guided TOTP setup wizard (ADR-031): QR code, manual-entry secret, and
  * the confirmation code — everything "Setup OTP" means once a session
@@ -66,6 +68,10 @@ export function TotpSetupWizard({
       // an expired one -- unlike an emailed code, there is nothing here to
       // separately call "expired" (ADR-031).
       setCodeError(err instanceof AuthApiError ? err.message : "Couldn't verify that code. Please try again.");
+      // Cleared and refocused so the next code can be typed straight away,
+      // the same as the sign-in and registration code steps.
+      setCode("");
+      document.getElementById(CODE_FIELD_ID)?.focus();
     } finally {
       setIsVerifying(false);
     }
@@ -113,7 +119,7 @@ export function TotpSetupWizard({
 
       <form onSubmit={handleVerify} className="space-y-3" noValidate>
         <p className="text-xs font-semibold text-dash-ink">2. Enter the 6-digit code it shows</p>
-        <CodeField label="Verification Code" value={code} onChange={setCode} error={codeError} />
+        <CodeField id={CODE_FIELD_ID} label="Verification Code" value={code} onChange={setCode} error={codeError} />
         <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
