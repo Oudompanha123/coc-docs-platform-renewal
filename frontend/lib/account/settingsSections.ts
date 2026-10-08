@@ -10,6 +10,7 @@ export type SettingsSectionId =
   | "appearance"
   | "notifications"
   | "claude-usage"
+  | "attendance"
   | "connected-accounts"
   | "security"
   | "sessions";
@@ -17,7 +18,9 @@ export type SettingsSectionId =
 export const DEFAULT_SETTINGS_SECTION: SettingsSectionId = "account";
 
 const BEFORE_CLAUDE_USAGE: SettingsSectionId[] = ["account", "appearance", "notifications"];
-const AFTER_CLAUDE_USAGE: SettingsSectionId[] = ["connected-accounts", "security", "sessions"];
+// Attendance sits right under Claude Usage; it moved here from the former
+// /reports/attendance page and is visible to every role, as that page was.
+const AFTER_CLAUDE_USAGE: SettingsSectionId[] = ["attendance", "connected-accounts", "security", "sessions"];
 
 /** Same `user`/`admin`/`super_admin` floor `/my-claude-usage` always had (ADR-094). */
 export function getVisibleSettingsSections(canSeeClaudeUsage: boolean): SettingsSectionId[] {
