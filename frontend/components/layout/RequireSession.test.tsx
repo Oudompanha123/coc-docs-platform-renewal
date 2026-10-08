@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RequireSession } from "./RequireSession";
 import type { MeResponse, Role } from "@/lib/auth/api";
-import { AX_RENEWAL_ROLES } from "@/lib/auth/landing";
+import { AX_RENEWAL_ROLES, SUPER_ADMIN_ROLES } from "@/lib/auth/landing";
 
 // Partial<MeResponse> rather than any: these fixtures deliberately carry only
 // the fields RequireSession reads, and `any` would let a rename of one of them
@@ -69,6 +69,33 @@ describe("RequireSession", () => {
     );
     expect(screen.queryByText("admin content")).not.toBeInTheDocument();
     expect(replace).toHaveBeenCalledWith("/welcome");
+  });
+
+  describe("a super_admin-only page (ADR-099)", () => {
+    it("sends an admin to deniedPath, not /welcome — they still belong in the app", () => {
+      session.current = { status: "authenticated", user: { role: "admin", roles: ["admin"], mustChangePassword: false } };
+      render(
+        <RequireSession allowRoles={SUPER_ADMIN_ROLES} deniedPath="/overview">
+          <p>super admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.queryByText("super admin content")).not.toBeInTheDocument();
+      expect(replace).toHaveBeenCalledWith("/overview");
+    });
+
+    it("renders for a super_admin", () => {
+      session.current = {
+        status: "authenticated",
+        user: { role: "super_admin", roles: ["super_admin"], mustChangePassword: false },
+      };
+      render(
+        <RequireSession allowRoles={SUPER_ADMIN_ROLES} deniedPath="/overview">
+          <p>super admin content</p>
+        </RequireSession>,
+      );
+      expect(screen.getByText("super admin content")).toBeInTheDocument();
+      expect(replace).not.toHaveBeenCalled();
+    });
   });
 
   it("sends an anonymous visitor to /login, not the landing page", () => {

@@ -8,8 +8,8 @@ import { cliSignedInDestination } from "@/lib/auth/cliAuthorize";
 /**
  * `/cli/signed-in` — where `claude-team-usage`'s loopback callback page sends
  * the browser after a successful Authorize (ADR-060). The CLI cannot know the
- * member's role, so this page decides: admin/super_admin go to the team
- * dashboard `/claude-usage`, everyone else to `/my-claude-usage`, each with
+ * member's role, so this page decides: a super_admin goes to the team
+ * dashboard `/claude-usage` (ADR-099), everyone else to `/my-claude-usage`, each with
  * `?cli=signed-in` so that page watches for the upload the CLI is about to
  * make (`useUsageAutoRefresh`).
  *

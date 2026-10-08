@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { RequireSession } from "@/components/layout/RequireSession";
 import { UsersIcon } from "@/components/layout/icons";
 import { AccountsTable } from "@/components/users-roles/AccountsTable";
 import { AddAccountModal } from "@/components/users-roles/AddAccountModal";
@@ -31,6 +32,7 @@ import {
 import { accountStatus, downloadUsersXlsx } from "@/lib/admin/export-users";
 import { type AccountRole, type ManagedAccount } from "@/lib/mock/users-roles";
 import { me } from "@/lib/auth/api";
+import { SUPER_ADMIN_ROLES } from "@/lib/auth/landing";
 
 /**
  * The API speaks in accounts; this table speaks in rows. One place to translate
@@ -87,7 +89,8 @@ type PageTab = "users" | "pending" | "roles";
  * Users & Roles — backed by AdminAccountController: GET list (with last
  * sign-in), POST create, PATCH role/active. Every call needs `super_admin`,
  * enforced by the filter chain rather than by this page; the page only decides
- * what to show.
+ * what to show — and sends an admin who reaches the url back to the Overview
+ * rather than rendering a table every request behind it would 403 (ADR-099).
  *
  * Search, role and status filtering stay client-side over the loaded list,
  * which is right while the team is small enough to fit one page. Export is
@@ -101,9 +104,11 @@ export default function UsersRolesPage() {
   // page can still be prerendered — same reason the login page wraps its own
   // body, per that page's own comment on the same hook.
   return (
-    <Suspense fallback={null}>
-      <UsersRolesPageInner />
-    </Suspense>
+    <RequireSession allowRoles={SUPER_ADMIN_ROLES} deniedPath="/overview">
+      <Suspense fallback={null}>
+        <UsersRolesPageInner />
+      </Suspense>
+    </RequireSession>
   );
 }
 

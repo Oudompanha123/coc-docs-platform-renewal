@@ -12,6 +12,14 @@ import type { Role } from "./api";
 export const ADMIN_APP_ROLES: readonly Role[] = ["admin", "super_admin"];
 
 /**
+ * Who may open Users & Roles, Attendance and Claude Usage (ADR-099).
+ * Narrower than {@link ADMIN_APP_ROLES}: an admin publishes content; who holds which role, the team's clock-ins and its
+ * Claude spend are a super_admin's to read. The backend floors the same routes
+ * at SUPER_ADMIN in SecurityConfig — this list only decides what is shown.
+ */
+export const SUPER_ADMIN_ROLES: readonly Role[] = ["super_admin"];
+
+/**
  * Developer, Reviewer and Lead: kept out of the admin app (ADR-086) except
  * for AX Renewal, which they may open again (ADR-090, revising ADR-086 for
  * that one feature). They land on the Member home after signing in, like a

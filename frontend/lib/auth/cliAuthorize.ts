@@ -12,13 +12,13 @@ export const CLI_SIGNED_IN_PATH = "/cli/signed-in";
 
 /**
  * The dashboard a freshly authorized CLI's tab ends up on: the team view for
- * admin/super_admin — the same pair every other role-based landing in this
- * app uses — and the member's own view for everyone else. `?cli=signed-in`
+ * a super_admin — the only role that may open it (ADR-099) — and the
+ * member's own view for everyone else, admin included. `?cli=signed-in`
  * tells that page to watch for the upload the CLI is about to make.
  */
 export function cliSignedInDestination(role: string | null | undefined): string {
   const marker = "?cli=signed-in";
-  return role === "admin" || role === "super_admin" ? `/claude-usage${marker}` : `/my-claude-usage${marker}`;
+  return role === "super_admin" ? `/claude-usage${marker}` : `/my-claude-usage${marker}`;
 }
 
 /**

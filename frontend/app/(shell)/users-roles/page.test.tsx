@@ -6,7 +6,14 @@ import type { AdminAccount } from "@/lib/admin/accounts";
 
 let highlight: string | null = null;
 let invite: string | null = null;
+// The page's own super_admin gate (ADR-099) reads the session and may
+// redirect; these tests run as a super_admin, who it admits.
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock("@/lib/auth/SessionProvider", () => ({
+  useSession: () => ({ status: "authenticated", user: { role: "super_admin", roles: ["super_admin"] } }),
+}));
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace }),
   useSearchParams: () => ({
     get: (key: string) => (key === "highlight" ? highlight : key === "invite" ? invite : null),
   }),

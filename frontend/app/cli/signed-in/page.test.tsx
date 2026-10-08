@@ -23,10 +23,10 @@ describe("/cli/signed-in — after Authorize in claude-team-usage", () => {
     vi.clearAllMocks();
   });
 
-  it("sends an admin to /claude-usage", () => {
+  it("sends an admin to /my-claude-usage — the team dashboard is super_admin only (ADR-099)", () => {
     session.current = { status: "authenticated", user: { role: "admin" } };
     render(<CliSignedInPage />);
-    expect(replace).toHaveBeenCalledWith("/claude-usage?cli=signed-in");
+    expect(replace).toHaveBeenCalledWith("/my-claude-usage?cli=signed-in");
   });
 
   it("sends a super_admin to /claude-usage", () => {
