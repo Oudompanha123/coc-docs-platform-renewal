@@ -43,8 +43,3 @@ export function passwordViolations(password: string): string[] {
 export function isPasswordAcceptable(password: string): boolean {
   return passwordViolations(password).length === 0;
 }
-
-/** One line for a field error, when there is no room for a list. */
-export function firstPasswordViolation(password: string): string | undefined {
-  return passwordViolations(password)[0];
-}
