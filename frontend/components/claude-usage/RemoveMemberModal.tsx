@@ -13,14 +13,14 @@ export function RemoveMemberModal({
   onConfirm: (member: ClaudeUsageMember) => void;
 }) {
   return (
-    <Modal title="Remove from usage tracking?" onClose={onClose}>
+    <Modal title="Disable usage tracking?" onClose={onClose}>
       <p className="text-sm text-muted">
         <span className="font-semibold text-dash-ink">{member.displayName}</span> will stop appearing in
         this dashboard&apos;s per-user usage and charts.
       </p>
       <p className="mt-3 rounded-[10px] bg-page px-3 py-2 text-xs text-muted">
         This only stops dashboard tracking. It doesn&apos;t revoke their Claude Code access, their
-        account, or anything running on their own machine.
+        account, or anything running on their own machine. You can enable them again at any time.
       </p>
 
       <div className="mt-5 flex justify-end gap-2">
@@ -36,7 +36,7 @@ export function RemoveMemberModal({
           onClick={() => onConfirm(member)}
           className="rounded-full bg-danger px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger/90"
         >
-          Remove
+          Disable
         </button>
       </div>
     </Modal>
