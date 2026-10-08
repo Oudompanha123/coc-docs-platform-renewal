@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
-import { ChevronDownIcon, PulseIcon } from "@/components/layout/icons";
+import { ChevronDownIcon } from "@/components/layout/icons";
 import { TotpDisableForm, TotpSetupWizard } from "@/components/settings/TotpSetupForm";
-import { getMfaStatus, listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
+import { ActiveSessions } from "@/components/settings/ActiveSessions";
+import { getMfaStatus } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
@@ -44,37 +45,17 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * zone moved out to its own top-level DangerZoneCard, matching the
  * reference layout's separate red card rather than an inset block here.
  */
-/* The user agent used to be parsed here, into "Chrome on Windows". The server
-   sends that string now (SessionResponse.device), because it composes the push
-   notification about the same device and the two descriptions have to match —
-   a banner saying Chrome beside a list row saying Safari makes a person
-   distrust both. The rules live in DeviceDescription.java. */
-function formatWhen(iso: string): string {
-  const when = new Date(iso);
-  return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
-}
-
 export function SecurityTab() {
   const { user } = useSession();
-  const [sessions, setSessions] = useState<SessionSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
   // ADR-031: reflects GET /api/v1/auth/mfa/status. Defaults to false while
-  // that call is in flight, same as sessions defaulting to [] above.
+  // that call is in flight.
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaMode, setMfaMode] = useState<"idle" | "enabling" | "disabling">("idle");
   const [mfaNotice, setMfaNotice] = useState<string | null>(null);
-
-  useEffect(() => {
-    listSessions()
-      .then(setSessions)
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load your sessions."))
-      .finally(() => setLoading(false));
-  }, []);
 
   useEffect(() => {
     getMfaStatus()
@@ -85,19 +66,6 @@ export function SecurityTab() {
         // genuinely unreachable.
       });
   }, []);
-
-  async function signOutSession(id: string) {
-    // Removed from the list only once the server has revoked it. Dropping it
-    // optimistically would show a device as signed out while its session row
-    // was still live.
-    try {
-      await revokeSession(id);
-      setSessions((prev) => prev.filter((s) => s.id !== id));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not end that session.");
-    }
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -237,56 +205,7 @@ export function SecurityTab() {
         </div>
 
         {/* Active sessions */}
-        <div className="py-4 last:pb-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-              <PulseIcon className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-semibold text-dash-ink">Active sessions</p>
-          </div>
-          <div className="mt-3 divide-y divide-border">
-            {loading && <p className="py-3 text-xs text-muted">Loading your sessions…</p>}
-            {error && <p className="py-3 text-xs text-danger">{error}</p>}
-            {!loading && !error && sessions.length === 0 && (
-              <p className="py-3 text-xs text-muted">No other sessions.</p>
-            )}
-            {sessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-dash-ink">
-                    {session.device}
-                    {session.current && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-semibold text-brand-blue">
-                        This device
-                      </span>
-                    )}
-                    {session.newDevice && !session.current && (
-                      // The same fact the alert was about, left on the row it
-                      // belongs to. Somebody who dismissed the notification, or
-                      // never had notifications on, can still see which of
-                      // these appeared out of nowhere.
-                      <span className="ml-2 inline-flex items-center rounded-full bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">
-                        New device
-                      </span>
-                    )}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {session.ipAddress ?? "Unknown address"} · signed in {formatWhen(session.issuedAt)}
-                  </p>
-                </div>
-                {!session.current && (
-                  <button
-                    type="button"
-                    onClick={() => void signOutSession(session.id)}
-                    className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-                  >
-                    Sign out
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <ActiveSessions />
       </div>
     </div>
   );
