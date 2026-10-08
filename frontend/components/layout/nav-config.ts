@@ -92,19 +92,15 @@ const STATIC_SECTIONS: NavSection[] = [
       // content; granting roles is a different kind of authority. Listing
       // "admin" here showed them a link to a page that 403s on every request.
       { label: "Users & Roles", href: "/users-roles", icon: UsersIcon, roles: ["super_admin"] },
-      // admin and super_admin, same reasoning as Claude Usage below: this is
-      // a read-only HRMS attendance view, not account authority.
-      { label: "Attendance", href: "/attendance", icon: CalendarCheckIcon, roles: ["admin", "super_admin"] },
-      // Re-added here on direct developer instruction (ADR-052, further
-      // revised again): a super_admin/admin browsing an ADMINISTRATION page
-      // like /users-roles had no direct way to jump to the team dashboard
-      // without first going back to /home for MemberHeader's own "Claude
-      // Usage" link (added in the prior revision, still there — this is an
-      // additional path, not a replacement of it). `/my-claude-usage` (the
-      // personal view) is deliberately not listed here: it is never what an
-      // admin/super_admin reaches from this sidebar, same distinction
-      // MemberHeader's own role-branched link already draws.
-      { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["admin", "super_admin"] },
+      // super_admin alone (ADR-100): the whole team's clock-ins are personal
+      // data about other people, not editorial work. The API under
+      // /api/v1/admin/attendance/** sits at the same floor.
+      { label: "Attendance", href: "/attendance", icon: CalendarCheckIcon, roles: ["super_admin"] },
+      // super_admin alone (ADR-100), for the same reason as Attendance: the
+      // team's spend and roster. An admin still sees their own usage in
+      // Settings' Claude Usage section, like any other account. The personal
+      // view (`/my-claude-usage`) is deliberately not listed here.
+      { label: "Claude Usage", href: "/claude-usage", icon: BarChartIcon, roles: ["super_admin"] },
       // admin and super_admin: writing an announcement is editorial work, the
       // same /api/v1/admin/** admin floor publishing a page sits at (ADR-098).
       { label: "Announcements", href: "/announcements", icon: MegaphoneIcon, roles: ["admin", "super_admin"] },
