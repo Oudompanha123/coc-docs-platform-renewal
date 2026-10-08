@@ -7,6 +7,7 @@ import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { ActivityAvatar } from "@/components/layout/ActivityAvatar";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
+  AuditIcon,
   BarChartIcon,
   BellIcon,
   CalendarCheckIcon,
@@ -14,7 +15,6 @@ import {
   GearIcon,
   LayersIcon,
   LogOutIcon,
-  MailIcon,
   PersonIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
@@ -517,7 +517,8 @@ export function MemberHeader({
               active={openMenu === "mail"}
               onClick={() => toggleMenu("mail")}
             >
-              <MailIcon className="h-5 w-5" />
+              {/* The audit-log icon, same as the admin Topbar's Activity button. */}
+              <AuditIcon className="h-5 w-5" />
             </CountIcon>
 
             {openMenu === "mail" && (

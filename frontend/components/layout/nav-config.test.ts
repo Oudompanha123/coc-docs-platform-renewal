@@ -43,8 +43,8 @@ describe("visibleNavSections", () => {
   // Claude Usage's own visibility rules are covered in more depth by the
   // dedicated "Claude Usage in ADMINISTRATION" describe block below —
   // not duplicated here.
-  it("shows Attendance to an admin and a super admin", () => {
-    expect(labelsFor(["admin"])).toContain("Attendance");
+  it("shows Attendance to a super admin only, not an admin (ADR-100)", () => {
+    expect(labelsFor(["admin"])).not.toContain("Attendance");
     expect(labelsFor(["super_admin"])).toContain("Attendance");
   });
 
@@ -70,13 +70,9 @@ describe("visibleNavSections", () => {
       "Claude Usage",
       "Announcements",
     ]);
-    // A plain admin (not super_admin) sees everything but Users & Roles — the
-    // section survives without it, rather than dropping entirely.
-    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual([
-      "Attendance",
-      "Claude Usage",
-      "Announcements",
-    ]);
+    // A plain admin (not super_admin) sees only Announcements (ADR-100) — the
+    // section survives with it, rather than dropping entirely.
+    expect(adminSection(["admin"])?.items.map((i) => i.label)).toEqual(["Announcements"]);
   });
 
   it("shows Announcements to admins only — readers get them in the bell, not the sidebar (ADR-098)", () => {
@@ -122,8 +118,8 @@ describe("visibleNavSections", () => {
     // link (MemberHeader.test.tsx) — not a replacement of it. "My Claude
     // Usage" (the personal view, /my-claude-usage) still has no sidebar entry
     // of its own; that gap is deliberate, same reasoning as before.
-    it("shows Claude Usage to admin and super_admin", () => {
-      expect(labelsFor(["admin"])).toContain("Claude Usage");
+    it("shows Claude Usage to a super_admin only, not an admin (ADR-100)", () => {
+      expect(labelsFor(["admin"])).not.toContain("Claude Usage");
       expect(labelsFor(["super_admin"])).toContain("Claude Usage");
     });
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { RequireSession } from "@/components/layout/RequireSession";
 import { CalendarCheckIcon, ClockIcon, DownloadIcon, PersonIcon, UsersIcon, WarningIcon } from "@/components/layout/icons";
 import { AttendanceDateNav } from "@/components/attendance/AttendanceDateNav";
 import { AttendanceDepartmentSelect } from "@/components/attendance/AttendanceDepartmentSelect";
@@ -16,8 +17,22 @@ import {
   type AttendanceStatusFilter,
 } from "@/lib/attendance/stats";
 import { todayIso } from "@/lib/attendance/dates";
+import { SUPER_ADMIN_ROLES } from "@/lib/auth/landing";
 
+/**
+ * Super admin only (ADR-100): the whole team's clock-ins, not an admin's
+ * editorial work. An admin who reaches this url is sent back to the Overview;
+ * the API refuses them either way.
+ */
 export default function AttendancePage() {
+  return (
+    <RequireSession allowRoles={SUPER_ADMIN_ROLES} deniedPath="/overview">
+      <AttendancePageInner />
+    </RequireSession>
+  );
+}
+
+function AttendancePageInner() {
   const [date, setDate] = useState(todayIso);
   const [reports, setReports] = useState<HrmsAttendanceReport[] | null>(null);
   // Every department seen across any successfully loaded date this session,
