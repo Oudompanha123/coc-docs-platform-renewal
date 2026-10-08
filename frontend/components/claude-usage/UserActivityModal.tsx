@@ -51,13 +51,16 @@ export function UserActivityModal({
   avatarColor,
   onClose,
   onRemove,
+  onRestore,
   onBudgetChange,
 }: {
   member: ClaudeUsageMember;
   avatarColor: string;
   onClose: () => void;
-  /** When given, the header offers "Remove" (tracking only — the caller confirms it). */
+  /** When given, the header offers "Disable" (tracking only — the caller confirms it). */
   onRemove?: (member: ClaudeUsageMember) => void;
+  /** When given, a disabled member's header offers "Enable" to track them again. */
+  onRestore?: (member: ClaudeUsageMember) => void;
   /** When given, the header offers the soft-budget override (null = team default). */
   onBudgetChange?: (member: ClaudeUsageMember, tokens: number | null) => void;
 }) {
@@ -168,7 +171,13 @@ export function UserActivityModal({
           </button>
         </div>
 
-        <MemberHeader member={member} avatarColor={avatarColor} lastActivity={lastActivity} onRemove={onRemove} />
+        <MemberHeader
+          member={member}
+          avatarColor={avatarColor}
+          lastActivity={lastActivity}
+          onRemove={onRemove}
+          onRestore={onRestore}
+        />
 
         {onBudgetChange && member.status !== "removed" && (
           <div className="mt-4 flex flex-col gap-2 rounded-[10px] border border-border bg-page px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -365,12 +374,14 @@ function MemberHeader({
   avatarColor,
   lastActivity,
   onRemove,
+  onRestore,
 }: {
   member: ClaudeUsageMember;
   avatarColor: string;
   /** The latest activity the detail knows of; falls back to the dashboard's last report. */
   lastActivity: string | null;
   onRemove?: (member: ClaudeUsageMember) => void;
+  onRestore?: (member: ClaudeUsageMember) => void;
 }) {
   // A real session end is activity; the fallback is only when the scan last reported.
   const last = lastActivity ?? member.lastActiveAt;
@@ -395,7 +406,7 @@ function MemberHeader({
           </p>
         </div>
       </div>
-      {/* Remove lives here now, not in the Team roster list. */}
+      {/* Disable / Enable tracking lives here, not in a separate roster list. */}
       <div className="flex shrink-0 items-center gap-3">
         {onRemove &&
           (member.status !== "removed" ? (
@@ -404,12 +415,24 @@ function MemberHeader({
               onClick={() => onRemove(member)}
               className="inline-flex items-center rounded-[4px] bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
             >
-              Remove
+              Disable
+            </button>
+          ) : onRestore ? (
+            <button
+              type="button"
+              onClick={() => onRestore(member)}
+              className="inline-flex items-center rounded-[4px] bg-[#1f9d6b]/10 px-4 py-1.5 text-sm font-semibold text-[#1f9d6b] transition-colors hover:bg-[#1f9d6b]/20"
+            >
+              Enable
             </button>
           ) : (
-            <span className="inline-flex cursor-not-allowed items-center rounded-[4px] bg-page px-4 py-1.5 text-sm font-semibold text-muted">
-              Removed
-            </span>
+            <button
+              type="button"
+              disabled
+              className="inline-flex cursor-not-allowed items-center rounded-[4px] bg-page px-4 py-1.5 text-sm font-semibold text-muted"
+            >
+              Disabled
+            </button>
           ))}
       </div>
     </div>

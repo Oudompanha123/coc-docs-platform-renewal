@@ -317,22 +317,34 @@ describe("UserActivityModal", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 
-  it("offers Remove in the header, with no Active badge", async () => {
+  it("offers Disable in the header, with no Active badge", async () => {
     const onRemove = vi.fn();
     render(<UserActivityModal member={MEMBER} avatarColor="#4c6ff0" onClose={vi.fn()} onRemove={onRemove} />);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).queryByText("Active")).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Disable" }));
     expect(onRemove).toHaveBeenCalledWith(MEMBER);
   });
 
-  it("a removed member shows Removed, with nothing to click", () => {
+  it("a disabled member offers Enable, which calls onRestore", () => {
+    const onRestore = vi.fn();
+    const removed = { ...MEMBER, status: "removed" as const };
+    render(
+      <UserActivityModal member={removed} avatarColor="#4c6ff0" onClose={vi.fn()} onRemove={vi.fn()} onRestore={onRestore} />,
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByRole("button", { name: "Disable" })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Enable" }));
+    expect(onRestore).toHaveBeenCalledWith(removed);
+  });
+
+  it("a removed member shows a disabled Disabled button, with nothing to click", () => {
     render(
       <UserActivityModal member={{ ...MEMBER, status: "removed" }} avatarColor="#4c6ff0" onClose={vi.fn()} onRemove={vi.fn()} />,
     );
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
-    expect(within(dialog).getAllByText("Removed").length).toBeGreaterThan(0);
+    expect(within(dialog).queryByRole("button", { name: "Disable" })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Disabled" })).toBeDisabled();
   });
 
   it("saves a soft-budget override from the popup on Enter, and empty means the default", () => {
