@@ -10,6 +10,14 @@ vi.mock("@/lib/admin/attendance", async () => {
   return { ...actual, fetchAttendanceReports };
 });
 
+// The page's own super_admin gate (ADR-100) reads the session and may
+// redirect; these tests run as a super_admin, who it admits.
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock("@/lib/auth/SessionProvider", () => ({
+  useSession: () => ({ status: "authenticated", user: { role: "super_admin", roles: ["super_admin"] } }),
+}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
+
 import AttendancePage from "./page";
 
 function renderPage() {

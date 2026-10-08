@@ -54,14 +54,22 @@ import { useSession } from "@/lib/auth/SessionProvider";
 export function RequireSession({
   children,
   allowRoles = ADMIN_APP_ROLES,
+  deniedPath = "/welcome",
 }: {
   children: ReactNode;
   /**
    * Who this part of the app admits — the admin app's own two roles unless a
-   * layout says otherwise. Only AX Renewal widens it (`AX_RENEWAL_ROLES`,
-   * ADR-090); every other admin page keeps the default (ADR-086).
+   * layout says otherwise. AX Renewal widens it (`AX_RENEWAL_ROLES`,
+   * ADR-090); the super_admin-only ADMINISTRATION pages narrow it
+   * (`SUPER_ADMIN_ROLES`, ADR-100).
    */
   allowRoles?: readonly Role[];
+  /**
+   * Where a signed-in caller outside `allowRoles` is sent. /welcome for the
+   * shell as a whole; a super_admin-only page nested inside it sends an
+   * admin back to /overview instead, since they do belong in the app.
+   */
+  deniedPath?: string;
 }) {
   const { status, user } = useSession();
   const router = useRouter();
@@ -77,9 +85,9 @@ export function RequireSession({
     } else if (status === "authenticated" && user?.mustChangePassword) {
       router.replace("/create-password");
     } else if (status === "authenticated" && !canAccessAdmin) {
-      router.replace("/welcome");
+      router.replace(deniedPath);
     }
-  }, [status, user, canAccessAdmin, router]);
+  }, [status, user, canAccessAdmin, router, deniedPath]);
 
   if (status !== "authenticated" || user?.mustChangePassword || !canAccessAdmin) {
     return null;
