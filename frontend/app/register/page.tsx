@@ -97,13 +97,13 @@ export default function RegisterPage() {
     return () => clearInterval(timer);
   }, [step]);
 
-  // Ready for the next try after a rejected code: focused, old code selected
-  // so typing replaces it. Waits for the field to be re-enabled — focusing it
-  // while still disabled (mid-request) is silently ignored by the browser.
+  // Ready for the next try after a rejected code: focused on the now-empty
+  // field (verify clears it). Waits for the field to be re-enabled —
+  // focusing it while still disabled (mid-request) is silently ignored by the
+  // browser.
   useEffect(() => {
     if (codeError && !isVerifying) {
       codeInputRef.current?.focus();
-      codeInputRef.current?.select();
     }
   }, [codeError, isVerifying]);
 
@@ -175,6 +175,10 @@ export default function RegisterPage() {
       // Expired, incorrect, or too many attempts are distinct, backend-authored
       // messages safe to show as-is (RegistrationOtpService.verify, ADR-021).
       setCodeError(err instanceof AuthApiError ? err.message : "Couldn't verify that code. Please try again.");
+      // Cleared so the next code goes straight into empty boxes; the effect
+      // above refocuses the field. Cleared directly, not through the input's
+      // onChange, so the error stays on screen until the person types.
+      setCode("");
     } finally {
       verifyInFlight.current = false;
       setIsVerifying(false);
