@@ -1,111 +1,111 @@
 import type { ReactNode } from "react";
-import { ClockIcon, DatabaseIcon, DocumentIcon, PersonIcon } from "@/components/layout/icons";
-import { LockIcon, ShieldIcon } from "@/components/auth/icons";
-import {
-  EyeOpenIcon,
-  HistoryIcon,
-  KeyIcon,
-  ScaleIcon,
-  ServerIcon,
-  ShieldCheckIcon,
-  SlidersIcon,
-} from "@/components/legal/icons";
-import { Bullets, type LegalIcon } from "@/components/legal/parts";
+import { Bullets, Para, PolicyLinks } from "@/components/legal/parts";
 
 export type LegalDocKey = "terms" | "privacy";
 
 export type LegalSection = {
-  /** Anchor id — also what the table of contents links to. */
+  /** Anchor id — what `Related Policies` and any external deep link point at. */
   id: string;
   title: string;
-  icon: LegalIcon;
   body: ReactNode;
 };
 
-export type LegalHighlight = { icon: LegalIcon; title: string; body: string };
-
 export type LegalDoc = {
   key: LegalDocKey;
-  /** The document's own name, used in the heading, the breadcrumb and the page title. */
+  /** The document's own name, used in the heading and the page title. */
   name: string;
   path: string;
-  /** One line under the heading, saying what the document covers. */
-  summary: string;
+  /** Centred line under the heading. */
+  subtitle: string;
   description: string;
-  readingTime: string;
-  /** Plain-language opening, before section 1. */
-  lede: string;
-  highlights: LegalHighlight[];
   sections: LegalSection[];
 };
 
-/** Shown in the hero and in each document's footer. One date for both documents. */
+/** Shown in each document's footer. One date for both documents. */
 export const LEGAL_LAST_UPDATED = "1 Oct 2026";
+
+/** Shown in each document's footer, beside the copyright symbol. */
+export const LEGAL_COPYRIGHT_YEAR = "2026";
+
+/**
+ * The banner both documents carry, above the rule.
+ *
+ * <p>The wording below is a first draft written against how the product
+ * actually behaves — approval-gated accounts (ADR-021), roles read
+ * server-side per request (ADR-011), an append-only audit log, HRMS
+ * attendance only once an administrator links the account. It is **not**
+ * reviewed legal text, and the badge says so on the page rather than only in
+ * this comment. Delete the badge when the business supplies approved copy.
+ */
+export const LEGAL_SAMPLE_NOTICE = "Sample text — replace with approved legal content";
+
+/** Both documents carry the same subtitle, under their own name. */
+const SUBTITLE = "Coc Docs Platform · Legal Information";
+
+/** Placeholder until the business names a real mailbox. */
+const CONTACT_EMAIL = "legal@example.com";
 
 /**
  * The Terms of Service and the Privacy Policy, as data.
  *
- * <p>Deliberately short: five sections each, one screen of plain language,
- * written so somebody halfway through registering actually reads them. Both
- * describe how this application behaves — approval-gated accounts (ADR-021),
- * roles read server-side per request (ADR-011), an append-only audit log,
- * HRMS attendance only once an administrator links the account. When one of
- * those changes, this copy changes with it.
- *
- * <p>The wording is a first draft written against the product, not reviewed
- * legal text. The date is a placeholder until the business confirms it.
+ * <p>One shape for both, so `LegalPage` renders either from the route alone.
+ * Each is a plain sequence of titled sections — no highlights, no reading
+ * time, no per-section icon: the page is a legal document, and anything that
+ * decorates it is something a reader has to look past.
  */
 export const LEGAL_DOCUMENTS: Record<LegalDocKey, LegalDoc> = {
   terms: {
     key: "terms",
     name: "Terms of Service",
     path: "/terms",
-    summary: "What you agree to when you use the platform.",
+    subtitle: SUBTITLE,
     description: "The terms you accept when you register for Coc Docs Platform.",
-    readingTime: "1 min read",
-    lede: "You need an approved account, your organisation owns what you publish, and every change is recorded. Ticking the agreement box on the registration form accepts this document and the Privacy Policy.",
-    highlights: [
-      {
-        icon: PersonIcon,
-        title: "Approved accounts",
-        body: "Register, confirm your email, then an admin approves you.",
-      },
-      {
-        icon: DocumentIcon,
-        title: "Your content stays yours",
-        body: "Your organisation owns every page you publish.",
-      },
-      {
-        icon: HistoryIcon,
-        title: "Every change is recorded",
-        body: "Versions and an audit trail, kept for at least a year.",
-      },
-    ],
     sections: [
       {
-        id: "your-account",
-        title: "Your account",
-        icon: PersonIcon,
+        id: "agreement-to-these-terms",
+        title: "Agreement to These Terms",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            Register with your work email, confirm the code we send, then wait for an admin to approve the account. One
-            account per person — don’t share your password, and tell an admin if you think it has been exposed.
-          </p>
+          <>
+            <Para>
+              These Terms of Service (the “Terms”) apply to Coc Docs Platform and every page, tool, and service it
+              provides (together, the “Platform”). The Platform is operated by your organisation. BY CREATING AN
+              ACCOUNT OR USING THE PLATFORM, YOU AGREE TO THESE TERMS. IF YOU DO NOT AGREE, DO NOT USE THE PLATFORM.
+            </Para>
+            <Para>
+              We may change these Terms at any time. When we do, we update the date at the bottom of this page and tell
+              you at your next sign-in. Using the Platform after a change means you accept the new Terms.
+            </Para>
+          </>
+        ),
+      },
+      {
+        id: "your-account",
+        title: "Your Account",
+        body: (
+          <>
+            <Para>
+              You need an approved account to use the Platform. Register with your work email, confirm the code we send
+              you, then wait for an admin to approve the account.
+            </Para>
+            <Para>
+              You are responsible for keeping your password private and for all activity under your account. One
+              account per person. If you think your password has been exposed, tell an admin right away.
+            </Para>
+          </>
         ),
       },
       {
         id: "acceptable-use",
-        title: "Acceptable use",
-        icon: ShieldCheckIcon,
+        title: "Acceptable Use",
         body: (
           <>
-            <p className="mb-2.5 max-w-[70ch]">Use the platform for your organisation’s documentation. Please don’t:</p>
+            <Para>Use the Platform only for your organisation’s documentation work. You agree that you will not:</Para>
             <Bullets
-              marker="dot"
               items={[
-                "store live secrets — passwords, API keys, certificates — in page content;",
+                "store live secrets — passwords, API keys, or certificates — in page content;",
                 "upload material you have no right to share;",
-                "reach for content, settings or accounts your role doesn’t grant you.",
+                "try to access content, settings, or accounts your role does not allow;",
+                "disrupt or overload the Platform, or try to get around its security.",
               ]}
             />
           </>
@@ -113,36 +113,71 @@ export const LEGAL_DOCUMENTS: Record<LegalDocKey, LegalDoc> = {
       },
       {
         id: "your-content",
-        title: "Your content",
-        icon: DocumentIcon,
+        title: "Your Content",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            Your organisation owns the documentation you create. We store and serve it so the platform works, and we
-            never use it to train models.
-          </p>
+          <>
+            <Para>
+              Your organisation owns the documentation you create. We store and serve it so the Platform works. We
+              never use your content to train models.
+            </Para>
+            <Para>Every change is recorded. Versions and an audit trail are kept for at least one year.</Para>
+          </>
         ),
       },
       {
         id: "roles-and-admins",
-        title: "Roles and admins",
-        icon: KeyIcon,
+        title: "Roles and Admins",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            What you can see and change comes from the role on your account, checked on the server for every request.
-            Admins can approve, suspend, or remove an account; the pages you wrote stay with the organisation.
-          </p>
+          <Para>
+            What you can see and change depends on the role on your account, and is checked on the server for every
+            request. Admins can approve, suspend, or remove an account. Pages you wrote stay with the organisation.
+          </Para>
+        ),
+      },
+      {
+        id: "related-policies",
+        title: "Related Policies",
+        body: (
+          <>
+            <Para>
+              The following policies also apply to your use of the Platform and are part of these Terms:
+            </Para>
+            <PolicyLinks
+              items={[
+                { label: "Privacy Policy", href: "/privacy" },
+                { label: "Acceptable Use Guidelines", href: "/terms#acceptable-use" },
+                { label: "Security Contacts", href: "/terms#contact" },
+              ]}
+            />
+            <Para>Each of these policies may change from time to time and applies from when it is posted.</Para>
+          </>
+        ),
+      },
+      {
+        id: "disclaimers",
+        title: "Disclaimers",
+        body: (
+          <Para>
+            THE PLATFORM IS PROVIDED “AS IS” AND “AS AVAILABLE”. WE DO NOT PROMISE THAT THE PLATFORM WILL BE ERROR-FREE
+            OR UNINTERRUPTED, OR THAT ANY CONTENT WILL BE ACCURATE OR UP TO DATE. YOU USE THE PLATFORM AT YOUR OWN
+            RISK.
+          </Para>
         ),
       },
       {
         id: "service-and-changes",
-        title: "Service and changes",
-        icon: ScaleIcon,
+        title: "Service and Changes",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            We aim to keep the platform available during working hours, but can’t promise uninterrupted service. If
-            these terms change in a way that matters, we’ll update the date above and tell you at your next sign-in.
-          </p>
+          <Para>
+            We aim to keep the Platform available during working hours, but we can’t promise uninterrupted service. We
+            may change, pause, or stop any part of the Platform at any time.
+          </Para>
         ),
+      },
+      {
+        id: "contact",
+        title: "Contact",
+        body: <Para>Questions about these Terms? Contact the platform team at {CONTACT_EMAIL}.</Para>,
       },
     ],
   },
@@ -151,45 +186,41 @@ export const LEGAL_DOCUMENTS: Record<LegalDocKey, LegalDoc> = {
     key: "privacy",
     name: "Privacy Policy",
     path: "/privacy",
-    summary: "What we collect, why, and the choices you have.",
+    subtitle: SUBTITLE,
     description: "What Coc Docs Platform collects about you, why, and for how long.",
-    readingTime: "1 min read",
-    lede: "We collect what we need to sign you in and run the platform. We don’t sell anything, and there are no advertising trackers on this site.",
-    highlights: [
-      {
-        icon: EyeOpenIcon,
-        title: "Only what’s needed",
-        body: "Name, email, and your activity on the platform.",
-      },
-      {
-        icon: LockIcon,
-        title: "Kept safe",
-        body: "Passwords are hashed. Access is limited by role.",
-      },
-      {
-        icon: ShieldIcon,
-        title: "Never sold",
-        body: "We don’t sell or share your data for ads.",
-      },
-    ],
     sections: [
       {
+        id: "about-this-policy",
+        title: "About This Policy",
+        body: (
+          <>
+            <Para>
+              This Privacy Policy explains what Coc Docs Platform (the “Platform”) collects about you, why we collect
+              it, and how long we keep it. The Platform is operated by your organisation.
+            </Para>
+            <Para>
+              We may change this Policy at any time. When we do, we update the date at the bottom of this page. Using
+              the Platform after a change means you accept the new Policy.
+            </Para>
+          </>
+        ),
+      },
+      {
         id: "information-we-collect",
-        title: "Information we collect",
-        icon: DatabaseIcon,
+        title: "Information We Collect",
         body: (
           <Bullets
             items={[
               <>
-                <strong className="font-semibold text-ink">Account details:</strong> full name, email, and password
-                (stored hashed).
+                <strong className="font-semibold text-[#1c1b22]">Account details</strong> — your full name, email, and
+                password (stored hashed, never in plain text).
               </>,
               <>
-                <strong className="font-semibold text-ink">Activity:</strong> sign-ins, sessions, and documents you
-                view or edit.
+                <strong className="font-semibold text-[#1c1b22]">Activity</strong> — sign-ins, sessions, and the
+                documents you view or edit.
               </>,
               <>
-                <strong className="font-semibold text-ink">HRMS attendance</strong> — only if an admin links your
+                <strong className="font-semibold text-[#1c1b22]">HRMS attendance</strong> — only if an admin links your
                 account.
               </>,
             ]}
@@ -198,44 +229,64 @@ export const LEGAL_DOCUMENTS: Record<LegalDocKey, LegalDoc> = {
       },
       {
         id: "how-we-use-it",
-        title: "How we use it",
-        icon: ServerIcon,
+        title: "How We Use It",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            To run the platform: sign you in, show your documents and usage, and keep your account secure.
-          </p>
+          <Para>
+            To run the Platform: sign you in, show your documents and usage, and keep your account secure. We never
+            sell your data, and there are no advertising trackers on this site.
+          </Para>
         ),
       },
       {
         id: "who-can-see-your-data",
-        title: "Who can see your data",
-        icon: EyeOpenIcon,
+        title: "Who Can See Your Data",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            Admins can see account details and activity needed to manage the team. Other users can’t see your
+          <Para>
+            Admins can see the account details and activity needed to manage the team. Other users cannot see your
             attendance.
-          </p>
+          </Para>
         ),
       },
       {
         id: "how-long-we-keep-it",
-        title: "How long we keep it",
-        icon: ClockIcon,
+        title: "How Long We Keep It",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            We keep your data while your account is active, and delete or anonymise it after it’s no longer needed.
-          </p>
+          <Para>
+            We keep your data while your account is active, and delete or anonymise it once it is no longer needed.
+            Versions and the audit trail are kept for at least one year.
+          </Para>
         ),
       },
       {
         id: "your-choices",
-        title: "Your choices",
-        icon: SlidersIcon,
+        title: "Your Choices",
         body: (
-          <p className="m-0 max-w-[70ch]">
-            You can update your name, change notification settings, and sign out of other devices in Settings.
-          </p>
+          <Para>
+            You can update your name, change your notification settings, and sign out of other devices in Settings.
+          </Para>
         ),
+      },
+      {
+        id: "related-policies",
+        title: "Related Policies",
+        body: (
+          <>
+            <Para>The following policies also apply to your use of the Platform:</Para>
+            <PolicyLinks
+              items={[
+                { label: "Terms of Service", href: "/terms" },
+                { label: "Acceptable Use Guidelines", href: "/terms#acceptable-use" },
+                { label: "Security Contacts", href: "/privacy#contact" },
+              ]}
+            />
+            <Para>Each of these policies may change from time to time and applies from when it is posted.</Para>
+          </>
+        ),
+      },
+      {
+        id: "contact",
+        title: "Contact",
+        body: <Para>Questions about this Policy? Contact the platform team at {CONTACT_EMAIL}.</Para>,
       },
     ],
   },
