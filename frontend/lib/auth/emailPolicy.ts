@@ -86,8 +86,3 @@ export function emailViolations(email: string): string[] {
 export function isEmailAcceptable(email: string): boolean {
   return emailViolations(email).length === 0;
 }
-
-/** One line for a field error, when there is no room for a list. */
-export function firstEmailViolation(email: string): string | undefined {
-  return emailViolations(email)[0];
-}
