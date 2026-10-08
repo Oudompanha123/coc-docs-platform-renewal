@@ -26,10 +26,12 @@ vi.mock("@/components/account/ProfileCard", () => ({
   },
 }));
 vi.mock("@/components/account/AppearanceCard", () => ({ AppearanceCard: () => <div>Appearance content</div> }));
+vi.mock("@/components/account/NotificationsCard", () => ({ NotificationsCard: () => <div>Notifications content</div> }));
 vi.mock("@/components/account/ConnectedAccountsCard", () => ({
   ConnectedAccountsCard: () => <div>Connected accounts content</div>,
 }));
 vi.mock("@/components/account/SecurityCard", () => ({ SecurityCard: () => <div>Security content</div> }));
+vi.mock("@/components/account/SessionsCard", () => ({ SessionsCard: () => <div>Sessions content</div> }));
 vi.mock("@/components/account/ClaudeUsageCard", () => ({ ClaudeUsageCard: () => <div>Claude Usage content</div> }));
 
 // `hidden`-attribute elements get an empty computed accessible name in
