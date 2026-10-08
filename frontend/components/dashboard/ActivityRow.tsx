@@ -1,3 +1,4 @@
+import { avatarSrc } from "@/lib/account/avatarSrc";
 import { useState } from "react";
 import { CheckCircleIcon, RingIcon } from "@/components/layout/icons";
 import type { ActivityEntry } from "@/lib/docs/activity-api";
@@ -26,7 +27,7 @@ function ActorAvatar({ email, avatarUrl }: { email: string; avatarUrl: string | 
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={avatarUrl}
+        src={avatarSrc(avatarUrl) ?? undefined}
         alt=""
         aria-hidden="true"
         onError={() => setFailed(true)}

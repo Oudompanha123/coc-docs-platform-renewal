@@ -1,5 +1,6 @@
 "use client";
 
+import { avatarSrc } from "@/lib/account/avatarSrc";
 import { useState, type ReactNode } from "react";
 
 /**
@@ -57,7 +58,7 @@ export function UserAvatar({
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={avatarUrl}
+        src={avatarSrc(avatarUrl) ?? undefined}
         alt={name}
         referrerPolicy="no-referrer"
         onError={() => setFailed(true)}

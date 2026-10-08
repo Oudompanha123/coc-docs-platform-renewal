@@ -324,10 +324,20 @@ export function removeMember(id: string): Promise<ClaudeUsageMemberSummary> {
   return request<ClaudeUsageMemberSummary>(`/members/${id}/remove`, { method: "POST" });
 }
 
+/** Puts a removed member back on active tracking (the other direction of {@link removeMember}). */
+export function restoreMember(id: string): Promise<ClaudeUsageMemberSummary> {
+  return request<ClaudeUsageMemberSummary>(`/members/${id}/restore`, { method: "POST" });
+}
+
 /** Soft budget every member uses unless they have their own override — an estimate, not a hard cap. */
 export const DEFAULT_SOFT_BUDGET_TOKENS = 1_200_000;
 
 /** Distinct solid color per row/legend swatch — same rotating palette users-roles.ts already uses. */
+/** Members still being tracked -- a disabled (removed) one is left out, same as Active Users and Near Limit. */
+export function trackedMemberCount(members: readonly Pick<ClaudeUsageMember, "status">[]): number {
+  return members.filter((m) => m.status !== "removed").length;
+}
+
 export const AVATAR_PALETTE = ["#6d3ce0", "#4c6ff0", "#1f9d6b", "#e0873c", "#d94f7c"] as const;
 
 export function avatarColorFor(index: number): string {

@@ -19,6 +19,8 @@ import { UserActivityModal } from "@/components/claude-usage/UserActivityModal";
 import {
   fetchDashboard,
   removeMember,
+  restoreMember,
+  trackedMemberCount,
   updateMemberBudget,
   type ClaudeUsageDashboard,
   type ClaudeUsageMember,
@@ -133,6 +135,12 @@ export function AdminClaudeUsageView() {
     setRemoveTarget(member);
   }, []);
 
+  // Enable needs no confirmation: it only puts someone back on the dashboard,
+  // and the popup stays open so the button flips to Disable in place.
+  function handleRestore(member: ClaudeUsageMember) {
+    void withActionError(() => restoreMember(member.id).then(() => undefined));
+  }
+
   function handleConfirmRemove(member: ClaudeUsageMember) {
     setRemoveTarget(null);
     void withActionError(() => removeMember(member.id).then(() => undefined));
@@ -238,7 +246,7 @@ export function AdminClaudeUsageView() {
               label="Active Users"
               value={String(dashboard?.activeUsers ?? 0)}
               tone="green"
-              note={`of ${members.length} tracked`}
+              note={`of ${trackedMemberCount(members)} tracked`}
             />
             <UsageStatCard
               icon={WarningIcon}
@@ -270,6 +278,7 @@ export function AdminClaudeUsageView() {
           avatarColor={detail.avatarColor}
           onClose={closeDetail}
           onRemove={handleRemove}
+          onRestore={handleRestore}
           onBudgetChange={handleBudgetOverrideChange}
         />
       )}

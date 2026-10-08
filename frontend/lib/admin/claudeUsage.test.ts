@@ -6,6 +6,7 @@ import {
   formatLastActive,
   inviteMember,
   removeMember,
+  trackedMemberCount,
   updateMemberBudget,
   updateMemberRole,
   type ClaudeUsageDashboard,
@@ -177,5 +178,15 @@ describe("Claude Usage admin client", () => {
     it("reads an unparsable string as Never rather than 'Invalid Date'", () => {
       expect(formatLastActive("not-a-date")).toBe("Never");
     });
+  });
+});
+
+describe("trackedMemberCount", () => {
+  it("leaves disabled (removed) members out of the tracked count", () => {
+    expect(trackedMemberCount([{ status: "active" }, { status: "removed" }, { status: "active" }])).toBe(2);
+  });
+
+  it("is zero when everyone is disabled", () => {
+    expect(trackedMemberCount([{ status: "removed" }])).toBe(0);
   });
 });

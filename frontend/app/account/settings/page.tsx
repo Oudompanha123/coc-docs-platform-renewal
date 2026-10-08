@@ -6,8 +6,10 @@ import { SettingsSideMenu } from "@/components/account/SettingsSideMenu";
 import { SettingsTabPanels } from "@/components/account/SettingsTabPanels";
 import { ProfileCard } from "@/components/account/ProfileCard";
 import { AppearanceCard } from "@/components/account/AppearanceCard";
+import { NotificationsCard } from "@/components/account/NotificationsCard";
 import { ConnectedAccountsCard, type HrmsLinkState } from "@/components/account/ConnectedAccountsCard";
 import { SecurityCard } from "@/components/account/SecurityCard";
+import { SessionsCard } from "@/components/account/SessionsCard";
 import { ClaudeUsageCard } from "@/components/account/ClaudeUsageCard";
 import { SettingsToast, type SettingsToastState } from "@/components/account/SettingsToast";
 import { useProductStats } from "@/lib/docs/useProductStats";
@@ -143,27 +145,13 @@ export default function AccountSettingsPage() {
                   ),
                 },
                 { id: "appearance", content: <AppearanceCard /> },
-                {
-                  id: "notifications",
-                  content: (
-                    <section className="rounded-[10px] border border-border bg-white p-6 shadow-sm">
-                      <h2 className="text-base font-bold text-dash-ink">Notifications</h2>
-                    </section>
-                  ),
-                },
+                { id: "notifications", content: <NotificationsCard /> },
                 ...(canSeeClaudeUsage
                   ? [{ id: "claude-usage" as const, content: <ClaudeUsageCard /> }]
                   : []),
                 { id: "connected-accounts", content: <ConnectedAccountsCard state={hrmsLink} /> },
                 { id: "security", content: <SecurityCard /> },
-                {
-                  id: "sessions",
-                  content: (
-                    <section className="rounded-[10px] border border-border bg-white p-6 shadow-sm">
-                      <h2 className="text-base font-bold text-dash-ink">Sessions</h2>
-                    </section>
-                  ),
-                },
+                { id: "sessions", content: <SessionsCard /> },
               ]}
             />
           </div>

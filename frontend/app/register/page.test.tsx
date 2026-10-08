@@ -170,14 +170,19 @@ describe("RegisterPage", () => {
       const field = screen.getByLabelText("Verification Code");
       expect(field).toHaveAttribute("aria-invalid", "true");
 
-      // Verify Email retries the same code...
-      await user.click(screen.getByRole("button", { name: "Verify Email" }));
-      await waitFor(() => expect(verifyRegistrationCode).toHaveBeenCalledTimes(2));
+      // The rejected code is cleared and the field focused for the next one.
+      await waitFor(() => expect(field).toHaveValue(""));
+      await waitFor(() => expect(field).toHaveFocus());
 
-      // ...and typing again clears the error.
+      // Typing clears the error...
       await user.type(field, "1");
       expect(screen.queryByText("That code is incorrect. Please try again.")).not.toBeInTheDocument();
       expect(field).not.toHaveAttribute("aria-invalid");
+
+      // ...and completing a new code submits it, same as the first time.
+      await user.type(field, "23456");
+      await waitFor(() => expect(verifyRegistrationCode).toHaveBeenCalledTimes(2));
+      expect(verifyRegistrationCode).toHaveBeenLastCalledWith(expect.any(String), "123456");
     });
 
     it("does not submit until the sixth digit, and Verify Email asks for all six", async () => {
