@@ -1,0 +1,188 @@
+# ADR-104: shadcn/ui as the Frontend Component Foundation
+
+> **Status**: PROPOSED — not implemented, not approved
+> **Date**: 2026-10-09
+> **Author**: AI (Claude Opus 5), on direct in-session instruction
+> **Requester**: the user (product owner), in-session: *"Please create new branch for upgrad UI to shadcnuikit"* / *"draft ADR-104 for upgrade in whole of project (full project)"*. Recorded as a transcription of that instruction. **Approval is a human's and has not been given** (`CONST-PROC-01`, HARNESS-PROCESS-STANDARD §4.8 CQ3).
+> **Related ADR**: Supersedes the **BlockNote / Mantine** element of ADR-001 §stack (already dead in practice — see §1.2). Touches no backend decision. Constrained by `CONST-TECH-05` (frontend is presentation only) and `CONST-TECH-07` (no authorisation or authoritative validation moves into a component).
+> **Branch**: `feat/shadcn-ui-migration`
+
+---
+
+## 1. Context
+
+### 1.1 What the frontend is today
+
+Measured on `dev` at `2554da5`, 2026-10-09:
+
+| | |
+|---|---|
+| Component files (`components/**/*.tsx`, excluding tests) | **174** |
+| Component test files | **87** |
+| Routes (`app/**/page.tsx`) | **37** |
+| Modal components | **16** |
+| Files containing a hand-rolled `role="dialog"` | **8** |
+| Files containing a raw `<button>` | **97** |
+| Hand-drawn SVG icons in `components/layout/icons.tsx` | **53** |
+| `app/globals.css` | **1453 lines** |
+| CSS modules / styled-jsx | **0** |
+| Shared UI primitive layer (`components/ui/`) | **does not exist** |
+
+Styling is Tailwind 4 throughout, with design tokens declared in `@theme` blocks in `globals.css` (`--color-ink`, `--color-border`, `--color-page`, `--color-dash-ink`, `--color-sidebar*`, `--color-danger`, `--color-brand-purple`, `--color-brand-blue`). Theme switching is an attribute, not a library: `lib/theme.ts` writes `data-theme="light|dark"` on `<html>` and persists it in `localStorage`, with an `@media (prefers-color-scheme: dark)` fallback for `system`. Three shells (`data-shell="admin" | "ax-renewal" | "home"`) read the same preference.
+
+There is no shared primitive layer. Every component composes Tailwind classes directly, and recurring shapes are kept as string constants local to the file that needs them — for example `PANEL_CLASSES` in `components/home/MemberHeader.tsx`. The same dropdown panel, the same modal shell and the same table header exist in several files as independently maintained class strings. That is the actual problem this ADR responds to: not that the UI looks wrong, but that one visual change is an N-file edit and nothing enforces that the N files agree.
+
+### 1.2 Mantine and BlockNote are already dead
+
+`package.json` declares `@blocknote/core`, `@blocknote/mantine`, `@blocknote/react` (0.54.0) and `@mantine/core`, `@mantine/hooks` (9.6.0). A full-text search of the frontend source finds **zero** imports of either — the only matches outside `node_modules` are the dependency lines themselves and stale `.next` build caches.
+
+This matters, and it corrects an assumption carried in earlier discussion of this migration: the belief that Mantine is unavoidable because BlockNote ships on top of it, and that a shadcn migration would therefore leave two design systems in the bundle. That is not the case. The BlockNote editor envisaged by ADR-001 was never adopted; editing is served by `components/markdown/MarkdownEditor.tsx` (ADR-102) and the bespoke forms under `components/docs/editor/`. **There is no second design system to coexist with.** The five packages are dead weight and their removal is a precondition of this work, not a consequence of it.
+
+### 1.3 Decision pressure
+
+None external. No requirement in `REQUIREMENTS-SPEC.md` asks for this; no gate is blocked by it. It is a product-owner initiative to put the UI on a maintained foundation before the component count grows further. That absence of pressure is itself an argument for the staged approach in §2 rather than a rewrite: nothing is forcing a date, so nothing justifies a big bang.
+
+### 1.4 Related risks
+
+- **RISK — test churn.** 87 test files query the rendered DOM. Radix primitives render different structure and ARIA wiring than the hand-rolled equivalents, so a meaningful fraction of those tests will need rewriting. This is the single largest cost and it is not optional work.
+- **RISK — half-migrated screens.** The failure mode of every incremental UI migration is a screen where two button styles sit next to each other for a quarter. §2 decision 6 exists solely to prevent it.
+- **RISK — token drift.** shadcn components ship expecting their own token names. Adopted verbatim, they would render in shadcn's default palette rather than this product's, and the brand colours would quietly become decoration applied on top.
+
+## 2. Decision
+
+> Adopt **shadcn/ui** as the frontend's component foundation: copy its Radix-backed, Tailwind-styled primitives into `frontend/components/ui/`, remap them onto the design tokens already in `globals.css`, and migrate the existing 174 components onto them **one product area per pull request** over five phases. shadcn is not installed as a dependency — its components become this repository's own source, edited freely.
+
+### Key choices
+
+1. **shadcn/ui, copied in, not depended on.** `npx shadcn@latest add <component>` writes a file into `components/ui/`. That file is then ours: reviewed, edited, tested and committed like any other component. There is no `shadcn` package at runtime and no upstream version to upgrade in lockstep. What *is* a new runtime dependency is **Radix UI** (`@radix-ui/react-*`, one small package per primitive) plus `class-variance-authority`, `clsx` and `tailwind-merge`. Licence: **MIT** for shadcn/ui and for Radix. No cost, no attribution obligation beyond retaining the licence text.
+
+2. **Our tokens, not shadcn's palette.** The `components.json` configuration maps shadcn's semantic token names onto the tokens `globals.css` already defines, instead of importing shadcn's default colour set:
+
+   | shadcn token | maps to |
+   |---|---|
+   | `--primary` | `--color-brand-purple` |
+   | `--background` / `--foreground` | existing `--background` / `--foreground` |
+   | `--border` / `--input` | `--color-border` |
+   | `--muted-foreground` | `--color-muted` |
+   | `--destructive` | `--color-danger` |
+   | `--ring` | `--color-brand-blue` |
+
+   A migrated component must be visually indistinguishable from the one it replaced. Any deliberate visual change is a separate PR with its own before/after, never smuggled in under a primitive swap.
+
+3. **The existing theme mechanism stays.** shadcn assumes a `.dark` class on `<html>`; this project uses `data-theme="dark"` plus a `system` media-query fallback, and `lib/theme.ts` is already wired into three shells and a settings screen. The attribute wins. Tailwind 4 is told so once, in `globals.css`:
+
+   ```css
+   @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+   ```
+
+   `lib/theme.ts` is not modified. No component learns about theming.
+
+4. **The icon set stays bespoke.** `components/layout/icons.tsx` holds 53 hand-drawn icons that match the product's drawing weight. shadcn's examples import `lucide-react`; where a copied component does, the import is swapped for the local icon during review. `lucide-react` is **not** added. Running two icon sets would introduce a second, purely cosmetic migration axis on top of this one. If a genuine gap appears, it is recorded as an amendment to this ADR, not decided inside a PR.
+
+5. **Five phases, lowest risk first.**
+
+   | Phase | Scope | Why here |
+   |---|---|---|
+   | **0 — Groundwork** | Remove the 5 dead Mantine/BlockNote packages; `shadcn init`; token map; `dark` variant; create `components/ui/`; add the ESLint rule from decision 7 in warn mode | No visual change, no test change. Independently revertible |
+   | **1 — Form & action** | `Button`, `Input`, `Textarea`, `Label`, `Select`, `Checkbox`, `Switch` | Smallest DOM delta, highest reuse (97 files hold a raw `<button>`). Builds confidence before touching focus management |
+   | **2 — Overlays** | `Dialog`, `DropdownMenu`, `Popover`, `Tooltip`, `Sheet` | The biggest correctness win: replaces 8 hand-rolled `role="dialog"` implementations and their focus traps, outside-click handlers and Escape wiring with audited ones. Also the biggest test churn — deliberately after phase 1 |
+   | **3 — Data display** | `Table`, `Card`, `Badge`, `Tabs`, `Avatar`, `Skeleton` | The 8 table-bearing files and the dashboard cards converge on one shape |
+   | **4 — Feedback & sweep** | `Alert`, `Progress`, toast; then the remaining bespoke components, area by area | Whatever phases 1–3 did not reach |
+   | **5 — Cleanup** | Delete superseded class-string constants; prune the rules in `globals.css` that only existed to style them; ESLint rule to error | `globals.css` should shrink. If it has not, the migration did not actually consolidate anything |
+
+6. **One product area per pull request, never a partial screen.** The unit of migration is a directory under `components/` (`account`, `announcements`, `attendance`, `auth`, `ax-renewal`, `claude-usage`, `dashboard`, `docs`, `home`, `layout`, `legal`, `markdown`, `reports`, `settings`, `users-roles`, `welcome`) together with the routes that render it. A PR that leaves one screen with a shadcn `Button` beside a hand-rolled one does not merge. Mixed primitives *between* areas during the migration are expected and fine; mixed primitives *within a screen* are not.
+
+7. **New code uses the primitives.** Once phase 1 lands, a new component importing a raw `<button>`/`<input>` where a primitive exists is a review rejection. An ESLint rule carries this: warn from phase 0, error at phase 5, so the rule never blocks the migration that creates the thing it requires.
+
+8. **Nothing about authorisation, validation or data moves.** Primitives are presentational. `CONST-TECH-05` and `CONST-TECH-07` are untouched — no shadcn component makes a decision the backend owns, and `lib/content/validate.ts` stays advisory. Each migrated file keeps its `// req:` traceability comments verbatim.
+
+9. **Tests are migrated, not deleted.** When a Radix primitive changes the DOM a test queried, the test is rewritten against the new accessible name or role — preferably a more semantic query than the one it replaced. A test that is deleted rather than rewritten must be justified by name in its PR description. Coverage does not fall across a phase boundary.
+
+## 3. Considered Alternatives
+
+| # | Alternative | Pros | Cons | Adopted |
+|---|---|---|---|---|
+| A | **shadcn/ui, staged by area** | MIT, no runtime framework lock-in; components become our source and stay editable; Radix brings audited focus management and ARIA for the 8 hand-rolled dialogs; targets Tailwind 4 + React 19, which this project already runs; revertible one area at a time | Radix is a real new dependency surface; ~87 test files face DOM churn; spans several sprints with two styles coexisting between areas | **Adopted** |
+| B | **shadcn/ui, big-bang rewrite** | One consistent result, no coexistence period | 174 components and 87 tests in one unreviewable PR, no safe revert, and every open feature branch conflicts with it. The three branches merged on 2026-10-09 alone touched 50 files | Not adopted |
+| C | **Extract our own primitive layer, no library** | Zero new dependencies; total control; no test churn beyond what we choose | We hand-write and own the focus traps, ARIA wiring, keyboard navigation and screen-reader behaviour that Radix has already got right — the part of the 8 dialogs most likely to be subtly wrong today. Solves the duplication but not the correctness | Not adopted |
+| D | **Adopt a full component library (Mantine properly, MUI)** | Batteries included; Mantine is already in `package.json` | Runtime framework lock-in and a second styling system beside Tailwind 4; its theming would fight `data-theme`; restyling to the brand is harder than with copied source. The dead Mantine packages are an argument against this path, not for it — it was chosen once in ADR-001 and never adopted | Not adopted |
+
+### Scoring
+
+| Dimension | Weight | A | B | C | D |
+|---|---|---|---|---|---|
+| Team proficiency | 25% | 8 | 8 | 7 | 5 |
+| Ecosystem | 15% | 9 | 9 | 4 | 8 |
+| Licensing / cost | 15% | 10 | 10 | 10 | 9 |
+| Accessibility correctness | 15% | 9 | 9 | 5 | 8 |
+| Migration risk | 15% | 8 | 2 | 9 | 3 |
+| Long-term maintenance | 15% | 9 | 9 | 6 | 6 |
+| **Weighted total** | | **8.75** | 7.70 | 6.85 | 6.35 |
+
+The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scoring itself. PM approval is still required, because this supersedes a stack element of ADR-001.
+
+## 4. Consequences
+
+### 4.1 Positive
+
+- One definition per UI shape. A visual change becomes a one-file edit instead of a search across 174.
+- The 8 hand-rolled dialogs inherit Radix's focus trap, focus restore, Escape handling, scroll lock and ARIA wiring — behaviour currently reimplemented per file and unverified.
+- Five dead packages leave `package.json`, and with them a dependency-audit surface nothing uses.
+- `globals.css` should shrink materially as per-component rules collapse into primitives. It is the migration's clearest quantitative signal.
+- New screens start from a primitive instead of from a copied class string.
+
+### 4.2 Negative / costs accepted
+
+- **Radix becomes a runtime dependency**, one package per primitive. Bundle impact is per-component and tree-shaken, but it is not zero.
+- **Test churn across up to 87 files.** Unavoidable, and the main reason this is phased.
+- **A coexistence period of several sprints** where migrated and unmigrated areas differ in internals (decision 6 confines this to *between* areas).
+- **Merge conflicts with in-flight feature branches.** Anything touching a component in a phase's area will conflict. Phase order should be announced before each phase starts so parallel work can be sequenced — a coordination cost on the whole team, not only on whoever runs the migration.
+- **shadcn components are copied, so they do not receive upstream fixes.** An upstream accessibility fix is a manual re-copy. This is the price of owning the source, accepted knowingly.
+
+### 4.3 Follow-up work
+
+- [ ] **Phase 0** — remove `@blocknote/*` (3) and `@mantine/*` (2) from `package.json`; confirm `npm run build` is unaffected
+- [ ] **Phase 0** — `npx shadcn@latest init`; commit `components.json` with the §2.2 token map; add the `@custom-variant dark` line to `globals.css`
+- [ ] **Phase 0** — ESLint rule for decision 7, in warn mode
+- [ ] **Phase 1** — Button, Input, Textarea, Label, Select, Checkbox, Switch; migrate `components/auth` first, as the smallest real area
+- [ ] **Phase 2** — Dialog, DropdownMenu, Popover, Tooltip, Sheet; migrate the 16 modals and the 8 `role="dialog"` sites
+- [ ] **Phase 3** — Table, Card, Badge, Tabs, Avatar, Skeleton
+- [ ] **Phase 4** — Alert, Progress, toast; sweep the remaining areas
+- [ ] **Phase 5** — delete superseded class-string constants, prune `globals.css`, ESLint rule to error
+- [ ] Update `ADR-INDEX.md`, and note in ADR-001 that its BlockNote/Mantine stack element is superseded
+- [ ] Decide, before phase 2, whether `AnnouncementEditorModal` and `MarkdownEditor` (ADR-102) migrate with `announcements`/`markdown` or are held back as a separate change
+
+## 5. Verification / Monitoring
+
+| Item | Measurement | Frequency | Threshold |
+|---|---|---|---|
+| Build integrity | `npm run check` (typecheck + lint + test) | Every PR | 0 type errors, 0 lint errors, 0 failing tests |
+| Test coverage | Test file and test count vs. the phase's starting commit | End of each phase | No net loss; deletions named in the PR |
+| Visual parity | Before/after of each migrated screen in the PR | Every PR | Indistinguishable, or the change is called out deliberately |
+| Mixed primitives in one screen | Review | Every PR | Zero (decision 6) |
+| `globals.css` size | `wc -l app/globals.css` | End of each phase | Trending down from 1453; not up |
+| Bundle | `npm run build` route sizes vs. the phase's starting commit | End of each phase | No route grows >10% without a stated reason |
+| Dialog accessibility | Keyboard-only pass: focus trap, focus restore, Escape | End of phase 2 | All 16 modals pass |
+
+## 6. References
+
+- Related code: `frontend/components/` (174 files), `frontend/app/globals.css`, `frontend/lib/theme.ts`, `frontend/components/layout/icons.tsx`, `frontend/package.json`
+- Related constraints: `CONST-TECH-05`, `CONST-TECH-07` (REQUIREMENTS-SPEC v1.1, §263–266)
+- Related ADR: ADR-001 (stack — its BlockNote/Mantine element is superseded here), ADR-102 (Markdown editor, migrates in phase 4)
+- External: shadcn/ui — https://ui.shadcn.com (MIT) · Radix Primitives — https://www.radix-ui.com (MIT)
+
+---
+
+## Change History
+
+| Date | Version | Changes | Author |
+|---|---|---|---|
+| 2026-10-09 | 1.0 | Initial draft on branch `feat/shadcn-ui-migration` | AI (Claude Opus 5) |
+
+---
+
+**Approval**
+
+| Date | Approver | Comments | Status |
+|---|---|---|---|
+| | | | **PENDING** |
