@@ -1466,6 +1466,57 @@ button:not(:disabled) {
   display: none;
 }
 
+/* Autofill, de-blued.
+ *
+ * A field Chrome has filled in — the remembered email on /login, a saved
+ * password — gets painted rgb(232, 240, 254), a pale blue, by the UA
+ * stylesheet. It is why a field with text in it looked faintly blue while an
+ * empty one did not, and it cannot be fixed with `background-color`: the
+ * browser paints that colour above the element's own background.
+ *
+ * An enormous inset box-shadow is the way around it, because box-shadow is
+ * painted above the autofill layer. The focus rule re-states the field's own
+ * lift (components/ui/input.tsx) alongside it, since a second box-shadow
+ * declaration replaces the first rather than adding to it — without that, an
+ * autofilled field would lose its shadow the moment it was focused.
+ *
+ * `-webkit-text-fill-color` is needed as well: the same UA rule overrides
+ * `color`, so autofilled text would otherwise stay the browser's near-black
+ * rather than the theme's.
+ *
+ * Only the pill fields are targeted. A checkbox, radio or file input is never
+ * autofilled, and a 1000px inset shadow on one would be a solid block. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  box-shadow: 0 0 0 1000px var(--muted-surface) inset;
+}
+
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--foreground);
+  box-shadow:
+    0 0 0 1000px var(--background) inset,
+    0 1px 2px rgb(0 0 0 / 4%),
+    0 8px 24px -8px rgb(0 0 0 / 12%);
+}
+
+/* Firefox tints its own autofilled fields instead, and respects a plain
+   background — so it needs the colour but none of the shadow gymnastics.
+   A separate rule rather than another selector in the list above: a browser
+   that does not know `:autofill` would throw the whole list away, taking the
+   `-webkit-` fix with it. */
+input:autofill,
+textarea:autofill,
+select:autofill {
+  background-color: var(--muted-surface);
+  color: var(--foreground);
+}
+
 /* The blanket `!important` rules that used to live here — a 6px radius and
    a blue focus border forced onto every text-like input, textarea and select —
    are gone (ADR-104 r2.1). They existed because field styling was scattered
