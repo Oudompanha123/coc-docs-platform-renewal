@@ -6,6 +6,7 @@ import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
+import { HISTORY_PAGE_SIZE, useNotificationHistory } from "@/lib/notify/useNotificationHistory";
 import { useActivityFeed, type ActivityItem } from "@/lib/notify/useActivityFeed";
 import { actorName, isHrmsReport, timeAgo } from "@/lib/notify/activity";
 import { HrmsReportModal } from "./HrmsReportModal";
@@ -90,6 +91,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   // same list useNotifications already holds, not a second fetch: this
   // panel never needs more than the 30 rows the inbox already returns.
   const [notificationFilter, setNotificationFilter] = useState<NotificationFilter>("all");
+  // "View all notifications" expands the bell in place (ADR-106): the list
+  // switches to the paged history and loads ten more each time it is
+  // scrolled to the bottom. Collapsed again whenever the panel reopens.
+  const [notificationsExpanded, setNotificationsExpanded] = useState(false);
+  const notificationListRef = useRef<HTMLDivElement>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
   // The signed-in caller's real name/role (GET /api/v1/auth/me) — "Guest"
   // until that resolves or for a visitor with no session, since this shell
@@ -111,10 +117,31 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       window.open(`/ax-renewal?project=${encodeURIComponent(projectId)}`, "_blank", "noopener,noreferrer"),
     onOpenAnnouncement: (announcementId) => setOpenAnnouncement(announcementId),
   });
-  const visibleNotifications =
+  const filteredNotifications =
     notificationFilter === "unread"
       ? notifications.items.filter((n) => !n.read)
       : notifications.items;
+  const history = useNotificationHistory(
+    openMenu === "notifications" && notificationsExpanded,
+    notificationFilter === "unread",
+    notifications.refresh,
+  );
+  const visibleNotifications = notificationsExpanded
+    ? history.items
+    : filteredNotifications.slice(0, HISTORY_PAGE_SIZE);
+  // Offered when there is more than the first ten to see: more in the list
+  // already held, or a full list from the bell's endpoint (thirty newest),
+  // which means older rows exist on the server.
+  const canExpandNotifications =
+    !notificationsExpanded &&
+    (filteredNotifications.length > HISTORY_PAGE_SIZE || notifications.items.length >= 30);
+
+  /** Loads the next page once the list is scrolled to within a row of its end. */
+  function onNotificationListScroll() {
+    const list = notificationListRef.current;
+    if (!notificationsExpanded || !list) return;
+    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 48) history.loadMore();
+  }
 
   // The mail icon, likewise, no longer renders five invented names. A
   // super_admin sees everyone's activity here; every other role sees only
@@ -184,6 +211,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     if (openMenu === "notifications") {
       setNotificationFilter(unreadCountRef.current > 0 ? "unread" : "all");
     }
+    setNotificationsExpanded(false);
   }, [openMenu]);
 
   useEffect(() => {
@@ -270,7 +298,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       person is already looking when they want it. */}
                   <button
                     type="button"
-                    onClick={() => notifications.markAllRead()}
+                    onClick={() => {
+                      notifications.markAllRead();
+                      if (notificationsExpanded) history.markAllReadLocal();
+                    }}
                     disabled={notifications.unreadCount === 0}
                     className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                   >
@@ -278,8 +309,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   </button>
                 </div>
               </div>
-              <div className="max-h-80 overflow-y-auto py-1">
-                {visibleNotifications.length === 0 ? (
+              <div
+                ref={notificationListRef}
+                onScroll={onNotificationListScroll}
+                data-testid="notification-list"
+                className="max-h-80 overflow-y-auto py-1"
+              >
+                {visibleNotifications.length === 0 && notificationsExpanded && (history.loading || history.error) ? null : visibleNotifications.length === 0 ? (
                   <p className="px-4 py-6 text-center text-sm text-muted">
                     {notificationFilter === "unread"
                       ? "You're all caught up."
@@ -296,7 +332,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         // either way, and leaving it bold after they looked and
                         // decided not to act makes the badge mean "unread or
                         // ignored", which is not a number anyone can act on.
-                        notifications.markRead(n.id);
+                        if (notificationsExpanded) history.markRead(n.id);
+                        else notifications.markRead(n.id);
                         // The hook resolves what this is about and opens the
                         // right dialog. It is one fetch, made on the click,
                         // because the notification is the record and the queue
@@ -347,15 +384,33 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                     </button>
                   ))
                 )}
+                {notificationsExpanded && history.loading && (
+                  <div role="status" className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-muted">
+                    <Spinner className="h-4 w-4 border-2" />
+                    Loading…
+                  </div>
+                )}
+                {notificationsExpanded && !history.loading && history.error && (
+                  <p role="alert" className="px-4 py-3 text-center text-xs text-danger">
+                    {history.error}
+                  </p>
+                )}
+                {notificationsExpanded &&
+                  !history.loading &&
+                  !history.error &&
+                  !history.hasMore &&
+                  history.items.length > 0 && (
+                    <p className="px-4 py-3 text-center text-xs text-muted">You&apos;re all caught up.</p>
+                  )}
               </div>
-              {notifications.items.some((n) => n.type === "registration.pending") && (
-                <Link
-                  href="/users-roles?tab=pending"
-                  onClick={() => setOpenMenu(null)}
+              {canExpandNotifications && (
+                <button
+                  type="button"
+                  onClick={() => setNotificationsExpanded(true)}
                   className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
                 >
-                  View all
-                </Link>
+                  View all notifications
+                </button>
               )}
             </div>
           )}
