@@ -27,18 +27,18 @@ export function Stepper({ steps, currentIndex }: StepperProps) {
               <div className="flex flex-col items-center gap-1.5">
                 <span
                   aria-hidden="true"
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
                     status === "upcoming"
-                      ? "border-2 border-border bg-white text-muted"
-                      : "bg-gradient-to-r from-brand-purple to-brand-blue text-white"
+                      ? "border-surface-border text-muted-foreground border bg-transparent"
+                      : "bg-primary text-primary-foreground"
                   }`}
                 >
                   {index + 1}
                 </span>
                 <span
                   aria-current={status === "current" ? "step" : undefined}
-                  className={`whitespace-nowrap text-xs font-semibold ${
-                    status === "upcoming" ? "text-muted" : "text-brand-purple"
+                  className={`text-xs font-medium whitespace-nowrap ${
+                    status === "upcoming" ? "text-muted-foreground" : "text-foreground"
                   }`}
                 >
                   {label}

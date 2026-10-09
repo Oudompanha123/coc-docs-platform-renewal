@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { CodeField, PasswordField } from "@/components/auth/FormField";
-import { LockIcon } from "@/components/auth/icons";
 import { Button } from "@/components/ui/button";
 import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupMaterial } from "@/lib/auth/api";
 
@@ -84,7 +83,7 @@ export function TotpSetupWizard({
         <p role="alert" className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {loadError}
         </p>
-        <Button type="button" variant="outline" size="xs" onClick={onCancel} className="text-dash-ink">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
           Cancel
         </Button>
       </div>
@@ -118,10 +117,10 @@ export function TotpSetupWizard({
         <p className="text-xs font-semibold text-dash-ink">2. Enter the 6-digit code it shows</p>
         <CodeField id={CODE_FIELD_ID} label="Verification Code" value={code} onChange={setCode} error={codeError} />
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" size="xs" onClick={onCancel} className="text-dash-ink">
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
             Cancel
           </Button>
-          <Button type="submit" size="xs" disabled={isVerifying} aria-busy={isVerifying}>
+          <Button type="submit" size="sm" disabled={isVerifying} aria-busy={isVerifying}>
             {isVerifying ? "Verifying…" : "Verify & turn on"}
           </Button>
         </div>
@@ -175,18 +174,17 @@ export function TotpDisableForm({
         value={currentPassword}
         onChange={setCurrentPassword}
         placeholder="Enter your current password"
-        icon={<LockIcon className="h-4 w-4" />}
         autoComplete="current-password"
         error={error}
       />
       <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="outline" size="xs" onClick={onCancel} className="text-dash-ink">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
           Cancel
         </Button>
         <Button
           type="submit"
           variant="destructiveOutline"
-          size="xs"
+          size="sm"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
           className="rounded-full"

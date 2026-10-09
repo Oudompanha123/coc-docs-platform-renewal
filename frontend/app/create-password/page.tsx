@@ -103,33 +103,29 @@ function CreatePasswordForm() {
 
   return (
     <AuthShell
-      icon={<LockIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+      icon={<LockIcon className="size-5" />}
       heading="Create New Password"
       subheading="For security, you must set a new password before continuing. Your temporary password can only be used once."
     >
-      <h1 className="text-3xl font-extrabold text-ink">Create New Password</h1>
-      <p className="mt-2 text-sm text-muted">This replaces the temporary password you were emailed.</p>
-
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${
+          className={`mb-6 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-700"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
           }`}
         >
           {feedback.message}
         </div>
       )}
 
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+      <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
         <PasswordField
           label="Temporary Password"
           value={temporaryPassword}
           onChange={setTemporaryPassword}
           placeholder="Enter the temporary password you were emailed"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="current-password"
           error={errors.temporaryPassword}
         />
@@ -139,7 +135,6 @@ function CreatePasswordForm() {
           value={password}
           onChange={setPassword}
           placeholder="Create a new password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="new-password"
           error={errors.password}
         />
@@ -149,7 +144,6 @@ function CreatePasswordForm() {
           value={confirmPassword}
           onChange={setConfirmPassword}
           placeholder="Confirm your new password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="new-password"
           error={errors.confirmPassword}
         />
@@ -158,7 +152,7 @@ function CreatePasswordForm() {
           type="submit"
           disabled={isSubmitting || feedback?.type === "success"}
           aria-busy={isSubmitting}
-          className="flex w-full"
+          className="w-full"
         >
           {isSubmitting ? "Creating…" : "Create Password"}
         </Button>

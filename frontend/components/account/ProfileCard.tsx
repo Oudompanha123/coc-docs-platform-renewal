@@ -172,7 +172,7 @@ export function ProfileCard({
           <Button
             type="button"
             variant="outline"
-            size="md"
+            size="default"
             onClick={() => void handleRemoveAvatar()}
             disabled={avatarBusy || !user?.avatarUrl}
             title={user?.avatarUrl ? undefined : "No photo to remove"}
@@ -187,7 +187,6 @@ export function ProfileCard({
         <label className="block">
           <span className="text-xs font-semibold text-muted">Display name</span>
           <Input
-            variant="dashboard"
             value={displayName}
             maxLength={50}
             onChange={(e) => {
@@ -202,7 +201,6 @@ export function ProfileCard({
         <label className="block">
           <span className="text-xs font-semibold text-muted">Email</span>
           <Input
-            variant="dashboard"
             value={user?.email ?? ""}
             disabled
             readOnly
@@ -232,14 +230,14 @@ export function ProfileCard({
         <Button
           type="button"
           variant="outline"
-          size="md"
+          size="default"
           onClick={handleCancel}
           disabled={!dirty || saving}
           className="text-dash-ink"
         >
           Cancel
         </Button>
-        <Button type="button" size="md" onClick={() => void handleSave()} disabled={!dirty || saving} className="shadow">
+        <Button type="button" size="default" onClick={() => void handleSave()} disabled={!dirty || saving} className="shadow">
           {saving ? "Saving…" : "Save changes"}
         </Button>
       </div>

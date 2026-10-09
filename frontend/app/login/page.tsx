@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
-import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
+import { DocumentIcon, GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
 import { Button } from "@/components/ui/button";
@@ -329,24 +329,23 @@ function LoginForm() {
       <>
       {dimVisible && <LoadingDim label="Signing in…" />}
       <AuthShell
-        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
-        heading="Two-Factor Authentication"
-        subheading="Enter the 6-digit code from your authenticator app to finish signing in."
+        icon={<ShieldIcon className="size-5" />}
+        heading="Enter Your Code"
+        subheading={
+          <>
+            Open your authenticator app and enter the 6-digit code for{" "}
+            <span className="text-foreground font-medium">{identifier.trim() || "your account"}</span>.
+          </>
+        }
       >
-        <h1 className="text-3xl font-extrabold text-ink">Enter Your Code</h1>
-        <p className="mt-2 text-sm text-muted">
-          Open your authenticator app and enter the 6-digit code for{" "}
-          <span className="font-semibold text-ink">{identifier.trim() || "your account"}</span>.
-        </p>
-
         {feedback && (
           <div
             role="alert"
-            className={`mt-5 rounded-xl border px-4 py-3 text-sm ${feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
+            className={`mb-6 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : feedback.type === "pending"
                 ? "border-amber-200 bg-amber-50 text-amber-900"
-                : "border-red-200 bg-red-50 text-red-700"
+                : "border-destructive/30 bg-destructive/5 text-destructive"
               }`}
           >
             {feedback.message}
@@ -354,11 +353,11 @@ function LoginForm() {
         )}
 
         {isRedirecting ? (
-          <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
+          <div className="text-muted-foreground flex flex-col items-center gap-3 py-6 text-sm">
             <p>Redirecting to your dashboard…</p>
           </div>
         ) : (
-          <form className="mt-7 space-y-6" onSubmit={handleVerifyOtp} noValidate>
+          <form className="grid gap-5" onSubmit={handleVerifyOtp} noValidate>
             <div>
               <OtpCodeInput
                 ref={otpInputRef}
@@ -380,7 +379,7 @@ function LoginForm() {
                 <p
                   id="login-otp-error"
                   role="alert"
-                  className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+                  className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
                 >
                   <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" />
@@ -389,19 +388,22 @@ function LoginForm() {
                   <span>{otpError}</span>
                 </p>
               ) : (
-                <p id="login-otp-hint" className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+                <p
+                  id="login-otp-hint"
+                  className="text-muted-foreground mt-3 flex items-center justify-between gap-3 text-xs"
+                >
                   <span className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
-                      className="relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full bg-brand-purple/10"
+                      className="bg-secondary relative h-1.5 w-12 shrink-0 overflow-hidden rounded-full"
                     >
                       <span
-                        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue transition-[width] duration-1000 ease-linear"
+                        className="bg-primary absolute inset-y-0 left-0 rounded-full transition-[width] duration-1000 ease-linear"
                         style={{ width: `${(otpSecondsLeft / 30) * 100}%` }}
                       />
                     </span>
                     <span className="whitespace-nowrap">
-                      New code in <span className="font-semibold tabular-nums text-ink">{otpSecondsLeft}s</span>
+                      New code in <span className="text-foreground font-medium tabular-nums">{otpSecondsLeft}s</span>
                     </span>
                   </span>
                   <span className="whitespace-nowrap">Submits automatically</span>
@@ -413,7 +415,7 @@ function LoginForm() {
               type="submit"
               disabled={isVerifyingOtp}
               aria-busy={isVerifyingOtp}
-              className="flex w-full shadow-sm"
+              className="w-full"
             >
               {isVerifyingOtp && <Spinner />}
               {isVerifyingOtp ? "Verifying…" : "Verify"}
@@ -425,7 +427,7 @@ function LoginForm() {
               size="sm"
               onClick={() => setStep("credentials")}
               disabled={isVerifyingOtp}
-              className="flex w-full"
+              className="w-full"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -443,33 +445,24 @@ function LoginForm() {
     <>
     {dimVisible && <LoadingDim label="Signing in…" />}
     <AuthShell
-      icon={<DocumentIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
-      heading={
-        <>
-          Welcome to
-          <br />
-          Coc Docs Platform
-        </>
-      }
-      subheading="Sign in to continue to your workspace and pick up right where you left off."
+      icon={<DocumentIcon className="size-5" />}
+      heading="Sign in to your account"
+      subheading="Enter your email and password to continue to your workspace."
       footer={
-        <p className="hidden items-center gap-2 text-xs text-muted md:flex">
-          <ShieldIcon className="h-4 w-4 text-brand-purple" />
+        <span className="inline-flex items-center gap-1.5">
+          <ShieldIcon className="size-3.5" />
           Your data is safe with us
-        </p>
+        </span>
       }
     >
-      <h1 className="text-3xl font-extrabold text-ink">Login</h1>
-      <p className="mt-2 text-sm text-muted">Please sign in to your account</p>
-
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${feedback.type === "success"
-            ? "border-green-200 bg-green-50 text-green-800"
+          className={`mb-6 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
             : feedback.type === "pending"
               ? "border-amber-200 bg-amber-50 text-amber-900"
-              : "border-red-200 bg-red-50 text-red-700"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
             }`}
         >
           {feedback.message}
@@ -477,11 +470,11 @@ function LoginForm() {
       )}
 
       {isRedirecting ? (
-        <div className="mt-8 flex flex-col items-center gap-3 py-6 text-sm text-muted">
+        <div className="text-muted-foreground flex flex-col items-center gap-3 py-6 text-sm">
           <p>Redirecting to your dashboard…</p>
         </div>
       ) : (
-        <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+        <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
           <FormField
             id="login-identifier"
             name="username"
@@ -489,7 +482,6 @@ function LoginForm() {
             value={identifier}
             onChange={setIdentifier}
             placeholder="name@company.com"
-            icon={<PersonIcon className="h-4 w-4" />}
             autoComplete="username"
             error={errors.identifier}
           />
@@ -501,61 +493,52 @@ function LoginForm() {
             value={password}
             onChange={setPassword}
             placeholder="Enter your password"
-            icon={<LockIcon className="h-4 w-4" />}
             autoComplete="current-password"
             error={errors.password}
           />
 
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-muted">
-              {/* A checkbox primitive does not exist yet. Radix's renders a
-                  <button role="checkbox"> rather than an <input>, which moves
-                  pixels and changes what getByLabelText matches — neither
-                  belongs in a phase whose contract is that nothing visibly
-                  changes. Scheduled with the rest of the form controls; see
-                  ADR-104 §4.3. */}
+            <label className="text-muted-foreground flex items-center gap-2 text-sm">
+              {/* Still a native checkbox. Radix's renders a
+                  <button role="checkbox">, which changes what
+                  getByLabelText resolves to in several tests; it lands with
+                  the rest of the form controls (ADR-104 §4.3). Restyled to
+                  the neutral palette in the meantime. */}
               {/* eslint-disable-next-line react/forbid-elements */}
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+                className="border-surface-border bg-muted-surface text-primary focus-visible:ring-ring/50 size-4 rounded focus-visible:ring-[3px] focus-visible:outline-none"
               />
               Remember me
             </label>
             <Link
               href="/forgot-password"
-              className="text-sm font-semibold text-brand-purple hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple rounded"
+              className="focus-visible:ring-ring/50 rounded-sm text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:outline-none"
             >
               Forgot password?
             </Link>
           </div>
 
-          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="flex w-full">
+          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
             {isSubmitting && <Spinner />}
             {isSubmitting ? "Signing in…" : "Login"}
           </Button>
 
           {isGoogleSignInConfigured && (
             <>
-              <div className="flex items-center gap-3">
-                <span className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted">or</span>
-                <span className="h-px flex-1 bg-border" />
+              <div className="after:border-surface-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+                <span className="bg-background text-muted-foreground relative z-10 px-3">or continue with</span>
               </div>
 
-              {/* Its hover was `bg-gray-50`, where the other outline button on
-                  this page used `bg-page`. Two buttons meant to look alike that
-                  did not, which is the kind of thing a shared variant exists to
-                  stop; both are now the product's `bg-page`. The only
-                  intentional pixel change in the ADR-104 phase 1 migration. */}
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleSubmitting}
                 aria-busy={isGoogleSubmitting}
-                className="flex w-full gap-3"
+                className="w-full"
               >
                 {isGoogleSubmitting ? <Spinner /> : <GoogleIcon className="h-5 w-5" aria-hidden="true" />}
                 {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}

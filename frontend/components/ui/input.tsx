@@ -1,64 +1,47 @@
 /**
- * Input — the text-field primitive (ADR-104 phase 1).
+ * Input — the text-field primitive (ADR-104 r2.1).
  *
- * Two variants, because this product genuinely has two text-field styles and
- * pretending otherwise would mean moving pixels on one of them:
+ * Styled to the reference the product owner supplied: a filled pill with no
+ * visible border, rather than shadcn's default outlined rectangle. The border
+ * is present but transparent, so focus can colour it without the field
+ * changing size.
  *
- *   `default`   the auth pages — taller, a 4px focus ring, and the border
- *               changes colour on focus.
- *   `dashboard` the settings and admin cards — shorter, a 2px focus ring,
- *               and the border does not change.
+ * One field style, not the four the codebase had grown. The brand-purple 4px
+ * ring and the second "dashboard" variant are both gone — they were two
+ * answers to a question nobody had asked twice.
  *
- * Nobody decided to have two. The auth screens and the settings cards were
- * built at different times and each picked its own focus treatment. Keeping
- * both here is not an endorsement — it is the point: the difference now lives
- * in one file where it can be seen and settled, instead of being spread
- * across thirty that nobody would think to compare. Collapsing them is a
- * design decision with a visible result, so it gets its own PR.
+ * `aria-invalid` now styles the field, which it deliberately did not before:
+ * an invalid field gets a red ring. The previous version announced
+ * invalidity only to a screen reader, which was correct for a migration that
+ * promised to change nothing and is simply a gap now.
  *
- * The base is `components/auth/FormField.tsx`'s `fieldClasses` verbatim, with
- * its `pl-10` generalised back to a plain horizontal inset. FormField
- * re-applies `pl-10` for the leading-icon layout and `pr-10` for the
- * password-visibility toggle, and `cn` resolves those against the base.
- *
- * That inset is written `pl-4 pr-4` and NOT `px-4`, which looks redundant and
- * is not. tailwind-merge drops an earlier class only when a later one covers
- * the same ground: `px-4` removes a preceding `pl-4`, but `pl-10` does not
- * remove a preceding `px-4`, because `px` is the wider of the two. Written as
- * `px-4` the base survives alongside the caller's `pl-10`, both rules land in
- * the stylesheet at equal specificity, and which one wins is decided by the
- * order Tailwind happened to emit them in — invisible in review and a
- * coin-flip at runtime. Spelling the sides out makes the override a direct
- * conflict, which tailwind-merge resolves properly. A test covers it.
- *
- * Deliberately absent: a background colour, and any `aria-invalid:` styling.
- * The fields this replaces set neither, and phase 1 changes no pixels. An
- * invalid field announces itself through `aria-invalid` and the error text
- * below it, exactly as it did before; giving it a red border is a real design
- * change and belongs in its own PR.
+ * Padding is written `pl-4 pr-4` rather than `px-4` so a caller's one-sided
+ * override actually displaces it. tailwind-merge drops an earlier class only
+ * when the later one covers the same ground: `px-4` removes a preceding
+ * `pl-4`, but `pl-10` does not remove a preceding `px-4`, because `px` is the
+ * wider of the two. Written `px-4`, the base would survive alongside a
+ * caller's `pl-10`, both rules would land at equal specificity, and the
+ * winner would be whichever Tailwind emitted last. A test covers it.
  *
  * // req: ADR-104
  */
-import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
-const inputVariants = cva("w-full rounded-xl border border-border transition-colors focus:outline-none", {
-  variants: {
-    variant: {
-      default:
-        "pl-4 pr-4 py-3 text-sm text-ink placeholder:text-muted focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15",
-      dashboard:
-        "pl-3 pr-3 py-2 text-sm text-dash-ink placeholder:text-muted focus-visible:ring-2 focus-visible:ring-brand-purple",
-    },
-  },
-  defaultVariants: { variant: "default" },
-});
-
-type InputProps = ComponentProps<"input"> & VariantProps<typeof inputVariants>;
-
-export function Input({ className, variant, ...props }: InputProps) {
-  return <input className={cn(inputVariants({ variant }), className)} {...props} />;
+export function Input({ className, type, ...props }: ComponentProps<"input">) {
+  return (
+    <input
+      type={type}
+      className={cn(
+        "bg-muted-surface flex h-10 w-full min-w-0 rounded-full border border-transparent pl-4 pr-4 py-2 text-base transition-[color,box-shadow,background-color] outline-none md:text-sm",
+        "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground",
+        "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium",
+        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-invalid:ring-[3px]",
+        "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
-
-export { inputVariants };

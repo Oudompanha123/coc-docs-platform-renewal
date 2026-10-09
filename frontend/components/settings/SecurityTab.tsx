@@ -93,7 +93,7 @@ export function SecurityTab() {
               <Button
                 type="button"
                 variant="outline"
-                size="md"
+                size="default"
                 onClick={() => {
                   setChangingPassword(true);
                   setPasswordNotice(null);

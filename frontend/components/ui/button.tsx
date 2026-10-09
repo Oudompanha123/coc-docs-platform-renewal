@@ -1,17 +1,18 @@
 /**
- * Button — the first shadcn/ui primitive (ADR-104 phase 1).
+ * Button — shadcn/ui's, on this product's tokens (ADR-104 r2.0).
  *
- * The variants here are not shadcn's defaults. They were read off the call
- * sites this replaces, so a migrated button renders the same pixels it did
- * before (ADR-104 decision 2). Three of them — the submit buttons on
- * /forgot-password, /reset-password and /create-password — carried the *same*
- * 300-character class string, maintained in three places. That is the
- * duplication this file exists to end.
+ * This replaced a brand-gradient button. The first version of this file kept
+ * that gradient and every size the codebase had grown, because the ADR as
+ * drafted promised that no pixel would move. The product owner wanted the UI
+ * upgraded rather than rewired, so the geometry here is now shadcn's: a
+ * 36px-tall control, `rounded-md`, `text-sm font-medium`, a solid near-black
+ * primary, and a focus ring drawn as a 3px halo in the ring colour instead of
+ * a 2px outline in brand purple.
  *
- * `asChild` renders the caller's own element (a `<Link>`, usually) with these
- * classes instead of wrapping it in a `<button>`, via Radix's Slot. Without
- * it, a styled navigation link has to either duplicate the variant's classes
- * or be an anchor nested in a button, which is invalid HTML.
+ * Sizes are shadcn's four. The `md`, `xs` and `inline` steps this file used
+ * to carry are gone: they existed only to reproduce four padding scales that
+ * had accumulated across the app, and the upgrade is the moment to collapse
+ * them rather than preserve them forever.
  *
  * // req: ADR-104
  */
@@ -21,47 +22,37 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  // Shared by every variant. `disabled:opacity-60` is deliberately NOT here:
-  // the link variant dims by going muted instead, and stacking the two would
-  // make it fainter than it is today.
-  "inline-flex items-center justify-center gap-2 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed",
+  // `rounded-full` is the house shape, from the reference design the product
+  // owner supplied: pill buttons and pill fields, not shadcn's default
+  // rectangles. A caller that genuinely needs a square corner overrides it.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        /** The product's primary action — the brand gradient. */
-        default:
-          "bg-gradient-to-r from-brand-purple to-brand-blue text-white transition-opacity hover:opacity-90 disabled:opacity-60",
-        /** Secondary action beside a primary one: "Back to login", "Continue with Google". */
-        outline:
-          "border border-border text-ink transition-colors hover:bg-page disabled:opacity-60",
-        /** A bare icon affordance — the password-visibility toggle. Tints, never fills. */
-        ghost: "text-muted transition-colors hover:text-ink disabled:opacity-60",
-        /** Reads as a link, behaves as a button: "Resend code". */
-        link: "text-brand-purple hover:underline disabled:text-muted disabled:no-underline",
-        /** Destructive confirmation. No auth call site yet; added when one needs it. */
+        /** The primary action. Solid, near-black, no gradient. */
+        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        /** A bordered pill — "Continue with Google", "Cancel". */
+        outline: "border border-surface-border bg-background hover:bg-accent hover:text-accent-foreground",
+        /** A filled but quiet action. */
+        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+        /** No box until hovered — toolbar and icon affordances. */
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        /** Reads as a link, behaves as a button. */
+        link: "text-foreground underline-offset-4 hover:underline",
+        /** Irreversible, filled. */
         destructive:
-          "bg-destructive text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-60",
-        /** The settings area's "Revoke" / "Delete" affordances — outlined in the danger colour, not filled. */
+          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20",
+        /** Irreversible, outlined — "Revoke", "Turn off", "Deactivate". */
         destructiveOutline:
-          "border border-danger text-danger transition-colors hover:bg-danger/10 disabled:opacity-60",
+          "border border-destructive/40 text-destructive shadow-xs hover:bg-destructive/10 focus-visible:ring-destructive/20",
       },
       size: {
-        default: "rounded-xl px-4 py-3",
-        sm: "rounded-xl px-4 py-2.5 text-sm",
-        /**
-         * The settings/dashboard scale. Two pixels shorter than `sm`, which
-         * is not a distinction anyone designed — the auth pages and the
-         * settings cards were simply built at different times. Both are kept
-         * for now so migration moves no pixels; collapsing them into one is a
-         * design decision, and it belongs in a PR that can show the before
-         * and after rather than being smuggled in here.
-         */
-        md: "rounded-xl px-4 py-2 text-sm",
-        /** Compact pair at the foot of a card form — Cancel / Save. */
-        xs: "rounded-xl px-3 py-1.5 text-xs",
-        icon: "h-4 w-4 rounded p-0",
-        /** No box of its own — for the link variant, which sits inside a sentence. */
-        inline: "rounded-none p-0",
+        default: "h-10 px-5 py-2",
+        sm: "h-8 gap-1.5 px-3.5 text-xs",
+        lg: "h-11 px-7",
+        icon: "size-10",
+        /** Sits inside a sentence — no box of its own. Pair with `link`. */
+        inline: "h-auto rounded-none p-0",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

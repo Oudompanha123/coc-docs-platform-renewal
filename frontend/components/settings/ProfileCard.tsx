@@ -140,7 +140,7 @@ export function ProfileCard() {
             <Button
               type="button"
               variant="outline"
-              size="md"
+              size="default"
               onClick={() => setEditing(false)}
               className="rounded-full text-dash-ink"
             >
@@ -148,7 +148,7 @@ export function ProfileCard() {
             </Button>
             <Button
               type="button"
-              size="md"
+              size="default"
               onClick={() => void handleSave()}
               disabled={!changed || saving}
               className="rounded-full"
@@ -160,7 +160,7 @@ export function ProfileCard() {
           <Button
             type="button"
             variant="outline"
-            size="md"
+            size="default"
             onClick={() => {
               setDraft(name);
               setError(null);

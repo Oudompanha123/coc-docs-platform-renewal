@@ -175,7 +175,7 @@ export function MailCredentialCard() {
             <Button
               type="button"
               variant="outline"
-              size="xs"
+              size="sm"
               onClick={() => void remove()}
               disabled={busy}
               className="rounded-lg text-muted hover:bg-transparent hover:text-dash-ink disabled:opacity-40"
@@ -186,7 +186,7 @@ export function MailCredentialCard() {
           <Button
             type="button"
             variant="outline"
-            size="xs"
+            size="sm"
             className="rounded-lg text-dash-ink hover:bg-surface-2 disabled:opacity-40"
             onClick={() => {
               setExpanded((open) => {
@@ -304,7 +304,7 @@ export function MailCredentialCard() {
 
           <Button
             type="button"
-            size="md"
+            size="default"
             onClick={() => void save()}
             disabled={busy || username.trim() === "" || appPassword.trim() === ""}
             className="mt-3 rounded-lg text-xs hover:opacity-100 disabled:opacity-40"

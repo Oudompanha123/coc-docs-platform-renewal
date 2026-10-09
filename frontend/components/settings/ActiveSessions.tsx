@@ -87,7 +87,7 @@ export function ActiveSessions() {
               <Button
                 type="button"
                 variant="outline"
-                size="xs"
+                size="sm"
                 onClick={() => void signOutSession(session.id)}
                 className="shrink-0 rounded-full text-dash-ink"
               >

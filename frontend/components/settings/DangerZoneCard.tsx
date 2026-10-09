@@ -109,7 +109,7 @@ export function DangerZoneCard() {
           <Button
             type="button"
             variant="outline"
-            size="md"
+            size="default"
             onClick={() => void handleExport()}
             disabled={exporting || !user}
             className="shrink-0 gap-1.5 rounded-full bg-white text-dash-ink shadow-sm transition-all hover:bg-white hover:border-brand-purple/20 hover:shadow hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
@@ -202,7 +202,7 @@ export function DangerZoneCard() {
                 <Button
                   type="button"
                   variant="outline"
-                  size="xs"
+                  size="sm"
                   onClick={handleCancelDeactivate}
                   disabled={deactivating}
                   className="text-dash-ink"
@@ -212,7 +212,7 @@ export function DangerZoneCard() {
                 <Button
                   type="button"
                   variant="destructiveOutline"
-                  size="xs"
+                  size="sm"
                   onClick={() => void handleConfirmDeactivate()}
                   disabled={deactivating}
                   aria-busy={deactivating}

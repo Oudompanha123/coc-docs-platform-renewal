@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
-import { LockIcon, MailIcon, PersonIcon, PlusIcon, ShieldIcon } from "@/components/auth/icons";
+import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
 import { Spinner } from "@/components/layout/Spinner";
 import { Button } from "@/components/ui/button";
@@ -205,21 +205,20 @@ export default function RegisterPage() {
   if (step === "code") {
     return (
       <AuthShell
-        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        icon={<ShieldIcon className="size-5" />}
         heading="Verify Your Email"
-        subheading="Enter the 6-digit code we emailed you to finish creating your account."
+        subheading={
+          <>
+            We&apos;ve sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>. Enter it
+            below to finish creating your account.
+          </>
+        }
       >
-        <h1 className="text-3xl font-extrabold text-ink">Verify Your Email</h1>
-        <p className="mt-2 text-sm text-muted">
-          We&apos;ve sent a 6-digit code to <span className="font-semibold text-ink">{email}</span>. Enter it below to
-          finish creating your account.
-        </p>
-
-        <div className="mt-6">
+        <div className="mb-6">
           <Stepper steps={STEPS} currentIndex={1} />
         </div>
 
-        <form className="mt-7 space-y-6" onSubmit={handleVerify} noValidate>
+        <form className="grid gap-5" onSubmit={handleVerify} noValidate>
           <div>
             <OtpCodeInput
               ref={codeInputRef}
@@ -241,7 +240,7 @@ export default function RegisterPage() {
               <p
                 id="register-code-error"
                 role="alert"
-                className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+                className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
               >
                 <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" />
@@ -274,14 +273,14 @@ export default function RegisterPage() {
             type="submit"
             disabled={isVerifying}
             aria-busy={isVerifying}
-            className="flex w-full shadow-sm"
+            className="w-full"
           >
             {isVerifying && <Spinner />}
             {isVerifying ? "Verifying…" : "Verify Email"}
           </Button>
         </form>
 
-        <div className="mt-5 rounded-xl border border-border bg-page px-4 py-3 text-center text-sm text-muted">
+        <div className="border-surface-border bg-muted-surface text-muted-foreground mt-5 rounded-md border px-4 py-3 text-center text-sm">
           Didn&apos;t get a code? Check your spam folder, or{" "}
           <Button
             type="button"
@@ -289,7 +288,6 @@ export default function RegisterPage() {
             size="inline"
             onClick={handleResend}
             disabled={isResending || resendCooldown > 0}
-            className="focus-visible:ring-offset-0"
           >
             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : isResending ? "Resending…" : "Resend code"}
           </Button>
@@ -301,7 +299,7 @@ export default function RegisterPage() {
           size="sm"
           onClick={() => setStep("form")}
           disabled={isVerifying}
-          className="mt-4 flex w-full"
+          className="mt-4 w-full"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -315,52 +313,44 @@ export default function RegisterPage() {
   if (step === "done") {
     return (
       <AuthShell
-        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        icon={<ShieldIcon className="size-5" />}
         heading="Registration Received"
         subheading="An administrator will review your application before you can sign in."
       >
-        <h1 className="text-3xl font-extrabold text-ink">Registration Received</h1>
-
-        <div className="mt-6">
+        <div className="mb-6">
           <Stepper steps={STEPS} currentIndex={2} />
         </div>
 
-        <div className="mt-6 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="alert">
+        <div
+          className="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          role="alert"
+        >
           {doneMessage}
         </div>
-        <Link
-          href="/login"
-          className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          Go to Login
-        </Link>
+        <Button asChild className="w-full">
+          <Link href="/login">Go to Login</Link>
+        </Button>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      icon={<PersonIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
-      badge={<PlusIcon className="h-3.5 w-3.5" />}
-      heading="Create Account"
-      subheading="Join Coc Docs Platform today and start writing, organizing, and sharing documentation with your team."
-      formPanelPaddingY="md:py-10"
-      formPanelPaddingX="px-0"
+      icon={<PersonIcon className="size-5" />}
+      heading="Register"
+      subheading="Join Coc Docs Platform and start writing, organising and sharing documentation with your team."
     >
-      <h1 className="px-8 text-3xl font-extrabold text-ink md:px-14">Register</h1>
-      <p className="mt-2 px-8 text-sm text-muted md:px-14">Create your account</p>
-
-      <div className="mt-6 px-8 md:px-14">
+      <div className="mb-6">
         <Stepper steps={STEPS} currentIndex={0} />
       </div>
 
       {feedback && (
         <div
           role="alert"
-          className={`mx-8 mt-4 rounded-[10px] border px-4 py-3 text-sm md:mx-14 ${
+          className={`mb-6 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-700"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
           }`}
         >
           {feedback.message}
@@ -377,7 +367,6 @@ export default function RegisterPage() {
           value={fullName}
           onChange={setFullName}
           placeholder="Enter your full name"
-          icon={<PersonIcon className="h-4 w-4" />}
           autoComplete="name"
           error={errors.fullName}
         />
@@ -388,7 +377,6 @@ export default function RegisterPage() {
           value={email}
           onChange={setEmail}
           placeholder="Enter your email"
-          icon={<MailIcon className="h-4 w-4" />}
           autoComplete="email"
           error={errors.email}
         />
@@ -398,7 +386,6 @@ export default function RegisterPage() {
           value={password}
           onChange={setPassword}
           placeholder="Create a password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="new-password"
           error={errors.password}
         />
@@ -408,7 +395,6 @@ export default function RegisterPage() {
           value={confirmPassword}
           onChange={setConfirmPassword}
           placeholder="Confirm your password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="new-password"
           error={errors.confirmPassword}
         />
@@ -450,7 +436,7 @@ export default function RegisterPage() {
           )}
         </div>
 
-        <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="flex w-full">
+        <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
           {isSubmitting ? "Submitting…" : "Continue"}
         </Button>
       </form>

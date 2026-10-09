@@ -6,6 +6,11 @@ import { Button } from "./button";
  * These test the two things a shared primitive can get wrong in a way no
  * call site would notice until it shipped: losing an override, and quietly
  * becoming a different element.
+ *
+ * The class assertions name the *token* a variant should resolve to, never a
+ * literal colour. The palette changed once already (brand gradient → shadcn
+ * neutral) and tests pinned to hex values would have had to change with it
+ * while testing nothing that mattered.
  */
 describe("Button", () => {
   it("renders a real button element, so forms still submit", () => {
@@ -23,40 +28,46 @@ describe("Button", () => {
 
     const className = screen.getByRole("button", { name: "Wide" }).className;
     expect(className).toContain("px-8");
-    expect(className).not.toContain("px-4");
+    expect(className).not.toContain("px-5");
   });
 
   it("keeps a caller's additions that do not conflict", () => {
-    render(<Button className="shadow-sm">Verify</Button>);
+    render(<Button className="w-full">Verify</Button>);
 
     const className = screen.getByRole("button", { name: "Verify" }).className;
-    expect(className).toContain("shadow-sm");
-    expect(className).toContain("from-brand-purple");
+    expect(className).toContain("w-full");
+    expect(className).toContain("bg-primary");
   });
 
   it("gives each variant its own treatment", () => {
     const { rerender } = render(<Button variant="outline">Back</Button>);
-    expect(screen.getByRole("button").className).toContain("border-border");
+    expect(screen.getByRole("button").className).toContain("border-surface-border");
+
+    rerender(<Button variant="secondary">Later</Button>);
+    expect(screen.getByRole("button").className).toContain("bg-secondary");
 
     rerender(<Button variant="link">Resend</Button>);
-    expect(screen.getByRole("button").className).toContain("text-brand-purple");
+    expect(screen.getByRole("button").className).toContain("hover:underline");
 
     rerender(<Button variant="destructive">Delete</Button>);
     expect(screen.getByRole("button").className).toContain("bg-destructive");
+
+    rerender(<Button variant="destructiveOutline">Revoke</Button>);
+    expect(screen.getByRole("button").className).toContain("text-destructive");
   });
 
-  it("dims the link variant by going muted, never by stacking opacity on top", () => {
-    // Both would apply if `disabled:opacity-60` sat in the shared base, and
-    // the link would read fainter disabled than it ever did before.
-    render(
-      <Button variant="link" disabled>
-        Resend code
-      </Button>,
-    );
+  it("is a pill by default — the house shape, not shadcn's rectangle", () => {
+    render(<Button>Sign in</Button>);
 
-    const className = screen.getByRole("button", { name: "Resend code" }).className;
-    expect(className).toContain("disabled:text-muted");
-    expect(className).not.toContain("disabled:opacity-60");
+    expect(screen.getByRole("button", { name: "Sign in" }).className).toContain("rounded-full");
+  });
+
+  it("lets a caller square the corners off when a pill is wrong", () => {
+    render(<Button className="rounded-md">Square</Button>);
+
+    const className = screen.getByRole("button", { name: "Square" }).className;
+    expect(className).toContain("rounded-md");
+    expect(className).not.toContain("rounded-full");
   });
 
   it("renders the child element instead of a button when asChild is set", () => {
@@ -71,7 +82,7 @@ describe("Button", () => {
 
     const link = screen.getByRole("link", { name: "Sign in" });
     expect(link.tagName).toBe("A");
-    expect(link.className).toContain("from-brand-purple");
+    expect(link.className).toContain("bg-primary");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
