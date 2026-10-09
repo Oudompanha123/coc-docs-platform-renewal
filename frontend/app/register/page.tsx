@@ -123,7 +123,7 @@ export default function RegisterPage() {
     else if (password && confirmPassword && password !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";
     }
-    if (!agree) next.agree = "You must agree to the Terms of Service and Privacy Policy.";
+    if (!agree) next.agree = "You must agree to the Privacy Policy.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -420,16 +420,14 @@ export default function RegisterPage() {
             />
             <label htmlFor="agree-terms" className="text-sm text-muted">
               I agree to the{" "}
-              {/* Links, not buttons: <button> is a labelable element, so nesting
-                  one in this <label> would make getByLabelText match three
-                  controls instead of the checkbox. Both routes exist now
-                  (app/terms, app/privacy) — a static segment, so neither is
-                  swallowed by app/(shell)/[productKey]. */}
-              <Link href="/terms" className="font-semibold text-brand-purple hover:underline">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="font-semibold text-brand-purple hover:underline">
+              {/* New tab: losing the in-progress registration form to a full
+                  navigation would be worse than the extra tab. */}
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-brand-purple hover:underline"
+              >
                 Privacy Policy
               </Link>
             </label>

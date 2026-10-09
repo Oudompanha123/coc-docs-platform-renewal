@@ -50,6 +50,11 @@ const PRODUCTS: NavProduct[] = [{ key: "jex3-0", label: "Jex3.0", icon: "layers"
 beforeEach(() => {
   pathname.current = "/home";
   sessionRole.current = "user";
+  localStorage.clear();
+  document.documentElement.removeAttribute("data-theme");
+  // jsdom doesn't implement scrollTo — ProfilePopup's scroll-lock cleanup
+  // calls it to restore the page's position when it unmounts.
+  window.scrollTo = vi.fn();
 });
 
 describe("MemberHeader — Claude Usage nav link retired (moved into /account/settings)", () => {
@@ -135,4 +140,41 @@ describe("MemberHeader — user menu (Profile / Settings / Log out)", () => {
       expect(items).toEqual(["Profile", "Settings", "Log out"]);
     },
   );
+});
+
+describe("MemberHeader — theme toggle", () => {
+  it("starts in light mode (not pressed) when nothing is stored", () => {
+    render(<MemberHeader products={PRODUCTS} />);
+    expect(screen.getByRole("button", { name: "Toggle dark mode" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("reflects a previously-stored dark preference on load", () => {
+    localStorage.setItem("coc-docs-theme", "dark");
+    render(<MemberHeader products={PRODUCTS} />);
+    expect(screen.getByRole("button", { name: "Toggle dark mode" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("switches to dark, persists it, and sets data-theme on <html>", async () => {
+    const user = userEvent.setup();
+    render(<MemberHeader products={PRODUCTS} />);
+
+    await user.click(screen.getByRole("button", { name: "Toggle dark mode" }));
+
+    expect(screen.getByRole("button", { name: "Toggle dark mode" })).toHaveAttribute("aria-pressed", "true");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("coc-docs-theme")).toBe("dark");
+  });
+
+  it("switches back to light on a second click", async () => {
+    const user = userEvent.setup();
+    render(<MemberHeader products={PRODUCTS} />);
+    const toggle = screen.getByRole("button", { name: "Toggle dark mode" });
+
+    await user.click(toggle);
+    await user.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(localStorage.getItem("coc-docs-theme")).toBe("light");
+  });
 });

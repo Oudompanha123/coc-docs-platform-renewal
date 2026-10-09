@@ -9,11 +9,13 @@ import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
   BellIcon,
   ChevronDownIcon,
-  GearIcon,
   LayersIcon,
   LogOutIcon,
   MailIcon,
+  MoonIcon,
   PersonIcon,
+  SettingsIcon,
+  SunIcon,
 } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { Spinner } from "@/components/layout/Spinner";
@@ -28,6 +30,7 @@ import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
 import { MemberThemeSync } from "@/components/home/MemberThemeSync";
+import { applyTheme, getStoredTheme } from "@/lib/theme";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
 type MenuKey = "bell" | "mail" | "user" | "products";
@@ -151,6 +154,7 @@ export function MemberHeader({
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const userChipRef = useRef<HTMLButtonElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
@@ -211,6 +215,20 @@ export function MemberHeader({
   const isProductsActive =
     pathname?.startsWith("/docs/") || pathname?.startsWith("/admin/products");
   const isSettingsActive = pathname?.startsWith("/account/settings") ?? false;
+
+  // `MemberThemeSync` (mounted below) already re-applies a previously-chosen
+  // theme to `<html>` on every load of a `data-shell="home"` page — this is
+  // only what makes the button itself reflect that choice, same split
+  // Topbar.tsx uses for the admin shell's own toggle.
+  useEffect(() => {
+    setDarkMode(getStoredTheme() === "dark");
+  }, []);
+
+  function toggleTheme() {
+    const next = darkMode ? "light" : "dark";
+    applyTheme(next);
+    setDarkMode(!darkMode);
+  }
 
   // Close right-side cluster on outside click
   useEffect(() => {
@@ -313,6 +331,17 @@ export function MemberHeader({
 
         {/* Right-side chrome */}
         <div className="flex items-center gap-2" ref={clusterRef}>
+
+          {/* Theme toggle — same control, same styling as Topbar.tsx's admin-shell one */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            aria-pressed={darkMode}
+            className="rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          >
+            {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+          </button>
 
           {/* Notifications */}
           <div className="relative">
@@ -569,7 +598,7 @@ export function MemberHeader({
                       isSettingsActive ? "bg-brand-purple/10 text-brand-purple" : "text-ink"
                     }`}
                   >
-                    <GearIcon className={`h-4 w-4 ${isSettingsActive ? "text-brand-purple" : "text-muted"}`} />
+                    <SettingsIcon className={`h-4 w-4 ${isSettingsActive ? "text-brand-purple" : "text-muted"}`} />
                     Settings
                   </Link>
                 </div>

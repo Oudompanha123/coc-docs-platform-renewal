@@ -34,6 +34,17 @@
   --color-sidebar-hover: #211d33;
   --color-sidebar-muted: #9490ab;
   --color-danger: #d6304a;
+
+  /* Admin /legal-pages form (task: "remove accent lines, cleaner spacing") —
+     named tokens rather than arbitrary-value classes so the dark-mode
+     overrides just below can target a plain class name instead of an
+     escaped `text-\[\#...\]` selector. */
+  --color-legal-label: #6b7280;
+  --color-legal-helper: #9ca3af;
+  --color-legal-divider: #f1f2f6;
+  --color-legal-card-border: #e8eaf1;
+  --color-legal-status-border: #d1d5db;
+  --color-legal-status-bg-selected: #f8f7ff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -116,6 +127,56 @@
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-ink {
   color: #f2effa;
+}
+
+/* MarkdownEditor.tsx's syntax-highlight overlay (legal pages' Markdown
+   fields) — its own light-mode text color is a literal #1f2937, not one of
+   this file's existing tokens (task: "/legal-pages: fix invisible editor
+   text"), so it needs its own override here the same way every other
+   literal/arbitrary-value class on this page does. Reuses the "ink" family's
+   existing dark value for consistency with the rest of this admin shell's
+   dark text. */
+:root[data-theme="dark"] [data-shell="admin"] .text-\[\#1f2937\] {
+  color: #f2effa;
+}
+
+/* The same editor's real (invisible) textarea underneath that overlay still
+   needs a visible, theme-aware caret — `caret-dash-ink` is the class form of
+   the `.text-dash-ink` color above specifically so this override can reach
+   it; an inline `style={{caretColor: ...}}` (the previous approach) cannot
+   be targeted by any CSS rule, dark-mode or otherwise. */
+:root[data-theme="dark"] [data-shell="admin"] .caret-dash-ink {
+  caret-color: #f2effa;
+}
+
+/* Admin /legal-pages form's named tokens (declared above) — dark values for
+   the same six, scoped the same way as every other admin-shell override in
+   this file. Border/divider/selected-bg values reuse this shell's existing
+   dark palette (#332e4d for hairlines, #2a2545 for a dark purple-tinted
+   surface) for consistency with the rest of its dark mode rather than
+   inventing new ones. */
+:root[data-theme="dark"] [data-shell="admin"] .text-legal-label {
+  color: #9ca3af;
+}
+
+:root[data-theme="dark"] [data-shell="admin"] .text-legal-helper {
+  color: #6b7280;
+}
+
+:root[data-theme="dark"] [data-shell="admin"] .divide-legal-divider {
+  border-color: #332e4d;
+}
+
+:root[data-theme="dark"] [data-shell="admin"] .border-legal-card-border {
+  border-color: #332e4d;
+}
+
+:root[data-theme="dark"] [data-shell="admin"] .border-legal-status-border {
+  border-color: #332e4d;
+}
+
+:root[data-theme="dark"] [data-shell="admin"] .bg-legal-status-bg-selected {
+  background-color: #2a2545;
 }
 
 /* The header's bell/mail icon buttons (MemberHeader.tsx) are the only
