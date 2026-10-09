@@ -641,3 +641,25 @@ export function MegaphoneIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** A "not permitted" circle-slash — the Legal pages highlight-card icon set's "Fair use" entry. */
+export function BanIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m6.5 6.5 11 11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Legal pages sidebar/header glyph — a balance scale. */
+export function ScaleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3v15.5M8 21h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M5 7h5M14 7h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M5 7 2.5 12a2.5 2.5 0 0 0 5 0L5 7ZM19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    </svg>
+  );
+}
+

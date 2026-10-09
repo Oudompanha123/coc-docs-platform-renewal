@@ -33,11 +33,12 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
   }
 
-  it("links the agreement text to the real /terms and /privacy pages", () => {
+  it("links the agreement text to the real /privacy page, in a new tab", () => {
     render(<RegisterPage />);
 
-    expect(screen.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "/terms");
-    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/privacy");
+    const privacy = screen.getByRole("link", { name: "Privacy Policy" });
+    expect(privacy).toHaveAttribute("href", "/privacy");
+    expect(privacy).toHaveAttribute("target", "_blank");
     // The checkbox stays the only labelable control inside the agreement label.
     expect(screen.getByLabelText(/I agree to the/)).toHaveAttribute("type", "checkbox");
   });
@@ -63,7 +64,7 @@ describe("RegisterPage", () => {
     expect(await screen.findByText("Enter your full name.")).toBeInTheDocument();
     expect(screen.getByText("Enter your email.")).toBeInTheDocument();
     expect(screen.getByText("Create a password.")).toBeInTheDocument();
-    expect(screen.getByText("You must agree to the Terms of Service and Privacy Policy.")).toBeInTheDocument();
+    expect(screen.getByText("You must agree to the Privacy Policy.")).toBeInTheDocument();
     expect(register).not.toHaveBeenCalled();
   });
 
