@@ -157,7 +157,8 @@ function formatWhen(iso: string): string {
   return Number.isNaN(when.getTime()) ? "recently" : when.toLocaleString();
 }
 
-function toItem(n: InboxNotification): NotificationItem {
+/** An inbox row as the bell shows it — also used by its expanded "View all" list (ADR-106). */
+export function toNotificationItem(n: InboxNotification): NotificationItem {
   const { title, detail } = render(n);
   return {
     id: n.id,
@@ -408,7 +409,7 @@ export function useNotifications(
       // Stale: a read happened while this was in flight. The write's own
       // follow-up refresh (markRead / markAllRead) brings the true state.
       if (readEpoch.current !== startedAt) return;
-      const next = inbox.items.map(toItem);
+      const next = inbox.items.map(toNotificationItem);
       setItems(next);
       setUnreadCount(inbox.unreadCount);
 
