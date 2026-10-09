@@ -1,6 +1,6 @@
 {
   "name": "claude-team-usage",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Report your own Claude Code token usage to the Coc Docs team dashboard.",
   "type": "module",
   "bin": {

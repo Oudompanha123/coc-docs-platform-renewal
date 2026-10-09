@@ -12,6 +12,7 @@ import {
 } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
+import { DisabledMembersPanel } from "@/components/claude-usage/DisabledMembersPanel";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
@@ -148,6 +149,7 @@ export function AdminClaudeUsageView() {
   }
 
   const members = dashboard?.members ?? [];
+  const disabledMembers = dashboard?.disabledMembers ?? [];
   const totals = dashboard?.totals ?? {
     inputTokens: 0,
     outputTokens: 0,
@@ -267,12 +269,24 @@ export function AdminClaudeUsageView() {
             <h2 className="px-4 pb-3 pt-4 text-sm font-semibold text-foreground">Per-user usage</h2>
             <UsageTable members={members} onSelect={(member, avatarColor) => setDetail({ member, avatarColor })} />
           </section>
+
+          <DisabledMembersPanel
+            members={disabledMembers}
+            onSelect={(member, avatarColor) => setDetail({ member, avatarColor })}
+            onEnable={handleRestore}
+          />
         </>
       )}
 
       {detail && (
         <UserActivityModal
-          member={members.find((m) => m.id === detail.member.id) ?? detail.member}
+          // Looked up in both lists, so the button flips in place after
+          // Enable/Disable moves the member from one to the other.
+          member={
+            members.find((m) => m.id === detail.member.id) ??
+            disabledMembers.find((m) => m.id === detail.member.id) ??
+            detail.member
+          }
           avatarColor={detail.avatarColor}
           onClose={closeDetail}
           onRemove={handleRemove}

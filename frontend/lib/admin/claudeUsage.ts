@@ -100,6 +100,12 @@ export interface ClaudeUsageDashboard {
   activeUsers: number;
   nearLimit: number;
   lastUpdated: string | null;
+  /**
+   * Members an admin has disabled. Never in `members`, `daily`, `totals` or
+   * either counter — listed only so they can be enabled again (ADR-035).
+   * Optional for a backend older than this field.
+   */
+  disabledMembers?: ClaudeUsageMember[];
 }
 
 /** One model's share of a reported day. `totalTokens` is input + output, the same definition as everywhere else here. */

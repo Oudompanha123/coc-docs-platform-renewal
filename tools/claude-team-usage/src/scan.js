@@ -16,11 +16,11 @@
  */
 
 import { resolveCredentials } from './config.js';
-import { accountEntry, isDue, loadLedger, prune, recordSent, saveLedger } from './ledger.js';
+import { accountEntry, isDue, loadLedger, prune, recordSent, recordSkipped, saveLedger } from './ledger.js';
 import { login } from './login.js';
 import { ensureScheduled } from './schedule.js';
 import { deliverScanLogs, ScanRecorder } from './scan-log.js';
-import { send } from './upload.js';
+import { DISABLED_PERIOD, send, TRACKING_DISABLED } from './upload.js';
 import { buildPayloads, candidateProjectDirs, collectDays, existingDirs, lastDays } from './usage-parser.js';
 
 export class CliError extends Error {}
@@ -80,6 +80,11 @@ async function recordScanTime({ creds, io, fetchImpl, verbose }) {
       ? { ok: false, why: 'this account has not reported any usage yet, so there is no scan time to record' }
       : { ok: true };
   } catch (error) {
+    if (error?.code === TRACKING_DISABLED) {
+      // An administrator's decision, not a fault here: say so, and nothing about logging in.
+      io.err(error.message);
+      return { ok: false, why: 'Claude usage tracking is disabled for this account by an administrator' };
+    }
     const why = error?.status === 404 ? 'this Coc Docs server does not record scan times yet' : error.message;
     io.err(`warning: could not record the scan time (${why}). Your usage is unaffected.`);
     return { ok: false, why };
@@ -206,7 +211,7 @@ async function runScan({ creds, dryRun, days, verbose, io, scheduled, fetchImpl,
   };
 
   // "No new usage" is a successful scan, never a warning or an error (ADR-099).
-  const checkIn = async () => {
+  const checkIn = async (nothing = 'Nothing to upload') => {
     state.step = 'upload';
     log.setCounts({ newTokens: 0, daysUploaded: 0 });
     log.uploadStatus = 'not-needed';
@@ -214,7 +219,7 @@ async function runScan({ creds, dryRun, days, verbose, io, scheduled, fetchImpl,
     log.step(
       'upload',
       scanTime.ok ? 'success' : 'warning',
-      scanTime.ok ? 'Nothing to upload — scan check-in recorded' : `Nothing to upload, but the check-in was not recorded: ${scanTime.why}`,
+      scanTime.ok ? `${nothing} — scan check-in recorded` : `${nothing}, but the check-in was not recorded: ${scanTime.why}`,
     );
   };
 
@@ -275,6 +280,7 @@ async function runScan({ creds, dryRun, days, verbose, io, scheduled, fetchImpl,
   // Oldest first, one request per day. Each is an independent upsert, so a failure
   // part-way through leaves the days already sent correctly recorded — locally too.
   let sent = 0;
+  let skipped = 0;
   for (const { payload, total } of due) {
     try {
       const res = await send(creds.ingestUrl, creds.token, payload, {
@@ -288,18 +294,47 @@ async function runScan({ creds, dryRun, days, verbose, io, scheduled, fetchImpl,
       log.setCounts({ daysUploaded: sent });
       io.info(`  ${payload.date}  ${fmt(total)} tokens  ✓ ${res.action ?? 'accepted'}`);
     } catch (error) {
-      const done = sent ? ` (${sent} of ${due.length} day(s) were sent before this)` : '';
+      // A day from a time tracking was disabled (ADR-105): refused for good.
+      // Remember that locally so it is never sent again, and carry on.
+      if (error?.code === DISABLED_PERIOD) {
+        skipped++;
+        recordSkipped(account, payload);
+        saveLedger(ledger);
+        io.info(`  ${payload.date}  ${fmt(total)} tokens  — skipped, ${error.message}`);
+        continue;
+      }
       log.uploadStatus = 'failed';
+      // Disabled now: the administrator's message alone — no date, no login advice.
+      if (error?.code === TRACKING_DISABLED) throw new UploadFailedError(error.message, { cause: error });
+      const done = sent ? ` (${sent} of ${due.length} day(s) were sent before this)` : '';
       throw new UploadFailedError(`upload failed for ${payload.date}: ${error.message}${done}`, { cause: error });
     }
   }
+  const skippedNote = skipped
+    ? `${skipped} day(s) not recorded — tracking was disabled for this account then`
+    : '';
+
+  if (sent === 0) {
+    finish();
+    io.out(`nothing uploaded: ${skippedNote}`);
+    await checkIn(`Nothing uploaded: ${skippedNote}`);
+    return { sent, skipped, payloads: due, outcome: 'skipped' };
+  }
+
   finish();
   log.uploadStatus = 'uploaded';
-  log.step('upload', 'success', `Uploaded ${sent} day(s) — usage and scan time recorded`);
+  log.step(
+    'upload',
+    skipped ? 'warning' : 'success',
+    `Uploaded ${sent} day(s) — usage and scan time recorded` + (skipped ? `; ${skippedNote}` : ''),
+  );
 
-  const totalTokens = due.reduce((n, { total }) => n + total, 0);
-  const sentRange = due.length === 1 ? due[0].payload.date : `${due[0].payload.date}..${due[due.length - 1].payload.date}`;
+  const sentDays = due.filter(({ payload }) => account.days[payload.date] && !account.days[payload.date].skipped);
+  const totalTokens = sentDays.reduce((n, { total }) => n + total, 0);
+  const sentRange =
+    sentDays.length === 1 ? sentDays[0].payload.date : `${sentDays[0].payload.date}..${sentDays[sentDays.length - 1].payload.date}`;
   io.out(`sent ${fmt(totalTokens)} tokens for ${sentRange} (${creds.displayName} <${creds.email}>)`);
+  if (skipped) io.out(skippedNote);
   if (creds.dashboardUrl) io.out(`view it at ${creds.dashboardUrl}`);
-  return { sent, payloads: due, outcome: 'uploaded' };
+  return { sent, skipped, payloads: due, outcome: 'uploaded' };
 }

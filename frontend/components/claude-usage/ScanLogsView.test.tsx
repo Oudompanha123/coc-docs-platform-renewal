@@ -27,7 +27,7 @@ vi.mock("@/components/layout/AppShell", () => ({
     </div>
   ),
 }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/claude-usage/logs" }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/claude-usage/monitoring" }));
 
 const list = (logs = [scanLog()]): ScanLogList => ({ from: "2026-10-01", to: "2026-10-07", logs, truncated: false });
 

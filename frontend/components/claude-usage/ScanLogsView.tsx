@@ -44,7 +44,7 @@ const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
 const FIELD = `${inputBaseClass} h-9 w-auto`;
 
 /**
- * `/claude-usage/logs` — Scan Logs (ADR-099): every `claude-team-usage scan`
+ * `/claude-usage/monitoring` — Scan Logs (ADR-099): every `claude-team-usage scan`
  * the team's PCs ran, how each ended, and — for one that didn't fully work —
  * the problem and how to fix it, in a side drawer. Admin only, like the rest
  * of `/claude-usage`.

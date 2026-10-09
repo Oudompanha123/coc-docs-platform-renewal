@@ -41,6 +41,16 @@ const nextConfig: NextConfig = {
         destination: "/account/settings#attendance",
         permanent: true,
       },
+      /**
+       * The Scan Logs page moved from `/claude-usage/logs` to
+       * `/claude-usage/monitoring` (ADR-099 amendment). Kept so bookmarks and
+       * links already shared keep landing on the page.
+       */
+      {
+        source: "/claude-usage/logs",
+        destination: "/claude-usage/monitoring",
+        permanent: true,
+      },
     ];
   },
 };
