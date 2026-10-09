@@ -23,7 +23,7 @@ export function SettingsToast({ toast, onDismiss }: { toast: SettingsToastState;
   return (
     <div
       role="status"
-      className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-lg ${
+      className={`fixed bottom-6 right-6 z-50 max-w-sm rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg ${
         toast.kind === "success" ? "bg-[#1f9d6b]" : "bg-danger"
       }`}
     >

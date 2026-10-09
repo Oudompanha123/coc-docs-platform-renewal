@@ -56,17 +56,44 @@ describe("Button", () => {
     expect(screen.getByRole("button").className).toContain("text-destructive");
   });
 
-  it("is a pill by default — the house shape, not shadcn's rectangle", () => {
+  it("uses the design system's control radius by default, not a pill", () => {
     render(<Button>Sign in</Button>);
 
-    expect(screen.getByRole("button", { name: "Sign in" }).className).toContain("rounded-full");
+    const className = screen.getByRole("button", { name: "Sign in" }).className;
+    expect(className).toContain("rounded-control");
+    expect(className).not.toContain("rounded-full");
   });
 
-  it("lets a caller square the corners off when a pill is wrong", () => {
+  it("lets a caller override the corner, and the override replaces the default", () => {
+    // `rounded-control` is a project radius tailwind-merge does not know by
+    // default; if `cn` stops registering it, both classes survive and this
+    // fails rather than the override quietly losing to stylesheet order.
     render(<Button className="rounded-md">Square</Button>);
 
     const className = screen.getByRole("button", { name: "Square" }).className;
     expect(className).toContain("rounded-md");
+    expect(className).not.toContain("rounded-control");
+  });
+
+  it("is a pill when asked — the sign-in pages' shape", () => {
+    render(<Button shape="pill">Continue with Google</Button>);
+
+    const className = screen.getByRole("button", { name: "Continue with Google" }).className;
+    expect(className).toContain("rounded-full");
+    expect(className).not.toContain("rounded-control");
+  });
+
+  it("keeps an inline button boxless whatever its shape", () => {
+    // `shape` is declared before `size` so `rounded-none` is emitted last and
+    // wins; reorder the variants and this fails.
+    render(
+      <Button shape="pill" variant="link" size="inline">
+        Resend
+      </Button>,
+    );
+
+    const className = screen.getByRole("button", { name: "Resend" }).className;
+    expect(className).toContain("rounded-none");
     expect(className).not.toContain("rounded-full");
   });
 

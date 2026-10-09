@@ -1,11 +1,13 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalConfirmation, AxRenewalDbChange, AxRenewalDbConnection } from "@/lib/ax-renewal/api";
 import { inputBaseClass } from "@/components/ui/input";
+import { SimpleSelect } from "@/components/ui/select";
 
 type ChangeRow = { changeType: "add_column" | "add_index"; tableName: string; rationale: string };
 
@@ -169,12 +171,12 @@ export function DatabaseSection({
           padding) give every one of its panels — this section's own cards
           previously skipped that split in favor of a plain bold heading
           inline with the body. */}
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Connect to your existing database</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Connect to your existing database</h3>
         </div>
-        <div className="p-5">
-          <p className="text-xs text-muted">
+        <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             The renewal records what this project&apos;s existing database looks like —{" "}
             <strong>no credential is stored, and this never opens a live connection.</strong> Planned changes below
             are additive only: <strong>indexes</strong> and <strong>columns</strong>, never a table created or
@@ -183,7 +185,7 @@ export function DatabaseSection({
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-ink">Engine</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Engine</label>
               <input
                 value={engine}
                 disabled={!canEdit}
@@ -193,7 +195,7 @@ export function DatabaseSection({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-ink">Host</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Host</label>
               <input
                 value={host}
                 disabled={!canEdit}
@@ -202,7 +204,7 @@ export function DatabaseSection({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-ink">Port</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Port</label>
               <input
                 value={port}
                 disabled={!canEdit}
@@ -211,7 +213,7 @@ export function DatabaseSection({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-ink">Database name</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Database name</label>
               <input
                 value={databaseName}
                 disabled={!canEdit}
@@ -220,7 +222,7 @@ export function DatabaseSection({
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-semibold text-ink">Schema name</label>
+              <label className="mb-1 block text-xs font-semibold text-foreground">Schema name</label>
               <input
                 value={schemaName}
                 disabled={!canEdit}
@@ -237,31 +239,31 @@ export function DatabaseSection({
               ) : (
                 <span />
               )}
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => void handleConnect()}
                 disabled={connecting}
-                className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {connecting ? "Saving…" : "Save connection metadata"}
-              </button>
+              </Button>
             </div>
           )}
 
           {connectError && (
-            <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
               {connectError}
             </p>
           )}
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">What this is used for</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">What this is used for</h3>
         </div>
-        <div className="p-5">
-          <ul className="list-disc space-y-2 pl-4 text-sm text-dash-ink">
+        <div className="p-4">
+          <ul className="list-disc space-y-2 pl-4 text-sm text-foreground">
             <li>Naming the engine, host, database and schema this project&apos;s plan is written against.</li>
             <li>Giving the rest of Plan a real fact to reference for the data layer, instead of a guess.</li>
             <li>Nothing here opens a live connection or stores a credential — this phase never reads real data.</li>
@@ -269,27 +271,29 @@ export function DatabaseSection({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Planned changes</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Planned changes</h3>
         </div>
-        <div className="p-5">
-          <p className="text-xs text-muted">
+        <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             Additive only — <strong>indexes</strong> and <strong>columns</strong>, never a table created or dropped.
           </p>
 
           <div className="mt-3 space-y-2">
             {rows.map((row, i) => (
-              <div key={i} className="grid grid-cols-1 gap-2 rounded-xl border border-border p-3 sm:grid-cols-[140px_1fr_1.4fr_auto]">
-                <select
+              <div key={i} className="grid grid-cols-1 gap-2 rounded-xl border border-surface-border p-3 sm:grid-cols-[140px_1fr_1.4fr_auto]">
+                <SimpleSelect
+                  size="sm"
+                  aria-label="Change type"
                   value={row.changeType}
                   disabled={!canEdit}
-                  onChange={(e) => updateRow(i, "changeType", e.target.value)}
-                  className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-dash-ink focus:outline-none disabled:bg-page"
-                >
-                  <option value="add_column">Add column</option>
-                  <option value="add_index">Add index</option>
-                </select>
+                  onValueChange={(v) => updateRow(i, "changeType", v)}
+                  options={[
+                    { value: "add_column", label: "Add column" },
+                    { value: "add_index", label: "Add index" },
+                  ]}
+                />
                 <input
                   value={row.tableName}
                   disabled={!canEdit}
@@ -305,28 +309,32 @@ export function DatabaseSection({
                   className={inputBaseClass}
                 />
                 {canEdit && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="icon"
                     onClick={() => removeRow(i)}
                     aria-label="Remove change"
-                    className="flex items-center justify-center rounded-[5px] border border-border p-2 text-muted transition-colors hover:bg-page hover:text-danger"
+                    className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
                   >
                     <TrashIcon className="h-4 w-4" />
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
           </div>
 
           {canEdit && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={addRow}
-              className="mt-3 flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-primary hover:text-foreground"
+              className="mt-3 border-dashed text-muted-foreground hover:text-foreground"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               Add change
-            </button>
+            </Button>
           )}
 
           {canEdit && (
@@ -336,38 +344,38 @@ export function DatabaseSection({
               ) : (
                 <span />
               )}
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => void handleSaveChanges()}
                 disabled={savingChanges}
-                className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {savingChanges ? "Saving…" : "Save planned changes"}
-              </button>
+              </Button>
             </div>
           )}
 
           {changesError && (
-            <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
               {changesError}
             </p>
           )}
 
           {!connection && changes.length === 0 && confirmation == null && (
-            <p className="mt-4 rounded-xl border border-border bg-page px-3 py-2 text-xs text-muted">
+            <p className="mt-4 rounded-xl border border-surface-border bg-muted-surface px-3 py-2 text-xs text-muted-foreground">
               If this renewal doesn&apos;t use a database at all, you don&apos;t need to fill anything in above —
               confirm this section as-is to record <strong>No database required</strong>, rather than leaving it
               pending.
             </p>
           )}
           {!connection && changes.length === 0 && confirmation != null && (
-            <p className="mt-4 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-dash-ink">
+            <p className="mt-4 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
               Confirmed as <strong>No database required</strong> — this renewal doesn&apos;t use a database.
             </p>
           )}
 
           {confirmError && (
-            <p role="alert" className="mt-4 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
               {confirmError}
             </p>
           )}

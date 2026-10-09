@@ -99,7 +99,7 @@ function ResetPasswordForm() {
       {feedback && (
         <div
           role="alert"
-          className={`mb-6 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-destructive/30 bg-destructive/5 text-destructive"
@@ -109,7 +109,7 @@ function ResetPasswordForm() {
         </div>
       )}
 
-      <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
+      <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         <PasswordField
           label="New Password"
           value={password}
@@ -128,7 +128,7 @@ function ResetPasswordForm() {
           error={errors.confirmPassword}
         />
 
-        <Button
+        <Button shape="pill"
           type="submit"
           disabled={isSubmitting || !token || feedback?.type === "success"}
           aria-busy={isSubmitting}

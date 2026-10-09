@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 /**
  * What the workspace shows while Run analysis is in flight.
@@ -57,33 +58,35 @@ export function AnalysisProgress({
       : { label: "Waiting for the analyser", detail: "A model reading real source takes a minute or two." };
 
   return (
-    <div className="rounded-[10px] border border-border bg-white">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
-        <h3 className="text-sm font-bold text-dash-ink">Analysing</h3>
-        <span className="text-xs text-muted">{engineLabel}</span>
+    <div className="rounded-xl border border-surface-border bg-card">
+      <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-foreground">Analysing</h3>
+        <span className="text-xs text-muted-foreground">{engineLabel}</span>
       </div>
 
-      <div className="px-5 py-4">
+      <div className="p-4">
         <div className="flex items-baseline justify-between gap-4">
-          <p className="text-sm font-semibold text-dash-ink">{phase.label}</p>
-          <span className="shrink-0 font-mono text-xs tabular-nums text-muted">{formatElapsed(elapsed)} elapsed</span>
+          <p className="text-sm font-semibold text-foreground">{phase.label}</p>
+          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{formatElapsed(elapsed)} elapsed</span>
         </div>
-        {phase.detail && <p className="mt-1 text-xs text-muted">{phase.detail}</p>}
+        {phase.detail && <p className="mt-1 text-xs text-muted-foreground">{phase.detail}</p>}
 
         {/* Indeterminate on purpose. One backend call reports nothing until it
             returns, so a percentage would be a guess dressed as a measurement. */}
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-page">
+        <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted-surface">
           <div className="ax-analysing-bar h-full w-1/3 rounded-full bg-primary" />
         </div>
 
         {onStop && (
-          <button
+          <Button
             type="button"
+            variant="destructiveOutline"
+            size="sm"
             onClick={onStop}
-            className="mt-4 rounded-[10px] border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+            className="mt-4"
           >
             Stop
-          </button>
+          </Button>
         )}
       </div>
     </div>

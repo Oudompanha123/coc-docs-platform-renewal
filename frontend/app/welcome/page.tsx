@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
 import { ReportsNavDropdown } from "@/components/welcome/ReportsNavDropdown";
@@ -25,11 +26,17 @@ import {
  * Public landing page. Has its own light/dark toggle, independent of the
  * admin app's data-theme + localStorage mechanism (lib/theme.ts) — a
  * visitor flipping this page's look shouldn't silently also flip the
- * authenticated admin app's dark mode. Colors are literal hex, not
- * @theme tokens: this page sits outside [data-shell="admin"], the only
- * scope the app's existing dark-mode CSS overrides target, and the dark
- * values here reuse those same admin dark-mode hex values rather than
- * inventing a new palette.
+ * authenticated admin app's dark mode. Colours are the shadcn token
+ * utilities (bg-background, bg-card, text-muted-foreground,
+ * border-surface-border, ...), never literal hex: when the toggle is on, the
+ * page root carries `.landing-dark` (globals.css), which redefines those
+ * tokens to shadcn's neutral dark values for this subtree only. One class per
+ * element therefore serves both themes — no per-element `isDark ? hex : class`
+ * pair that can drift out of step with its other half (ADR-104).
+ *
+ * `isDark` itself survives only where the theme genuinely changes *what* is
+ * rendered rather than its colour: the logo asset, the toggle's icon and
+ * pressed state, and the <html> scrollbar marker.
  *
  * Nav links, sidebar/stat/document data, and CTA destinations are pulled
  * from this app's real structure (nav-config.ts, lib/mock/overview.ts,
@@ -174,20 +181,23 @@ export default function WelcomePage() {
   }, []);
 
   return (
-    <div className={isDark ? "min-h-screen bg-[#0a0a0a]" : "min-h-screen bg-white"}>
+    // `landing-dark` re-points every shadcn token under this root at its dark
+    // value (globals.css), so each element below carries one token class that
+    // is right in both themes.
+    <div className={`min-h-screen bg-background text-foreground ${isDark ? "landing-dark" : ""}`}>
       <header
         // No shadow. The border appearing on scroll is the whole signal that
         // the bar has detached from the page; a shadow underneath it says the
         // same thing twice, and says it while the page is still at the top.
-        className={`sticky top-0 z-30 border-b transition-colors duration-200 ${
-          isDark ? "bg-[#0a0a0a]" : "bg-white"
-        } ${scrolled ? (isDark ? "border-[#2a2a2a]" : "border-border") : "border-transparent"}`}
+        className={`sticky top-0 z-40 border-b bg-background transition-colors duration-200 ${
+          scrolled ? "border-surface-border" : "border-transparent"
+        }`}
       >
         {/* The bar was 72px tall with a 55px logo and 18px nav links. Scaled
             to the kit: a 56px bar, a 32px logo and 14px links — the header is
             furniture, and at the old size it competed with the hero. */}
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
             <img
               src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
@@ -196,35 +206,32 @@ export default function WelcomePage() {
             />
           </div>
 
-          <nav className={`hidden items-center gap-6 text-sm font-medium md:flex ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
+          <nav className="ml-8 mr-auto hidden items-center gap-1 text-[15px] text-muted-foreground md:flex">
             <a
               href={HOME_LINK.href}
-              className={`flex h-14 items-center border-b-2 border-transparent transition-colors hover:border-primary ${
-                isDark ? "hover:text-[#fafafa]" : "hover:text-ink"
-              }`}
+              className="inline-flex h-9 items-center rounded-3xl px-3.5 transition-colors outline-none hover:bg-muted-surface/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               {HOME_LINK.label}
             </a>
-            <ProductsNavDropdown products={FALLBACK_NAV} isDark={isDark} onRequireAuth={setAuthGate} />
-            <ReportsNavDropdown isDark={isDark} onRequireAuth={setAuthGate} />
+            <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={setAuthGate} />
+            <ReportsNavDropdown onRequireAuth={setAuthGate} />
           </nav>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setTheme(isDark ? "light" : "dark")}
               aria-label="Toggle dark mode"
               aria-pressed={isDark}
-              className={`rounded-full p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                isDark ? "text-[#fafafa] hover:bg-white/10" : "text-muted hover:bg-secondary"
-              }`}
+              className="size-8 text-muted-foreground hover:text-foreground"
             >
               {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-            </button>
-            <Button asChild variant="ghost" size="sm" className={isDark ? "hidden text-[#fafafa] hover:bg-white/10 sm:inline-flex" : "hidden sm:inline-flex"}>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/login">Log in</Link>
             </Button>
-            <Button asChild size="sm" className={isDark ? "bg-[#fafafa] text-[#171717] hover:bg-[#fafafa]/90" : undefined}>
+            <Button asChild size="sm">
               <Link href="/register">Start free</Link>
             </Button>
           </div>
@@ -232,26 +239,22 @@ export default function WelcomePage() {
       </header>
 
       <main>
-        <section className="relative overflow-hidden px-6 pb-20 pt-16 sm:pt-24">
-          {isDark && (
-            <>
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-secondary blur-3xl"
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl"
-              />
-            </>
-          )}
+        <section className="relative overflow-hidden px-6 pb-20 pt-16 sm:pt-20">
+          {/* Decorative glow. A few percent of the foreground colour, so it is
+              a faint grey haze on white and a faint lift on near-black — never
+              a bright blob. (It was `bg-secondary` / `bg-primary/10`, which
+              under the dark tokens rendered as a large white smear.) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-foreground/[0.04] blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-foreground/[0.03] blur-3xl"
+          />
 
           <div className="animate-entrance relative mx-auto max-w-3xl text-center">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                isDark ? "border-[#2a2a2a] bg-[#171717] text-[#a1a1a1]" : "border-surface-border bg-muted-surface text-muted-foreground"
-              }`}
-            >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-muted-surface px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               <SparklesIcon className="h-3 w-3" />
               Now tracking documentation coverage
             </span>
@@ -262,7 +265,7 @@ export default function WelcomePage() {
                 The gradient on "documentation" went with the brand; what is
                 left of that span would be the same colour as the rest of the
                 line, so it is underlined instead of recoloured. */}
-            <h1 className={`mt-5 text-3xl font-semibold tracking-tight sm:text-4xl ${isDark ? "text-[#fafafa]" : "text-ink"}`}>
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               One workspace for every product&apos;s{" "}
               <span className="decoration-muted-foreground/40 underline decoration-2 underline-offset-4">
                 documentation
@@ -270,39 +273,34 @@ export default function WelcomePage() {
               .
             </h1>
 
-            <p className={`mx-auto mt-4 max-w-xl text-sm sm:text-base ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
+            <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
               Coc Docs Platform tracks what&apos;s written, what&apos;s missing, and who&apos;s behind it — across
               every product your team ships.
             </p>
 
-            <div className="mt-7 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-              <Button asChild size="lg" className={isDark ? "bg-[#fafafa] text-[#171717] hover:bg-[#fafafa]/90" : undefined}>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button asChild size="lg">
                 <Link href="/register">Get started free</Link>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className={isDark ? "border-[#2a2a2a] bg-[#171717] text-[#fafafa] hover:bg-[#262626]" : undefined}
-              >
+              <Button asChild variant="outline" size="lg">
                 <Link href="/login">View live workspace</Link>
               </Button>
             </div>
           </div>
 
-          <div className="animate-entrance relative mx-auto mt-14 max-w-4xl [animation-delay:120ms]">
-            <DashboardPreview theme={theme} />
+          <div className="animate-entrance relative mx-auto mt-12 max-w-4xl [animation-delay:120ms]">
+            <DashboardPreview />
           </div>
         </section>
 
-        <section className={`border-y px-6 py-10 ${isDark ? "border-[#2a2a2a] bg-[#0a0a0a]" : "border-border bg-white"}`}>
+        <section className="border-y border-surface-border bg-background px-6 py-10">
           <ScrollReveal>
-            <p className={`text-center text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Trusted by teams at
             </p>
             <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3">
               {TRUSTED_BY.map((name) => (
-                <span key={name} className={`text-base font-semibold ${isDark ? "text-[#a1a1a1]/40" : "text-muted/50"}`}>
+                <span key={name} className="text-base font-semibold text-muted-foreground/50">
                   {name}
                 </span>
               ))}
@@ -312,10 +310,10 @@ export default function WelcomePage() {
 
         <section id="features" className="mx-auto max-w-5xl px-6 py-16">
           <ScrollReveal>
-            <h2 className={`text-center text-2xl font-semibold tracking-tight ${isDark ? "text-[#fafafa]" : "text-ink"}`}>
+            <h2 className="text-center text-2xl font-semibold tracking-tight text-foreground">
               Every product, one coverage view.
             </h2>
-            <p className={`mx-auto mt-3 max-w-xl text-center text-sm ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
+            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted-foreground">
               Coc Docs Platform keeps every product&apos;s documentation in one place, so gaps get noticed before
               someone hits them.
             </p>
@@ -326,22 +324,18 @@ export default function WelcomePage() {
               const Icon = feature.icon;
               const tone = TONE_STYLES[feature.tone];
               return (
-                <ScrollReveal key={feature.title} delayMs={i * 60}>
-                  <div
-                    className={`rounded-xl border p-5 transition-colors ${
-                      isDark
-                        ? "border-[#2a2a2a] bg-[#171717] hover:border-[#3a3a3a]"
-                        : "border-surface-border bg-card hover:border-muted-foreground/30"
-                    }`}
-                  >
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone.bg} ${tone.fg}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <h3 className={`mt-3 text-sm font-semibold ${isDark ? "text-[#fafafa]" : "text-ink"}`}>
-                      {feature.title}
-                    </h3>
-                    <p className={`mt-1 text-sm ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>{feature.description}</p>
-                  </div>
+                <ScrollReveal key={feature.title} delayMs={i * 60} className="h-full">
+                  <Card className="h-full gap-0 py-5 shadow-none transition-colors hover:border-muted-foreground/30">
+                    <CardHeader className="gap-0 px-5">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone.bg} ${tone.fg}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <CardTitle className="mt-3 text-sm">
+                        <h3>{feature.title}</h3>
+                      </CardTitle>
+                      <CardDescription className="mt-1">{feature.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
                 </ScrollReveal>
               );
             })}
@@ -351,23 +345,25 @@ export default function WelcomePage() {
         <section className="px-6 pb-20">
           <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-12 text-center sm:px-16">
             {/* Scrim: same "photo background needs a dark layer under white
-                text" treatment as the Member home page's own CTA band. */}
+                text" treatment as the Member home page's own CTA band. The
+                band is a dark photo in both themes, so its colours are fixed
+                rather than tokens. */}
             <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
             <h2 className="relative text-xl font-semibold tracking-tight text-white sm:text-2xl">
               Bring your docs into one workspace.
             </h2>
-            <p className="relative mt-2.5 text-sm text-white/80">Start free — no credit card required.</p>
-            <Button asChild size="lg" className="relative mt-6 bg-white text-[#171717] hover:bg-white/90">
+            <p className="relative mt-2 text-sm text-white/80">Start free — no credit card required.</p>
+            <Button asChild size="lg" className="relative mt-6 bg-white text-neutral-900 hover:bg-white/90">
               <Link href="/register">Get started free</Link>
             </Button>
           </ScrollReveal>
         </section>
       </main>
 
-      <footer className={`border-t py-12 ${isDark ? "border-[#2a2a2a]" : "border-border"}`}>
+      <footer className="border-t border-surface-border py-12">
         <ScrollReveal className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
               <img
                 src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
@@ -379,15 +375,11 @@ export default function WelcomePage() {
             <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.heading}>
-                  <p
-                    className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#fafafa]" : "text-ink"}`}
-                  >
-                    {column.heading}
-                  </p>
-                  <ul className="mt-3 space-y-2.5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground">{column.heading}</p>
+                  <ul className="mt-3 space-y-2">
                     {column.links.map((link) => {
                       const isAuthLink = link.label === "Create an account" || link.label === "Log in";
-                      const linkClass = `text-sm ${isDark ? "text-[#a1a1a1] hover:text-[#fafafa]" : "text-muted hover:text-ink"}`;
+                      const linkClass = "text-sm text-muted-foreground transition-colors hover:text-foreground";
                       return (
                         <li key={link.label}>
                           {isAuthLink ? (
@@ -412,15 +404,11 @@ export default function WelcomePage() {
             </div>
           </div>
 
-          <div
-            className={`mt-10 flex flex-col items-center justify-between gap-4 border-t pt-6 sm:flex-row ${
-              isDark ? "border-[#2a2a2a]" : "border-border"
-            }`}
-          >
-            <span className={`text-xs ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>© 2026 Coc Docs Platform</span>
-            <div className={`flex items-center gap-5 text-xs font-medium ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-surface-border pt-6 sm:flex-row">
+            <span className="text-xs text-muted-foreground">© 2026 Coc Docs Platform</span>
+            <div className="flex items-center gap-5 text-xs font-medium text-muted-foreground">
               {FOOTER_LEGAL_LINKS.map((link) => (
-                <a key={link.label} href={link.href} className={isDark ? "hover:text-[#fafafa]" : "hover:text-ink"}>
+                <a key={link.label} href={link.href} className="transition-colors hover:text-foreground">
                   {link.label}
                 </a>
               ))}
@@ -429,46 +417,50 @@ export default function WelcomePage() {
         </ScrollReveal>
       </footer>
 
-      {/* Auth-gate modal — shown when a visitor clicks a product nav item */}
+      {/* Auth-gate modal — shown when a visitor clicks a product nav item.
+          Rendered inside the page root, so it inherits `.landing-dark` and
+          its popover tokens flip with the rest of the page. */}
       {authGate !== null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
           onClick={() => setAuthGate(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="welcome-auth-gate-title"
+            className="w-full max-w-sm rounded-xl border border-surface-border bg-popover p-6 text-popover-foreground shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
-              <ShieldIcon className="h-7 w-7 text-foreground" />
+            <div className="mb-4 flex size-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+              <ShieldIcon className="size-5" />
             </div>
-            <h2 className="text-xl font-bold text-ink">Sign in to access {authGate}</h2>
-            <p className="mt-2 text-sm text-muted">
+            <h2 id="welcome-auth-gate-title" className="text-lg font-semibold tracking-tight">
+              Sign in to access {authGate}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
               {authGate} documentation is only available to signed-in members. Create a free account or log in to continue.
             </p>
-            <div className="mt-6 flex flex-col gap-3">
-              <Link
-                href="/register"
-                className="flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-                onClick={() => setAuthGate(null)}
-              >
-                Get started free
-              </Link>
-              <Link
-                href="/login"
-                className="flex items-center justify-center rounded-full border border-border bg-white px-5 py-2.5 text-sm font-semibold text-ink shadow-sm transition-colors hover:bg-page"
-                onClick={() => setAuthGate(null)}
-              >
-                Log in
-              </Link>
+            <div className="mt-6 flex flex-col gap-2">
+              <Button asChild className="w-full">
+                <Link href="/register" onClick={() => setAuthGate(null)}>
+                  Get started free
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/login" onClick={() => setAuthGate(null)}>
+                  Log in
+                </Link>
+              </Button>
             </div>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setAuthGate(null)}
-              className="mt-4 w-full text-center text-xs text-muted hover:text-ink"
+              className="mt-2 w-full text-muted-foreground hover:text-foreground"
             >
               Maybe later
-            </button>
+            </Button>
           </div>
         </div>
       )}

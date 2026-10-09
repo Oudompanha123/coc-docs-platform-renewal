@@ -3,10 +3,12 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { CircleAlert } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { DocumentIcon, GoogleIcon, ShieldIcon } from "@/components/auth/icons";
+import { ChevronLeftIcon } from "@/components/layout/icons";
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
 import { Button } from "@/components/ui/button";
@@ -342,7 +344,7 @@ function LoginForm() {
         {feedback && (
           <div
             role="alert"
-            className={`mb-6 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
+            className={`mb-4 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : feedback.type === "pending"
                 ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -358,7 +360,7 @@ function LoginForm() {
             <p>Redirecting to your dashboard…</p>
           </div>
         ) : (
-          <form className="grid gap-5" onSubmit={handleVerifyOtp} noValidate>
+          <form className="grid gap-4" onSubmit={handleVerifyOtp} noValidate>
             <div>
               <OtpCodeInput
                 ref={otpInputRef}
@@ -382,10 +384,7 @@ function LoginForm() {
                   role="alert"
                   className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
                 >
-                  <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7.5v5.5M12 16.5h.01" strokeLinecap="round" />
-                  </svg>
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                   <span>{otpError}</span>
                 </p>
               ) : (
@@ -412,7 +411,7 @@ function LoginForm() {
               )}
             </div>
 
-            <Button
+            <Button shape="pill"
               type="submit"
               disabled={isVerifyingOtp}
               aria-busy={isVerifyingOtp}
@@ -422,7 +421,7 @@ function LoginForm() {
               {isVerifyingOtp ? "Verifying…" : "Verify"}
             </Button>
 
-            <Button
+            <Button shape="pill"
               type="button"
               variant="outline"
               size="sm"
@@ -430,9 +429,7 @@ function LoginForm() {
               disabled={isVerifyingOtp}
               className="w-full"
             >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <ChevronLeftIcon className="size-4" />
               Back to login
             </Button>
           </form>
@@ -459,7 +456,7 @@ function LoginForm() {
       {feedback && (
         <div
           role="alert"
-          className={`mb-6 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
             ? "border-emerald-200 bg-emerald-50 text-emerald-800"
             : feedback.type === "pending"
               ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -475,7 +472,7 @@ function LoginForm() {
           <p>Redirecting to your dashboard…</p>
         </div>
       ) : (
-        <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
+        <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
           <FormField
             id="login-identifier"
             name="username"
@@ -511,7 +508,7 @@ function LoginForm() {
             </Link>
           </div>
 
-          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
+          <Button shape="pill" type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
             {isSubmitting && <Spinner />}
             {isSubmitting ? "Signing in…" : "Login"}
           </Button>
@@ -522,7 +519,7 @@ function LoginForm() {
                 <span className="bg-background text-muted-foreground relative z-10 px-3">or continue with</span>
               </div>
 
-              <Button
+              <Button shape="pill"
                 type="button"
                 variant="outline"
                 onClick={handleGoogleSignIn}
@@ -530,7 +527,7 @@ function LoginForm() {
                 aria-busy={isGoogleSubmitting}
                 className="w-full"
               >
-                {isGoogleSubmitting ? <Spinner /> : <GoogleIcon className="h-5 w-5" aria-hidden="true" />}
+                {isGoogleSubmitting ? <Spinner /> : <GoogleIcon className="size-4" aria-hidden="true" />}
                 {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
               </Button>
             </>
@@ -540,7 +537,7 @@ function LoginForm() {
 
       <p className="text-muted-foreground mt-6 text-center text-sm">
         Don&apos;t have an account?{" "}
-        <Link href="/register" className="font-semibold text-foreground hover:underline">
+        <Link href="/register" className="text-foreground font-medium underline underline-offset-4">
           Register
         </Link>
       </p>

@@ -58,7 +58,7 @@ export function ApplicantAvatar({
   return (
     <span
       aria-hidden="true"
-      className={`${className} flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-white`}
+      className={`${className} flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground`}
     >
       {initials}
     </span>

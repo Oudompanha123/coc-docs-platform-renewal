@@ -40,27 +40,27 @@ export default function ReleasesPage() {
   return (
     <div>
       <p className="text-sm font-semibold text-foreground">Releases</p>
-      <h1 className="mt-1 text-3xl font-bold text-ink">What&apos;s new.</h1>
-      <p className="mt-3 text-base text-muted">Real, ongoing work on Coc Docs Platform — most recent first.</p>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">What&apos;s new.</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Real, ongoing work on Coc Docs Platform — most recent first.</p>
 
-      <div className="mt-10 space-y-10 border-l-2 border-border pl-6">
+      <div className="mt-8 space-y-8 border-l-2 border-surface-border pl-6">
         {RELEASES.map((release, i) => (
           <div key={release.date} className="relative">
             <span
               className={`absolute -left-[31px] top-1 h-3 w-3 rounded-full ${
-                i === 0 ? "bg-primary" : "border-2 border-border bg-white"
+                i === 0 ? "bg-primary" : "border-2 border-surface-border bg-card"
               }`}
             />
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-foreground">{release.date}</span>
               {i === 0 && (
-                <span className="rounded-full bg-[#e1f5ec] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1f9d6b]">
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                   Latest
                 </span>
               )}
             </div>
-            <h2 className="mt-1 text-lg font-bold text-ink">{release.title}</h2>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted">
+            <h2 className="mt-1 text-base font-semibold text-foreground">{release.title}</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm leading-relaxed text-muted-foreground">
               {release.items.map((item, i) => (
                 <li key={i}>{item}</li>
               ))}

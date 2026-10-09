@@ -63,7 +63,7 @@ export const OtpCodeInput = forwardRef<
             return (
               <div
                 key={i}
-                className={`flex h-12 items-center justify-center rounded-xl border text-xl font-semibold tabular-nums transition-all duration-150 sm:h-14 ${
+                className={`flex h-11 items-center justify-center rounded-xl border text-lg font-semibold tabular-nums transition-all duration-150 sm:h-12 ${
                   invalid
                     ? "border-destructive/50 bg-destructive/5 text-destructive"
                     : isActive

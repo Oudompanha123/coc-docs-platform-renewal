@@ -61,31 +61,31 @@ export function ApproveRegistrationModal({
 
   return (
     <Modal title="New registration" onClose={onClose}>
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-page px-3 py-2.5">
+      <div className="flex items-center gap-3 rounded-lg border border-surface-border bg-muted-surface px-3 py-2">
         <ApplicantAvatar
           name={account.displayName}
           avatarUrl={account.avatarUrl}
-          className="h-10 w-10 text-sm"
+          className="size-8 text-xs"
         />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-dash-ink">{account.displayName}</p>
-          <p className="truncate text-xs text-muted">{account.email}</p>
+          <p className="truncate text-sm font-medium text-foreground">{account.displayName}</p>
+          <p className="truncate text-xs text-muted-foreground">{account.email}</p>
         </div>
       </div>
 
-      <p className="mt-4 text-sm text-muted">
+      <p className="mt-4 text-sm text-muted-foreground">
         They have verified their email address and are waiting to be let in. Until you approve them they
         cannot sign in and hold no permissions.
       </p>
 
       <fieldset className="mt-4">
-        <legend className="text-sm font-semibold text-dash-ink">Approve as</legend>
+        <legend className="text-sm font-medium text-foreground">Approve as</legend>
         <div className="mt-2 space-y-2">
           {ROLE_CHOICES.map((choice) => (
             <label
               key={choice.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
-                role === choice.value ? "border-primary bg-secondary" : "border-border hover:bg-page"
+              className={`flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 transition-colors ${
+                role === choice.value ? "border-primary bg-secondary" : "border-surface-border hover:bg-accent"
               }`}
             >
               <Radio
@@ -96,8 +96,8 @@ export function ApproveRegistrationModal({
                 className="mt-0.5"
               />
               <span>
-                <span className="block text-sm font-semibold text-dash-ink">{choice.label}</span>
-                <span className="block text-xs text-muted">{choice.hint}</span>
+                <span className="block text-sm font-medium text-foreground">{choice.label}</span>
+                <span className="block text-xs text-muted-foreground">{choice.hint}</span>
               </span>
             </label>
           ))}
@@ -105,12 +105,12 @@ export function ApproveRegistrationModal({
       </fieldset>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
         </p>
       )}
 
-      <div className="mt-6 flex justify-end gap-3">
+      <div className="mt-5 flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
         </Button>

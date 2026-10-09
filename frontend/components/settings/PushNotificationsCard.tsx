@@ -76,14 +76,14 @@ export function PushNotificationsCard() {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+    <div className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
-          <BellIcon className="h-4 w-4" />
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+          <BellIcon className="size-4" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-dash-ink">Browser notifications on this device</p>
-          <p className="text-xs text-muted">{description()}</p>
+          <p className="text-sm font-medium text-foreground">Browser notifications on this device</p>
+          <p className="text-xs text-muted-foreground">{description()}</p>
         </div>
       </div>
       {/* role="switch" — waiting on the Switch primitive, same as

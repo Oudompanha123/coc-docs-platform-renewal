@@ -78,7 +78,7 @@ function AxRenewalShell({ children }: { children: ReactNode }) {
             past its content's natural height, so `overflow-y-auto` deeper in
             the tree (main, or AxRenewalSidebar's own nav) never actually
             triggers. */}
-        <div data-shell="ax-renewal" className="flex h-screen flex-col overflow-hidden bg-white">
+        <div data-shell="ax-renewal" className="flex h-screen flex-col overflow-hidden bg-card">
           <div className="min-h-0 flex-1 lg:flex">
             <AxRenewalActivityBar
               sidebarCollapsed={sidebarCollapsed}
@@ -94,7 +94,7 @@ function AxRenewalShell({ children }: { children: ReactNode }) {
             />
             <div className="flex min-h-0 flex-1 flex-col lg:min-w-0">
               <AxRenewalTopbar onMenuClick={() => setMobileNavOpen(true)} />
-              <main className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+              <main className="min-h-0 flex-1 overflow-y-auto bg-card px-4 py-5 sm:px-6">{children}</main>
             </div>
             <AxAssistantPanel
               width={assistantResize.width}

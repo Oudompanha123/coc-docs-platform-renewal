@@ -9,6 +9,7 @@ import { AttendanceDepartmentSelect } from "@/components/attendance/AttendanceDe
 import { AttendanceRangeToggle, type AttendanceRange } from "@/components/attendance/AttendanceRangeToggle";
 import { AttendanceStatCard } from "@/components/attendance/AttendanceStatCard";
 import { AttendanceTable } from "@/components/attendance/AttendanceTable";
+import { Button } from "@/components/ui/button";
 import { fetchAttendanceReports, type HrmsAttendanceReport } from "@/lib/admin/attendance";
 import { downloadAttendanceXlsx } from "@/lib/attendance/export-attendance";
 import {
@@ -103,18 +104,18 @@ function AttendancePageInner() {
     <AppShell
       pageTitle="Attendance"
       pageSubtitle="HRMS KOSIGN · Daily record summary"
-      titleIcon={<CalendarCheckIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
+      titleIcon={<CalendarCheckIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted">
-            Administration / <b className="font-semibold text-dash-ink">Attendance</b>
+          <p className="text-sm text-muted-foreground">
+            Administration / <b className="font-medium text-foreground">Attendance</b>
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <AttendanceRangeToggle value={range} onChange={setRange} />
             <AttendanceDateNav date={date} onChange={setDate} range={range} />
             <AttendanceDepartmentSelect departments={knownDepartments} value={department} onChange={setDepartment} />
-            <button
+            <Button
               type="button"
               onClick={() => selectedReport && downloadAttendanceXlsx(selectedReport.department, date, exportableRows)}
               disabled={exportableRows.length === 0}
@@ -123,45 +124,42 @@ function AttendancePageInner() {
                   ? "Nothing to export — no one matches the current search"
                   : `Download ${exportableRows.length} record${exportableRows.length === 1 ? "" : "s"} as an Excel file`
               }
-              className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
+              // Keep hover while disabled, so the title can say why.
+              className="disabled:pointer-events-auto disabled:cursor-not-allowed"
             >
-              <DownloadIcon className="h-4 w-4" />
+              <DownloadIcon className="size-4" />
               Export
-            </button>
+            </Button>
           </div>
         </div>
 
         {loading && <LoadingSkeleton />}
 
         {!loading && loadError && (
-          <div role="alert" className="flex flex-col items-center gap-3 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-8 text-center">
-            <WarningIcon className="h-6 w-6 text-danger" />
+          <div role="alert" className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-6 text-center">
+            <WarningIcon className="size-5 text-danger" />
             <p className="text-sm font-medium text-danger">{loadError}</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="rounded-[10px] border border-danger/40 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
-            >
+            <Button type="button" variant="destructiveOutline" size="sm" onClick={() => void load()}>
               Retry
-            </button>
+            </Button>
           </div>
         )}
 
         {!loading && !loadError && reports && reports.length === 0 && (
-          <div className="overflow-hidden rounded-[10px] border border-border bg-white p-10 text-center shadow-sm">
-            <p className="text-sm text-muted">No attendance records for this date.</p>
+          <div className="overflow-hidden rounded-xl border border-surface-border bg-card p-8 text-center">
+            <p className="text-sm text-muted-foreground">No attendance records for this date.</p>
           </div>
         )}
 
         {!loading && !loadError && reports && reports.length > 0 && !selectedReport && (
-          <div className="overflow-hidden rounded-[10px] border border-border bg-white p-10 text-center shadow-sm">
-            <p className="text-sm text-muted">No records for {department || "(no department found)"} on this date.</p>
+          <div className="overflow-hidden rounded-xl border border-surface-border bg-card p-8 text-center">
+            <p className="text-sm text-muted-foreground">No records for {department || "(no department found)"} on this date.</p>
           </div>
         )}
 
         {!loading && !loadError && selectedReport && (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <AttendanceStatCard
                 icon={UsersIcon}
                 label="Total Scheduled"
@@ -208,16 +206,16 @@ function AttendancePageInner() {
 
 function LoadingSkeleton() {
   return (
-    <div className="animate-pulse space-y-5" role="status" aria-label="Loading attendance">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="animate-pulse space-y-4" role="status" aria-label="Loading attendance">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-[124px] rounded-[10px] border border-border bg-white p-5">
-            <div className="h-10 w-10 rounded-xl bg-page" />
-            <div className="mt-4 h-7 w-16 rounded bg-page" />
+          <div key={i} className="h-[106px] rounded-xl border border-surface-border bg-card p-4">
+            <div className="size-8 rounded-lg bg-muted-surface" />
+            <div className="mt-3 h-7 w-16 rounded bg-muted-surface" />
           </div>
         ))}
       </div>
-      <div className="h-[420px] rounded-[10px] border border-border bg-white" />
+      <div className="h-[420px] rounded-xl border border-surface-border bg-card" />
     </div>
   );
 }

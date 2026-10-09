@@ -24,7 +24,7 @@ export function HomeFooter({
   const { t } = useLanguage();
 
   return (
-    <footer className="border-t border-border py-12">
+    <footer className="border-t border-surface-border py-10">
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-2.5">
@@ -45,33 +45,33 @@ export function HomeFooter({
 
           <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink">{t.footer.product}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.product}</p>
               <ul className="mt-3 space-y-2.5">
-                <li><Link href="/home" className="text-sm text-muted hover:text-ink">{t.nav.home}</Link></li>
-                <li><Link href={productHref("jex3-0")} className="text-sm text-muted hover:text-ink">Jex3.0</Link></li>
-                <li><Link href={productHref("jex2-0")} className="text-sm text-muted hover:text-ink">Jex2.0</Link></li>
-                <li><Link href={productHref("coach")} className="text-sm text-muted hover:text-ink">Coach</Link></li>
+                <li><Link href="/home" className="text-sm text-muted-foreground hover:text-foreground">{t.nav.home}</Link></li>
+                <li><Link href={productHref("jex3-0")} className="text-sm text-muted-foreground hover:text-foreground">Jex3.0</Link></li>
+                <li><Link href={productHref("jex2-0")} className="text-sm text-muted-foreground hover:text-foreground">Jex2.0</Link></li>
+                <li><Link href={productHref("coach")} className="text-sm text-muted-foreground hover:text-foreground">Coach</Link></li>
               </ul>
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink">{t.footer.team}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.team}</p>
               <ul className="mt-3 space-y-2.5">
-                <li><Link href={productHref("team")} className="text-sm text-muted hover:text-ink">Team</Link></li>
-                <li><Link href={productHref("usage")} className="text-sm text-muted hover:text-ink">Usage</Link></li>
+                <li><Link href={productHref("team")} className="text-sm text-muted-foreground hover:text-foreground">Team</Link></li>
+                <li><Link href={productHref("usage")} className="text-sm text-muted-foreground hover:text-foreground">Usage</Link></li>
               </ul>
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink">{t.footer.account}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.account}</p>
               <ul className="mt-3 space-y-2.5">
                 <li>
-                  <button type="button" onClick={onOpenProfile} className="text-sm text-muted hover:text-ink">
+                  <button type="button" onClick={onOpenProfile} className="text-sm text-muted-foreground hover:text-foreground">
                     {t.footer.profile}
                   </button>
                 </li>
                 <li>
-                  <button type="button" onClick={onOpenNotifications} className="text-sm text-muted hover:text-ink">
+                  <button type="button" onClick={onOpenNotifications} className="text-sm text-muted-foreground hover:text-foreground">
                     {t.footer.notifications}
                   </button>
                 </li>
@@ -81,7 +81,7 @@ export function HomeFooter({
                     disabled={isSigningOut}
                     aria-busy={isSigningOut}
                     onClick={() => void signOut()}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground disabled:cursor-not-allowed"
                   >
                     {isSigningOut && <Spinner className="h-3.5 w-3.5 border-2" />}
                     {isSigningOut ? t.footer.loggingOut : t.footer.logout}
@@ -91,18 +91,18 @@ export function HomeFooter({
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink">{t.footer.help}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.help}</p>
               <ul className="mt-3 space-y-2.5">
-                <li><Link href="/docs/get-started" className="text-sm text-muted hover:text-ink">{t.footer.getStarted}</Link></li>
-                <li><Link href="/docs/how-to-use" className="text-sm text-muted hover:text-ink">{t.footer.howToUse}</Link></li>
-                <li><Link href="/docs/faq" className="text-sm text-muted hover:text-ink">{t.footer.faq}</Link></li>
+                <li><Link href="/docs/get-started" className="text-sm text-muted-foreground hover:text-foreground">{t.footer.getStarted}</Link></li>
+                <li><Link href="/docs/how-to-use" className="text-sm text-muted-foreground hover:text-foreground">{t.footer.howToUse}</Link></li>
+                <li><Link href="/docs/faq" className="text-sm text-muted-foreground hover:text-foreground">{t.footer.faq}</Link></li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-          <span className="text-xs text-muted">{t.footer.copyright}</span>
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-surface-border pt-6 sm:flex-row">
+          <span className="text-xs text-muted-foreground">{t.footer.copyright}</span>
         </div>
       </div>
     </footer>

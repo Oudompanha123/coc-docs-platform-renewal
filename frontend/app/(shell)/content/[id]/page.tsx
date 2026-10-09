@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { DocumentIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { ContentRenderer } from "@/components/docs/ContentRenderer";
 import { HeroForm } from "@/components/docs/editor/HeroForm";
 import { StepsForm } from "@/components/docs/editor/StepsForm";
@@ -66,9 +67,9 @@ export default function ContentEditPage() {
       <AppShell
         pageTitle="Content"
         pageSubtitle="Loading…"
-        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
+        titleIcon={<DocumentIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
       >
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="text-sm text-muted-foreground">Loading…</p>
       </AppShell>
     );
   }
@@ -78,9 +79,9 @@ export default function ContentEditPage() {
       <AppShell
         pageTitle="Content"
         pageSubtitle="Unknown content id"
-        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
+        titleIcon={<DocumentIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
       >
-        <p className="text-sm text-muted">Unknown content id.</p>
+        <p className="text-sm text-muted-foreground">Unknown content id.</p>
         <Link href="/overview" className="mt-3 inline-block text-sm font-semibold text-foreground hover:underline">
           ← Back to Overview
         </Link>
@@ -118,33 +119,26 @@ export default function ContentEditPage() {
     <AppShell
       pageTitle={`${entry.productLabel} — ${entry.label}`}
       pageSubtitle={entry.publicHref}
-      titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
+      titleIcon={<DocumentIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
     >
       <div className="flex items-center justify-between">
-        <Link href={`/${entry.productKey}`} className="text-sm font-semibold text-foreground hover:underline">
+        <Link href={`/${entry.productKey}`} className="text-sm font-medium text-muted-foreground hover:text-foreground">
           ← Back to {entry.productLabel}
         </Link>
         <div className="flex items-center gap-3">
-          {saveError && <span className="text-xs font-semibold text-[#c94040]">{saveError}</span>}
-          {!saveError && savedAt && <span className="text-xs font-semibold text-[#1f9d6b]">Saved</span>}
-          <Link
-            href={entry.publicHref}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:text-foreground hover:shadow"
-          >
-            View live page
-            <span aria-hidden="true" className="text-xs">
-              ↗
-            </span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          {saveError && <span className="text-xs font-medium text-destructive">{saveError}</span>}
+          {!saveError && savedAt && <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Saved</span>}
+          <Button asChild variant="outline">
+            <Link href={entry.publicHref} target="_blank">
+              View live page
+              <span aria-hidden="true" className="text-xs">
+                ↗
+              </span>
+            </Link>
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -167,21 +161,21 @@ export default function ContentEditPage() {
             second column to match, and absolute positioning would collapse
             the editor to nothing. */}
       {draft && (
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="relative min-h-0">
-            <div className="flex flex-col rounded-[10px] border border-border bg-white py-5 px-0 shadow-sm lg:absolute lg:inset-0">
+            <div className="flex flex-col rounded-xl border border-surface-border bg-card py-4 px-0 lg:absolute lg:inset-0">
             <div className="mb-4 shrink-0 px-5">
-              <span className="text-xs font-semibold text-muted">Content type</span>
+              <span className="text-xs font-medium text-muted-foreground">Content type</span>
               <div className="mt-1.5 flex gap-2">
                 {(["hero", "steps", "sections"] as const).map((kind) => (
                   <button
                     key={kind}
                     type="button"
                     onClick={() => changeKind(kind)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                    className={`h-7 rounded-full border px-3 text-xs font-medium capitalize transition-colors ${
                       draft.kind === kind
-                        ? "bg-secondary text-foreground"
-                        : "border border-border text-muted hover:bg-page"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-surface-border text-muted-foreground hover:bg-accent hover:text-foreground"
                     }`}
                   >
                     {kind}
@@ -197,8 +191,8 @@ export default function ContentEditPage() {
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Live preview</p>
-            <div className="min-h-[calc(100vh-225px)] overflow-y-auto rounded-[10px] bg-page">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Live preview</p>
+            <div className="min-h-[calc(100vh-225px)] overflow-y-auto rounded-xl bg-muted-surface">
               <ContentRenderer content={draft} variant={entry.productKey === "jex3-0" ? "admin" : "docs"} />
             </div>
           </div>

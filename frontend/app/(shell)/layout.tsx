@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 
 function ShellContent({ children }: { children: ReactNode }) {
-  const { mobileNavOpen, openMobileNav, closeMobileNav } = useShell();
+  const { mobileNavOpen, openMobileNav, closeMobileNav, sidebarCollapsed } = useShell();
 
   return (
     <SessionProvider>
@@ -22,8 +22,8 @@ function ShellContent({ children }: { children: ReactNode }) {
             required for that: without it a flex child won't shrink past
             its content's natural height, so <main>'s own overflow-y-auto
             never actually triggers. */}
-        <div data-shell="admin" className="flex h-screen flex-col overflow-hidden bg-page lg:flex-row">
-          <Sidebar isOpen={mobileNavOpen} onClose={closeMobileNav} />
+        <div data-shell="admin" className="flex h-screen flex-col overflow-hidden bg-background lg:flex-row">
+          <Sidebar isOpen={mobileNavOpen} onClose={closeMobileNav} collapsed={sidebarCollapsed} />
           <div className="flex min-h-0 flex-1 flex-col lg:min-w-0">
             <Topbar onMenuClick={openMobileNav} />
             <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">{children}</main>

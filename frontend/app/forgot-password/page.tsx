@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
       {feedback && (
         <div
           role="alert"
-          className={`mb-6 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-destructive/30 bg-destructive/5 text-destructive"
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
         </div>
       )}
 
-      <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
+      <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         <FormField
           label="Email"
           type="email"
@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
           error={error}
         />
 
-        <Button
+        <Button shape="pill"
           type="submit"
           disabled={isSubmitting || feedback?.type === "success"}
           aria-busy={isSubmitting}

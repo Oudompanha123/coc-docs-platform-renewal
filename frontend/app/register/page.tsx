@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { CircleAlert } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
+import { ChevronLeftIcon, ClockIcon } from "@/components/layout/icons";
 import { Spinner } from "@/components/layout/Spinner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -219,7 +221,7 @@ export default function RegisterPage() {
           <Stepper steps={STEPS} currentIndex={1} />
         </div>
 
-        <form className="grid gap-5" onSubmit={handleVerify} noValidate>
+        <form className="grid gap-4" onSubmit={handleVerify} noValidate>
           <div>
             <OtpCodeInput
               ref={codeInputRef}
@@ -243,19 +245,13 @@ export default function RegisterPage() {
                 role="alert"
                 className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
               >
-                <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7.5v5.5M12 16.5h.01" strokeLinecap="round" />
-                </svg>
+                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{codeError}</span>
               </p>
             ) : (
               <p id="register-code-hint" className="text-muted-foreground mt-3 flex items-center justify-between gap-3 text-xs">
                 <span className="flex items-center gap-1.5 whitespace-nowrap">
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ClockIcon className="h-3.5 w-3.5" />
                   {expiresIn > 0 ? (
                     <>
                       Code expires in{" "}
@@ -270,7 +266,7 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <Button
+          <Button shape="pill"
             type="submit"
             disabled={isVerifying}
             aria-busy={isVerifying}
@@ -283,7 +279,7 @@ export default function RegisterPage() {
 
         <div className="border-surface-border bg-muted-surface text-muted-foreground mt-5 rounded-md border px-4 py-3 text-center text-sm">
           Didn&apos;t get a code? Check your spam folder, or{" "}
-          <Button
+          <Button shape="pill"
             type="button"
             variant="link"
             size="inline"
@@ -294,7 +290,7 @@ export default function RegisterPage() {
           </Button>
         </div>
 
-        <Button
+        <Button shape="pill"
           type="button"
           variant="outline"
           size="sm"
@@ -302,9 +298,7 @@ export default function RegisterPage() {
           disabled={isVerifying}
           className="mt-4 w-full"
         >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ChevronLeftIcon className="h-4 w-4" />
           Wrong email? Go back
         </Button>
       </AuthShell>
@@ -328,7 +322,7 @@ export default function RegisterPage() {
         >
           {doneMessage}
         </div>
-        <Button asChild className="w-full">
+        <Button shape="pill" asChild className="w-full">
           <Link href="/login">Go to Login</Link>
         </Button>
       </AuthShell>
@@ -348,7 +342,7 @@ export default function RegisterPage() {
       {feedback && (
         <div
           role="alert"
-          className={`mb-6 rounded-md border px-3 py-2 text-sm ${
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-destructive/30 bg-destructive/5 text-destructive"
@@ -362,7 +356,7 @@ export default function RegisterPage() {
           and horizontal padding that belonged to the split panel this form
           used to sit inside. With the panel gone they were a stray scrollbar
           and an inset that pushed the fields off the column's own edge. */}
-      <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
+      <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         <FormField
           label="Full Name"
           value={fullName}
@@ -432,7 +426,7 @@ export default function RegisterPage() {
           )}
         </div>
 
-        <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
+        <Button shape="pill" type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
           {isSubmitting ? "Submitting…" : "Continue"}
         </Button>
       </form>

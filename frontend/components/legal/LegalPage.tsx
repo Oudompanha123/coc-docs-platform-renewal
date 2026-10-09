@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import {
   LEGAL_COPYRIGHT_YEAR,
   LEGAL_DOCUMENTS,
@@ -33,45 +34,39 @@ export function LegalPage({ docKey }: { docKey: LegalDocKey }) {
   const doc: LegalDoc = LEGAL_DOCUMENTS[docKey];
 
   return (
-    <div className="min-h-screen bg-white text-[14px] leading-[1.7] text-[#46444f]">
-      {/* 100px side padding from the design, held back until there is room for
-          it — on a phone it would leave 75px of readable column. */}
-      <main className="mx-auto max-w-[1000px] px-5 pt-10 pb-16 sm:pt-14 md:px-[100px]">
+    <div className="bg-background text-foreground/80 min-h-screen text-sm leading-relaxed sm:text-base sm:leading-relaxed">
+      {/* A readable measure (max-w-3xl, ~70 characters at this size) rather
+          than the mockup's 1000px column with 100px gutters. */}
+      <main className="mx-auto max-w-3xl px-4 pt-10 pb-16 sm:px-6 sm:pt-12">
         {/* Not in the design mockup, and kept anyway: both links are same-tab
             navigations out of a half-filled registration form, so this is the
-            only signposted way back to it. Bare text with a leading arrow —
-            the arrow carries the colour so the label can stay the same ink as
-            the document it sits above. */}
+            only signposted way back to it. Bare text with a leading arrow, in
+            the document's own ink. */}
         <Link
           href="/register"
-          className="group mb-8 inline-flex items-center gap-2.5 text-[15px] font-medium text-[#1c1b22]"
+          className="group text-foreground focus-visible:ring-ring/50 mb-8 inline-flex items-center gap-2 rounded-sm text-sm font-medium focus-visible:ring-[3px] focus-visible:outline-none"
         >
-          <span
-            aria-hidden="true"
-            className="text-[17px] leading-none text-[#c4832f] transition-transform group-hover:-translate-x-0.5"
-          >
-            ←
-          </span>
+          <ArrowLeft aria-hidden="true" className="size-4 transition-transform group-hover:-translate-x-0.5" />
           <span className="group-hover:underline">Back to Register</span>
         </Link>
 
         <header className="text-center">
-          <h1 className="m-0 text-[clamp(1.75rem,5vw,2.15rem)] leading-[1.15] font-extrabold tracking-[-0.02em] text-[#1c1b22]">
+          <h1 className="text-foreground m-0 text-2xl font-semibold tracking-tight sm:text-3xl">
             {doc.name}
           </h1>
-          <p className="mt-2.5 mb-0 text-[14.5px] text-[#6b6975]">{doc.subtitle}</p>
-          <p className="mt-3.5 mb-0">
-            <span className="inline-block rounded-full border border-[#efc978] bg-[#fdf7ea] px-3 py-[3px] text-[11px] font-medium text-[#8a6416]">
+          <p className="text-muted-foreground mt-2 mb-0 text-sm">{doc.subtitle}</p>
+          <p className="mt-3 mb-0">
+            <span className="inline-block rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900">
               {LEGAL_SAMPLE_NOTICE}
             </span>
           </p>
         </header>
 
-        <hr className="mt-8 mb-9 border-0 border-t border-[#e7e6ec]" />
+        <hr className="border-surface-border mt-8 mb-8 border-0 border-t" />
 
         {doc.sections.map((section) => (
-          <section key={section.id} id={section.id} className="mt-9 scroll-mt-6 first:mt-0">
-            <h2 className="mt-0 mb-3 text-[17.5px] leading-snug font-bold tracking-[-0.01em] text-[#1c1b22]">
+          <section key={section.id} id={section.id} className="mt-8 scroll-mt-6 first:mt-0">
+            <h2 className="text-foreground mt-0 mb-2 text-base leading-snug font-semibold tracking-tight sm:text-lg">
               {section.title}
             </h2>
             {section.body}
@@ -79,11 +74,11 @@ export function LegalPage({ docKey }: { docKey: LegalDocKey }) {
         ))}
 
         <footer className="mt-12">
-          <p className="m-0 text-[12.5px] leading-relaxed text-[#8a8893] italic">
+          <p className="text-muted-foreground m-0 text-xs leading-relaxed italic">
             The information on this page may change without notice.
             <br />© {LEGAL_COPYRIGHT_YEAR} Coc Docs Platform. All rights reserved.
           </p>
-          <p className="mt-4 mb-0 text-[13px] text-[#6b6975]">
+          <p className="text-muted-foreground mt-4 mb-0 text-xs">
             Last updated by the Platform Team on {LEGAL_LAST_UPDATED}
           </p>
         </footer>

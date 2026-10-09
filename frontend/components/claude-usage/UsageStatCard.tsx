@@ -1,39 +1,30 @@
 import type { ComponentType, SVGProps } from "react";
+import { Card } from "@/components/ui/card";
 
-/** Same white-card + soft-shadow shape as dashboard/StatCard.tsx, generalized
- *  to take any icon/value pair instead of that component's overview-specific
- *  StatCardData shape. */
+/** The house stat tile (dashboard/StatCard.tsx, ADR-104 r2.7), generalized to
+ *  take any icon/value pair instead of that component's overview-specific
+ *  StatCardData shape: label top-left, a small muted icon top-right, the value
+ *  in tabular figures, and an optional quiet note under it. Flat — no shadow,
+ *  no gradient icon tile; on a dashboard the number is the subject. */
 export function UsageStatCard({
   icon: Icon,
   label,
   value,
-  tone,
   note,
 }: {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   label: string;
   value: string;
-  tone: "purple" | "blue" | "green" | "orange" | "red";
   note?: string;
 }) {
-  const tileFill = {
-    purple: "bg-[linear-gradient(135deg,#6D3CE0,#4C6FF0)]",
-    blue: "bg-[linear-gradient(135deg,#4C6FF0,#6D3CE0)]",
-    green: "bg-[linear-gradient(135deg,#20A163,#3EC98B)]",
-    orange: "bg-[linear-gradient(135deg,#E8763F,#F0B429)]",
-    red: "bg-[linear-gradient(135deg,#D94F4F,#E8763F)]",
-  }[tone];
-
   return (
-    <div className="rounded-[10px] border border-border bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white ${tileFill}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+    <Card className="gap-2 p-4 shadow-none">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </div>
-      <p className="mt-4 text-3xl font-bold text-dash-ink">{value}</p>
-      {note && <p className="mt-1 text-xs font-semibold text-muted">{note}</p>}
-    </div>
+      <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{value}</p>
+      {note && <p className="truncate text-xs text-muted-foreground">{note}</p>}
+    </Card>
   );
 }

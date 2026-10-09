@@ -21,10 +21,10 @@ export function ClaudeUsageCard() {
   if (!canSee) return null;
 
   return (
-    <section id="claude-usage" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-base font-bold text-dash-ink">Claude Usage</h2>
-      <p className="mt-0.5 text-sm text-muted">Track your Claude token usage.</p>
-      <div className="mt-5">
+    <section id="claude-usage" className="scroll-mt-24 rounded-xl border border-surface-border bg-card p-5">
+      <h2 className="text-base font-semibold text-foreground">Claude Usage</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">Track your Claude token usage.</p>
+      <div className="mt-4">
         <MyClaudeUsageSection />
       </div>
     </section>

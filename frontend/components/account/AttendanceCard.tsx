@@ -8,10 +8,10 @@ import { MyAttendanceView } from "@/components/reports/MyAttendanceView";
  */
 export function AttendanceCard() {
   return (
-    <section id="attendance" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-base font-bold text-dash-ink">Attendance</h2>
-      <p className="mt-0.5 text-sm text-muted">HRMS KOSIGN · Your daily check-in &amp; out.</p>
-      <div className="mt-5">
+    <section id="attendance" className="scroll-mt-24 rounded-xl border border-surface-border bg-card p-5">
+      <h2 className="text-base font-semibold text-foreground">Attendance</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">HRMS KOSIGN · Your daily check-in &amp; out.</p>
+      <div className="mt-4">
         <MyAttendanceView />
       </div>
     </section>

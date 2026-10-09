@@ -1,3 +1,5 @@
+import { LoaderCircle } from "lucide-react";
+
 /**
  * The full-screen loading overlay — shown for: Login submission/redirect,
  * Logout's redirect to Login, and (as a standalone page) a new tab opened by
@@ -5,23 +7,22 @@
  * specifically, not for routine nav clicks (those keep the slim
  * `TopProgressBar`).
  *
- * A brand ring on a soft, blurred overlay that follows the light/dark theme,
- * with the label shown under it ("Signing in…"). It replaced a port of the
- * old `로딩DIM.html` reference — twelve black blades fading in steps on a flat
- * grey dim — which matched nothing else in the app. Styles live in
- * `globals.css` (`.loading-dim`, `.cdp-spinner`).
+ * shadcn's spinner — Lucide's `LoaderCircle` turning — in neutral ink on a
+ * soft, blurred overlay that follows the light/dark theme, with the label
+ * under it ("Signing in…") (ADR-104 r2.5). It replaced a purple-to-blue
+ * conic ring from the retired brand palette, which was the last thing on the
+ * sign-in path still in the old colours. Overlay and label colours live in
+ * `globals.css` (`.loading-dim`).
  */
 export function LoadingDim({ label = "Loading…" }: { label?: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className="loading-dim fixed inset-0 z-[100000] flex flex-col items-center justify-center gap-4"
+      className="loading-dim fixed inset-0 z-[100000] flex flex-col items-center justify-center gap-3"
     >
-      <span className="cdp-spinner" aria-hidden="true">
-        <span className="cdp-spinner-arc" />
-      </span>
-      <span className="loading-dim-label text-sm font-semibold tracking-wide">{label}</span>
+      <LoaderCircle aria-hidden="true" className="loading-dim-spinner size-8 animate-spin" />
+      <span className="loading-dim-label text-sm font-medium">{label}</span>
     </div>
   );
 }
@@ -29,22 +30,20 @@ export function LoadingDim({ label = "Loading…" }: { label?: string }) {
 /** The same overlay as a standalone HTML page — for {@link
  *  openInNewTabWithLoadingDim}, which writes it into a brand new tab before
  *  that tab has any of our compiled CSS/JS to render `LoadingDim` with. Values
- *  mirror `.loading-dim`/`.cdp-spinner` in `globals.css`; the tab has no theme
- *  setting yet, so it follows the operating system's. */
+ *  mirror `.loading-dim` in `globals.css`, and the SVG is `LoaderCircle`'s own
+ *  path; the tab has no theme setting yet, so it follows the operating
+ *  system's. */
 export function loadingDimStandaloneHtml(label = "Loading…"): string {
   const safeLabel = label.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
   return `<!doctype html><html><head><meta charset="utf-8"><title>Coc Docs Platform</title><style>
 html,body{margin:0;height:100%}
-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f5f4fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-.label{color:#2d2a4a;font-size:14px;font-weight:600;letter-spacing:.02em}
-.ring{position:relative;width:56px;height:56px}
-.ring::before{content:"";position:absolute;inset:0;border-radius:50%;border:5px solid rgba(109,60,224,.14)}
-.arc{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(109,60,224,0) 0deg,#6d3ce0 210deg,#4c6ff0 360deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 5px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 5px));animation:spin .9s linear infinite}
-.arc::after{content:"";position:absolute;top:0;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#4c6ff0}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#ffffff;color:#171717;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.label{font-size:14px;font-weight:500}
+.spinner{width:32px;height:32px;color:#737373;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media (prefers-color-scheme:dark){body{background:#0a0a10}.label{color:#e7e5f4}}
-@media (prefers-reduced-motion:reduce){.arc{animation:none}}
-</style></head><body><div class="ring" aria-hidden="true"><div class="arc"></div></div><div class="label" role="status">${safeLabel}</div></body></html>`;
+@media (prefers-color-scheme:dark){body{background:#0a0a0a;color:#fafafa}.spinner{color:#a1a1a1}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style></head><body><svg class="spinner" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><div class="label" role="status">${safeLabel}</div></body></html>`;
 }
 
 /**

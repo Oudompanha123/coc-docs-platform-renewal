@@ -26,25 +26,25 @@ function formatDueDate(dueDate: string | null): string | null {
 export function TasksPanel({ tasks }: { tasks: Task[] | null }) {
   const { t } = useLanguage();
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-white py-5 shadow-sm">
-      <div className="flex items-center justify-between pl-5 pr-[15px]">
-        <h2 className="text-sm font-semibold text-dash-ink">{t.panels.yourTasks}</h2>
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-card py-4">
+      <div className="flex items-center justify-between px-4">
+        <h2 className="text-sm font-semibold text-foreground">{t.panels.yourTasks}</h2>
       </div>
-      <div className={`mt-1 divide-y divide-border pl-5 pr-[20px] ${RECENT_PANEL_LIST_HEIGHT}`}>
+      <div className={`mt-1 divide-y divide-surface-border px-4 ${RECENT_PANEL_LIST_HEIGHT}`}>
         {tasks !== null && (
           <div className="animate-entrance">
             {tasks.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted">{t.panels.noTasks}</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">{t.panels.noTasks}</p>
             ) : (
               tasks.map((task) => {
                 const dateStr = formatDueDate(task.dueDate);
                 const due = dateStr ? fill(t.panels.due, { date: dateStr }) : null;
                 return (
-                  <div key={task.id} className="flex items-center gap-3 py-3">
-                    <CheckCircleIcon className="h-5 w-5 shrink-0 text-muted" />
+                  <div key={task.id} className="flex items-center gap-3 py-2.5">
+                    <CheckCircleIcon className="size-4 shrink-0 text-muted-foreground" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-dash-ink">{task.title}</p>
-                      {due && <p className="truncate text-xs text-muted">{due}</p>}
+                      <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
+                      {due && <p className="truncate text-xs text-muted-foreground">{due}</p>}
                     </div>
                   </div>
                 );

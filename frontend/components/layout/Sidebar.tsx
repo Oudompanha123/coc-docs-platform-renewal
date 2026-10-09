@@ -26,6 +26,9 @@ type SidebarProps = {
   /** Mobile/tablet off-canvas drawer state — always visible at lg+ regardless of this. */
   isOpen: boolean;
   onClose: () => void;
+  /** Desktop only: fold to the icon rail (ADR-104 r2.9). The mobile drawer
+   *  always renders in full. */
+  collapsed?: boolean;
 };
 
 function NavLink({
@@ -33,8 +36,11 @@ function NavLink({
   active,
   onClick,
   trailingAction,
+  rail = false,
 }: {
   item: NavItem;
+  /** Icon-only: the label stays for screen readers and becomes a tooltip. */
+  rail?: boolean;
   active: boolean;
   onClick?: () => void;
   /** e.g. the PRODUCTS section's remove button — `group-hover`/`group-focus-visible` on it key off this Link's own `group` class, not an external wrapper. */
@@ -48,20 +54,21 @@ function NavLink({
       target={item.newTab ? "_blank" : undefined}
       rel={item.newTab ? "noopener noreferrer" : undefined}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex h-[42px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+      title={rail ? item.label : undefined}
+      className={`group relative flex h-10 items-center gap-2.5 rounded-full text-sm transition-colors ${rail ? "mx-auto w-10 justify-center px-0" : "px-3"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         active
-          ? "bg-primary text-white shadow"
-          : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+          ? "bg-nav-accent font-medium text-nav-foreground"
+          : "text-nav-muted hover:bg-nav-accent hover:text-nav-foreground"
       }`}
     >
-      <Icon className="h-[18px] w-[18px] shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {trailingAction}
+      <Icon className="size-4 shrink-0" />
+      <span className={rail ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
+      {!rail && trailingAction}
     </Link>
   );
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
   const pathname = usePathname();
   // Same session-backed name/role as the Topbar (GET /api/v1/auth/me) — the
   // two must never show a different name for the one signed-in caller.
@@ -118,34 +125,46 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   }
 
-  const content = (
-    <div className="admin-sidebar flex h-full flex-col bg-sidebar px-0 py-5">
-      <div className="flex items-center justify-between px-4">
-        <div className="flex items-center gap-2.5">
+  // A function of `rail` rather than one tree, so the desktop sidebar can fold
+  // while the mobile drawer — the same markup — always renders in full.
+  const renderContent = (rail: boolean) => (
+    <div className="admin-sidebar flex h-full flex-col border-r border-nav-border bg-nav py-3">
+      <div className={`flex h-10 items-center justify-between ${rail ? "px-2" : "px-4"}`}>
+        <div className={rail ? "hidden" : "flex items-center gap-2.5"}>
+          {/* Two logos, one per theme: the admin artwork's lettering is white and
+              would vanish on the light sidebar. `dark:` is the shell-scoped
+              variant from globals.css. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="h-8 w-auto rounded-lg" />
+          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-7 w-auto dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="hidden h-7 w-auto dark:block" />
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          className="rounded-full p-1.5 text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
           <XIcon className="h-5 w-5" />
         </button>
       </div>
 
-      <nav className="mt-6 flex-1 space-y-6 overflow-y-auto px-4">
-        <div className="space-y-1">
-          <NavLink item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
+      <nav className="mt-4 flex-1 space-y-5 overflow-y-auto px-2">
+        <div className="space-y-0.5">
+          <NavLink rail={rail} item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
         </div>
 
         {navSections.map((section) => (
-          <div key={section.label} className="space-y-1">
-            <p className="px-3 text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
+          <div key={section.label} className="space-y-0.5">
+            {rail ? (
+              <div aria-hidden="true" className="mx-2 my-2 h-px bg-nav-border" />
+            ) : (
+              <p className="flex h-8 items-center px-2 text-xs font-medium text-nav-muted">{section.label}</p>
+            )}
             {section.items.map((item) =>
               section.label === "PRODUCTS" ? (
                 <NavLink
+                  rail={rail}
                   key={item.href}
                   item={item}
                   active={isNavItemActive(pathname, item.href)}
@@ -163,7 +182,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           handleDeleteProduct(item.href.slice(1), item.label);
                         }}
                         aria-label={`Remove ${item.label}`}
-                        className="absolute right-[5px] top-1/2 -translate-y-1/2 shrink-0 rounded-lg p-2 text-sidebar-muted opacity-0 transition-opacity hover:bg-sidebar-hover hover:text-white focus-visible:opacity-100 group-hover:opacity-100"
+                        className="absolute right-[5px] top-1/2 -translate-y-1/2 shrink-0 rounded-full p-1.5 text-nav-muted opacity-0 transition-opacity hover:bg-nav hover:text-nav-foreground focus-visible:opacity-100 group-hover:opacity-100"
                       >
                         <XIcon className="h-3.5 w-3.5" />
                       </button>
@@ -171,44 +190,40 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }
                 />
               ) : (
-                <NavLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
+                <NavLink rail={rail} key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onClick={onClose} />
               ),
             )}
 
-            {section.label === "PRODUCTS" && canManage && (
+            {section.label === "PRODUCTS" && canManage && !rail && (
               <>
-                {productsError && <p className="px-3 text-xs text-[#ff9b9b]">{productsError}</p>}
+                {productsError && <p className="px-2 text-xs text-destructive">{productsError}</p>}
 
                 {!addingProduct && (
                   <button
                     type="button"
                     onClick={() => setAddingProduct(true)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:border-white/30 hover:bg-sidebar-hover hover:text-white"
+                    className="flex h-10 w-full items-center gap-2.5 rounded-full border border-dashed border-nav-border px-3 text-sm text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground"
                   >
-                    <PlusIcon className="h-[18px] w-[18px] shrink-0" />
+                    <PlusIcon className="size-4 shrink-0" />
                     Add product
                   </button>
                 )}
 
                 {addingProduct && (
-                  <form onSubmit={handleAddProduct} className="rounded-xl border border-white/15 bg-card/5 p-2.5">
-                    {/* The primitive, inverted for the dark sidebar: its
-                        `bg-muted-surface` fill is a light grey and would be a
-                        white block here. Everything else — height, radius,
-                        focus ring — comes from Input. */}
-                    <Input
+                  <form onSubmit={handleAddProduct} className="rounded-lg border border-nav-border bg-background p-2">
+                                        <Input
                       autoFocus
                       value={newProductLabel}
                       onChange={(e) => setNewProductLabel(e.target.value)}
                       placeholder="Product name"
                       required
-                      className="h-9 border-white/15 bg-transparent text-sm text-white placeholder:text-sidebar-muted"
+                      className="h-9 text-sm"
                     />
                     <div className="mt-2 flex gap-2">
                       <button
                         type="submit"
                         disabled={addProductBusy}
-                        className="flex-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex-1 rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {addProductBusy ? "Adding…" : "Add"}
                       </button>
@@ -219,7 +234,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           setNewProductLabel("");
                           setProductsError(null);
                         }}
-                        className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-sidebar-muted transition-colors hover:text-white"
+                        className="rounded-control border border-surface-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
                         Cancel
                       </button>
@@ -232,7 +247,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="space-y-3 border-t border-white/10 px-4 pt-4">
+      <div className="space-y-0.5 border-t border-nav-border px-2 pt-2">
         {/* Opens in a new tab rather than navigating away: this is the same
             admin session previewing the Member landing page (ADR-033), not
             leaving the admin app. /home admits admin/super_admin as a
@@ -252,23 +267,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             e.preventDefault();
             openInNewTabWithLoadingDim("/home");
           }}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+          title={rail ? "View site" : undefined}
+          className={`flex h-10 items-center gap-2.5 rounded-full text-sm text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground ${rail ? "mx-auto w-10 justify-center px-0" : "px-3"}`}
         >
-          <MonitorIcon className="h-[18px] w-[18px] shrink-0" />
-          View site
+          <MonitorIcon className="size-4 shrink-0" />
+          <span className={rail ? "sr-only" : undefined}>View site</span>
         </Link>
-        <NavLink item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
+        <NavLink rail={rail} item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
 
-        <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
+        <div className={`mt-1.5 flex items-center gap-2 rounded-full py-1.5 ${rail ? "justify-center px-0" : "px-2"}`}>
           <UserAvatar
             avatarUrl={user?.avatarUrl ?? null}
             initials={user?.initials ?? "?"}
             name={user?.name ?? "Guest"}
             className={`h-8 w-8 ${userAvatar}`}
           />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{user?.name ?? "Guest"}</p>
-            <p className="truncate text-xs text-sidebar-muted">{user?.role ?? ""}</p>
+          <div className={rail ? "sr-only" : "min-w-0"}>
+            <p className="truncate text-sm font-medium text-nav-foreground">{user?.name ?? "Guest"}</p>
+            <p className="truncate text-xs text-nav-muted">{user?.role ?? ""}</p>
           </div>
         </div>
       </div>
@@ -282,8 +298,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           viewport while scrolling like `fixed` would, but unlike `fixed` it
           fully renders in full-page screenshot/print tools instead of being
           clipped to one viewport height when the page is taller than 100vh. */}
-      <aside className="hidden lg:block lg:w-64 lg:shrink-0">
-        <div className="sticky top-0 h-screen w-64">{content}</div>
+      <aside
+        id="admin-sidebar"
+        data-collapsed={collapsed}
+        className={`hidden transition-[width] duration-200 ease-out lg:block lg:shrink-0 ${collapsed ? "lg:w-14" : "lg:w-64"}`}
+      >
+        <div className={`sticky top-0 h-screen overflow-hidden transition-[width] duration-200 ease-out ${collapsed ? "w-14" : "w-64"}`}>
+          {renderContent(collapsed)}
+        </div>
       </aside>
 
       {/* Mobile/tablet: off-canvas drawer */}
@@ -297,7 +319,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {content}
+        {renderContent(false)}
       </aside>
     </>
   );

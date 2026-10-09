@@ -128,3 +128,36 @@ describe("Topbar Activity panel", () => {
     expect(screen.getByText("DL")).toBeInTheDocument();
   });
 });
+
+describe("Topbar sidebar toggle", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("folds the sidebar to its icon rail and back, and says which way it will go", async () => {
+    const user = userEvent.setup();
+    renderTopbar();
+
+    const toggle = screen.getByRole("button", { name: "Collapse sidebar" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAttribute("aria-controls", "admin-sidebar");
+
+    await user.click(toggle);
+    expect(screen.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(screen.getByRole("button", { name: "Expand sidebar" }));
+    expect(screen.getByRole("button", { name: "Collapse sidebar" })).toBeInTheDocument();
+  });
+
+  it("remembers the choice for the next visit", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderTopbar();
+
+    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+    expect(window.localStorage.getItem("coc-docs-sidebar-collapsed")).toBe("1");
+    unmount();
+
+    renderTopbar();
+    expect(await screen.findByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+  });
+});

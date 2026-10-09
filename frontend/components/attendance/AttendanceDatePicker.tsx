@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Calendar } from "lucide-react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import {
   addMonths,
   buildMonthGrid,
@@ -241,12 +243,9 @@ export function AttendanceDatePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-[10px] border border-border bg-white px-3.5 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow"
+        className="flex h-9 items-center gap-2 rounded-control border border-surface-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4 text-muted" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-          <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
-          <path d="M8 3v4M16 3v4M3.5 9.5h17" strokeLinecap="round" />
-        </svg>
+        <Calendar className="size-4 text-muted-foreground" aria-hidden="true" />
         {formatDisplayDate(date)}
       </button>
 
@@ -254,10 +253,10 @@ export function AttendanceDatePicker({
         <div
           role="dialog"
           aria-label="Pick dates"
-          className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-border bg-white p-3 shadow-lg"
+          className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-surface-border bg-popover p-3 text-popover-foreground shadow-lg"
         >
           <div className="flex items-center justify-between px-1 pb-2 text-xs">
-            <span className="font-semibold text-muted">
+            <span className="font-medium text-muted-foreground">
               {selectedDates.size} date{selectedDates.size === 1 ? "" : "s"} selected
             </span>
             {selectedDates.size > 1 && (
@@ -276,23 +275,23 @@ export function AttendanceDatePicker({
               type="button"
               aria-label="Previous month"
               onClick={() => setViewMonth((m) => addMonths(m, -1))}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
+              className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <ChevronLeftIcon className="h-4 w-4" />
+              <ChevronLeftIcon className="size-4" />
             </button>
-            <p className="text-sm font-semibold text-dash-ink">{monthLabel(viewMonth)}</p>
+            <p className="text-sm font-semibold text-foreground">{monthLabel(viewMonth)}</p>
             <button
               type="button"
               aria-label="Next month"
               disabled={nextMonthDisabled}
               onClick={() => setViewMonth((m) => addMonths(m, 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              <ChevronRightIcon className="h-4 w-4" />
+              <ChevronRightIcon className="size-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-y-1 px-1 text-center text-xs font-semibold text-muted">
+          <div className="grid grid-cols-7 gap-y-1 px-1 text-center text-xs font-medium text-muted-foreground">
             {WEEKDAYS.map((w) => (
               <span key={w}>{w}</span>
             ))}
@@ -328,12 +327,12 @@ export function AttendanceDatePicker({
                         aria-pressed={selected}
                         className={`flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors ${
                           selected
-                            ? "bg-primary font-semibold text-white"
+                            ? "bg-primary font-semibold text-primary-foreground"
                             : future
-                              ? "cursor-not-allowed text-muted/40"
+                              ? "cursor-not-allowed text-muted-foreground/40"
                               : isToday
-                                ? "text-dash-ink ring-2 ring-inset ring-ring"
-                                : "text-dash-ink hover:bg-page"
+                                ? "text-foreground ring-2 ring-inset ring-ring"
+                                : "text-foreground hover:bg-accent"
                         }`}
                       >
                         {day}
@@ -345,13 +344,9 @@ export function AttendanceDatePicker({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={close}
-            className="mt-3 w-full rounded-lg bg-primary py-1.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-          >
+          <Button type="button" size="sm" onClick={close} className="mt-3 w-full">
             Done
-          </button>
+          </Button>
         </div>
       )}
     </div>

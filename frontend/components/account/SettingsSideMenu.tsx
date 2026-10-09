@@ -136,26 +136,26 @@ export function SettingsSideMenu({
                 tabIndex={focusedId === id ? 0 : -1}
                 onClick={() => onActivate(id)}
                 onKeyDown={(e) => handleTabKeyDown(e, index, desktopRefs)}
-                className={`settings-nav-item flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                className={`settings-nav-item flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium transition-colors ${
                   active === id
                     ? "settings-nav-item-active bg-secondary text-foreground"
-                    : "text-dash-ink hover:bg-page"
+                    : "text-foreground hover:bg-accent"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="size-4 shrink-0" />
                 {label}
               </button>
             ))}
           </div>
-          <div className="my-2 border-t border-border" />
+          <div className="my-2 border-t border-surface-border" />
           {canOpenDashboard && (
             <Link
               href="/overview"
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-dash-ink transition-colors hover:bg-page"
+              className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              <ReturnIcon className="h-4 w-4 shrink-0" />
+              <ReturnIcon className="size-4 shrink-0" />
               <span className="flex-1">Open Dashboard</span>
-              <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
+              <ExternalLinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
             </Link>
           )}
           {/* A nav row that happens to act rather than navigate. Its styling
@@ -167,9 +167,9 @@ export function SettingsSideMenu({
             type="button"
             onClick={() => void signOut()}
             disabled={isSigningOut}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <LogOutIcon className="h-4 w-4 shrink-0" />
+            <LogOutIcon className="size-4 shrink-0" />
             {isSigningOut ? "Logging out…" : "Log out"}
           </button>
         </div>
@@ -197,13 +197,13 @@ export function SettingsSideMenu({
             tabIndex={focusedId === id ? 0 : -1}
             onClick={() => onActivate(id)}
             onKeyDown={(e) => handleTabKeyDown(e, index, mobileRefs)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors ${
               active === id
                 ? "settings-nav-item-active border-primary bg-secondary text-foreground"
-                : "border-border text-dash-ink"
+                : "border-surface-border text-foreground"
             }`}
           >
-            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <Icon className="size-3.5 shrink-0" />
             {label}
           </button>
         ))}

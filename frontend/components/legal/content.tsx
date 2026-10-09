@@ -212,15 +212,15 @@ export const LEGAL_DOCUMENTS: Record<LegalDocKey, LegalDoc> = {
           <Bullets
             items={[
               <>
-                <strong className="font-semibold text-[#1c1b22]">Account details</strong> — your full name, email, and
+                <strong className="text-foreground font-semibold">Account details</strong> — your full name, email, and
                 password (stored hashed, never in plain text).
               </>,
               <>
-                <strong className="font-semibold text-[#1c1b22]">Activity</strong> — sign-ins, sessions, and the
+                <strong className="text-foreground font-semibold">Activity</strong> — sign-ins, sessions, and the
                 documents you view or edit.
               </>,
               <>
-                <strong className="font-semibold text-[#1c1b22]">HRMS attendance</strong> — only if an admin links your
+                <strong className="text-foreground font-semibold">HRMS attendance</strong> — only if an admin links your
                 account.
               </>,
             ]}

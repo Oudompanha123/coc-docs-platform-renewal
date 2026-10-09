@@ -58,35 +58,35 @@ export function NewSignInModal({
   return (
     <Modal onClose={onClose}>
       <div className="flex flex-col items-center text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white">
-          <ShieldIcon className="h-6 w-6" />
+        <div className="flex size-10 items-center justify-center rounded-lg bg-secondary text-foreground">
+          <ShieldIcon className="size-5" />
         </div>
-        <h2 className="mt-3 text-base font-bold text-dash-ink">New sign-in to your account</h2>
-        <p className="mt-1 text-sm text-muted">
+        <h2 className="mt-3 text-base font-semibold text-foreground">New sign-in to your account</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           This is the first time your account has been used on this device.
         </p>
       </div>
 
-      <dl className="mt-5 divide-y divide-border rounded-xl border border-border">
-        <div className="flex items-start justify-between gap-4 px-4 py-3">
-          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Device</dt>
-          <dd className="text-right text-sm font-semibold text-dash-ink">{session.device}</dd>
+      <dl className="mt-4 divide-y divide-surface-border rounded-lg border border-surface-border">
+        <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+          <dt className="text-xs text-muted-foreground">Device</dt>
+          <dd className="text-right text-sm font-medium text-foreground">{session.device}</dd>
         </div>
-        <div className="flex items-start justify-between gap-4 px-4 py-3">
-          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">IP address</dt>
-          <dd className="text-right text-sm text-dash-ink">
+        <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+          <dt className="text-xs text-muted-foreground">IP address</dt>
+          <dd className="text-right text-sm text-foreground">
             {session.ipAddress ?? "Unknown address"}
           </dd>
         </div>
-        <div className="flex items-start justify-between gap-4 px-4 py-3">
-          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Signed in</dt>
-          <dd className="text-right text-sm text-dash-ink">{signedInAt}</dd>
+        <div className="flex items-start justify-between gap-4 px-3 py-2.5">
+          <dt className="text-xs text-muted-foreground">Signed in</dt>
+          <dd className="text-right text-sm text-foreground">{signedInAt}</dd>
         </div>
       </dl>
 
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
 
-      <p className="mt-4 text-xs text-muted">
+      <p className="mt-4 text-xs text-muted-foreground">
         If this was you, there is nothing to do. If it was not, end the session and change your
         password.
       </p>

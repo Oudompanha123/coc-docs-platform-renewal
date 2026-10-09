@@ -2,12 +2,8 @@
 
 import { useRef, useState } from "react";
 import { Spinner } from "@/components/layout/Spinner";
+import { Button } from "@/components/ui/button";
 import type { AxRenewalRunLocallyState } from "@/lib/ax-renewal/api";
-
-const PRIMARY =
-  "inline-flex items-center gap-2 rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";
-const SECONDARY =
-  "inline-flex items-center gap-2 rounded-[5px] border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * Start / Stop for Run Locally.
@@ -52,10 +48,10 @@ export function RunLocallyControls({
 
   if (pending === "stop") {
     return (
-      <button type="button" disabled aria-busy="true" className={SECONDARY}>
+      <Button type="button" variant="outline" disabled aria-busy="true">
         <Spinner className="h-3.5 w-3.5 border-2" />
         Stopping…
-      </button>
+      </Button>
     );
   }
 
@@ -64,29 +60,29 @@ export function RunLocallyControls({
       <div className="flex items-center gap-2">
         {/* Nothing to cancel until the start request has made a process. */}
         {pending !== "start" && (
-          <button type="button" onClick={() => void run("stop", onStop)} className={SECONDARY}>
+          <Button type="button" variant="outline" onClick={() => void run("stop", onStop)}>
             Cancel
-          </button>
+          </Button>
         )}
-        <button type="button" disabled aria-busy="true" className={PRIMARY}>
+        <Button type="button" disabled aria-busy="true">
           <Spinner className="h-3.5 w-3.5 border-2" />
           Starting…
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (state === "running") {
     return (
-      <button type="button" onClick={() => void run("stop", onStop)} className={PRIMARY}>
+      <Button type="button" onClick={() => void run("stop", onStop)}>
         Stop
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button type="button" onClick={() => void run("start", onStart)} className={PRIMARY}>
+    <Button type="button" onClick={() => void run("start", onStart)}>
       Start
-    </button>
+    </Button>
   );
 }

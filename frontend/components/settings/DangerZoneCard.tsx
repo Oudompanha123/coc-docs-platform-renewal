@@ -85,20 +85,20 @@ export function DangerZoneCard() {
   }
 
   return (
-    <div className="rounded-xl border border-danger/40 bg-danger/5 p-6 shadow-sm">
+    <div className="rounded-xl border border-danger/40 bg-danger/5 p-5">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-danger to-[#e0873c] text-white">
-          <WarningIcon className="h-5 w-5" />
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-danger/10 text-danger">
+          <WarningIcon className="size-4" />
         </div>
-        <p className="text-lg font-bold text-danger">Danger zone</p>
+        <p className="text-base font-semibold text-danger">Danger zone</p>
       </div>
       <div className="mt-4 divide-y divide-danger/20">
-        <div className="flex items-start justify-between gap-4 py-3.5 first:pt-0">
+        <div className="flex items-start justify-between gap-4 py-3 first:pt-0">
           <div className="flex items-start gap-3">
-            <DownloadIcon className="h-[25px] w-[25px] shrink-0 text-danger" />
+            <DownloadIcon className="size-5 shrink-0 text-danger" />
             <div>
-              <p className="text-sm font-semibold text-dash-ink">Export your data</p>
-              <p className="text-xs text-muted">
+              <p className="text-sm font-medium text-foreground">Export your data</p>
+              <p className="text-xs text-muted-foreground">
                 {error ?? "Download a copy of your profile and activity."}
               </p>
             </div>
@@ -112,19 +112,19 @@ export function DangerZoneCard() {
             size="default"
             onClick={() => void handleExport()}
             disabled={exporting || !user}
-            className="shrink-0 gap-1.5 rounded-full bg-card text-dash-ink shadow-sm transition-all hover:bg-card hover:border-primary/20 hover:shadow hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="shrink-0 gap-1.5 bg-card text-foreground"
           >
-            <DownloadIcon className="h-3.5 w-3.5" />
+            <DownloadIcon className="size-3.5" />
             {exporting ? "Exporting…" : "Export data"}
           </Button>
         </div>
-        <div className="py-3.5 last:pb-0">
+        <div className="py-3 last:pb-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <TrashIcon className="h-[25px] w-[25px] shrink-0 text-danger" />
+              <TrashIcon className="size-5 shrink-0 text-danger" />
               <div>
-                <p className="text-sm font-semibold text-dash-ink">Deactivate your account</p>
-                <p className="text-xs text-muted">
+                <p className="text-sm font-medium text-foreground">Deactivate your account</p>
+                <p className="text-xs text-muted-foreground">
                   {deactivateError ?? "You'll lose access; your content and audit history are preserved."}
                 </p>
               </div>
@@ -142,7 +142,7 @@ export function DangerZoneCard() {
                 className="shrink-0 gap-1 rounded-md py-2 text-sm hover:text-danger focus-visible:ring-danger/40 focus-visible:ring-offset-0"
               >
                 Deactivate account
-                <ChevronRightIcon className="h-4 w-4" />
+                <ChevronRightIcon className="size-4" />
               </Button>
             )}
           </div>
@@ -161,7 +161,7 @@ export function DangerZoneCard() {
           */}
           {showDeactivateConfirm && (
             <div className="mt-3 rounded-lg border border-danger/30 bg-card p-4">
-              <p className="text-sm font-semibold text-dash-ink">Deactivate your account?</p>
+              <p className="text-sm font-medium text-foreground">Deactivate your account?</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS.map((days) => (
                   // A chip in a single-choice group, driven by aria-pressed and
@@ -176,17 +176,17 @@ export function DangerZoneCard() {
                     onClick={() => setGraceDays(days)}
                     disabled={deactivating}
                     aria-pressed={graceDays === days}
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                       graceDays === days
                         ? "border-danger bg-danger/10 text-danger"
-                        : "border-border text-dash-ink hover:border-danger/40"
+                        : "border-surface-border text-foreground hover:border-danger/40"
                     }`}
                   >
                     {days} days
                   </button>
                 ))}
               </div>
-              <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-muted">
+              <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
                 <li>You&apos;ll be signed out on every device immediately.</li>
                 <li>
                   Your account stays active for {graceDays} days — signing back in before then cancels this and
@@ -205,7 +205,7 @@ export function DangerZoneCard() {
                   size="sm"
                   onClick={handleCancelDeactivate}
                   disabled={deactivating}
-                  className="text-dash-ink"
+                  className="text-foreground"
                 >
                   Cancel
                 </Button>
@@ -216,7 +216,6 @@ export function DangerZoneCard() {
                   onClick={() => void handleConfirmDeactivate()}
                   disabled={deactivating}
                   aria-busy={deactivating}
-                  className="rounded-full"
                 >
                   {deactivating ? "Deactivating…" : `Yes, deactivate in ${graceDays} days`}
                 </Button>

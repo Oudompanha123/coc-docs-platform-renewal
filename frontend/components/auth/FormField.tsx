@@ -87,7 +87,7 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
         placeholder="000000"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className="h-11 text-center text-lg font-semibold tracking-[0.4em] md:text-lg"
+        className="h-10 text-center text-lg font-semibold tracking-[0.4em] md:text-lg"
       />
       {error && (
         <p id={errorId} role="alert" className="text-destructive text-xs">
@@ -122,7 +122,7 @@ export function PasswordField({ label, value, onChange, placeholder, error, auto
           aria-describedby={error ? errorId : undefined}
           className="pr-10"
         />
-        <Button
+        <Button shape="pill"
           type="button"
           variant="ghost"
           size="icon"

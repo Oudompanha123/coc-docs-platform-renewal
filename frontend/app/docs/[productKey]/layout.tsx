@@ -12,6 +12,7 @@ import { ProductDocsProvider } from "@/components/docs/ProductDocsContext";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
 import { canViewProductDocs } from "@/lib/docs/product-access";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { Button } from "@/components/ui/button";
 
 /**
  * Owns everything that should stay mounted across a tab click — header,
@@ -58,8 +59,8 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div data-shell="home" className="min-h-screen bg-white">
-      {/* Header stays in normal flow here (`static`, overriding its own
+    <div data-shell="home" className="min-h-screen bg-background">
+      {/* Header stays in normal flow here (`relative`, overriding its own
           `sticky` class) rather than staying pinned like it does on /home —
           once the tab bar below reaches the top of the viewport and pins
           itself there, a still-pinned header would stack on top of it. An
@@ -68,7 +69,12 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
           clipped to that box instead of the viewport), which is the reason
           the decorative blur circle below moved into its own clipping layer
           instead of clipping the whole `<main>` the way it used to. */}
-      <div className="[&>header]:static">
+      {/* `relative`, not `static`: still out of the sticky flow, but a positioned
+          element keeps its own z-index. As `static` its z-40 was ignored, and
+          because the header is blurred (a stacking context) its Products
+          dropdown could not rise above it — the page below painted over the
+          open menu. */}
+      <div className="[&>header]:relative">
         <MemberHeader
           products={products ?? []}
           onOpenProfile={() => setShowProfile(true)}
@@ -80,30 +86,27 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
           <div className="absolute -top-32 left-1/2 h-80 w-[640px] -translate-x-1/2 rounded-full bg-secondary blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-5xl px-6 py-10">
+        <div className="relative mx-auto max-w-5xl px-6 py-8">
           {product && activeItem && deciding ? null : product && activeItem && !permitted ? (
-            <div role="alert" className="mx-auto mt-10 max-w-md rounded-2xl border border-border bg-white p-8 text-center shadow-sm">
-              <p className="text-lg font-bold text-ink">You don&rsquo;t have permission to access this page.</p>
-              <p className="mt-2 text-sm text-muted">{product.label} is available to developers, reviewers, leads and admins.</p>
-              <Link
-                href="/home"
-                className="mt-5 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-              >
-                Back to Products
-              </Link>
+            <div role="alert" className="mx-auto mt-8 max-w-md rounded-xl border border-surface-border bg-card p-6 text-center">
+              <p className="text-base font-semibold text-foreground">You don&rsquo;t have permission to access this page.</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">{product.label} is available to developers, reviewers, leads and admins.</p>
+              <Button asChild className="mt-4">
+                <Link href="/home">Back to Products</Link>
+              </Button>
             </div>
           ) : product && activeItem ? (
             <>
-              <p className="text-sm text-muted">
-                <Link href="/home" className="hover:text-ink">
+              <p className="text-sm text-muted-foreground">
+                <Link href="/home" className="hover:text-foreground">
                   Products
                 </Link>{" "}
-                / <span className="font-semibold text-ink">{product.label}</span>
+                / <span className="font-semibold text-foreground">{product.label}</span>
               </p>
-              <h1 className="mt-1 text-3xl font-extrabold text-ink">{product.label} Documentation</h1>
-              <p className="mt-1 text-sm text-muted">Browse guides and references for {product.label}</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{product.label} Documentation</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Browse guides and references for {product.label}</p>
 
-              <div className="mt-6">
+              <div className="mt-5">
                 <ProductTabBar
                   productKey={product.key}
                   items={product.items}

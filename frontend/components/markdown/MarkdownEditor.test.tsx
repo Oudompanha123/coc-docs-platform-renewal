@@ -139,8 +139,10 @@ describe("MarkdownEditor — text color (ADR-102)", () => {
     await user.click(screen.getByRole("button", { name: "Text color" }));
     await user.click(screen.getByRole("menuitem", { name: "Green" }));
     await user.click(screen.getByRole("button", { name: "Text color" }));
-    await user.click(screen.getByRole("menuitem", { name: "Blue" }));
-    expect(textarea).toHaveValue("Office [closed]{color=blue} today");
+    // Blue is not offered: in body text it reads as a link that goes nowhere.
+    expect(screen.queryByRole("menuitem", { name: "Blue" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Purple" }));
+    expect(textarea).toHaveValue("Office [closed]{color=purple} today");
 
     await user.click(screen.getByRole("button", { name: "Text color" }));
     await user.click(screen.getByRole("menuitem", { name: "Default color" }));

@@ -31,7 +31,7 @@ export default function Jex30SubPage() {
       <AppShell
         pageTitle={`Jex3.0 — ${item.label}`}
         pageSubtitle="jexmcp3.0"
-        titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
+        titleIcon={<LayersIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
       >
         <ContentRenderer content={content} variant="admin" />
       </AppShell>
@@ -42,14 +42,14 @@ export default function Jex30SubPage() {
     <AppShell
       pageTitle={`Jex3.0 — ${item.label}`}
       pageSubtitle="Not written yet"
-      titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
+      titleIcon={<LayersIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
     >
-      <div className="flex flex-col items-center justify-center rounded-[10px] border border-border bg-page p-16 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-muted shadow-sm">
-          <TagIcon className="h-6 w-6" />
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-border bg-muted-surface/50 px-6 py-12 text-center">
+        <div className="flex size-10 items-center justify-center rounded-lg border border-surface-border bg-card text-muted-foreground">
+          <TagIcon className="size-5" />
         </div>
-        <h2 className="mt-4 text-lg font-bold text-dash-ink">Jex3.0 — {item.label} isn&apos;t written yet</h2>
-        <p className="mt-1 max-w-sm text-sm text-muted">
+        <h2 className="mt-3 text-base font-semibold text-foreground">Jex3.0 — {item.label} isn&apos;t written yet</h2>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
           Real content gets cloned from the jexmcp3.0 source in a future pass, one sub-item at a time.
         </p>
       </div>

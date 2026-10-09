@@ -1,12 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
 import { ScanLogDrawer } from "@/components/claude-usage/ScanLogDrawer";
 import { ScanLogTable } from "@/components/claude-usage/ScanLogTable";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
+import { Button } from "@/components/ui/button";
+import { inputBaseClass } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
+import { SimpleSelect } from "@/components/ui/select";
+import { RefreshCw } from "lucide-react";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { fetchScanLogs, type ScanLogList, type ScanLogSummary } from "@/lib/admin/claudeUsage";
 import {
@@ -26,7 +31,7 @@ import { useVisiblePolling } from "@/lib/claudeUsage/useVisiblePolling";
 /** How often an open, visible Scan Logs page re-reads the range. */
 export const SCAN_LOG_POLL_INTERVAL_MS = 15_000;
 
-const TITLE_ICON = <DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />;
+const TITLE_ICON = <DocumentIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />;
 
 const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
   { value: "today", label: "Today" },
@@ -35,9 +40,8 @@ const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
   { value: "custom", label: "Custom range" },
 ];
 
-/** Same field look as users-roles/FilterBar. */
-const FIELD =
-  "rounded-xl border border-border bg-white py-2.5 text-sm text-ink focus:outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/50";
+/** The shared pill field (ADR-104), sized to its content rather than full width. */
+const FIELD = `${inputBaseClass} h-9 w-auto`;
 
 /**
  * `/claude-usage/logs` — Scan Logs (ADR-099): every `claude-team-usage scan`
@@ -132,6 +136,8 @@ export function ScanLogsView() {
   const visible = useMemo(() => filtered.slice((current - 1) * pageSize, current * pageSize), [filtered, current, pageSize]);
   const filtersActive = person !== "all" || status !== "all" || search.trim() !== "";
 
+  const hasFilters = person !== "all" || status !== "all" || search !== "";
+
   function clearFilters() {
     setPerson("all");
     setStatus("all");
@@ -148,8 +154,21 @@ export function ScanLogsView() {
     >
       <ClaudeUsageTabs />
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-        <div className="flex flex-wrap items-center gap-2">
+      {/* One toolbar card (ADR-104 r2.10): search first — the control used
+          most — then the filters, then Clear and Refresh on the right. Every
+          control is the same 36px height, and Clear appears as soon as any
+          filter is set rather than only once a search comes back empty. */}
+      <div className="rounded-xl border border-surface-border bg-card p-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <SearchInput
+            aria-label="Search scan logs"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search user, scan ID, or error..."
+            containerClassName="lg:max-w-xs"
+            className="h-9"
+          />
+          <div className="flex flex-wrap items-center gap-2">
           <SelectField label="Date range" value={preset} onChange={(v) => setPreset(v as RangePreset)}>
             {RANGE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -165,9 +184,9 @@ export function ScanLogsView() {
                 value={custom.from}
                 max={custom.to}
                 onChange={(e) => e.target.value && setCustom({ ...custom, from: e.target.value })}
-                className={`${FIELD} px-3`}
+                className={FIELD}
               />
-              <span className="text-sm text-muted">to</span>
+              <span className="text-sm text-muted-foreground">to</span>
               <input
                 type="date"
                 aria-label="To"
@@ -175,74 +194,64 @@ export function ScanLogsView() {
                 min={custom.from}
                 max={isoDate(new Date())}
                 onChange={(e) => e.target.value && setCustom({ ...custom, to: e.target.value })}
-                className={`${FIELD} px-3`}
+                className={FIELD}
               />
             </>
           )}
+      <SelectField label="User" value={person} onChange={setPerson}>
+        <option value="all">All users</option>
+        {people.map((p) => (
+          <option key={p.key} value={p.key}>
+            {p.name}
+          </option>
+        ))}
+      </SelectField>
+      <SelectField label="Status" value={status} onChange={(v) => setStatus(v as StatusFilter)}>
+        <option value="all">All statuses</option>
+        <option value="success">Success</option>
+        <option value="partial">Partial</option>
+        <option value="failed">Failed</option>
+        <option value="no-usage">No Usage</option>
+      </SelectField>
+          </div>
+          <div className="flex items-center gap-2 lg:ml-auto">
+            {hasFilters && (
+              <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+                <XIcon className="size-4" />
+                Clear
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void load()}
+              disabled={loading || rangeInvalid}
+            >
+              <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
+              {loading && data ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
         </div>
-        <SelectField label="User" value={person} onChange={setPerson}>
-          <option value="all">All users</option>
-          {people.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.name}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField label="Status" value={status} onChange={(v) => setStatus(v as StatusFilter)}>
-          <option value="all">All statuses</option>
-          <option value="success">Success</option>
-          <option value="partial">Partial</option>
-          <option value="failed">Failed</option>
-          <option value="no-usage">No Usage</option>
-        </SelectField>
-        <div className="relative w-full lg:w-[280px]">
-          <svg
-            viewBox="0 0 24 24"
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="search"
-            aria-label="Search scan logs"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search user, scan ID, or error..."
-            className={`${FIELD} w-full pl-10 pr-4 placeholder:text-muted`}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={loading || rangeInvalid}
-          className="self-start rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-dash-ink shadow-sm transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50 lg:ml-auto lg:self-auto"
-        >
-          {loading && data ? "Refreshing…" : "Refresh"}
-        </button>
       </div>
 
       {rangeInvalid && (
-        <p role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           The start date must be on or before the end date.
         </p>
       )}
 
       {loadError && (
-        <div role="alert" className="mt-4 flex flex-col gap-2 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger sm:flex-row sm:items-center sm:justify-between">
+        <div role="alert" className="mt-4 flex flex-col gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
           <span>Couldn&apos;t load scan logs: {loadError}</span>
-          <button type="button" onClick={() => void load()} className="self-start font-semibold underline sm:self-auto">
+          <Button type="button" variant="link" size="inline" onClick={() => void load()} className="self-start text-destructive underline sm:self-auto">
             Try again
-          </button>
+          </Button>
         </div>
       )}
 
       {loading && !data ? (
-        <p role="status" className="mt-4 rounded-[10px] border border-border bg-white px-4 py-8 text-center text-sm text-muted">
+        <p role="status" className="mt-4 rounded-xl border border-surface-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
           Loading scan logs…
         </p>
       ) : data ? (
@@ -252,24 +261,23 @@ export function ScanLogsView() {
               icon={BarChartIcon}
               label="Total Scans"
               value={summary.total.toLocaleString("en-US")}
-              tone="purple"
               note={summary.last ? `Last: ${formatScanTime(summary.last.startedAt)} · ${personName(summary.last)}` : rangeNote(preset, range)}
             />
-            <UsageStatCard icon={CheckCircleIcon} label="Success" value={summary.success.toLocaleString("en-US")} tone="green" note="Usage uploaded" />
-            <UsageStatCard icon={ClockIcon} label="No Usage" value={summary["no-usage"].toLocaleString("en-US")} tone="blue" note="Nothing new to upload" />
-            <UsageStatCard icon={WarningIcon} label="Partial" value={summary.partial.toLocaleString("en-US")} tone="orange" note="Retried by the next scan" />
-            <UsageStatCard icon={XIcon} label="Failed" value={summary.failed.toLocaleString("en-US")} tone="red" note="Needs a fix on the PC" />
+            <UsageStatCard icon={CheckCircleIcon} label="Success" value={summary.success.toLocaleString("en-US")} note="Usage uploaded" />
+            <UsageStatCard icon={ClockIcon} label="No Usage" value={summary["no-usage"].toLocaleString("en-US")} note="Nothing new to upload" />
+            <UsageStatCard icon={WarningIcon} label="Partial" value={summary.partial.toLocaleString("en-US")} note="Retried by the next scan" />
+            <UsageStatCard icon={XIcon} label="Failed" value={summary.failed.toLocaleString("en-US")} note="Needs a fix on the PC" />
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
-            <div className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-baseline sm:justify-between">
-              <h2 className="text-sm font-bold text-dash-ink">Scan history</h2>
-              <p className="text-xs text-muted">
+          <div className="mt-4 overflow-hidden rounded-xl border border-surface-border bg-card">
+            <div className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Scan history</h2>
+              <p className="text-xs text-muted-foreground">
                 {filtered.length.toLocaleString("en-US")} of {logs.length.toLocaleString("en-US")} scan(s) · newest first
               </p>
             </div>
             {data.truncated && (
-              <p className="border-t border-border bg-[#fffbeb] px-5 py-2.5 text-xs text-[#b45309]">
+              <p className="border-t border-surface-border bg-[#fffbeb] px-4 py-2 text-xs text-[#b45309]">
                 Showing the newest {logs.length.toLocaleString("en-US")} scans only. Choose a shorter date range to see the rest.
               </p>
             )}
@@ -282,14 +290,14 @@ export function ScanLogsView() {
             ) : filtered.length === 0 ? (
               <EmptyState title="No scans match these filters">
                 {filtersActive && (
-                  <button type="button" onClick={clearFilters} className="mt-1 font-semibold text-foreground hover:underline">
+                  <Button type="button" variant="link" size="inline" onClick={clearFilters} className="mt-1">
                     Clear filters
-                  </button>
+                  </Button>
                 )}
               </EmptyState>
             ) : (
               <>
-                <div className="border-t border-border">
+                <div className="border-t border-surface-border">
                   <ScanLogTable logs={visible} onView={setSelected} />
                 </div>
                 <Pagination
@@ -321,33 +329,24 @@ function SelectField({
   onChange: (value: string) => void;
   children: ReactNode;
 }) {
-  return (
-    <div className="relative">
-      <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} className={`${FIELD} appearance-none pl-3 pr-9`}>
-        {children}
-      </select>
-      <svg
-        viewBox="0 0 24 24"
-        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        aria-hidden="true"
-      >
-        <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
+  // Callers still write `<option>`s; they are read into the shared Select's
+  // option list here, so the three filters above did not each need rewriting.
+  const options = Children.toArray(children).flatMap((child) =>
+    isValidElement<{ value: string; children: ReactNode }>(child)
+      ? [{ value: String(child.props.value), label: child.props.children }]
+      : [],
   );
+  return <SimpleSelect size="sm" aria-label={label} value={value} onValueChange={onChange} options={options} className="w-auto min-w-36" />;
 }
 
 function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center border-t border-border px-4 py-12 text-center">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-page text-muted">
-        <DocumentIcon className="h-5 w-5" />
+    <div className="flex flex-col items-center border-t border-surface-border px-4 py-10 text-center">
+      <span className="flex size-9 items-center justify-center rounded-lg bg-muted-surface text-muted-foreground">
+        <DocumentIcon className="size-4" />
       </span>
-      <p className="mt-3 text-sm font-bold text-dash-ink">{title}</p>
-      <p className="mt-1 max-w-md text-sm text-muted">{children}</p>
+      <p className="mt-3 text-sm font-semibold text-foreground">{title}</p>
+      <p className="mt-1 max-w-md text-sm text-muted-foreground">{children}</p>
     </div>
   );
 }

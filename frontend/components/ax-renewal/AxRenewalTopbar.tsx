@@ -53,13 +53,13 @@ export function AxRenewalTopbar({ onMenuClick }: AxRenewalTopbarProps) {
   }
 
   return (
-    <div className="sticky top-0 z-10 border-b border-border bg-white">
+    <div className="sticky top-0 z-10 border-b border-surface-border bg-card">
       <div className="flex items-center">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="shrink-0 rounded-[10px] p-3 text-dash-ink transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          className="shrink-0 rounded-lg p-2.5 text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>

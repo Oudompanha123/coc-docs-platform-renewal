@@ -115,32 +115,32 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
     >
       <div
         ref={dialogRef}
-        className="animate-entrance relative flex max-h-full w-full max-w-[520px] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
+        className="animate-entrance relative flex max-h-full w-full max-w-[520px] flex-col overflow-hidden rounded-[20px] bg-card shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-black/5 hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <XIcon className="h-4 w-4" />
         </button>
 
         {state.status === "loading" && (
           <div role="status" aria-label="Loading announcement" className="animate-pulse">
-            <div className="flex items-center gap-4 bg-page px-6 pb-5 pt-6">
-              <div className="h-12 w-12 rounded-xl bg-white" />
+            <div className="flex items-center gap-4 bg-muted-surface px-6 pb-5 pt-6">
+              <div className="h-12 w-12 rounded-xl bg-card" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-28 rounded bg-white" />
-                <div className="h-5 w-3/4 rounded bg-white" />
+                <div className="h-3 w-28 rounded bg-card" />
+                <div className="h-5 w-3/4 rounded bg-card" />
               </div>
             </div>
             <div className="space-y-2.5 px-6 py-6">
-              <div className="h-3 w-40 rounded bg-page" />
-              <div className="h-3.5 w-full rounded bg-page" />
-              <div className="h-3.5 w-11/12 rounded bg-page" />
-              <div className="h-3.5 w-2/3 rounded bg-page" />
+              <div className="h-3 w-40 rounded bg-muted-surface" />
+              <div className="h-3.5 w-full rounded bg-muted-surface" />
+              <div className="h-3.5 w-11/12 rounded bg-muted-surface" />
+              <div className="h-3.5 w-2/3 rounded bg-muted-surface" />
             </div>
             <h2 id={TITLE_ID} className="sr-only">
               Loading announcement
@@ -150,20 +150,20 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
 
         {state.status === "error" && (
           <div className="flex flex-col items-center px-6 pb-6 pt-10 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-page text-muted">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted-surface text-muted-foreground">
               <WarningIcon className="h-6 w-6" />
             </span>
-            <h2 id={TITLE_ID} className="mt-4 text-base font-bold text-dash-ink">
+            <h2 id={TITLE_ID} className="mt-4 text-base font-bold text-foreground">
               Announcement unavailable
             </h2>
-            <p role="alert" className="mt-1.5 max-w-xs text-sm text-muted">
+            <p role="alert" className="mt-1.5 max-w-xs text-sm text-muted-foreground">
               {state.message}
             </p>
             <button
               ref={primaryRef}
               type="button"
               onClick={onClose}
-              className="mt-6 rounded-full border border-border px-6 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+              className="mt-6 rounded-control border border-surface-border px-6 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
             >
               Close
             </button>
@@ -175,19 +175,19 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
             {/* The category's own tint, with its colour carried into the
                 eyebrow and icon via currentColor. */}
             <header className={`flex items-center gap-4 px-6 pb-5 pt-6 pr-14 ${meta.tile}`}>
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-card shadow-sm">
                 <Icon className="h-6 w-6" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wider">Announcement · {meta.label}</p>
-                <h2 id={TITLE_ID} className="mt-1 break-words text-xl font-bold leading-snug text-dash-ink">
+                <p className="text-[11px] font-medium">Announcement · {meta.label}</p>
+                <h2 id={TITLE_ID} className="mt-1 break-words text-xl font-semibold leading-snug text-foreground">
                   {announcement.title}
                 </h2>
               </div>
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <ClockIcon className="h-3.5 w-3.5" />
                   <time dateTime={announcement.publishedAt} title={formatDateTime(announcement.publishedAt)}>
@@ -204,16 +204,16 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
 
               <MarkdownContent
                 source={announcement.body}
-                className="mt-4 text-[15px] leading-7 text-dash-ink/70"
+                className="mt-4 text-[15px] leading-7 text-foreground/70"
               />
             </div>
 
-            <footer className="flex justify-end border-t border-border px-6 py-4">
+            <footer className="flex justify-end border-t border-surface-border px-6 py-4">
               <button
                 ref={primaryRef}
                 type="button"
                 onClick={onClose}
-                className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                className="rounded-control bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
                 Got it
               </button>

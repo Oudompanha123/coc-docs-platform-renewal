@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PanelLeft } from "lucide-react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
@@ -44,7 +45,7 @@ type MenuKey = "notifications" | "mail" | "user";
 
 /** Same panel container the Users & Roles ⋯ menu uses: rounded-xl border
  *  border-border bg-card shadow-lg, with hover:bg-page on each item. */
-const PANEL_CLASSES = "absolute right-0 z-20 mt-2 rounded-xl border border-border bg-card shadow-lg";
+const PANEL_CLASSES = "absolute right-0 z-20 mt-2 overflow-hidden rounded-lg border border-surface-border bg-popover text-popover-foreground shadow-md";
 
 function CountBadge({
   count,
@@ -66,11 +67,11 @@ function CountBadge({
       aria-label={`${label}, ${count} unread`}
       aria-haspopup="menu"
       aria-expanded={active}
-      className="relative rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="relative flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
       {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-background">
           {count}
         </span>
       )}
@@ -81,7 +82,7 @@ function CountBadge({
 type NotificationFilter = "unread" | "all";
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { header: { title, subtitle, titleIcon } } = useShell();
+  const { header: { title, subtitle, titleIcon }, sidebarCollapsed, toggleSidebar } = useShell();
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
@@ -208,20 +209,34 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <div className="contents">
-    <header className="flex items-center justify-between border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8">
-      <div className="flex items-start gap-3 min-w-0">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-surface-border bg-background px-4 sm:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="rounded-xl p-2 text-dash-ink transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          className="-ml-1 flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
-          <MenuIcon className="h-5 w-5" />
+          <MenuIcon className="size-4" />
         </button>
+        {/* Desktop: folds the sidebar to its icon rail and back — shadcn's
+            SidebarTrigger, with the same panel glyph (ADR-104 r2.9). Below lg
+            the sidebar is a drawer, opened by the menu button above. */}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!sidebarCollapsed}
+          aria-controls="admin-sidebar"
+          className="-ml-1 hidden size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+        >
+          <PanelLeft className="size-4" aria-hidden="true" />
+        </button>
+        <span aria-hidden="true" className="mr-1 hidden h-4 w-px bg-surface-border lg:block" />
         {titleIcon}
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold text-dash-ink sm:text-2xl">{title}</h1>
-          <p className="truncate text-sm text-muted">{subtitle}</p>
+          <h1 className="truncate text-lg leading-tight font-semibold text-foreground">{title}</h1>
+          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
 
@@ -231,9 +246,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
           aria-pressed={darkMode}
-          className="rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+          {darkMode ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
         </button>
 
         <div className="relative">
@@ -243,7 +258,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             active={openMenu === "notifications"}
             onClick={() => toggleMenu("notifications")}
           >
-            <BellIcon className="h-5 w-5" />
+            <BellIcon className="size-4" />
           </CountBadge>
 
           {openMenu === "notifications" && (
@@ -368,7 +383,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             active={openMenu === "mail"}
             onClick={() => toggleMenu("mail")}
           >
-            <AuditIcon className="h-5 w-5" />
+            <AuditIcon className="size-4" />
           </CountBadge>
 
           {openMenu === "mail" && (
@@ -484,7 +499,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             onClick={() => toggleMenu("user")}
             aria-haspopup="menu"
             aria-expanded={openMenu === "user"}
-            className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex min-w-0 items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <UserAvatar
               avatarUrl={user?.avatarUrl ?? null}
@@ -493,10 +508,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               className={`h-8 w-8 ${userAvatar}`}
             />
             <div className="hidden min-w-0 text-left sm:block">
-              <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
-              <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
+              <p className="truncate text-sm font-medium text-foreground">{user?.name ?? "Guest"}</p>
+              <p className="truncate text-xs text-muted-foreground">{user?.role ?? ""}</p>
             </div>
-            <ChevronDownIcon className="hidden h-4 w-4 text-muted sm:block" />
+            <ChevronDownIcon className="hidden size-4 text-muted-foreground sm:block" />
           </button>
 
           {openMenu === "user" && (
@@ -509,8 +524,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   className={`h-9 w-9 ${userAvatar}`}
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
-                  <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{user?.name ?? "Guest"}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.role ?? ""}</p>
                 </div>
               </div>
               <div className="py-1">

@@ -37,32 +37,32 @@ export function AuditTrailPanel({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   return (
-    <div className="rounded-[5px] border border-border bg-white">
-      <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+    <div className="rounded-xl border border-surface-border bg-card">
+      <div className="flex items-center gap-2 border-b border-surface-border p-4">
         <TagIcon className="h-5 w-5 text-foreground" />
-        <h3 className="text-sm font-bold text-dash-ink">Audit trail</h3>
-        {entries && <span className="ml-auto text-xs text-muted">{entries.length} entries</span>}
+        <h3 className="text-sm font-semibold text-foreground">Audit trail</h3>
+        {entries && <span className="ml-auto text-xs text-muted-foreground">{entries.length} entries</span>}
       </div>
 
       {error && (
-        <p role="alert" className="px-5 py-4 text-sm font-medium text-danger">
+        <p role="alert" className="p-4 text-sm font-medium text-danger">
           {error}
         </p>
       )}
 
-      {!error && entries == null && <p className="px-5 py-4 text-sm text-muted">Loading…</p>}
+      {!error && entries == null && <p className="p-4 text-sm text-muted-foreground">Loading…</p>}
 
       {!error && entries != null && entries.length === 0 && (
-        <p className="px-5 py-4 text-sm text-muted">Nothing recorded for this project yet.</p>
+        <p className="p-4 text-sm text-muted-foreground">Nothing recorded for this project yet.</p>
       )}
 
       {!error && entries != null && entries.length > 0 && (
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-surface-border">
           {entries.map((entry, index) => (
-            <li key={`${entry.occurredAt}-${index}`} className="flex items-start gap-3 px-5 py-3">
+            <li key={`${entry.occurredAt}-${index}`} className="flex items-start gap-3 px-4 py-3">
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium capitalize text-dash-ink">{actionLabel(entry.action)}</span>
-                <span className="block text-xs text-muted">
+                <span className="block text-sm font-medium capitalize text-foreground">{actionLabel(entry.action)}</span>
+                <span className="block text-xs text-muted-foreground">
                   {entry.actorEmail} · {new Date(entry.occurredAt).toLocaleString()}
                 </span>
               </span>

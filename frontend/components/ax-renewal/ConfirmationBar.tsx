@@ -2,6 +2,7 @@
 
 import { CheckCircleIcon, ReopenIcon } from "@/components/layout/icons";
 import type { AxRenewalConfirmation, PlanSection } from "@/lib/ax-renewal/api";
+import { Button } from "@/components/ui/button";
 
 /**
  * The confirm/reopen control shared by all four plan sections (ADR-037,
@@ -29,12 +30,12 @@ export function ConfirmationBar({
   const confirmed = confirmation != null;
 
   return (
-    <div className="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
+    <div className="mt-4 flex items-center justify-between gap-4 border-t border-surface-border pt-4">
       <div className="flex items-center gap-2 text-sm">
         {confirmed ? (
           <>
             <CheckCircleIcon className="h-4 w-4 shrink-0 text-foreground" />
-            <span className="text-dash-ink">
+            <span className="text-foreground">
               {/* Who signed it off, not only when — on a team that is the
                   question (ADR-076). A display name, never an email. */}
               Confirmed
@@ -44,30 +45,31 @@ export function ConfirmationBar({
             </span>
           </>
         ) : (
-          <span className="text-muted">Not confirmed yet.</span>
+          <span className="text-muted-foreground">Not confirmed yet.</span>
         )}
       </div>
       {confirmed ? (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onReopen}
           disabled={busy || !canConfirm}
           title={canConfirm ? undefined : "Only a Super Admin or an account with the Developer role may reopen this"}
-          className="flex items-center gap-1.5 rounded-[5px] border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ReopenIcon className="h-3.5 w-3.5" />
           Reopen
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={onConfirm}
           disabled={busy || !canConfirm}
           title={canConfirm ? undefined : "Only a Super Admin or an account with the Developer role may confirm this"}
-          className="rounded-[5px] bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? "Confirming…" : `Confirm ${sectionLabel(section)}`}
-        </button>
+        </Button>
       )}
     </div>
   );

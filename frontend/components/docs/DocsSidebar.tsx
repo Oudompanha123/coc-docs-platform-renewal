@@ -37,16 +37,16 @@ export function DocsSidebar() {
   const activeProduct = products ? (productForPathname(products, pathname) ?? products[0]) : undefined;
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
-      <div className="sticky top-0 flex h-screen flex-col overflow-y-auto px-4 py-6">
+    <aside className="hidden w-60 shrink-0 border-r border-surface-border lg:block">
+      <div className="sticky top-0 flex h-screen flex-col overflow-y-auto px-3 py-4">
         <Link href={DOCS_SITE_HOME_HREF} className="flex items-center gap-2.5 px-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-            <DocumentIcon className="h-4 w-4" />
+          <div className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <DocumentIcon className="size-4" />
           </div>
-          <span className="text-sm font-semibold text-ink">Coc Docs Platform</span>
+          <span className="text-sm font-semibold text-foreground">Coc Docs Platform</span>
         </Link>
 
-        <nav className="mt-6 space-y-1">
+        <nav className="mt-5 space-y-0.5">
           {DOCS_NAV.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
@@ -55,19 +55,19 @@ export function DocsSidebar() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active ? "bg-secondary text-foreground" : "text-muted hover:bg-page hover:text-ink"
+                className={`flex h-8 items-center gap-2 rounded-md px-2 text-sm font-medium transition-colors ${
+                  active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="size-4" />
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-6 flex-1 border-t border-border pt-6">
-          <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted">Knowledge base</p>
+        <div className="mt-4 flex-1 border-t border-surface-border pt-4">
+          <p className="px-2 text-xs font-medium text-muted-foreground">Knowledge base</p>
 
           {activeProduct && (
             <>
@@ -84,8 +84,8 @@ export function DocsSidebar() {
                       key={href}
                       href={href}
                       aria-current={active ? "page" : undefined}
-                      className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                        active ? "bg-secondary font-semibold text-foreground" : "text-muted hover:bg-page hover:text-ink"
+                      className={`flex h-8 items-center rounded-md px-2 text-sm transition-colors ${
+                        active ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       }`}
                     >
                       {item.label}
@@ -97,7 +97,7 @@ export function DocsSidebar() {
           )}
         </div>
 
-        <Link href={DOCS_SITE_HOME_HREF} className="px-3 text-xs font-medium text-muted hover:text-ink">
+        <Link href={DOCS_SITE_HOME_HREF} className="px-2 pt-3 text-xs font-medium text-muted-foreground hover:text-foreground">
           ← Back to site
         </Link>
       </div>

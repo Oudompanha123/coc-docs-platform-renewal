@@ -1,6 +1,7 @@
 "use client";
 
-import { inputBaseClass } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { SimpleSelect } from "@/components/ui/select";
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 /**
@@ -40,76 +41,62 @@ export function Pagination({
   const pages = Array.from({ length: Math.min(7, pageCount) }, (_, i) => windowStart + i);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border px-6 py-4 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t border-surface-border px-5 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2">
         <span>Rows per page:</span>
-        <div className="relative">
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              onPageSizeChange(Number(e.target.value));
-              // Showing more rows can remove pages from under the reader.
-              onPageChange(1);
-            }}
-            aria-label="Rows per page"
-            className={`${inputBaseClass} appearance-none font-semibold`}
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
-          <svg
-            viewBox="0 0 24 24"
-            className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            aria-hidden="true"
-          >
-            <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
+        <SimpleSelect
+          size="sm"
+          aria-label="Rows per page"
+          value={String(pageSize)}
+          onValueChange={(v) => {
+            onPageSizeChange(Number(v));
+            // Showing more rows can remove pages from under the reader.
+            onPageChange(1);
+          }}
+          options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: size }))}
+          className="w-20 font-medium"
+        />
       </div>
 
       <div className="flex items-center gap-1.5">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="icon"
           disabled={current <= 1}
           onClick={() => onPageChange(current - 1)}
           aria-label="Previous page"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-primary enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className="size-8 text-muted-foreground"
         >
           ‹
-        </button>
+        </Button>
 
         {pages.map((p) => (
-          <button
+          <Button
             key={p}
             type="button"
+            variant={p === current ? "default" : "ghost"}
+            size="icon"
             onClick={() => onPageChange(p)}
             aria-label={`Page ${p}`}
             aria-current={p === current ? "page" : undefined}
-            className={
-              p === current
-                ? "flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white"
-                : "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-sm font-semibold text-dash-ink transition-colors hover:border-primary hover:text-foreground"
-            }
+            className="size-8 font-medium"
           >
             {p}
-          </button>
+          </Button>
         ))}
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="icon"
           disabled={current >= pageCount}
           onClick={() => onPageChange(current + 1)}
           aria-label="Next page"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-primary enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className="size-8 text-muted-foreground"
         >
           ›
-        </button>
+        </Button>
       </div>
     </div>
   );

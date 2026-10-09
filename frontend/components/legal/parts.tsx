@@ -19,7 +19,7 @@ export function Para({ children }: { children: ReactNode }) {
 /** Plain disc-marker list, for an enumeration inside a section. */
 export function Bullets({ items }: { items: ReactNode[] }) {
   return (
-    <ul className="mt-0 mb-3.5 flex list-disc flex-col gap-2 pl-[1.35rem] last:mb-0 marker:text-[#b6b4c0]">
+    <ul className="mt-0 mb-3.5 flex list-disc flex-col gap-2 pl-[1.35rem] last:mb-0 marker:text-muted-foreground">
       {items.map((item, index) => (
         <li key={index} className="pl-0.5">
           {item}
@@ -39,10 +39,10 @@ export function Bullets({ items }: { items: ReactNode[] }) {
  */
 export function PolicyLinks({ items }: { items: { label: string; href: string }[] }) {
   return (
-    <ul className="mt-0 mb-3.5 flex list-disc flex-col gap-2 pl-[1.35rem] last:mb-0 marker:text-[#b6b4c0]">
+    <ul className="mt-0 mb-3.5 flex list-disc flex-col gap-2 pl-[1.35rem] last:mb-0 marker:text-muted-foreground">
       {items.map(({ label, href }) => (
         <li key={label} className="pl-0.5">
-          <Link href={href} className="text-[#2f6fd0] hover:underline">
+          <Link href={href} className="text-foreground font-medium underline underline-offset-4 hover:no-underline">
             {label}
           </Link>
         </li>

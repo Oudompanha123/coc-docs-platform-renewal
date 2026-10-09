@@ -14,10 +14,19 @@
  * caller can see or rely on. `twMerge` drops the earlier one, so the override
  * wins because it was written last.
  *
+ * It only knows the radius names Tailwind ships, so the project's own
+ * `--radius-control` (globals.css, ADR-104 r2.6) is registered here — without
+ * it `rounded-control rounded-md` keeps both classes and the override silently
+ * loses to stylesheet order.
+ *
  * // req: ADR-104
  */
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+const twMerge = extendTailwindMerge({
+  extend: { theme: { radius: ["control"] } },
+});
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));

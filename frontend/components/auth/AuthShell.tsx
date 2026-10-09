@@ -31,12 +31,12 @@ export function AuthShell({ heading, subheading, footer, children }: AuthShellPr
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 py-12">
       <div className="animate-entrance w-full max-w-sm">
-        <h1 className="text-2xl font-bold tracking-tight text-balance">{heading}</h1>
-        <p className="text-muted-foreground mt-1.5 text-sm text-balance">{subheading}</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-balance">{heading}</h1>
+        <p className="text-muted-foreground mt-2 text-sm text-balance">{subheading}</p>
 
-        <div className="mt-7">{children}</div>
+        <div className="mt-6">{children}</div>
 
-        {footer && <div className="text-muted-foreground mt-8 text-center text-xs text-balance">{footer}</div>}
+        {footer && <div className="text-muted-foreground mt-6 text-center text-xs text-balance">{footer}</div>}
       </div>
     </div>
   );

@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { FormField, fieldInputClass, fieldTextareaClass } from "./FormField";
+import { FormField } from "./FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { moveItem } from "./reorder";
 import { HERO_DOWNLOAD_OS_ICON } from "../os-icons";
 import {
@@ -11,6 +14,7 @@ import {
 } from "@/lib/docs/content-types";
 import type { HeroContent, HeroDownloadButton, HeroDownloadButtons, HeroDownloadOs } from "@/lib/docs/content-types";
 import { uploadContentImage } from "@/lib/docs/content-image-api";
+import { SimpleSelect } from "@/components/ui/select";
 
 const DOWNLOAD_OS_PLACEHOLDER: Record<HeroDownloadOs, string> = {
   windows: "https://… .exe / .msi",
@@ -112,7 +116,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
   }
 
   return (
-    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-[30px] py-0">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-5 py-0">
       <FormField label="Layout">
         <div className="flex gap-2">
           {(["centered", "split"] as const).map((layout) => (
@@ -120,10 +124,10 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
               key={layout}
               type="button"
               onClick={() => set("layout", layout)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+              className={`h-7 rounded-full border px-3 text-xs font-medium capitalize transition-colors ${
                 (value.layout ?? "centered") === layout
-                  ? "bg-secondary text-foreground"
-                  : "border border-border text-muted hover:bg-page"
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-surface-border text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               {layout}
@@ -132,53 +136,51 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
         </div>
       </FormField>
       <FormField label="Heading" required>
-        <input className={fieldInputClass} value={value.heading} onChange={(e) => set("heading", e.target.value)} />
+        <Input value={value.heading} onChange={(e) => set("heading", e.target.value)} />
       </FormField>
       <FormField label="Tagline" required>
-        <input className={fieldInputClass} value={value.tagline} onChange={(e) => set("tagline", e.target.value)} />
+        <Input value={value.tagline} onChange={(e) => set("tagline", e.target.value)} />
       </FormField>
       <FormField label="Subline">
-        <input className={fieldInputClass} value={value.subline} onChange={(e) => set("subline", e.target.value)} />
+        <Input value={value.subline} onChange={(e) => set("subline", e.target.value)} />
       </FormField>
       <div className="grid grid-cols-2 gap-4">
         <FormField label="CTA label" required>
-          <input className={fieldInputClass} value={value.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} />
+          <Input value={value.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} />
         </FormField>
         <FormField label="CTA link" required>
-          <input className={fieldInputClass} value={value.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} />
+          <Input value={value.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} />
         </FormField>
       </div>
       <div>
-        <span className="text-xs font-semibold text-muted">Second button</span>
-        <p className="mt-0.5 text-xs text-muted">
+        <span className="text-xs font-medium text-muted-foreground">Second button</span>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           Optional, shown beside the CTA. A path such as /ax-renewal, or an https:// URL. Leave both empty to hide it.
         </p>
         <div className="mt-2 grid grid-cols-2 gap-4">
           <FormField label="Second button label">
-            <input
-              className={fieldInputClass}
+            <Input
               value={value.secondaryCta?.label ?? ""}
               onChange={(e) => setSecondaryCta("label", e.target.value)}
             />
           </FormField>
           <FormField label="Second button link">
-            <input
-              className={fieldInputClass}
+            <Input
               value={value.secondaryCta?.href ?? ""}
               onChange={(e) => setSecondaryCta("href", e.target.value)}
             />
           </FormField>
         </div>
         {value.secondaryCta && !isValidHeroDownloadUrl(value.secondaryCta.href) && (
-          <p role="alert" className="mt-1 text-xs font-medium text-danger">
+          <p role="alert" className="mt-1 text-xs font-medium text-destructive">
             Use a path starting with / or an https:// URL — this button stays hidden until it is one.
           </p>
         )}
       </div>
 
       <div>
-        <span className="text-xs font-semibold text-muted">Download buttons</span>
-        <p className="mt-0.5 text-xs text-muted">Paste a download URL. Leave empty to hide that button.</p>
+        <span className="text-xs font-medium text-muted-foreground">Download buttons</span>
+        <p className="mt-0.5 text-xs text-muted-foreground">Paste a download URL. Leave empty to hide that button.</p>
         <div className="mt-2 space-y-3">
           {HERO_DOWNLOAD_OS_ORDER.map((os) => {
             const label = HERO_DOWNLOAD_OS_LABEL[os];
@@ -189,13 +191,13 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
             const urlError = isValidHeroDownloadUrl(rawUrl) ? null : DOWNLOAD_URL_ERROR;
             const showNoUrlHint = shown && !urlError && rawUrl === "";
             return (
-              <div key={os} className="rounded-[10px] border border-border p-3">
+              <div key={os} className="rounded-xl border border-surface-border p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-dash-ink">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-surface-border text-foreground">
                       <Icon className="h-4 w-4" />
                     </span>
-                    <span className="text-xs font-semibold text-dash-ink">{label}</span>
+                    <span className="text-xs font-semibold text-foreground">{label}</span>
                   </div>
                   <button
                     type="button"
@@ -204,11 +206,11 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     aria-label={`Show the ${label} download button`}
                     onClick={() => toggleShow(os)}
                     className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      shown ? "bg-primary" : "bg-border"
+                      shown ? "bg-primary" : "bg-surface-border"
                     }`}
                   >
                     <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow-sm transition-[left] ${
                         shown ? "left-[22px]" : "left-0.5"
                       }`}
                     />
@@ -217,27 +219,27 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
 
                 <div className={`mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 ${shown ? "" : "opacity-60"}`}>
                   <label className="block">
-                    <span className="text-[11px] font-semibold text-muted">Label</span>
-                    <input
-                      className={`${fieldInputClass} mt-1`}
+                    <span className="text-xs font-medium text-muted-foreground">Label</span>
+                    <Input
+                      className="mt-1"
                       placeholder={`Download for ${label}`}
                       value={entry.label ?? ""}
                       onChange={(e) => updateDownloadButton(os, { label: e.target.value })}
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[11px] font-semibold text-muted">URL</span>
-                    <input
-                      className={`${fieldInputClass} mt-1`}
+                    <span className="text-xs font-medium text-muted-foreground">URL</span>
+                    <Input
+                      className="mt-1"
                       placeholder={DOWNLOAD_OS_PLACEHOLDER[os]}
                       value={rawUrl}
                       onChange={(e) => setDownloadUrl(os, e.target.value)}
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[11px] font-semibold text-muted">Version</span>
-                    <input
-                      className={`${fieldInputClass} mt-1`}
+                    <span className="text-xs font-medium text-muted-foreground">Version</span>
+                    <Input
+                      className="mt-1"
                       placeholder="v2.1.0"
                       maxLength={20}
                       value={entry.version ?? ""}
@@ -245,9 +247,9 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     />
                   </label>
                   <label className="block">
-                    <span className="text-[11px] font-semibold text-muted">File size</span>
-                    <input
-                      className={`${fieldInputClass} mt-1`}
+                    <span className="text-xs font-medium text-muted-foreground">File size</span>
+                    <Input
+                      className="mt-1"
                       placeholder="84 MB"
                       maxLength={12}
                       value={entry.size ?? ""}
@@ -255,8 +257,8 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     />
                   </label>
                 </div>
-                {urlError && <p className="mt-2 text-xs font-semibold text-[#c94040]">{urlError}</p>}
-                {showNoUrlHint && <p className="mt-2 text-xs font-semibold text-muted">Add a URL to show this button.</p>}
+                {urlError && <p className="mt-2 text-xs font-medium text-destructive">{urlError}</p>}
+                {showNoUrlHint && <p className="mt-2 text-xs font-medium text-muted-foreground">Add a URL to show this button.</p>}
               </div>
             );
           })}
@@ -264,19 +266,18 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
       </div>
 
       <FormField label="Eyebrow (small label above the section heading)">
-        <input className={fieldInputClass} value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
+        <Input value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
       </FormField>
       <FormField label="Section heading" required>
-        <input
-          className={fieldInputClass}
+        <Input
           value={value.sectionHeading}
           onChange={(e) => set("sectionHeading", e.target.value)}
         />
       </FormField>
       <FormField label="Section intro">
-        <textarea
+        <Textarea
           rows={2}
-          className={fieldTextareaClass}
+          className="h-[120px] resize-none"
           value={value.sectionIntro}
           onChange={(e) => set("sectionIntro", e.target.value)}
         />
@@ -284,19 +285,19 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
 
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted">Feature cards</span>
-          <button
+          <span className="text-xs font-medium text-muted-foreground">Feature cards</span>
+          <Button
             type="button"
             onClick={addFeature}
-            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-dash-ink hover:bg-page"
+            variant="outline" size="sm"
           >
             + Add card
-          </button>
+          </Button>
         </div>
-        {uploadError && <p className="mt-2 text-xs font-semibold text-[#c94040]">{uploadError}</p>}
+        {uploadError && <p className="mt-2 text-xs font-medium text-destructive">{uploadError}</p>}
         <div className="mt-2 space-y-3">
           {value.features.map((feature, i) => (
-            <div key={i} className="rounded-[10px] border border-border p-3">
+            <div key={i} className="rounded-xl border border-surface-border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button
@@ -304,7 +305,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     disabled={i === 0}
                     onClick={() => moveFeature(i, -1)}
                     aria-label="Move card up"
-                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded px-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ↑
                   </button>
@@ -313,39 +314,35 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     disabled={i === value.features.length - 1}
                     onClick={() => moveFeature(i, 1)}
                     aria-label="Move card down"
-                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded px-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ↓
                   </button>
                 </div>
-                <select
-                  className={`${fieldInputClass} w-28 shrink-0`}
+                <SimpleSelect
+                  aria-label="Feature icon"
                   value={feature.icon}
-                  onChange={(e) => updateFeature(i, { icon: e.target.value as HeroContent["features"][number]["icon"] })}
-                >
-                  {ICON_KEYS.map((key) => (
-                    <option key={key} value={key}>
-                      {key}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  className={`${fieldInputClass} min-w-0 flex-1`}
+                  onValueChange={(v) => updateFeature(i, { icon: v as HeroContent["features"][number]["icon"] })}
+                  options={ICON_KEYS.map((key) => ({ value: key, label: key }))}
+                  className="w-32 shrink-0"
+                />
+                <Input
+                  className="min-w-0 flex-1"
                   placeholder="Title"
                   value={feature.title}
                   onChange={(e) => updateFeature(i, { title: e.target.value })}
                 />
-                <button
+                <Button
                   type="button"
                   onClick={() => removeFeature(i)}
-                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                  variant="ghost" size="sm" className="h-7 shrink-0 px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
-              <textarea
+              <Textarea
                 rows={2}
-                className={`${fieldTextareaClass} mt-2`}
+                className="h-[120px] resize-none mt-2"
                 placeholder="Description"
                 value={feature.description}
                 onChange={(e) => updateFeature(i, { description: e.target.value })}
@@ -357,13 +354,13 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     <button
                       type="button"
                       onClick={() => updateFeature(i, { imageUrl: undefined })}
-                      className="text-xs font-semibold text-muted hover:text-dash-ink"
+                      className="text-xs font-medium text-muted-foreground hover:text-foreground"
                     >
                       Remove image, use icon
                     </button>
                   </>
                 ) : (
-                  <label className="text-xs font-semibold text-foreground hover:underline">
+                  <label className="text-xs font-medium text-foreground hover:underline">
                     {uploadingIndex === i ? "Uploading…" : "Upload image instead of icon"}
                     <input
                       type="file"
@@ -381,9 +378,9 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
       </div>
 
       <FormField label="Closing note (optional paragraph below the feature cards)">
-        <textarea
+        <Textarea
           rows={3}
-          className={fieldTextareaClass}
+          className="h-[120px] resize-none"
           value={value.closingNote ?? ""}
           onChange={(e) => set("closingNote", e.target.value || undefined)}
         />

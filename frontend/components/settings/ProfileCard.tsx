@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { updateProfile } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 
@@ -53,7 +54,7 @@ export function ProfileCard() {
   const [error, setError] = useState<string | null>(null);
 
   if (status !== "authenticated" || !user) {
-    return <p className="text-sm text-muted">Loading your profile…</p>;
+    return <p className="text-sm text-muted-foreground">Loading your profile…</p>;
   }
 
   const name = user.displayName ?? user.email ?? "";
@@ -84,16 +85,11 @@ export function ProfileCard() {
           avatarUrl={user.avatarUrl ?? null}
           initials={initialsOf(name)}
           name={name}
-          className={`h-14 w-14 text-lg shadow-sm ${AVATAR_GRADIENTS.purple}`}
+          className={`size-12 text-base ${AVATAR_GRADIENTS.purple}`}
         />
         <div className="min-w-0">
           {editing ? (
-            // A fourth text-field style, after the auth pages', the settings
-            // cards' and MailCredentialCard's: `rounded-lg`, `px-2.5 py-1.5`,
-            // and auth's 4px focus ring. Left as it is for the same reason —
-            // see the note in MailCredentialCard. ADR-104 §4.3.
-            // eslint-disable-next-line react/forbid-elements
-            <input
+            <Input
               type="text"
               value={draft}
               autoFocus
@@ -103,25 +99,25 @@ export function ProfileCard() {
                 if (e.key === "Escape") setEditing(false);
               }}
               aria-label="Display name"
-              className="w-56 rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/15"
+              className="w-56"
             />
           ) : (
-            <p className="truncate text-sm font-semibold text-dash-ink">{name}</p>
+            <p className="truncate text-sm font-medium text-foreground">{name}</p>
           )}
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted-foreground">
             {user.role ? (ROLE_LABELS[user.role] ?? user.role) : ""}
           </p>
         </div>
       </div>
 
-      <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-3 border-l border-border pl-6 sm:grid-cols-3">
+      <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-3 border-l border-surface-border pl-6 sm:grid-cols-3">
         <div className="min-w-0">
-          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Email</dt>
-          <dd className="mt-0.5 truncate text-sm text-dash-ink">{user.email}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</dt>
+          <dd className="mt-0.5 truncate text-sm text-foreground">{user.email}</dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Account status</dt>
-          <dd className="mt-0.5 flex items-center gap-1.5 text-sm text-dash-ink">
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Account status</dt>
+          <dd className="mt-0.5 flex items-center gap-1.5 text-sm text-foreground">
             {/* Active by construction: a deactivated account cannot hold a
                 session, so a caller reading this page is active. */}
             <span className="h-2 w-2 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
@@ -129,8 +125,8 @@ export function ProfileCard() {
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Joined</dt>
-          <dd className="mt-0.5 text-sm text-dash-ink">{formatJoined(user.createdAt)}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Joined</dt>
+          <dd className="mt-0.5 text-sm text-foreground">{formatJoined(user.createdAt)}</dd>
         </div>
       </dl>
 
@@ -142,7 +138,7 @@ export function ProfileCard() {
               variant="outline"
               size="default"
               onClick={() => setEditing(false)}
-              className="rounded-full text-dash-ink"
+              className="text-foreground"
             >
               Cancel
             </Button>
@@ -151,7 +147,6 @@ export function ProfileCard() {
               size="default"
               onClick={() => void handleSave()}
               disabled={!changed || saving}
-              className="rounded-full"
             >
               {saving ? "Saving…" : "Save"}
             </Button>
@@ -166,7 +161,7 @@ export function ProfileCard() {
               setError(null);
               setEditing(true);
             }}
-            className="rounded-full text-dash-ink"
+            className="text-foreground"
           >
             Edit profile
           </Button>
@@ -175,7 +170,7 @@ export function ProfileCard() {
         {error && <p className="text-xs text-danger">{error}</p>}
 
         {editing && (
-          <p className="max-w-56 text-right text-xs text-muted">
+          <p className="max-w-56 text-right text-xs text-muted-foreground">
             Signing in with Google replaces this with the name on your Google account.
           </p>
         )}

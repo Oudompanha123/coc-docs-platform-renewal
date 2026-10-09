@@ -48,19 +48,19 @@ export default function FaqPage() {
   return (
     <div>
       <p className="text-sm font-semibold text-foreground">FAQ</p>
-      <h1 className="mt-1 text-3xl font-bold text-ink">Quick answers.</h1>
-      <p className="mt-3 text-base text-muted">The most common questions about how Coc Docs Platform works.</p>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Quick answers.</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">The most common questions about how Coc Docs Platform works.</p>
 
-      <div className="mt-8 space-y-3">
+      <div className="mt-6 space-y-2">
         {FAQ_ITEMS.map((item) => (
-          <details key={item.question} className="group rounded-[10px] border border-border p-4">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-ink">
+          <details key={item.question} className="group rounded-xl border border-surface-border bg-card px-4 py-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-foreground">
               {item.question}
-              <span className="shrink-0 text-lg font-normal text-muted transition-transform group-open:rotate-45">
+              <span className="shrink-0 text-base leading-none font-normal text-muted-foreground transition-transform group-open:rotate-45">
                 +
               </span>
             </summary>
-            <p className="mt-3 text-sm text-muted">{item.answer}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.answer}</p>
           </details>
         ))}
       </div>

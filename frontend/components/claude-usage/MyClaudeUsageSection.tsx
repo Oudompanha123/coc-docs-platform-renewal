@@ -2,6 +2,8 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { MyUsageHistoryChart } from "@/components/claude-usage/MyUsageHistoryChart";
+import { SimpleSelect } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   costChange,
   formatCost,
@@ -45,8 +47,8 @@ function Card({ title, children, className = "" }: { title: string; children: Re
   // up. rounded-xl (not this file's -elsewhere- rounded-[10px]) matches
   // that outer card's own corner radius, per that task's explicit ask.
   return (
-    <section className={`rounded-xl border border-border bg-white p-6 ${className}`}>
-      <h3 className="text-sm font-semibold text-dash-ink">{title}</h3>
+    <section className={`rounded-xl border border-surface-border bg-card p-5 ${className}`}>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -55,45 +57,43 @@ function Card({ title, children, className = "" }: { title: string; children: Re
 /** One row per (day, model) in the selected window, newest day first — usage and cost side by side. */
 function ModelUsageTable({ rows, emptyLabel }: { rows: MyClaudeUsageDayModel[]; emptyLabel: string }) {
   if (rows.length === 0) {
-    return <p className="mt-4 py-6 text-center text-sm text-muted">No usage reported for {emptyLabel}.</p>;
+    return <p className="px-5 pb-6 pt-2 text-center text-sm text-muted-foreground">No usage reported for {emptyLabel}.</p>;
   }
   const hasUnattributed = rows.some((r) => r.model === UNATTRIBUTED_MODEL);
   return (
     <>
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm" aria-label="Model usage">
-          <thead>
-            <tr className="border-b border-border text-left text-xs text-muted">
-              <th className="py-2 pr-4 font-medium">Date</th>
-              <th className="py-2 pr-4 font-medium">Model</th>
-              <th className="py-2 pr-4 text-right font-medium">Input</th>
-              <th className="py-2 pr-4 text-right font-medium">Output</th>
-              <th className="py-2 pr-4 text-right font-medium">Total</th>
-              <th className="py-2 pr-4 text-right font-medium">Cache Read</th>
-              <th className="py-2 pr-4 text-right font-medium">Cache Write</th>
-              <th className="py-2 text-right font-medium">Reference API Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={`${r.date}|${r.model}`} className="border-b border-border last:border-0">
-                <td className="whitespace-nowrap py-3 pr-4 text-dash-ink">{formatDay(r.date)}</td>
-                <td className="whitespace-nowrap py-3 pr-4 font-medium text-dash-ink">{modelDisplayName(r.model)}</td>
-                <td className="py-3 pr-4 text-right tabular-nums text-dash-ink">{formatTokens(r.inputTokens)}</td>
-                <td className="py-3 pr-4 text-right tabular-nums text-dash-ink">{formatTokens(r.outputTokens)}</td>
-                <td className="py-3 pr-4 text-right font-semibold tabular-nums text-dash-ink">
-                  {formatTokens(r.inputTokens + r.outputTokens)}
-                </td>
-                <td className="py-3 pr-4 text-right tabular-nums text-dash-ink">{formatTokens(r.cacheReadTokens)}</td>
-                <td className="py-3 pr-4 text-right tabular-nums text-dash-ink">{formatTokens(r.cacheWriteTokens)}</td>
-                <td className="py-3 text-right tabular-nums text-dash-ink">{formatCost(r.costUsd)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table className="min-w-[720px]" containerClassName="border-t border-surface-border" aria-label="Model usage">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="pl-5">Date</TableHead>
+            <TableHead>Model</TableHead>
+            <TableHead className="text-right">Input</TableHead>
+            <TableHead className="text-right">Output</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead className="text-right">Cache Read</TableHead>
+            <TableHead className="text-right">Cache Write</TableHead>
+            <TableHead className="pr-5 text-right">Reference API Cost</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={`${r.date}|${r.model}`}>
+              <TableCell className="whitespace-nowrap pl-5 text-foreground">{formatDay(r.date)}</TableCell>
+              <TableCell className="whitespace-nowrap font-medium text-foreground">{modelDisplayName(r.model)}</TableCell>
+              <TableCell className="text-right tabular-nums text-foreground">{formatTokens(r.inputTokens)}</TableCell>
+              <TableCell className="text-right tabular-nums text-foreground">{formatTokens(r.outputTokens)}</TableCell>
+              <TableCell className="text-right font-medium tabular-nums text-foreground">
+                {formatTokens(r.inputTokens + r.outputTokens)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums text-foreground">{formatTokens(r.cacheReadTokens)}</TableCell>
+              <TableCell className="text-right tabular-nums text-foreground">{formatTokens(r.cacheWriteTokens)}</TableCell>
+              <TableCell className="pr-5 text-right tabular-nums text-foreground">{formatCost(r.costUsd)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       {hasUnattributed && (
-        <p className="mt-3 text-xs text-muted">
+        <p className="border-t border-surface-border px-5 py-3 text-xs text-muted-foreground">
           Unattributed: reported before per-model tracking. Re-run push-usage.mjs with --days 30 to attribute it.
         </p>
       )}
@@ -118,11 +118,11 @@ function ReferenceCostCard({
   const models = usage?.byModel ?? [];
   return (
     <Card title="Reference API Cost" className="lg:col-span-2">
-      <p className="mt-3 text-4xl font-bold tabular-nums text-dash-ink" data-testid="my-usage-total-cost">
+      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-foreground" data-testid="my-usage-total-cost">
         {formatCost(usage?.costUsd ?? 0)}
       </p>
       {models.length > 0 && (
-        <ul className="mt-2 space-y-0.5 text-sm text-muted" data-testid="my-usage-cost-models">
+        <ul className="mt-2 space-y-0.5 text-sm text-muted-foreground" data-testid="my-usage-cost-models">
           {models.map((m) => (
             <li key={m.model}>
               {modelFamilyName(m.model)} · {formatTokens(m.inputTokens + m.outputTokens)} tokens
@@ -133,14 +133,16 @@ function ReferenceCostCard({
       )}
       {change && (
         <p
-          className={`mt-3 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
-            change.up ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+          className={`mt-3 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+            change.up
+              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+              : "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
           }`}
         >
           {change.up ? "↑" : "↓"} {change.pct}% from {previousLabel}
         </p>
       )}
-      <p className="mt-4 flex gap-2 rounded-md bg-page px-3 py-2 text-xs text-muted" role="note">
+      <p className="mt-4 flex gap-2 rounded-lg bg-muted-surface px-3 py-2 text-xs text-muted-foreground" role="note">
         <span aria-hidden>ⓘ</span>
         <span>
           API-equivalent estimate only. This is not an additional Claude subscription charge.
@@ -156,10 +158,10 @@ function ReferenceCostCard({
 function SubscriptionCard({ usdPerMonth }: { usdPerMonth: number }) {
   return (
     <Card title="Subscription">
-      <p className="mt-3 text-4xl font-bold tabular-nums text-dash-ink" data-testid="my-usage-subscription">
-        {formatPrice(usdPerMonth)} <span className="text-lg font-semibold text-muted">/ month</span>
+      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-foreground" data-testid="my-usage-subscription">
+        {formatPrice(usdPerMonth)} <span className="text-sm font-medium text-muted-foreground">/ month</span>
       </p>
-      <p className="mt-4 text-xs text-muted">Your Claude plan. Fixed per seat — not a token credit balance.</p>
+      <p className="mt-4 text-xs text-muted-foreground">Your Claude plan. Fixed per seat — not a token credit balance.</p>
     </Card>
   );
 }
@@ -223,20 +225,20 @@ export function MyClaudeUsageSection() {
   return (
     <div>
       {awaitingCliUpload && (
-        <div role="status" className="mb-4 rounded-[10px] border border-border bg-page px-4 py-3 text-sm text-dash-ink">
+        <div role="status" className="mb-4 rounded-xl border border-surface-border bg-muted-surface px-4 py-3 text-sm text-foreground">
           Signed in. Your latest usage will appear here once <code className="font-mono text-xs">claude-team-usage</code>{" "}
           finishes uploading.
         </div>
       )}
 
       {loadError && (
-        <div role="alert" className="mb-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {loadError}
         </div>
       )}
 
       {loading ? (
-        <p className="rounded-[10px] border border-border bg-white px-4 py-8 text-center text-sm text-muted">
+        <p className="rounded-xl border border-surface-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
           Loading your Claude usage…
         </p>
       ) : (
@@ -246,43 +248,34 @@ export function MyClaudeUsageSection() {
             <SubscriptionCard usdPerMonth={dashboard?.subscriptionUsdPerMonth ?? 0} />
           </div>
 
-          <section className="mt-6 rounded-xl border border-border bg-white p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-dash-ink">Model Usage</h3>
-              <div>
-                <label className="sr-only" htmlFor="my-usage-range">
-                  Period
-                </label>
-                <select
-                  id="my-usage-range"
-                  value={days}
-                  onChange={(e) => setDays(Number(e.target.value) as MyUsageRangeDays)}
-                  className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm font-medium text-dash-ink shadow-sm"
-                >
-                  {RANGES.map((r) => (
-                    <option key={r.days} value={r.days}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <section className="mt-4 overflow-hidden rounded-xl border border-surface-border bg-card">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-3 pt-4">
+              <h3 className="text-sm font-semibold text-foreground">Model Usage</h3>
+              <SimpleSelect
+                id="my-usage-range"
+                aria-label="Period"
+                value={String(days)}
+                onValueChange={(v) => setDays(Number(v) as MyUsageRangeDays)}
+                options={RANGES.map((r) => ({ value: String(r.days), label: r.label }))}
+                className="w-auto min-w-36 font-medium"
+              />
             </div>
             <ModelUsageTable rows={usage?.recent ?? []} emptyLabel={range.label.toLowerCase()} />
           </section>
 
-          <div className="mt-8 rounded-xl border border-border bg-white p-5">
+          <div className="mt-4 rounded-xl border border-surface-border bg-card p-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-dash-ink">Daily usage history</h3>
-                <p className="text-xs text-muted">Last 30 days · input (purple) stacked under output (blue)</p>
+                <h3 className="text-sm font-semibold text-foreground">Daily usage history</h3>
+                <p className="text-xs text-muted-foreground">Last 30 days · input (purple) stacked under output (blue)</p>
               </div>
-              <div className="text-right text-xs text-muted">
+              <div className="text-right text-xs text-muted-foreground">
                 {/* A scan that found nothing new uploads nothing, so the two differ (ADR-097). */}
                 <p>Last scan: {formatLastUpdated(dashboard?.lastScanAt ?? null)}</p>
                 <p>Last usage update: {formatLastUpdated(dashboard?.lastUpdated ?? null)}</p>
               </div>
             </div>
-            <div className="mt-5">
+            <div className="mt-4">
               <MyUsageHistoryChart data={dashboard?.daily ?? []} today={dashboard?.today} />
             </div>
           </div>

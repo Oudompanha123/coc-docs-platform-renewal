@@ -118,12 +118,12 @@ describe("MemberHeader — user menu (Profile / Settings / Log out)", () => {
   it("highlights Settings when already on /account/settings", async () => {
     pathname.current = "/account/settings";
     await openUserMenu();
-    expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveClass("text-foreground");
+    expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveClass("bg-accent");
   });
 
   it("does not highlight Settings elsewhere", async () => {
     await openUserMenu();
-    expect(screen.getByRole("menuitem", { name: "Settings" })).not.toHaveClass("text-foreground");
+    expect(screen.getByRole("menuitem", { name: "Settings" })).not.toHaveClass("bg-accent");
   });
 
   it.each(["admin", "super_admin"])(

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
@@ -24,7 +25,7 @@ import { axRenewalPermissions } from "@/lib/ax-renewal/permissions";
 import { readUseModel, writeUseModel } from "@/lib/ax-renewal/engine-preference";
 import { describeCommand, parseCommand } from "@/lib/ax-renewal/commands";
 import { SparklesIcon } from "@/components/layout/icons";
-import { inputBaseClass } from "@/components/ui/input";
+import { textareaBaseClass } from "@/components/ui/textarea";
 
 const PLAN_SECTIONS: PlanSection[] = ["stack_move", "architecture", "pages", "database"];
 
@@ -319,18 +320,18 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
           where the status bar starts. Width is inline style, not a Tailwind
           class, since it's a runtime drag value (see useResizableWidth). */}
       <div
-        className="sticky top-0 relative flex h-[calc(100vh-32px)] flex-col overflow-hidden border-l border-border bg-page"
+        className="sticky top-0 relative flex h-[calc(100vh-32px)] flex-col overflow-hidden border-l border-surface-border bg-muted-surface"
         style={{ width }}
       >
         <ResizeHandle edge="left" onPointerDown={onResizeStart} isDragging={isResizing} label="Resize AX Assistant panel" />
-        <div className="flex items-center gap-2 border-b border-border bg-white px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-surface-border bg-card px-4 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
-          <span className="text-xs font-bold uppercase tracking-wider text-dash-ink">AX Assistant</span>
+          <span className="text-xs font-medium text-foreground">AX Assistant</span>
           {chatAvailable && (
             // Only rendered where a model can actually answer: a permanently
             // disabled tab would advertise a capability this deployment
             // does not have (ADR-043's whole point about the banner).
-            <div className="ml-auto flex overflow-hidden rounded-[10px] border border-border" role="tablist">
+            <div className="ml-auto flex overflow-hidden rounded-xl border border-surface-border" role="tablist">
               {(["chat", "thread"] as const).map((key) => (
                 <button
                   key={key}
@@ -339,7 +340,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                   aria-selected={mode === key}
                   onClick={() => setMode(key)}
                   className={`px-2.5 py-1 text-xs font-semibold capitalize transition-colors ${
-                    mode === key ? "bg-primary text-white" : "text-muted hover:text-dash-ink"
+                    mode === key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {key}
@@ -348,11 +349,11 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             </div>
           )}
         </div>
-        <div className="border-b border-border px-4 py-2 font-mono text-xs text-muted">
+        <div className="border-b border-surface-border px-4 py-2 font-mono text-xs text-muted-foreground">
           {meta ? (
             <>
               {isPlanTab ? "acting on " : "reading "}
-              <span className="font-semibold text-dash-ink">
+              <span className="font-semibold text-foreground">
                 {isPlanTab ? meta.label.toLowerCase() : `${meta.group.toLowerCase()} / ${meta.label.toLowerCase()}`}
               </span>
             </>
@@ -366,7 +367,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             one line in the workspace whose whole job is to be honest about
             what the assistant can do (ADR-043). */}
         {engine?.connected && useModel ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
               Local model in use —{" "}
@@ -381,13 +382,13 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
               // untouched and the backend could still run it. All this does is
               // stop asking, which is the only thing a web page honestly can do.
               title="Run the keyword analysis instead. The configured model stays configured."
-              className="ml-auto shrink-0 rounded-[10px] border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+              className="ml-auto shrink-0 rounded-xl border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
             >
               stop using
             </button>
           </div>
         ) : engine?.connected ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
               A model is available — <span className="font-semibold">not using it here</span>
@@ -395,13 +396,13 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             <button
               type="button"
               onClick={() => setUseModel(true)}
-              className="ml-auto shrink-0 rounded-[10px] border border-slate-400 px-2.5 py-0.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+              className="ml-auto shrink-0 rounded-xl border border-slate-400 px-2.5 py-0.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
             >
               use it
             </button>
           </div>
         ) : engine ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
             <span>
               No model connected — <span className="font-semibold">fixed commands only</span>
@@ -409,14 +410,14 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             <button
               type="button"
               onClick={() => onOpenTab("ai-engine")}
-              className="ml-auto shrink-0 rounded-[10px] border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              className="ml-auto shrink-0 rounded-xl border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
             >
               connect
             </button>
           </div>
         ) : null}
         {mode === "chat" && (
-          <p className="border-b border-border bg-white px-4 py-2 text-xs italic text-muted">
+          <p className="border-b border-surface-border bg-card px-4 py-2 text-xs italic text-muted-foreground">
             Not saved — this conversation is gone when you refresh, and nothing here changes the
             project.
           </p>
@@ -425,7 +426,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
           {mode === "chat" ? (
             <>
               {chat.length === 0 && (
-                <p className="text-sm text-muted">
+                <p className="text-sm text-muted-foreground">
                   Ask about this project — the local model answers here.
                 </p>
               )}
@@ -434,8 +435,8 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                   key={i}
                   className={
                     message.role === "you"
-                      ? "ml-8 rounded-[10px] bg-secondary px-3 py-2 text-sm text-dash-ink"
-                      : "mr-8 rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-dash-ink"
+                      ? "ml-8 rounded-xl bg-secondary px-3 py-2 text-sm text-foreground"
+                      : "mr-8 rounded-xl border border-surface-border bg-card px-3 py-2 text-sm text-foreground"
                   }
                 >
                   {/* whitespace-pre-wrap: the reply is the model's own prose,
@@ -444,13 +445,13 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                   <p className="whitespace-pre-wrap break-words">{message.text}</p>
                 </div>
               ))}
-              {busy && <p className="font-mono text-xs text-muted">thinking…</p>}
+              {busy && <p className="font-mono text-xs text-muted-foreground">thinking…</p>}
               <div ref={logEndRef} />
             </>
           ) : (
             <>
           {detail.comments.length === 0 && (
-            <p className="text-sm text-muted">No comments yet — anything you type that isn&apos;t a command above is recorded here.</p>
+            <p className="text-sm text-muted-foreground">No comments yet — anything you type that isn&apos;t a command above is recorded here.</p>
           )}
           {detail.comments.map((comment) => {
             // Mirrors the backend's rule (author, or super_admin) so the
@@ -459,19 +460,19 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             const canRemove =
               user?.role === "super_admin" || (user?.id != null && user.id === comment.authorId);
             return (
-            <div key={comment.id} className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm">
+            <div key={comment.id} className="rounded-xl border border-surface-border bg-card px-3 py-2 text-sm">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-semibold text-dash-ink">{comment.authorName}</span>
-                <span className="shrink-0 text-xs text-muted">{new Date(comment.createdAt).toLocaleString()}</span>
+                <span className="font-semibold text-foreground">{comment.authorName}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString()}</span>
               </div>
-              <p className="mt-1 text-dash-ink">{comment.body}</p>
+              <p className="mt-1 text-foreground">{comment.body}</p>
               {canRemove && (
                 <div className="mt-1.5 flex justify-end gap-2">
                   {confirming === comment.id && (
                     <button
                       type="button"
                       onClick={() => setConfirming(null)}
-                      className="text-xs font-semibold text-muted hover:text-dash-ink"
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground"
                     >
                       Cancel
                     </button>
@@ -483,7 +484,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                     className={`text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       confirming === comment.id
                         ? "text-rose-600 hover:text-rose-700"
-                        : "text-muted hover:text-rose-600"
+                        : "text-muted-foreground hover:text-rose-600"
                     }`}
                   >
                     {confirming === comment.id ? "Really remove" : "Remove"}
@@ -513,13 +514,13 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             and answered as a question, which is not what pressing one looks
             like it will do. */}
         {mode === "thread" && suggestions.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border px-4 py-2">
+          <div className="flex flex-wrap gap-1.5 border-t border-surface-border px-4 py-2">
             {suggestions.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setText(s)}
-                className="rounded-[10px] border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-primary hover:text-foreground"
+                className="rounded-xl border border-surface-border px-2.5 py-1 font-mono text-xs text-muted-foreground hover:border-primary hover:text-foreground"
               >
                 {s}
               </button>
@@ -528,12 +529,12 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
         )}
 
         {mode === "thread" && meta && !isPlanTab && (
-          <p className="border-t border-border bg-white px-4 py-2 text-xs italic text-muted">
+          <p className="border-t border-surface-border bg-card px-4 py-2 text-xs italic text-muted-foreground">
             Read only here — a comment is recorded, but nothing on this tab is changed by it.
           </p>
         )}
 
-        <form onSubmit={(e) => void handleSend(e)} className="flex items-end gap-2 border-t border-border bg-white p-3">
+        <form onSubmit={(e) => void handleSend(e)} className="flex items-end gap-2 border-t border-surface-border bg-card p-3">
           <textarea
             ref={textareaRef}
             value={text}
@@ -551,28 +552,28 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                 : "Type a command (see suggestions above), or leave a comment…"
             }
             rows={1}
-            className={`${inputBaseClass} no-scrollbar min-h-[67px] max-h-[120px] flex-1 resize-none overflow-y-auto`}
+            className={`${textareaBaseClass} no-scrollbar min-h-[67px] max-h-[120px] flex-1 resize-none overflow-y-auto`}
           />
           {/* A local model reading real source can think for a minute or
               two. Stop aborts the request, same as the analysis panel's
               own — the subprocess is left to the backend's timeout, and the
               note says only what actually happened here. */}
           {mode === "chat" && busy ? (
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => abortRef.current?.abort()}
-              className="rounded-[10px] border border-border px-3.5 py-2 text-sm font-semibold text-muted transition-colors hover:border-primary hover:text-foreground"
+              className="text-muted-foreground"
             >
               Stop
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="submit"
               disabled={busy || !text.trim()}
-              className="rounded-[10px] bg-primary px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
-            </button>
+            </Button>
           )}
         </form>
       </div>

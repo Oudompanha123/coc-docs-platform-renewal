@@ -32,6 +32,15 @@ const pretendard = localFont({
   display: "swap",
 });
 
+/** Heading face — Cal Sans SemiBold, from the coc-docs design system
+ *  (`.claude/skills/coc-docs/fonts/`, SIL OFL). Applied to h1/h2 through
+ *  `--font-heading` in globals.css; body text stays Inter. */
+const calSans = localFont({
+  src: [{ path: "../public/fonts/cal-sans/CalSans-SemiBold.woff2", weight: "600", style: "normal" }],
+  variable: "--font-cal-sans",
+  display: "swap",
+});
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const SITE_NAME = "Coc Docs Platform";
 const SITE_DESCRIPTION = "Internal documentation platform for Coc Docs Platform.";
@@ -85,7 +94,7 @@ export default function RootLayout({
     // never its descendants. A real mismatch inside the app still reports.
     <html
       lang="en"
-      className={`${inter.variable} ${pretendard.variable}`}
+      className={`${inter.variable} ${pretendard.variable} ${calSans.variable}`}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased" suppressHydrationWarning>

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { pickOption } from "@/components/ui/select.test-utils";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,7 +85,7 @@ describe("AnnouncementExpiryField", () => {
 
     const chosen = onValue.mock.calls.at(-1)?.[0] as string;
     expect(splitExpiry(chosen)).toEqual({ date: "2026-10-14", time: "14:30" });
-    expect(screen.getByLabelText("Expiry time")).toHaveValue("14:30");
+    expect(screen.getByRole("combobox", { name: "Expiry time" })).toHaveTextContent("14:30");
     expect(screen.getByText(/Members stop seeing it on/)).toHaveTextContent("in 7 days");
   });
 
@@ -107,7 +108,7 @@ describe("AnnouncementExpiryField", () => {
     // Today, 18:00 is still ahead; 09:00 is behind.
     render(<ExpiryHarness initial={new Date(2026, 9, 7, 18, 0).toISOString()} />);
 
-    await newUser().selectOptions(screen.getByLabelText("Expiry time"), "09:00");
+    await pickOption(newUser(), "Expiry time", "09:00");
 
     expect(screen.getByRole("alert")).toHaveTextContent("That time has already passed");
   });

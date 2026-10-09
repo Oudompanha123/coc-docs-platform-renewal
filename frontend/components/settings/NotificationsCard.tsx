@@ -96,29 +96,29 @@ export function NotificationsCard() {
   }
 
   if (state.status === "loading") {
-    return <p className="py-3.5 text-sm text-muted">Loading…</p>;
+    return <p className="py-3 text-sm text-muted-foreground">Loading…</p>;
   }
 
   if (state.status === "error") {
-    return <p className="py-3.5 text-xs font-semibold text-[#c94040]">{state.message}</p>;
+    return <p className="py-3 text-xs font-medium text-destructive">{state.message}</p>;
   }
 
   return (
     <div>
-      {saveError && <p className="pb-2 text-xs font-semibold text-[#c94040]">{saveError}</p>}
-      <div className="divide-y divide-border">
+      {saveError && <p className="pb-2 text-xs font-medium text-destructive">{saveError}</p>}
+      <div className="divide-y divide-surface-border">
         {state.items.map((pref) => {
           const Icon = ROW_ICONS[pref.type] ?? BellIcon;
           const busy = pending.has(pref.type);
           return (
-            <div key={pref.type} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+            <div key={pref.type} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
-                  <Icon className="h-4 w-4" />
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+                  <Icon className="size-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-dash-ink">{pref.label}</p>
-                  <p className="text-xs text-muted">{pref.description}</p>
+                  <p className="text-sm font-medium text-foreground">{pref.label}</p>
+                  <p className="text-xs text-muted-foreground">{pref.description}</p>
                 </div>
               </div>
               {/* role="switch" — a Switch primitive, which ADR-104 §2.5 puts

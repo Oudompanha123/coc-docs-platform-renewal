@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DocumentIcon, LayersIcon, PulseIcon, SparklesIcon } from "@/components/layout/icons";
 import { ShieldIcon } from "@/components/auth/icons";
+import { Button } from "@/components/ui/button";
 
 type FeatureCard = {
   icon: React.ComponentType<{ className?: string }>;
@@ -40,40 +41,37 @@ export default function DocsOverviewPage() {
   return (
     <div>
       <div className="animate-entrance text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
-          <DocumentIcon className="h-8 w-8" />
+        <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <DocumentIcon className="size-6" />
         </div>
-        <h1 className="mt-6 text-4xl font-extrabold text-ink">Coc Docs Platform</h1>
-        <p className="mt-3 text-lg font-medium text-ink">Documentation, organized for your whole team.</p>
-        <p className="mt-1 text-sm text-muted">One platform. Every workspace.</p>
-        <Link
-          href="/register"
-          className="mt-7 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-        >
-          Get started
-        </Link>
+        <h1 className="mt-5 text-3xl font-bold tracking-tight text-foreground">Coc Docs Platform</h1>
+        <p className="mt-2 text-base font-medium text-foreground">Documentation, organized for your whole team.</p>
+        <p className="mt-1 text-sm text-muted-foreground">One platform. Every workspace.</p>
+        <Button asChild className="mt-6">
+          <Link href="/register">Get started</Link>
+        </Button>
       </div>
 
-      <div className="animate-entrance mt-16 [animation-delay:120ms]">
+      <div className="animate-entrance mt-12 [animation-delay:120ms]">
         <p className="text-center text-sm font-semibold text-foreground">Overview</p>
-        <h2 className="mt-1 text-center text-2xl font-bold text-ink">
+        <h2 className="mt-1 text-center text-xl font-semibold text-foreground">
           Everything your team&apos;s docs need, in one place.
         </h2>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {FEATURES.map((feature, i) => {
             const Icon = feature.icon;
             return (
               <div
                 key={feature.title}
-                className="animate-entrance rounded-[10px] border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
+                className="animate-entrance rounded-xl border border-surface-border bg-card p-4 transition-colors duration-200 hover:bg-accent/40"
                 style={{ animationDelay: `${180 + i * 60}ms` }}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
-                  <Icon className="h-5 w-5" />
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Icon className="size-4" />
                 </div>
-                <h3 className="mt-3 text-base font-semibold text-ink">{feature.title}</h3>
-                <p className="mt-1 text-sm text-muted">{feature.description}</p>
+                <h3 className="mt-3 text-sm font-semibold text-foreground">{feature.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{feature.description}</p>
               </div>
             );
           })}

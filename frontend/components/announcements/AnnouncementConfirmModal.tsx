@@ -50,12 +50,12 @@ export function AnnouncementConfirmModal({
   const copy = COPY[action];
   return (
     <Modal title={copy.title} onClose={busy ? () => {} : onClose}>
-      <p className="rounded-[10px] border border-border bg-page px-3 py-2.5 text-sm font-semibold text-dash-ink">
+      <p className="rounded-xl border border-surface-border bg-muted-surface px-3 py-2.5 text-sm font-semibold text-foreground">
         {title}
       </p>
-      <p className="mt-3 text-sm text-muted">{copy.body}</p>
+      <p className="mt-3 text-sm text-muted-foreground">{copy.body}</p>
       {error && (
-        <p role="alert" className="mt-3 rounded-[10px] border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <p role="alert" className="mt-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
         </p>
       )}
@@ -64,7 +64,7 @@ export function AnnouncementConfirmModal({
           type="button"
           onClick={onClose}
           disabled={busy}
-          className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:opacity-50"
+          className="rounded-control border border-surface-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent disabled:opacity-50"
         >
           Cancel
         </button>
@@ -72,7 +72,7 @@ export function AnnouncementConfirmModal({
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
             copy.danger ? "bg-danger" : "bg-primary"
           }`}
         >

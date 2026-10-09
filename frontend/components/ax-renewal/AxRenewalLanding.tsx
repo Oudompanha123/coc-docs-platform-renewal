@@ -37,42 +37,42 @@ const STEPS = [
 export function AxRenewalLanding({ children }: { children: ReactNode }) {
   return (
     <div className="break-words">
-      <div className="rounded-[10px] border border-border bg-page p-8 text-center shadow-sm sm:p-12">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
-          <RenewIcon className="h-8 w-8" />
+      <div className="rounded-xl border border-surface-border bg-card p-6 text-center sm:p-8">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <RenewIcon className="h-6 w-6" />
         </span>
-        <h1 className="mt-4 text-3xl font-extrabold text-dash-ink">Plan a legacy-code renewal</h1>
-        <p className="mt-3 text-lg font-medium text-dash-ink">
+        <h1 className="mt-4 text-2xl font-semibold text-foreground">Plan a legacy-code renewal</h1>
+        <p className="mt-2 text-base font-medium text-foreground">
           Attach an existing codebase and see what a migration would involve.
         </p>
-        <p className="mx-auto mt-1 max-w-md text-sm text-muted">
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
           Agree the plan section by section, and record the sign-off before anything is built.
         </p>
-        <div className="mx-auto mt-7 max-w-xl">{children}</div>
+        <div className="mx-auto mt-6 max-w-xl">{children}</div>
       </div>
 
       <div className="mt-6">
         <p className="text-center">
-          <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
+          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground">
             How it works
           </span>
         </p>
-        <h2 className="mt-1 text-center text-2xl font-bold text-dash-ink">Attach, analyze, plan, build.</h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
+        <h2 className="mt-2 text-center text-xl font-semibold text-foreground">Attach, analyze, plan, build.</h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-sm text-muted-foreground">
           Nothing moves to the next stage until it&rsquo;s been agreed — no surprises once implementation starts.
         </p>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {STEPS.map((step, i) => (
-            <div key={step.title} className="rounded-[10px] border border-border bg-page p-5 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary text-white">
-                <step.icon className="h-5 w-5" />
+            <div key={step.title} className="rounded-xl border border-surface-border bg-card p-4">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-primary text-primary-foreground">
+                <step.icon className="h-4 w-4" />
               </div>
-              <h3 className="mt-3 text-base font-semibold text-dash-ink">
-                <span className="text-muted">Step {i + 1} · </span>
+              <h3 className="mt-3 text-sm font-semibold text-foreground">
+                <span className="text-muted-foreground">Step {i + 1} · </span>
                 {step.title}
               </h3>
-              <p className="mt-1 text-sm text-muted">{step.description}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
             </div>
           ))}
         </div>

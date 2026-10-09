@@ -116,19 +116,19 @@ export default function AccountSettingsPage() {
   }, [loadHrmsLink]);
 
   return (
-    <div data-shell="home" className="min-h-screen bg-white">
+    <div data-shell="home" className="min-h-screen bg-background">
       <MemberHeader products={productStats.status === "ready" ? productStats.products : []} />
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-5xl px-6 py-8">
         <div className="animate-entrance">
-          <p className="text-sm text-muted">
-            Account / <span className="font-semibold text-ink">Settings</span>
+          <p className="text-sm text-muted-foreground">
+            Account / <span className="font-semibold text-foreground">Settings</span>
           </p>
-          <h1 className="mt-1 text-3xl font-extrabold text-ink">Settings</h1>
-          <p className="mt-1 text-sm text-muted">Manage your account, appearance, and notifications.</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your account, appearance, and notifications.</p>
         </div>
 
-        <div className="mt-8 flex flex-col gap-[18px] md:flex-row md:items-start">
+        <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-start">
           <SettingsSideMenu active={active} onActivate={activate} />
 
           <div ref={contentRef} data-testid="settings-content" className="min-w-0 flex-1">

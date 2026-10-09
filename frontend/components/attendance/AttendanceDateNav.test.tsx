@@ -26,8 +26,7 @@ describe("AttendanceDateNav", () => {
 
     expect(todayButton()).toHaveTextContent("Today");
     expect(todayButton()).toHaveAttribute("aria-pressed", "true");
-    expect(todayButton().className).toContain("bg-secondary");
-    expect(todayButton().className).toContain("text-foreground");
+    expect(todayButton()).toHaveClass("bg-secondary", "text-foreground");
   });
 
   it("shows the selected date's short label and neutral style, same as Previous/Next, when it is not today", () => {
@@ -36,12 +35,12 @@ describe("AttendanceDateNav", () => {
     const today = todayButton();
     expect(today).toHaveTextContent("Tue, 22 Sep");
     expect(today).toHaveAttribute("aria-pressed", "false");
-    expect(today.className).not.toContain("bg-secondary");
-    expect(today.className).not.toContain("text-foreground");
+    // Whole-token checks: `hover:text-foreground` must not count as the
+    // active state's resting `text-foreground`.
+    expect(today).not.toHaveClass("bg-secondary");
+    expect(today).not.toHaveClass("text-foreground");
     // The exact neutral classes Previous/Next already use.
-    expect(today.className).toContain("text-muted");
-    expect(today.className).toContain("hover:bg-page");
-    expect(today.className).toContain("hover:text-dash-ink");
+    expect(today).toHaveClass("text-muted-foreground", "hover:bg-accent", "hover:text-foreground");
   });
 
   it("is compared by local calendar date only, ignoring time of day", () => {

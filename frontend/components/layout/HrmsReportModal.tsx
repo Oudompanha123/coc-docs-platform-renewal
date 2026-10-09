@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { XIcon } from "./icons";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   fetchHrmsReport,
   type HrmsAttendanceCheck,
@@ -18,7 +21,7 @@ import {
  * report into a parent that outlives the dialog.
  *
  * <p>Built on this product's own dialog shell — the `bg-card` /
- * `border-border` / `text-dash-ink` card every other modal here uses — rather
+ * `border-surface-border` / `text-foreground` card every other modal here uses — rather
  * than a palette of its own. That matters beyond consistency: `globals.css`
  * defines its dark-mode overrides per class, so a card pinned to a literal
  * `bg-[#1e2128]` would be the one dialog in the product that ignores the
@@ -78,33 +81,33 @@ export function HrmsReportModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-card text-dash-ink shadow-xl"
+        className="w-full max-w-3xl overflow-hidden rounded-xl border border-surface-border bg-card text-foreground shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-surface-border px-5 py-4">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-dash-ink">{item.summary}</p>
-            <p className="mt-0.5 text-xs text-muted">
+            <p className="truncate text-base font-semibold text-foreground">{item.summary}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               HRMS KOSIGN{report?.reportDate ? ` · ${report.reportDate}` : ""}
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:bg-page hover:text-dash-ink"
+            className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-            </svg>
-          </button>
+            <XIcon className="size-4" />
+          </Button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+        <div className="max-h-[70vh] overflow-y-auto p-5">
           {error ? (
-            <p className="py-10 text-center text-sm text-muted">{error}</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{error}</p>
           ) : !report ? (
-            <p className="py-10 text-center text-sm text-muted">Reading the report…</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">Reading the report…</p>
           ) : report.rows.length === 0 && report.details.length === 0 ? (
             // Three different causes of "no rows", and they are not
             // interchangeable:
@@ -119,7 +122,7 @@ export function HrmsReportModal({
             //               means the parser lost. Told apart from "nobody was
             //               late" on purpose: a confident empty table would
             //               read as a clean day.
-            <p className="py-10 text-center text-sm text-muted">
+            <p className="py-8 text-center text-sm text-muted-foreground">
               {report.scopedToViewer
                 ? "No attendance for you in this report."
                 : "This report could not be read — HRMS may have changed its layout."}
@@ -127,7 +130,7 @@ export function HrmsReportModal({
           ) : (
             <>
               {report.department && (
-                <p className="mb-3 list-item list-inside list-disc text-sm font-semibold text-emerald-700">
+                <p className="mb-3 list-item list-inside list-disc text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                   {report.department}
                 </p>
               )}
@@ -141,44 +144,46 @@ export function HrmsReportModal({
                 <dl className="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-6 gap-y-2.5 text-sm">
                   {report.details.map((detail, i) => (
                     <div key={`${detail.label}-${i}`} className="contents">
-                      <dt className="text-muted">{detail.label}</dt>
-                      <dd className="text-dash-ink">{detail.value || "—"}</dd>
+                      <dt className="text-muted-foreground">{detail.label}</dt>
+                      <dd className="text-foreground">{detail.value || "—"}</dd>
                     </div>
                   ))}
                 </dl>
               )}
               {report.rows.length > 0 && (
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-border text-left text-muted">
-                    <th className="py-2 pr-3 font-medium">Name</th>
-                    <th className="py-2 pr-3 font-medium">Yesterday Check-Out</th>
-                    <th className="py-2 font-medium">Today Check-In</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.rows.map((row, i) => (
-                    // Index-keyed: the mail carries no id per person, and two
-                    // people can share a name. The list never reorders, so an
-                    // index is stable for as long as this dialog is open.
-                    <tr key={`${row.name}-${i}`} className="border-b border-border last:border-0">
-                      <td className="py-2.5 pr-3 align-top text-dash-ink">{row.name}</td>
-                      <td className="py-2.5 pr-3 align-top">
-                        <Check check={row.yesterdayCheckOut} />
-                      </td>
-                      <td className="py-2.5 align-top">
-                        <Check check={row.todayCheckIn} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Name</TableHead>
+                        <TableHead>Yesterday Check-Out</TableHead>
+                        <TableHead>Today Check-In</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.rows.map((row, i) => (
+                        // Index-keyed: the mail carries no id per person, and two
+                        // people can share a name. The list never reorders, so an
+                        // index is stable for as long as this dialog is open.
+                        <TableRow key={`${row.name}-${i}`}>
+                          <TableCell className="py-2 align-top text-foreground">{row.name}</TableCell>
+                          <TableCell className="py-2 align-top">
+                            <Check check={row.yesterdayCheckOut} />
+                          </TableCell>
+                          <TableCell className="py-2 align-top">
+                            <Check check={row.todayCheckIn} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
 
               {/* Kept because it stops being obvious once the mail is read
                   somewhere that has no Reply button to not press. */}
               {report.note && (
-                <p className="mt-5 border-t border-border pt-3 text-[11px] text-muted">{report.note}</p>
+                <p className="mt-4 border-t border-surface-border pt-3 text-[11px] text-muted-foreground">{report.note}</p>
               )}
             </>
           )}
@@ -199,9 +204,9 @@ export function HrmsReportModal({
  */
 function statusClass(status: string): string {
   const s = status.toLowerCase();
-  if (s.includes("missed")) return "text-red-600";
-  if (s.includes("late")) return "text-emerald-600";
-  return "text-dash-ink";
+  if (s.includes("missed")) return "text-red-600 dark:text-red-400";
+  if (s.includes("late")) return "text-emerald-600 dark:text-emerald-400";
+  return "text-foreground";
 }
 
 /** One cell: the scheduled time as a pill, the arrow, what happened, and the status. */
@@ -213,8 +218,8 @@ function Check({ check }: { check: HrmsAttendanceCheck }) {
       )}
       {check.actual && (
         <>
-          <span className="text-muted">-&gt;</span>
-          <span className="text-dash-ink">{check.actual}</span>
+          <span className="text-muted-foreground">-&gt;</span>
+          <span className="text-foreground">{check.actual}</span>
         </>
       )}
       {check.status && <span className={`ml-1 ${statusClass(check.status)}`}>{check.status}</span>}

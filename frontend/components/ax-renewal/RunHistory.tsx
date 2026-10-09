@@ -22,7 +22,7 @@ function statusTone(status: string): string {
     return "bg-secondary text-foreground";
   }
   // cancelled, rejected, reverted: a deliberate stop, not a fault.
-  return "bg-page text-muted";
+  return "bg-muted-surface text-muted-foreground";
 }
 
 /** "45s", "12 min", "1h 5m" — or null while the run has not finished. */
@@ -67,18 +67,18 @@ export function RunHistory({ projectId, refreshKey }: { projectId: string; refre
   }, [projectId, refreshKey]);
 
   return (
-    <section aria-label="Run history" className="mt-6 border-t border-border pt-5">
-      <h4 className="text-sm font-bold text-dash-ink">History</h4>
-      <p className="mt-1 text-xs text-muted">Every build, error fix and UI change on this project, newest first.</p>
+    <section aria-label="Run history" className="mt-6 border-t border-surface-border pt-5">
+      <h4 className="text-sm font-semibold text-foreground">History</h4>
+      <p className="mt-1 text-xs text-muted-foreground">Every build, error fix and UI change on this project, newest first.</p>
 
-      {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
-      {!error && runs === null && <p className="mt-3 text-xs text-muted">Loading…</p>}
+      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+      {!error && runs === null && <p className="mt-3 text-xs text-muted-foreground">Loading…</p>}
       {!error && runs !== null && runs.length === 0 && (
-        <p className="mt-3 text-xs text-muted">No runs yet — the first build will appear here.</p>
+        <p className="mt-3 text-xs text-muted-foreground">No runs yet — the first build will appear here.</p>
       )}
 
       {runs !== null && runs.length > 0 && (
-        <ul className="mt-3 divide-y divide-border rounded-[5px] border border-border">
+        <ul className="mt-3 divide-y divide-surface-border rounded-lg border border-surface-border">
           {runs.map((run) => (
             <RunRow
               key={run.id}
@@ -136,26 +136,26 @@ function RunRow({
       >
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-dash-ink">{KIND_LABEL[run.runKind] ?? run.runKind}</span>
+            <span className="text-sm font-semibold text-foreground">{KIND_LABEL[run.runKind] ?? run.runKind}</span>
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${statusTone(run.status)}`}>
               {run.status.replace(/_/g, " ")}
             </span>
           </span>
-          <span className="mt-0.5 block text-xs text-muted">
+          <span className="mt-0.5 block text-xs text-muted-foreground">
             {run.startedByName ? `Started by ${run.startedByName} · ` : ""}
             {new Date(run.startedAt).toLocaleString()}
             {duration ? ` · took ${duration}` : run.completedAt ? "" : " · in progress"}
             {` · ${run.changedFiles === 1 ? "1 file" : `${run.changedFiles} files`}`}
           </span>
           {run.instruction && (
-            <span className={`mt-1 block whitespace-pre-wrap break-words text-xs text-muted ${open ? "" : "line-clamp-2"}`}>
+            <span className={`mt-1 block whitespace-pre-wrap break-words text-xs text-muted-foreground ${open ? "" : "line-clamp-2"}`}>
               {run.runKind === "error_fix" ? "Fixing: " : "Requested: "}
               {run.instruction}
             </span>
           )}
           {run.failureReason && <span className="mt-1 block text-xs text-danger">{run.failureReason}</span>}
         </span>
-        <span aria-hidden="true" className="shrink-0 text-xs text-muted">
+        <span aria-hidden="true" className="shrink-0 text-xs text-muted-foreground">
           {open ? "Hide" : "Details"}
         </span>
       </button>
@@ -163,16 +163,16 @@ function RunRow({
       {open && (
         <div className="mt-2 pl-1">
           {run.changedFiles === 0 ? (
-            <p className="text-xs text-muted">This run proposed no file changes.</p>
+            <p className="text-xs text-muted-foreground">This run proposed no file changes.</p>
           ) : filesError ? (
             <p role="alert" className="text-xs font-medium text-danger">{filesError}</p>
           ) : files === null ? (
-            <p className="text-xs text-muted">Loading files…</p>
+            <p className="text-xs text-muted-foreground">Loading files…</p>
           ) : (
             <ul aria-label="Changed files" className="space-y-0.5">
               {files.map((f) => (
-                <li key={f.path} className="flex items-center gap-2 font-mono text-xs text-dash-ink">
-                  <span className="w-14 shrink-0 font-sans text-[11px] font-semibold uppercase text-muted">{f.changeKind}</span>
+                <li key={f.path} className="flex items-center gap-2 font-mono text-xs text-foreground">
+                  <span className="w-14 shrink-0 font-sans text-[11px] font-semibold uppercase text-muted-foreground">{f.changeKind}</span>
                   <span className="truncate">{f.path}</span>
                 </li>
               ))}

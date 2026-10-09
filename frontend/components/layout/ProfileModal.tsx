@@ -94,7 +94,7 @@ export function ProfileModal({
   return (
     <Modal
       onClose={onClose}
-      className="relative w-full max-w-md rounded-xl border border-border bg-card pb-5 shadow-xl"
+      className="relative w-full max-w-md rounded-xl border border-surface-border bg-card pb-5 shadow-xl"
     >
       {/* Avatar straddles the card's top edge (half above, half inside), so
           it reads as a floating profile photo rather than boxed inside the
@@ -105,7 +105,7 @@ export function ProfileModal({
           the identity provider's picture — signing in with Google no longer
           overwrites it. Remove it to go back to that provider picture (or
           initials, absent one). */}
-      <div className="relative flex flex-col items-center border-b border-border px-5 pb-4 pt-14">
+      <div className="relative flex flex-col items-center border-b border-surface-border px-5 pb-4 pt-12">
         <label
           className={`group flex flex-col items-center ${avatarBusy ? "cursor-wait" : "cursor-pointer"}`}
         >
@@ -116,14 +116,14 @@ export function ProfileModal({
               avatarUrl={user?.avatarUrl ?? null}
               initials={initials}
               name={user?.displayName ?? ""}
-              className={`h-24 w-24 text-2xl shadow-lg ring-4 ring-ring/40 ring-offset-2 ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
+              className={`size-20 text-xl ring-4 ring-card ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
             />
             <span
               className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
                 avatarBusy ? "opacity-100" : "opacity-0 group-hover:opacity-100"
               }`}
             >
-              <CameraIcon className="h-7 w-7 text-white" />
+              <CameraIcon className="size-6 text-white" />
             </span>
           </div>
           <span className="mt-1.5 text-xs font-medium text-foreground underline-offset-2 group-hover:underline">
@@ -143,55 +143,55 @@ export function ProfileModal({
             type="button"
             onClick={() => void handleRemoveAvatar()}
             disabled={avatarBusy}
-            className="mt-0.5 text-xs text-muted underline-offset-2 hover:text-danger hover:underline disabled:cursor-not-allowed"
+            className="mt-0.5 text-xs text-muted-foreground underline-offset-2 hover:text-danger hover:underline disabled:cursor-not-allowed"
           >
             Remove photo
           </button>
         )}
         {avatarError && <p className="mt-1 text-xs text-danger">{avatarError}</p>}
-        <h2 className="mt-2 text-base font-bold text-dash-ink">{user?.displayName ?? "Profile"}</h2>
+        <h2 className="mt-2 text-base font-semibold text-foreground">{user?.displayName ?? "Profile"}</h2>
       </div>
 
       {/* The avatar header above and the Close row below are both fixed
           parts of the modal — only the details scroll. Display name,
           password and notifications are edited on the Settings pages, not
           here, so this popup is read-only apart from the photo. */}
-      <div className="no-scrollbar-arrows max-h-[60vh] overflow-y-auto px-5 pt-5">
+      <div className="no-scrollbar-arrows max-h-[60vh] overflow-y-auto px-5 pt-4">
         {/* Read-only details */}
         <dl className="space-y-3 text-sm">
           <div className="flex items-start justify-between gap-4">
-            <dt className="text-muted">Email</dt>
-            <dd className="min-w-0 break-all text-right font-medium text-dash-ink">
+            <dt className="text-muted-foreground">Email</dt>
+            <dd className="min-w-0 break-all text-right font-medium text-foreground">
               {user?.email ?? "—"}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Current role</dt>
+            <dt className="text-muted-foreground">Current role</dt>
             <dd>{user?.role ? <RoleBadge role={user.role.toLowerCase() as AccountRole} /> : "—"}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Status</dt>
+            <dt className="text-muted-foreground">Status</dt>
             <dd>
               <StatusBadge status="active" />
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Last sign-in</dt>
-            <dd className="font-medium text-dash-ink">{formatWhen(user?.lastSignInAt ?? null)}</dd>
+            <dt className="text-muted-foreground">Last sign-in</dt>
+            <dd className="font-medium text-foreground">{formatWhen(user?.lastSignInAt ?? null)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Created</dt>
-            <dd className="font-medium text-dash-ink">{formatWhen(user?.createdAt ?? null)}</dd>
+            <dt className="text-muted-foreground">Created</dt>
+            <dd className="font-medium text-foreground">{formatWhen(user?.createdAt ?? null)}</dd>
           </div>
         </dl>
       </div>
 
       {/* Outside the scroll region on purpose, so Close stays in view. */}
-      <div className="mt-5 flex justify-end gap-2 px-5">
+      <div className="mt-4 flex justify-end gap-2 px-5">
         <Link
           href={editHref}
           onClick={onClose}
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+          className="rounded-control bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >
           Edit Profile
         </Link>

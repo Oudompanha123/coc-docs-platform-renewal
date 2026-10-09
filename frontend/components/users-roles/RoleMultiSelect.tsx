@@ -32,7 +32,7 @@ export function RoleMultiSelect({
 
   return (
     <div>
-      <div className="space-y-2 rounded-xl border border-border p-3">
+      <div className="space-y-2 rounded-xl border border-surface-border p-3">
         {ROLE_ORDER.map((role) => {
           const id = `${idPrefix}-${role}`;
           return (
@@ -50,15 +50,15 @@ export function RoleMultiSelect({
                 className="mt-0.5"
               />
               <span className="min-w-0">
-                <span className="text-sm font-medium text-dash-ink">{ROLE_LABELS[role]}</span>
-                <span className="block text-xs text-muted">{ROLE_HINTS[role]}</span>
+                <span className="text-sm font-medium text-foreground">{ROLE_LABELS[role]}</span>
+                <span className="block text-xs text-muted-foreground">{ROLE_HINTS[role]}</span>
               </span>
             </label>
           );
         })}
       </div>
       {collapseToHighest && (
-        <p className="mt-1.5 text-xs text-muted">
+        <p className="mt-1.5 text-xs text-muted-foreground">
           {selected.length <= 1
             ? `Saves as ${ROLE_LABELS[highestEnforcedRole(selected)]}.`
             : `Saves as ${ROLE_LABELS[highestEnforcedRole(selected)]} (creating an account only takes the highest of the roles checked above).`}

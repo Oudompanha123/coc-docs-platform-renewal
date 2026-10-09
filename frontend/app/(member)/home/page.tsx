@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { ShieldIcon } from "@/components/auth/icons";
 import { MemberHeader } from "@/components/home/MemberHeader";
 import { ProductGlanceCard } from "@/components/home/ProductGlanceCard";
@@ -45,16 +46,16 @@ export default function MemberHomePage() {
   const notWritten = productStats.status === "ready" ? totalNotWritten(productStats.stats) : 0;
 
   return (
-    <div data-shell="home" className="min-h-screen bg-white">
+    <div data-shell="home" className="min-h-screen bg-background">
       <MemberHeader
         products={productStats.status === "ready" ? productStats.products : []}
         onOpenProfile={() => setShowProfile(true)}
       />
 
       <main>
-        <section className="px-6 pb-16 pt-16 sm:pt-20">
+        <section className="px-6 pb-12 pt-12 sm:pt-16">
           <div className="animate-entrance mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
               {productStats.status === "loading"
                 ? "Loading your workspace…"
                 : productStats.status === "error"
@@ -65,7 +66,7 @@ export default function MemberHomePage() {
             </span>
 
             {productStats.status === "error" && (
-              <p className="mt-2 text-xs font-semibold text-[#c94040]">
+              <p className="mt-2 text-xs font-medium text-destructive">
                 {productStats.message}{" "}
                 <button type="button" onClick={productStats.refetch} className="underline">
                   Try again
@@ -73,44 +74,40 @@ export default function MemberHomePage() {
               </p>
             )}
 
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               {`Pick up where you left off, ${firstName}.`}
             </h1>
 
-            <p className="mx-auto mt-5 max-w-xl text-base text-muted sm:text-lg">
+            <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
               {attention
                 ? `${attention.label} needs the most attention right now — pick up where the team left off.`
                 : "Every product is fully documented. Browse what your team has written so far."}
             </p>
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href={attention ? productHref(attention.key) : "#products"}
-                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-              >
-                {attention ? `Continue with ${attention.label}` : "Browse all products"}
-              </Link>
-              <Link
-                href="#products"
-                className="inline-flex items-center justify-center rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-ink shadow-sm transition-all duration-150 hover:bg-page active:scale-[0.97]"
-              >
-                Browse all products
-              </Link>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button asChild size="lg">
+                <Link href={attention ? productHref(attention.key) : "#products"}>
+                  {attention ? `Continue with ${attention.label}` : "Browse all products"}
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="#products">Browse all products</Link>
+              </Button>
             </div>
           </div>
 
-          <div className="animate-entrance relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-xl border border-border bg-white shadow-2xl [animation-delay:120ms]">
-            <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5">
+          <div className="animate-entrance relative mx-auto mt-12 max-w-5xl overflow-hidden rounded-xl border border-surface-border bg-card [animation-delay:120ms]">
+            <div className="flex items-center gap-1.5 border-b border-surface-border px-4 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
             </div>
             {/* No entrance animation on this pane itself — it's a flat
-                bg-page rectangle with no border/shadow of its own, so a
+                bg-muted-surface rectangle with no border/shadow of its own, so a
                 slide+fade here has no visible edge to move and reads as
                 nothing happening. The frame above and the two content
                 groups below carry the visible motion instead. */}
-            <div className="bg-page p-4 sm:p-6">
+            <div className="bg-muted-surface p-4 sm:p-5">
               {productStats.status === "ready" && (
                 <>
                   {/* Staggered per-section entrance, not one flat block —
@@ -141,22 +138,22 @@ export default function MemberHomePage() {
           <ProductsStrip products={productStats.products} stats={productStats.stats} />
         )}
 
-        <section className="mx-auto max-w-5xl px-6 py-20">
+        <section className="mx-auto max-w-5xl px-6 py-16">
           <ScrollReveal>
-            <h2 className="text-center text-2xl font-semibold tracking-tight text-ink">Everything you need, in one place.</h2>
-            <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
+            <h2 className="text-center text-2xl font-semibold tracking-tight text-foreground">Everything you need, in one place.</h2>
+            <p className="mx-auto mt-2 max-w-xl text-center text-base text-muted-foreground">
               Your documents and your open tasks.
             </p>
           </ScrollReveal>
 
-          <ScrollReveal delayMs={80} className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ScrollReveal delayMs={80} className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <RecentDocumentsPanel docs={productStats.status === "ready" ? productStats.recentDocs : null} />
             <TasksPanel tasks={tasks} />
           </ScrollReveal>
         </section>
 
-        <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+        <section className="px-6 pb-16">
+          <ScrollReveal className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-12 text-center sm:px-16">
             {/* Scrim: the photo is bright enough that white text needs a dark
                 layer under it to stay legible, same "decorative absolute div
                 painted before the relative-positioned copy" pattern /welcome's
@@ -169,31 +166,25 @@ export default function MemberHomePage() {
                     ? `${notWritten} document${notWritten === 1 ? "" : "s"} still need${notWritten === 1 ? "s" : ""} writing.`
                     : "Keep your knowledge base up to date."}
                 </h2>
-                <p className="relative mt-3 text-sm text-sidebar-muted sm:text-base">
+                <p className="relative mt-2 text-sm text-sidebar-muted sm:text-base">
                   Pick a product and fill in what&apos;s missing.
                 </p>
-                <Link
-                  href={attention ? productHref(attention.key) : "#products"}
-                  className="relative mt-7 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-                >
-                  New Document
-                </Link>
+                <Button asChild size="lg" className="relative mt-6">
+                  <Link href={attention ? productHref(attention.key) : "#products"}>New Document</Link>
+                </Button>
               </>
             ) : (
               <>
                 <h2 className="relative text-xl font-semibold tracking-tight text-white sm:text-2xl">
                   Spotted something missing or out of date?
                 </h2>
-                <p className="relative mt-3 text-sm text-white sm:text-base">
+                <p className="relative mt-2 text-sm text-white sm:text-base">
                   Your account can read every product&apos;s documentation, but editing is limited to admins.
                 </p>
-                <button
-                  type="button"
-                  className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-                >
-                  <ShieldIcon className="h-4 w-4 text-white/80" />
+                <Button type="button" size="lg" className="relative mt-6">
+                  <ShieldIcon className="size-4 text-primary-foreground/80" />
                   Ask an Admin for edit access
-                </button>
+                </Button>
               </>
             )}
           </ScrollReveal>

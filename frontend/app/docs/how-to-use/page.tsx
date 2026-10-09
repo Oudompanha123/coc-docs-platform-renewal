@@ -44,17 +44,17 @@ export default function HowToUsePage() {
   return (
     <div>
       <p className="text-sm font-semibold text-foreground">How to use</p>
-      <h1 className="mt-1 text-3xl font-bold text-ink">The core workflows.</h1>
-      <p className="mt-3 text-base text-muted">
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">The core workflows.</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         Coc Docs Platform is a small set of focused pages, not a maze of settings. Here&apos;s what each
         one is actually for.
       </p>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-6 space-y-5">
         {WORKFLOWS.map((workflow) => (
-          <div key={workflow.title} className="border-b border-border pb-6 last:border-b-0">
-            <h2 className="text-lg font-bold text-ink">{workflow.title}</h2>
-            <p className="mt-2 text-sm text-muted">{workflow.description}</p>
+          <div key={workflow.title} className="border-b border-surface-border pb-5 last:border-b-0">
+            <h2 className="text-base font-semibold text-foreground">{workflow.title}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{workflow.description}</p>
           </div>
         ))}
       </div>

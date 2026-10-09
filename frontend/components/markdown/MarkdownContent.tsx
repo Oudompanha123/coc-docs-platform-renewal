@@ -31,12 +31,12 @@ export const TEXT_COLOR_CLASSES: Record<TextColor, string> = {
 };
 
 const HEADING_CLASSES: Record<number, string> = {
-  1: "text-xl font-bold text-dash-ink",
-  2: "text-lg font-bold text-dash-ink",
-  3: "text-base font-bold text-dash-ink",
-  4: "text-[15px] font-semibold text-dash-ink",
-  5: "text-sm font-semibold text-dash-ink",
-  6: "text-sm font-semibold uppercase tracking-wide text-muted",
+  1: "text-xl font-semibold text-foreground",
+  2: "text-lg font-semibold text-foreground",
+  3: "text-base font-bold text-foreground",
+  4: "text-[15px] font-semibold text-foreground",
+  5: "text-sm font-semibold text-foreground",
+  6: "text-sm font-medium text-muted-foreground",
 };
 
 function renderBlock(block: Block, key: number): ReactNode {
@@ -65,7 +65,7 @@ function renderBlock(block: Block, key: number): ReactNode {
     }
     case "quote":
       return (
-        <blockquote key={key} className="space-y-3 border-l-4 border-primary/30 pl-4 italic text-muted">
+        <blockquote key={key} className="space-y-3 border-l-4 border-primary/30 pl-4 italic text-muted-foreground">
           {block.children.map(renderBlock)}
         </blockquote>
       );
@@ -73,13 +73,13 @@ function renderBlock(block: Block, key: number): ReactNode {
       return (
         <pre
           key={key}
-          className="overflow-x-auto rounded-xl bg-page px-4 py-3 font-mono text-[13px] leading-6 text-dash-ink not-italic"
+          className="overflow-x-auto rounded-xl bg-muted-surface px-4 py-3 font-mono text-[13px] leading-6 text-foreground not-italic"
         >
           <code>{block.value}</code>
         </pre>
       );
     case "rule":
-      return <hr key={key} className="border-border" />;
+      return <hr key={key} className="border-surface-border" />;
   }
 }
 
@@ -92,13 +92,13 @@ function renderInline(nodes: Inline[]): ReactNode[] {
         return <br key={i} />;
       case "code":
         return (
-          <code key={i} className="rounded bg-page px-1.5 py-0.5 font-mono text-[0.9em] text-dash-ink not-italic">
+          <code key={i} className="rounded bg-muted-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground not-italic">
             {node.value}
           </code>
         );
       case "strong":
         return (
-          <strong key={i} className="font-semibold text-dash-ink">
+          <strong key={i} className="font-semibold text-foreground">
             {renderInline(node.children)}
           </strong>
         );

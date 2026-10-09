@@ -1,11 +1,13 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { DocumentIcon, PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
 import { createProject, deleteProject, updateProject, type AxRenewalProject } from "@/lib/ax-renewal/api";
 import { writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 import { inputBaseClass } from "@/components/ui/input";
+import { textareaBaseClass } from "@/components/ui/textarea";
 
 /** How long "Project deleted successfully" stays up before clearing itself — same window `TopProgressBar` uses for its own auto-hide. */
 const DELETED_MESSAGE_MS = 4000;
@@ -88,22 +90,24 @@ export function ProjectPicker({
   }
 
   return (
-    <div className="rounded-[10px] border border-border bg-page p-4">
+    <div className="rounded-xl border border-surface-border bg-card p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="ax-project" className="text-xs font-semibold text-muted">
+        <label htmlFor="ax-project" className="text-xs font-semibold text-muted-foreground">
           Project
         </label>
         <ProjectSwitcher projects={projects} projectId={projectId} onSelect={onSelect} />
 
         {canEdit && !creating && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-primary/30 hover:text-foreground"
+            className="text-muted-foreground"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             New project
-          </button>
+          </Button>
         )}
 
         {/* key={active.id}, not just a prop -- once a delete succeeds, the
@@ -126,7 +130,7 @@ export function ProjectPicker({
       </div>
 
       {active?.description && (
-        <p className="mt-2 text-xs leading-relaxed text-muted">{active.description}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{active.description}</p>
       )}
 
       {creating && (
@@ -139,27 +143,26 @@ export function ProjectPicker({
             required
             className={inputBaseClass}
           />
-          <button
+          <Button
             type="submit"
             disabled={busy}
-            className="rounded-[10px] bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={() => setCreating(false)}
-            className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page"
           >
             Cancel
-          </button>
+          </Button>
         </form>
       )}
       {error && <p role="alert" className="mt-2 text-xs font-medium text-danger">{error}</p>}
       {deletedMessage && (
         <p
           role="status"
-          className="mt-2 rounded-r-md border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"
+          className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800"
         >
           {deletedMessage}
         </p>
@@ -170,7 +173,7 @@ export function ProjectPicker({
 
 /**
  * A real popup, not the in-place panel this used to be — the same
- * `bg-black/40` overlay / `rounded-[10px] border-border bg-white shadow-xl`
+ * `bg-black/40` overlay / `rounded-xl border-surface-border bg-card shadow-xl`
  * card and solid `bg-danger` confirm button `DeleteModal` (Users & Roles)
  * uses for its own irreversible delete, since this is that same class of
  * action: every finding, plan section, comment and implementation run this
@@ -223,14 +226,16 @@ function DeleteProjectControl({ project, onDeleted }: { project: AxRenewalProjec
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => setConfirming(true)}
-        className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-danger/30 hover:text-danger"
+        className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
       >
         <TrashIcon className="h-3.5 w-3.5" />
         Delete project
-      </button>
+      </Button>
 
       {confirming && (
         <div
@@ -242,37 +247,37 @@ function DeleteProjectControl({ project, onDeleted }: { project: AxRenewalProjec
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[10px] border border-border bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-xl border border-surface-border bg-card p-5 shadow-xl"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger">
-              <TrashIcon className="h-6 w-6" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger/10 text-danger">
+              <TrashIcon className="h-5 w-5" />
             </div>
-            <h2 className="mt-3 text-lg font-bold text-dash-ink">Delete project?</h2>
-            <p className="mt-2 text-sm text-muted">
+            <h2 className="mt-3 text-base font-semibold text-foreground">Delete project?</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
               Delete &ldquo;{project.name}&rdquo;? Its findings, plan, comments, and implementation history all go
-              with it — <strong className="font-semibold text-dash-ink">this can&rsquo;t be undone.</strong>
+              with it — <strong className="font-semibold text-foreground">this can&rsquo;t be undone.</strong>
             </p>
 
             {error && <p role="alert" className="mt-3 text-xs font-medium text-danger">{error}</p>}
 
-            <div className="mt-5 flex justify-end gap-3">
-              <button
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleCancel}
                 disabled={busy}
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={() => void handleConfirm()}
                 disabled={busy}
                 aria-busy={busy}
-                className="rounded-full bg-danger px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy ? "Deleting…" : "Yes, delete"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -346,14 +351,16 @@ function EditProjectDetailsControl({
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={handleOpen}
-        className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-primary/30 hover:text-foreground"
+        className="text-muted-foreground"
       >
         <DocumentIcon className="h-3.5 w-3.5" />
         Edit details
-      </button>
+      </Button>
 
       {editing && (
         <div
@@ -366,11 +373,11 @@ function EditProjectDetailsControl({
           <form
             onSubmit={(e) => void handleSave(e)}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-[10px] border border-border bg-white p-5 shadow-xl"
+            className="w-full max-w-md rounded-xl border border-surface-border bg-card p-5 shadow-xl"
           >
-            <h2 className="text-lg font-bold text-dash-ink">Edit project details</h2>
+            <h2 className="text-base font-semibold text-foreground">Edit project details</h2>
 
-            <label htmlFor="ax-project-name" className="mt-4 block text-xs font-semibold text-muted">
+            <label htmlFor="ax-project-name" className="mt-4 block text-xs font-semibold text-muted-foreground">
               Name
             </label>
             <input
@@ -382,7 +389,7 @@ function EditProjectDetailsControl({
               className={`${inputBaseClass} mt-1 w-full`}
             />
 
-            <label htmlFor="ax-project-description" className="mt-3 block text-xs font-semibold text-muted">
+            <label htmlFor="ax-project-description" className="mt-3 block text-xs font-semibold text-muted-foreground">
               Description <span className="font-normal">(optional)</span>
             </label>
             <textarea
@@ -390,28 +397,27 @@ function EditProjectDetailsControl({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className={`${inputBaseClass} mt-1 w-full`}
+              className={`${textareaBaseClass} mt-1 w-full`}
             />
 
             {error && <p role="alert" className="mt-3 text-xs font-medium text-danger">{error}</p>}
 
-            <div className="mt-5 flex justify-end gap-3">
-              <button
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleCancel}
                 disabled={busy}
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={busy}
                 aria-busy={busy}
-                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy ? "Saving…" : "Save"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

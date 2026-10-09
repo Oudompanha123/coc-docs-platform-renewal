@@ -81,11 +81,11 @@ export function AppearanceCard() {
   }
 
   return (
-    <section id="appearance" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-base font-bold text-dash-ink">Appearance</h2>
-      <p className="mt-0.5 text-sm text-muted">Choose how the site looks for you.</p>
+    <section id="appearance" className="scroll-mt-24 rounded-xl border border-surface-border bg-card p-5">
+      <h2 className="text-base font-semibold text-foreground">Appearance</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">Choose how the site looks for you.</p>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {THEME_OPTIONS.map(({ value, label, Icon }) => (
           // A selection card, not a button: it holds a preview image, a label
           // and a radio dot, and it is one of three mutually exclusive
@@ -100,22 +100,30 @@ export function AppearanceCard() {
             type="button"
             onClick={() => select(value)}
             aria-pressed={theme === value}
-            className={`rounded-xl border-2 p-3 text-left transition-colors ${
-              theme === value ? "border-primary ring-4 ring-ring/50" : "border-border hover:bg-page"
+            // Selected reads as one quiet change — a slightly stronger border and
+            // a faint fill — rather than a near-black border plus a 3px halo,
+            // which drew two outlines and in dark mode flipped to near-white.
+            // The halo is kept for keyboard focus only.
+            className={`rounded-xl border p-3 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 ${
+              theme === value
+                ? "border-foreground/40 bg-muted-surface/60"
+                : "border-surface-border hover:border-foreground/20 hover:bg-accent/50"
             }`}
           >
-            <div className="overflow-hidden rounded-lg border border-border">
+            <div className="overflow-hidden rounded-lg border border-surface-border">
               <ThemePreview value={value} />
             </div>
             <div className="mt-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-sm font-semibold text-dash-ink">
-                <Icon className="h-4 w-4 shrink-0" />
+              <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Icon className="size-4 shrink-0" />
                 {label}
               </span>
               <span
                 aria-hidden="true"
-                className={`h-4 w-4 shrink-0 rounded-full border-2 ${
-                  theme === value ? "border-primary bg-primary" : "border-border"
+                // A radio, drawn as one: a ring with a centre dot when chosen,
+                // instead of a solid disc.
+                className={`size-4 shrink-0 rounded-full transition-[border-width,border-color] ${
+                  theme === value ? "border-[5px] border-primary bg-background" : "border border-foreground/25"
                 }`}
               />
             </div>

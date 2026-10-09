@@ -9,7 +9,8 @@ import { fetchSavedSlugs } from "@/lib/docs/docs-content-api";
 import { createItem, deleteItem, fetchNavStructure } from "@/lib/docs/nav-api";
 import { hrefFor } from "@/lib/docs/nav-routing";
 import { EmptyContentIllustration } from "./EmptyContentIllustration";
-import { inputBaseClass } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Row = { id: string; slug: string; label: string; hasContent: boolean };
 
@@ -133,57 +134,51 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        {error && <p className="text-xs font-semibold text-[#c94040]">{error}</p>}
+        {error && <p className="text-xs font-medium text-destructive">{error}</p>}
         <div className="flex-1" />
         {canManage && !adding && (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90"
-          >
-            <PlusIcon className="h-3.5 w-3.5" />
+          <Button type="button" size="sm" className="shrink-0" onClick={() => setAdding(true)}>
+            <PlusIcon className="size-3.5" />
             Add item
-          </button>
+          </Button>
         )}
       </div>
 
       {canManage && adding && (
-        <form onSubmit={handleAddItem} className="mt-3 flex flex-wrap items-center gap-2 rounded-[10px] border border-border bg-white p-3 shadow-sm">
-          <input
+        <form onSubmit={handleAddItem} className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-surface-border bg-card p-3">
+          <Input
             autoFocus
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             placeholder="Item label (e.g. Prerequisites)"
             required
-            className={`${inputBaseClass} min-w-0 flex-1`}
+            className="min-w-0 flex-1"
           />
-          {newLabel.trim() && <span className="shrink-0 text-xs text-muted">/{slugify(newLabel)}</span>}
-          <button
-            type="submit"
-            disabled={busy}
-            className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          {newLabel.trim() && <span className="shrink-0 text-xs text-muted-foreground">/{slugify(newLabel)}</span>}
+          <Button type="submit" size="sm" disabled={busy} className="shrink-0">
             {busy ? "Adding…" : "Add"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => {
               setAdding(false);
               setNewLabel("");
               setError(null);
             }}
-            className="shrink-0 rounded-full border border-border px-4 py-2 text-xs font-semibold text-dash-ink hover:bg-page"
+            className="shrink-0"
           >
             Cancel
-          </button>
+          </Button>
         </form>
       )}
 
       {rows && rows.length === 0 && (
-        <div className="animate-entrance mx-auto mt-10 max-w-md text-center">
+        <div className="animate-entrance mx-auto mt-8 max-w-md text-center">
           <EmptyContentIllustration />
-          <h2 className="mt-6 text-lg font-bold text-dash-ink">Knowledge base is ready.</h2>
-          <p className="mt-2 text-sm text-muted">
+          <h2 className="mt-5 text-base font-semibold text-foreground">Knowledge base is ready.</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             To begin creating &quot;{productLabel}&quot;&apos;s knowledge base, select a method from the list below.
             You can create a new page, upload a document, or embed a resource.
           </p>
@@ -193,23 +188,23 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="flex flex-col items-center gap-2 rounded-[10px] border border-border bg-white px-3 py-5 text-center shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+                className="flex flex-col items-center gap-2 rounded-xl border border-surface-border bg-card px-3 py-5 text-center transition-all duration-150 hover:-translate-y-0.5"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <DocumentIcon className="h-5 w-5" />
                 </span>
-                <span className="text-xs font-semibold text-dash-ink">Create Page</span>
+                <span className="text-xs font-semibold text-foreground">Create Page</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => uploadInputRef.current?.click()}
-                className="flex flex-col items-center gap-2 rounded-[10px] border border-border bg-white px-3 py-5 text-center shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md"
+                className="flex flex-col items-center gap-2 rounded-xl border border-surface-border bg-card px-3 py-5 text-center transition-all duration-150 hover:-translate-y-0.5"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <UploadIcon className="h-5 w-5" />
                 </span>
-                <span className="text-xs font-semibold text-dash-ink">Upload Document</span>
+                <span className="text-xs font-semibold text-foreground">Upload Document</span>
               </button>
               <input
                 ref={uploadInputRef}
@@ -224,15 +219,15 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
                 type="button"
                 disabled
                 title="Coming soon"
-                className="relative flex flex-col items-center gap-2 rounded-[10px] border border-border bg-[color-mix(in_oklab,var(--color-white)_0.5%,#00000017)] px-3 py-5 text-center text-muted cursor-not-allowed"
+                className="relative flex flex-col items-center gap-2 rounded-xl border border-surface-border bg-[color-mix(in_oklab,var(--color-white)_0.5%,#00000017)] px-3 py-5 text-center text-muted-foreground cursor-not-allowed"
               >
-                <span className="absolute right-2 top-2 rounded-full bg-border px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                <span className="absolute right-2 top-2 rounded-full bg-surface-border px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                   Soon
                 </span>
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-border text-muted">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-border text-muted-foreground">
                   <PlugIcon className="h-5 w-5" />
                 </span>
-                <span className="text-xs font-semibold text-muted">Embed Resource</span>
+                <span className="text-xs font-semibold text-muted-foreground">Embed Resource</span>
               </button>
             </div>
           )}
@@ -240,17 +235,17 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
       )}
 
       {rows && rows.length > 0 && (
-        <div className="animate-entrance mt-6 rounded-[10px] border border-border bg-white shadow-sm">
-          <div className="divide-y divide-border">
+        <div className="animate-entrance mt-6 rounded-xl border border-surface-border bg-card">
+          <div className="divide-y divide-surface-border">
             {rows.map((row) => (
               <div key={row.id} className="flex items-center justify-between gap-4 px-5 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-dash-ink">{row.label}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{row.label}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      row.hasContent ? "bg-[#e1f5ec] text-[#1f9d6b]" : "bg-page text-muted"
+                      row.hasContent ? "bg-[#e1f5ec] text-[#1f9d6b]" : "bg-muted-surface text-muted-foreground"
                     }`}
                   >
                     {row.hasContent ? "Has content" : "Not written"}
@@ -260,7 +255,7 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
                     <>
                       <Link
                         href={`/content/${row.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                        className="inline-flex items-center gap-1.5 rounded-control border border-surface-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
                       >
                         {row.hasContent ? (
                           "Edit"
@@ -275,7 +270,7 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
                         type="button"
                         onClick={() => handleDeleteItem(row)}
                         aria-label={`Remove ${row.label}`}
-                        className="inline-flex items-center rounded-full border border-border p-1.5 text-muted transition-colors hover:border-[#c94040] hover:text-[#c94040]"
+                        className="inline-flex items-center rounded-full border border-surface-border p-1.5 text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
                       >
                         <XIcon className="h-3.5 w-3.5" />
                       </button>
@@ -285,7 +280,7 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
                       <Link
                         href={hrefFor(productKey, row.slug)}
                         target="_blank"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                        className="inline-flex items-center gap-1.5 rounded-control border border-surface-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
                       >
                         View
                       </Link>

@@ -1,14 +1,13 @@
 "use client";
 
 import type { StatusKind } from "@/lib/attendance/stats";
-import { inputBaseClass } from "@/components/ui/input";
+import { SimpleSelect } from "@/components/ui/select";
 
 /**
  * One status column's filter.
  *
  * <p>Deliberately the same visual language as {@link AttendanceDepartmentSelect}
- * — the same `appearance-none` select, border, focus ring and trailing chevron
- * — because these sit a few centimetres apart on the same screen and a second
+ * — the same shared `SimpleSelect` (ADR-104 r2.10) — because these sit a few centimetres apart on the same screen and a second
  * dropdown style would read as a second kind of control.
  *
  * <p>No leading icon, unlike the department select: a coloured dot carries the
@@ -35,33 +34,20 @@ export function AttendanceStatusSelect({
     <div className="relative">
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute left-3 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full"
+        className="pointer-events-none absolute left-3 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full"
         style={{ backgroundColor: value ? DOT[value] : "#cbd5e1" }}
       />
-      <select
+      <SimpleSelect
+        aria-label={label}
         value={value ?? ""}
         disabled={disabled}
-        onChange={(e) => onChange((e.target.value || null) as StatusKind | null)}
-        aria-label={label}
-        className={`${inputBaseClass} appearance-none`}
-      >
-        <option value="">{label}: all</option>
-        {options.map((kind) => (
-          <option key={kind} value={kind}>
-            {LABEL[kind]}
-          </option>
-        ))}
-      </select>
-      <svg
-        viewBox="0 0 24 24"
-        className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        aria-hidden="true"
-      >
-        <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+        onValueChange={(v) => onChange((v || null) as StatusKind | null)}
+        options={[
+          { value: "", label: `${label}: all` },
+          ...options.map((kind) => ({ value: kind, label: LABEL[kind] })),
+        ]}
+        className="pl-7"
+      />
     </div>
   );
 }

@@ -51,16 +51,16 @@ export function RecentActivityPanel() {
   if (!visible) return null;
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-border bg-white py-5 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-card py-4">
       <div>
-        <div className="flex items-center justify-between pl-5 pr-[15px]">
-          <h2 className="text-base font-bold text-dash-ink">Recent Activity</h2>
+        <div className="flex h-8 items-center justify-between px-4">
+          <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
         </div>
-        <div className={`mt-1 divide-y divide-border pl-5 pr-[20px] ${RECENT_PANEL_LIST_HEIGHT}`}>
+        <div className={`mt-1 divide-y divide-surface-border px-4 ${RECENT_PANEL_LIST_HEIGHT}`}>
           {entries === null ? (
-            <p className="py-6 text-center text-sm text-muted">Loading…</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
           ) : entries.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted">No recent activity yet</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">No recent activity yet</p>
           ) : (
             entries.map((entry, i) => <ActivityRow key={`${entry.occurredAt}-${i}`} data={entry} />)
           )}

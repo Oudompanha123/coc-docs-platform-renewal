@@ -10,12 +10,16 @@ import type { Tone } from "@/lib/mock/overview";
  * are category markers (a green tile means something different from an orange
  * one) and flattening all four to grey would delete information rather than
  * restyle it.
+ *
+ * Each tone carries its dark value too (ADR-104 r2.5): on a #171717 card the
+ * light pastels read as small bright squares. Dark keeps the same hue as a
+ * low-alpha tint with a lighter glyph, the way shadcn's dark badges do it.
  */
 export const TONE_STYLES: Record<Tone, { bg: string; fg: string }> = {
-  purple: { bg: "bg-[#f5f5f5]", fg: "text-[#171717]" },
-  green: { bg: "bg-[#ecf6f1]", fg: "text-[#2f7d5d]" },
-  orange: { bg: "bg-[#f8f0e9]", fg: "text-[#9a6b3c]" },
-  pink: { bg: "bg-[#f7eef1]", fg: "text-[#9a4f68]" },
+  purple: { bg: "bg-[#f5f5f5] dark:bg-[#262626]", fg: "text-[#171717] dark:text-[#fafafa]" },
+  green: { bg: "bg-[#ecf6f1] dark:bg-[#2f7d5d]/20", fg: "text-[#2f7d5d] dark:text-[#6cc79f]" },
+  orange: { bg: "bg-[#f8f0e9] dark:bg-[#9a6b3c]/20", fg: "text-[#9a6b3c] dark:text-[#d9a874]" },
+  pink: { bg: "bg-[#f7eef1] dark:bg-[#9a4f68]/20", fg: "text-[#9a4f68] dark:text-[#d98aa3]" },
 };
 
 /**

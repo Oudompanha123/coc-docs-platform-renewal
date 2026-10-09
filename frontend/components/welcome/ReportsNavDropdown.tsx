@@ -1,99 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { LockIcon } from "@/components/auth/icons";
-import { CalendarCheckIcon, ChevronDownIcon } from "@/components/layout/icons";
+import { NavMenu, NavMenuItem } from "@/components/ui/nav-menu";
 
 /**
- * "Reports & Records" on the public `/welcome` page — same locked-preview
- * shape as `NavDropdown`'s per-product menu, not shared code with it since
- * this one's item list is fixed (mirrors `MemberHeader.tsx`'s own
- * `ReportsDropdown`: Attendance, plus a "More reports" placeholder) rather
- * than driven by `product.items`.
+ * "Reports & Records" on the public `/welcome` page — a fixed list rather than
+ * one driven by `product.items`. Its one entry is a locked preview of
+ * Attendance: choosing it closes the menu and prompts sign-in.
+ *
+ * Built on the shared `NavMenu` (ADR-104 r2.9), same as `ProductsNavDropdown`.
  */
-export function ReportsNavDropdown({
-  isDark,
-  onRequireAuth,
-}: {
-  isDark: boolean;
-  onRequireAuth: (label: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    function onClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("mousedown", onClickOutside);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("mousedown", onClickOutside);
-    };
-  }, [open]);
-
+export function ReportsNavDropdown({ onRequireAuth }: { onRequireAuth: (label: string) => void }) {
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className={`flex h-14 items-center gap-1.5 border-b-2 transition-colors ${
-          open ? "border-primary font-bold" : "border-transparent hover:border-primary"
-        } ${isDark ? "hover:text-[#fafafa]" : "hover:text-ink"}`}
-      >
-        Reports &amp; Records
-        <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className={`absolute left-0 top-14 z-30 w-72 rounded-xl border py-2 shadow-lg ${
-            isDark ? "border-[#2a2a2a] bg-[#171717]" : "border-border bg-white"
-          }`}
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => { setOpen(false); onRequireAuth("Attendance"); }}
-            className={`group flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors ${
-              isDark ? "hover:bg-white/10" : "hover:bg-secondary"
-            }`}
-          >
-            <span
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                isDark ? "bg-primary/15 text-[#fafafa]" : "bg-secondary text-foreground"
-              }`}
-            >
-              <CalendarCheckIcon className="h-[18px] w-[18px]" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span
-                className={`flex items-center justify-between gap-2 truncate text-sm font-medium ${
-                  isDark ? "text-[#fafafa]" : "text-ink"
-                }`}
-              >
-                Attendance
-                <LockIcon
-                  className={`h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 ${
-                    isDark ? "text-[#a1a1a1]" : "text-muted"
-                  }`}
-                />
-              </span>
-              <span className={`block truncate text-xs ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
-                Your daily check-in &amp; out
-              </span>
-            </span>
-          </button>
-        </div>
-      )}
-    </div>
+    <NavMenu label="Reports & Records" panelClassName="w-[280px]">
+      <NavMenuItem
+        title="Attendance"
+        description="Your daily check-in and check-out, by day and by month."
+        onSelect={() => onRequireAuth("Attendance")}
+        trailing={
+          <LockIcon className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+        }
+      />
+    </NavMenu>
   );
 }

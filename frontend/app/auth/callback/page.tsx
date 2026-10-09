@@ -19,7 +19,7 @@ export default function AuthCallbackPage() {
     void exchangeCodeAndReportResult();
   }, []);
 
-  return <main className="flex min-h-screen items-center justify-center text-sm text-muted">Finishing sign-in…</main>;
+  return <main className="flex min-h-screen items-center justify-center text-muted-foreground text-sm">Finishing sign-in…</main>;
 }
 
 interface PendingAuthAttempt {

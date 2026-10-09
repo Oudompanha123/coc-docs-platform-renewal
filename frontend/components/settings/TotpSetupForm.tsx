@@ -80,10 +80,10 @@ export function TotpSetupWizard({
   if (loadError) {
     return (
       <div className="mt-4 max-w-sm space-y-3">
-        <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {loadError}
         </p>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
         </Button>
       </div>
@@ -91,33 +91,33 @@ export function TotpSetupWizard({
   }
 
   if (!material) {
-    return <p className="mt-4 text-xs text-muted">Preparing your setup…</p>;
+    return <p className="mt-4 text-xs text-muted-foreground">Preparing your setup…</p>;
   }
 
   return (
     <div className="mt-4 max-w-sm space-y-4">
-      <div className="rounded-xl border border-border p-4">
-        <p className="text-xs font-semibold text-dash-ink">1. Scan this QR code with Google Authenticator</p>
+      <div className="rounded-xl border border-surface-border bg-card p-4">
+        <p className="text-xs font-semibold text-foreground">1. Scan this QR code with Google Authenticator</p>
         {/* eslint-disable-next-line @next/next/no-img-element -- a data: URI, not a remote image next/image can optimize */}
         <img
           src={material.qrCodeDataUri}
           alt="Scan this QR code with your authenticator app"
           className="mx-auto mt-3 h-40 w-40"
         />
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 text-xs text-muted-foreground">
           Open Google Authenticator, tap &ldquo;+&rdquo;, then &ldquo;Scan a QR code&rdquo;. Can&apos;t scan it? Enter
           this key manually instead:
         </p>
-        <code className="mt-2 block break-all rounded-lg bg-page px-2 py-1.5 text-xs text-dash-ink">
+        <code className="mt-2 block break-all rounded-lg bg-muted-surface px-2 py-1.5 text-xs text-foreground">
           {material.secret}
         </code>
       </div>
 
       <form onSubmit={handleVerify} className="space-y-3" noValidate>
-        <p className="text-xs font-semibold text-dash-ink">2. Enter the 6-digit code it shows</p>
+        <p className="text-xs font-semibold text-foreground">2. Enter the 6-digit code it shows</p>
         <CodeField id={CODE_FIELD_ID} label="Verification Code" value={code} onChange={setCode} error={codeError} />
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
             Cancel
           </Button>
           <Button type="submit" size="sm" disabled={isVerifying} aria-busy={isVerifying}>
@@ -178,7 +178,7 @@ export function TotpDisableForm({
         error={error}
       />
       <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
         </Button>
         <Button
@@ -187,7 +187,6 @@ export function TotpDisableForm({
           size="sm"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
-          className="rounded-full"
         >
           {isSubmitting ? "Turning off…" : "Turn off"}
         </Button>

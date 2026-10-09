@@ -1,4 +1,6 @@
+import userEvent from "@testing-library/user-event";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { pickOption } from "@/components/ui/select.test-utils";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ScanLogDetail, ScanLogList } from "@/lib/admin/claudeUsage";
@@ -59,7 +61,7 @@ const authFailed = scanLog({
 /** The value shown on a summary card, found by its label. */
 function card(label: string): string {
   const labelEl = screen.getByText(label, { selector: "p" });
-  return labelEl.closest("div.rounded-\\[10px\\]")!.querySelector("p.text-3xl")!.textContent!;
+  return labelEl.closest("[data-slot=card]")!.querySelector("p.text-2xl")!.textContent!;
 }
 
 describe("ScanLogsView", () => {
@@ -125,7 +127,7 @@ describe("ScanLogsView", () => {
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
 
-    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "partial" } });
+    await pickOption(userEvent.setup(), "Status", "Partial");
     expect(screen.getAllByRole("row")).toHaveLength(2);
     expect(card("Success")).toBe("1"); // the cards ignore the status filter
 
@@ -149,7 +151,7 @@ describe("ScanLogsView", () => {
     fetchScanLogs.mockResolvedValue(list());
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
-    fireEvent.change(screen.getByLabelText("Date range"), { target: { value: "custom" } });
+    await pickOption(userEvent.setup(), "Date range", "Custom range");
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
     await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02"));
@@ -181,7 +183,7 @@ describe("ScanLogsView", () => {
       fetchScanLogs.mockResolvedValue(list());
       render(<ScanLogsView />);
       await screen.findByText("Scan history");
-      fireEvent.change(screen.getByLabelText("Date range"), { target: { value: "custom" } });
+      await pickOption(userEvent.setup({ advanceTimers: vi.advanceTimersByTime }), "Date range", "Custom range");
       fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
       fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
       await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02"));
@@ -248,7 +250,10 @@ describe("ScanLogsView", () => {
 
     it("explains a failed login in plain words, with copyable commands to fix it", async () => {
       const writeText = vi.fn().mockResolvedValue(undefined);
-      Object.assign(navigator, { clipboard: { writeText } });
+      // defineProperty, not assignment: a `userEvent.setup()` earlier in this
+      // file installs its own clipboard as a getter-only property, which a
+      // plain assignment cannot replace.
+      Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
       const drawer = await openDrawerFor();
 
       expect(within(drawer).getByRole("heading", { name: "Scan details" })).toBeInTheDocument();

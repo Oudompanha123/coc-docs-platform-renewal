@@ -18,7 +18,7 @@ type AxRenewalBreadcrumbProps = {
 export function AxRenewalBreadcrumb({ active, detail }: AxRenewalBreadcrumbProps) {
   if (active == null) {
     return (
-      <div className="flex items-center gap-2 bg-white px-4 py-2 font-mono text-xs text-muted">
+      <div className="flex items-center gap-2 bg-card px-4 py-2 font-mono text-xs text-muted-foreground">
         <span>no tab open</span>
       </div>
     );
@@ -29,11 +29,11 @@ export function AxRenewalBreadcrumb({ active, detail }: AxRenewalBreadcrumbProps
 
   const chip =
     meta.group === "Understand" ? (
-      <span className="rounded-full bg-page px-2.5 py-0.5 text-xs font-semibold text-muted">read only</span>
+      <span className="rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-muted-foreground">read only</span>
     ) : meta.section != null ? (
       <span
-        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-          confirmed ? "bg-secondary text-foreground" : "bg-page text-muted"
+        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+          confirmed ? "bg-secondary text-foreground" : "bg-muted-surface text-muted-foreground"
         }`}
       >
         {confirmed ? "confirmed" : "draft"}
@@ -41,7 +41,7 @@ export function AxRenewalBreadcrumb({ active, detail }: AxRenewalBreadcrumbProps
     ) : null;
 
   return (
-    <div className="flex items-center gap-2 bg-white px-4 py-2 font-mono text-xs text-muted">
+    <div className="flex items-center gap-2 bg-card px-4 py-2 font-mono text-xs text-muted-foreground">
       <span>
         {meta.group} / {meta.label}
       </span>

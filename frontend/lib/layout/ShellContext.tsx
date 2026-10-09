@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type PageHeader = {
   title: string;
@@ -14,13 +14,41 @@ type ShellContextValue = {
   mobileNavOpen: boolean;
   openMobileNav: () => void;
   closeMobileNav: () => void;
+  /** Desktop only: the sidebar folded to its icon rail (ADR-104 r2.9). */
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
 };
+
+/** A per-viewer convenience, so browser storage rather than anything shared. */
+const SIDEBAR_STORAGE_KEY = "coc-docs-sidebar-collapsed";
 
 const ShellContext = createContext<ShellContextValue | null>(null);
 
 export function ShellProvider({ children }: { children: ReactNode }) {
   const [header, setHeaderState] = useState<PageHeader>({ title: "", subtitle: "" });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Starts expanded on the server and the first client render alike, then
+  // picks up the stored choice — reading storage during render would make the
+  // two disagree and fail hydration.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1") setSidebarCollapsed(true);
+    } catch {
+      // Storage blocked (private window, site data off): stay expanded.
+    }
+  }, []);
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // Not remembered this time; the toggle itself still works.
+      }
+      return next;
+    });
+  }, []);
 
   // Bails out when the incoming header is the same title/subtitle/icon as
   // the current one. Without this, a page whose own re-render recreates its
@@ -42,8 +70,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   // unrelated reason) does not hand every useShell() consumer a new object
   // reference and force them all to re-render regardless.
   const value = useMemo(
-    () => ({ header, setHeader, mobileNavOpen, openMobileNav, closeMobileNav }),
-    [header, mobileNavOpen, setHeader, openMobileNav, closeMobileNav],
+    () => ({ header, setHeader, mobileNavOpen, openMobileNav, closeMobileNav, sidebarCollapsed, toggleSidebar }),
+    [header, mobileNavOpen, setHeader, openMobileNav, closeMobileNav, sidebarCollapsed, toggleSidebar],
   );
 
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>;

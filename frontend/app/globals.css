@@ -11,10 +11,16 @@
    rest of this file already handles: the shell element itself, and anything
    inside it. Get this wrong in the permissive direction and every migrated
    primitive on /login quietly turns dark the first time a visitor who once
-   chose dark mode signs out. */
+   chose dark mode signs out.
+
+   `.landing-dark` is the fourth scope (ADR-104 r2.5): /welcome's own local
+   dark toggle puts it on the page root, and it is only ever there while that
+   toggle is on, so it widens nothing on /login. */
 @custom-variant dark (&:where(
   :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]),
-  :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) *
+  :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) *,
+  .landing-dark,
+  .landing-dark *
 ));
 
 :root {
@@ -50,6 +56,33 @@
   --input: #e5e5e5;
   --ring: #a1a1a1;
   --surface-border: #e5e5e5;
+
+  /* The admin shell's sidebar, per the coc-docs dashboard pattern
+     (ADR-104 r2.7): a light panel one step off the page, not the dark navy
+     column the app had. Named `nav-*` because `--color-sidebar` is an older
+     literal token still used by AX Renewal and the docs code block. */
+  --nav: #fafafa;
+  --nav-foreground: #0a0a0a;
+  --nav-muted: #737373;
+  --nav-accent: #f0f0f0;
+  --nav-border: #e5e5e5;
+
+  /* Chart series (ADR-104 r2.10), the dataviz reference palette's eight hues in
+     this app's fixed order. Light and dark are separately *selected* steps of
+     the same hues, each set run through the palette validator against its own
+     surface — CVD separation, normal-vision floor and lightness band pass in
+     both; three light steps sit under 3:1 on white, so every chart that uses
+     them ships a legend and a table view. Assign in order, never cycle: a 9th
+     series folds into --series-other. */
+  --series-1: #4a3aa7;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #2a78d6;
+  --series-8: #e34948;
+  --series-other: #8b8b9c;
 
   /* shadcn's radius scale. `--radius` is the one number to turn.
      The four derived steps below are declared in `@theme inline`, which means
@@ -88,6 +121,11 @@
   /* Opt-in only — font-sans/Inter stays the default everywhere. Use the
      `font-pretendard` utility this generates on anything that wants it. */
   --font-pretendard: var(--font-pretendard);
+  /* Headings — Cal Sans, per the coc-docs design system (ADR-104 r2.6).
+     Cal Sans only carries Latin glyphs, so the stack falls through to Inter
+     and then Pretendard: a Korean or Khmer heading still renders in a real
+     font rather than the platform default. */
+  --font-heading: var(--font-cal-sans), var(--font-inter), var(--font-pretendard), ui-sans-serif, system-ui, sans-serif;
 
   /* The legacy palette, repointed at shadcn's neutrals (ADR-104 r2.0).
      Every one of these used to be brand-tinted: ink was #28226d (a deep
@@ -144,11 +182,34 @@
      its own name means both can exist while the migration runs, instead of
      one repainting the other ahead of schedule. */
   --color-surface-border: var(--surface-border);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-accent: var(--nav-accent);
+  --color-nav-border: var(--nav-border);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* The button corner, stated once by name (ADR-104 r2.6, r2.9). Every button
+     reads it — `Button`'s default shape and the hand-written ones alike.
+     It was the design system's 7.2px for a round; the product owner chose
+     fully rounded buttons after seeing it, so it is a pill now. Changing the
+     product's button shape again is this one line. */
+  --radius-control: 9999px;
+}
+
+/* Cal Sans for h1/h2, as the design system specifies — in the base layer so
+   any utility on the element still wins. The face ships in one weight (600);
+   synthesis is off so a `font-bold`/`font-extrabold` heading renders the real
+   600 instead of a smeared fake bold. */
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--font-heading);
+    font-synthesis-weight: none;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -203,6 +264,53 @@
   --popover-foreground: #fafafa;
   /* Inverted, as shadcn's dark theme does it: the primary button is light on
      a dark page, not a darker shade of the page it sits on. */
+  --primary: #fafafa;
+  --primary-foreground: #171717;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --muted-surface: #262626;
+  --muted-text: #a1a1a1;
+  --destructive: #ef4444;
+  --input: #2e2e2e;
+  --ring: #737373;
+  --surface-border: #2a2a2a;
+  --nav: #171717;
+  --nav-foreground: #fafafa;
+  --nav-muted: #a1a1a1;
+  --nav-accent: #262626;
+  --nav-border: rgb(255 255 255 / 10%);
+  --series-1: #9085e9;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #3987e5;
+  --series-8: #e66767;
+  --series-other: #737373;
+}
+
+/* The landing page's dark mode (ADR-104 r2.5). /welcome sits outside every
+   [data-shell], so the block above never reaches it, and it has its own
+   local dark toggle rather than the stored preference. It used to paint
+   dark mode itself, one hex literal per element, which drifted: its
+   decorative glow was `bg-secondary`, still the LIGHT grey out here, and
+   rendered as a white blob over the dark hero.
+
+   The same token values, under a class the page puts on its own root. A
+   token utility inside it (`bg-card`, `text-muted-foreground`, `bg-primary`)
+   now flips with no per-element condition, and it can never disagree with
+   the dark mode the visitor will see after signing in. */
+.landing-dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
   --primary: #fafafa;
   --primary-foreground: #171717;
   --secondary: #262626;
@@ -497,15 +605,6 @@ a:hover .hero-download-tile--linux {
    the ordinary descendant form for every card/panel beneath it. */
 :root[data-theme="dark"] [data-shell="admin"].bg-white,
 :root[data-theme="dark"] [data-shell="admin"] .bg-white {
-  background-color: #1a1a1a;
-}
-
-/* The admin sidebar (Sidebar.tsx), on direct request — same #1a1a1a as the
-   backdrop and cards. Targets its own .admin-sidebar marker class, not the
-   shared .bg-sidebar utility directly: that utility is also DocsCodeBlock's
-   code-block background and the public /welcome preview's own (differently
-   themed) mockup, neither of which should follow this admin-only change. */
-:root[data-theme="dark"] [data-shell="admin"] .admin-sidebar {
   background-color: #1a1a1a;
 }
 
@@ -1353,77 +1452,37 @@ button:not(:disabled) {
 }
 
 /* LoadingDim — the full-screen overlay for signing in and out (and the
-   new-tab "View site" page). A brand ring rather than the 12 black blades
-   ported from the old 로딩DIM.html reference: a purple-to-blue gradient arc
-   with a rounded head over a faint track, turning continuously, on a soft
-   blurred overlay that follows the theme. The standalone copy in
-   LoadingDim.tsx (loadingDimStandaloneHtml) mirrors these values. */
+   new-tab "View site" page). shadcn's spinner (Lucide's LoaderCircle) in
+   neutral grey on a soft blurred overlay that follows the theme
+   (ADR-104 r2.5); it replaced a purple-to-blue conic ring from the retired
+   brand palette. The standalone copy in LoadingDim.tsx
+   (loadingDimStandaloneHtml) mirrors these values. With motion reduced, the
+   blanket rule below stops the spin and the spinner simply rests. */
 .loading-dim {
-  background-color: rgba(255, 255, 255, 0.72);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+  background-color: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 :root[data-theme="dark"] .loading-dim {
-  background-color: rgba(10, 10, 16, 0.66);
+  background-color: rgba(10, 10, 10, 0.8);
 }
 
 .loading-dim-label {
-  color: #2d2a4a;
+  color: #171717;
+}
+
+.loading-dim-spinner {
+  color: #737373;
 }
 
 :root[data-theme="dark"] .loading-dim-label {
-  color: #e7e5f4;
+  color: #fafafa;
 }
 
-.cdp-spinner {
-  position: relative;
-  display: inline-block;
-  width: 56px;
-  height: 56px;
+:root[data-theme="dark"] .loading-dim-spinner {
+  color: #a1a1a1;
 }
-
-/* The faint full circle the arc travels round. */
-.cdp-spinner::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 5px solid rgba(109, 60, 224, 0.14);
-}
-
-.cdp-spinner-arc {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  /* Transparent at the tail, full brand colour at the head (12 o'clock). */
-  background: conic-gradient(from 0deg, rgba(109, 60, 224, 0) 0deg, #6d3ce0 210deg, #404040 360deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
-  animation: cdp-spin 0.9s linear infinite;
-}
-
-/* The rounded head: a dot sitting on the arc's leading end. */
-.cdp-spinner-arc::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  margin-left: -2.5px;
-  border-radius: 9999px;
-  background: #404040;
-}
-
-@keyframes cdp-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* With motion reduced, the blanket rule below ends every animation at once —
-   the ring then simply rests, still visibly a loading indicator. */
 
 /* Blanket reduced-motion safety net — the two @media blocks above only cover
    the two keyframe-based entrance animations by name. Every hover/press

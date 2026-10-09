@@ -42,3 +42,18 @@ if (domWindow) {
     Object.defineProperty(globalThis, "Storage", { configurable: true, writable: true, value: domWindow.Storage });
   }
 }
+
+/**
+ * What Radix's Select needs from a browser that jsdom does not implement
+ * (ADR-104 r2.10): pointer capture, used when the trigger opens on pointer
+ * down, and `scrollIntoView`, used to bring the chosen item into view. No-ops
+ * are faithful enough — jsdom has no layout to capture or scroll. Only filled
+ * in where missing, so a test can still spy on or replace them.
+ */
+if (typeof Element !== "undefined") {
+  const proto = Element.prototype as unknown as Record<string, unknown>;
+  if (typeof proto.hasPointerCapture !== "function") proto.hasPointerCapture = () => false;
+  if (typeof proto.setPointerCapture !== "function") proto.setPointerCapture = () => {};
+  if (typeof proto.releasePointerCapture !== "function") proto.releasePointerCapture = () => {};
+  if (typeof proto.scrollIntoView !== "function") proto.scrollIntoView = () => {};
+}

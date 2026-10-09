@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
   approveImplementation,
@@ -97,22 +98,22 @@ export function GeneratedChangesReview({
 
   if (loadError) {
     return (
-      <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+      <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
         {loadError}
       </p>
     );
   }
   if (changes === null) {
-    return <p className="mt-3 text-sm text-muted">Loading the proposed changes…</p>;
+    return <p className="mt-3 text-sm text-muted-foreground">Loading the proposed changes…</p>;
   }
 
   return (
     <div className="mt-4 space-y-3">
-      <p className="text-sm text-dash-ink">
+      <p className="text-sm text-foreground">
         <strong>{changes.length}</strong> file{changes.length === 1 ? "" : "s"} proposed — review each before
         deciding. Nothing has been written to the destination yet.
       </p>
-      <div className="divide-y divide-border rounded-xl border border-border">
+      <div className="divide-y divide-surface-border rounded-xl border border-surface-border">
         {changes.map((c) => {
           const isOpen = expanded === c.path;
           return (
@@ -120,7 +121,7 @@ export function GeneratedChangesReview({
               <button
                 type="button"
                 onClick={() => setExpanded(isOpen ? null : c.path)}
-                className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-page"
+                className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-accent"
               >
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${
@@ -133,14 +134,14 @@ export function GeneratedChangesReview({
                 >
                   {c.changeKind}
                 </span>
-                <span className="min-w-0 flex-1 truncate font-mono text-xs text-dash-ink">{c.path}</span>
+                <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">{c.path}</span>
               </button>
               {isOpen && (
-                <div className="grid grid-cols-1 gap-px border-t border-border bg-border sm:grid-cols-2">
-                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-[#fdf1e3]/30 p-3 font-mono text-xs text-dash-ink">
+                <div className="grid grid-cols-1 gap-px border-t border-surface-border bg-surface-border sm:grid-cols-2">
+                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-[#fdf1e3]/30 p-3 font-mono text-xs text-foreground">
                     {c.beforeContent ?? "(new file)"}
                   </pre>
-                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-secondary p-3 font-mono text-xs text-dash-ink">
+                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-secondary p-3 font-mono text-xs text-foreground">
                     {c.afterContent ?? "(deleted)"}
                   </pre>
                 </div>
@@ -151,26 +152,27 @@ export function GeneratedChangesReview({
       </div>
 
       {actionError && (
-        <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+        <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
           {actionError}
         </p>
       )}
 
       {canConfirm && (
         <div>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => void handleRunTests()}
             disabled={testing}
-            className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             {testing ? "Running tests…" : "Run tests"}
-          </button>
-          <p className="mt-1 text-xs text-muted">
+          </Button>
+          <p className="mt-1 text-xs text-muted-foreground">
             Against a disposable copy of this exact proposal — never the live destination.
           </p>
           {testError && (
-            <p role="alert" className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
               {testError}
             </p>
           )}
@@ -202,22 +204,21 @@ export function GeneratedChangesReview({
 
       {canConfirm && (
         <div className="flex flex-wrap gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => void handleApprove()}
             disabled={busy}
-            className="rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Working…" : "Approve and apply"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={() => void handleReject()}
             disabled={busy}
-            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             Reject
-          </button>
+          </Button>
         </div>
       )}
     </div>

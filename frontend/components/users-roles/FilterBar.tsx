@@ -1,6 +1,7 @@
 import { DISPLAY_ROLE_ORDER, ROLE_LABELS, type AccountStatus, type DisplayRole } from "@/lib/mock/users-roles";
 import { FilterDropdown, type FilterOption } from "./FilterDropdown";
-import { inputBaseClass } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
+import { ClockIcon, UsersIcon } from "@/components/layout/icons";
 
 export type StatusFilter = AccountStatus | "all";
 export type RoleFilter = DisplayRole | "all";
@@ -15,27 +16,8 @@ const STATUS_OPTIONS: FilterOption<StatusFilter>[] = [
   { value: "all", label: "All Status" },
   { value: "active", label: "Active", dotClassName: "bg-[#1f9d6b]" },
   { value: "pending", label: "Pending", dotClassName: "bg-amber-500" },
-  { value: "deactivated", label: "Deactivated", dotClassName: "bg-muted" },
+  { value: "deactivated", label: "Deactivated", dotClassName: "bg-muted-foreground" },
 ];
-
-function RoleGlyphIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <circle cx="9" cy="8" r="3.2" />
-      <path d="M2.5 19c1.1-3 3.4-4.5 6.5-4.5s5.4 1.5 6.5 4.5" strokeLinecap="round" />
-      <path d="M15.5 6a3 3 0 0 1 0 5.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function StatusGlyphIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 /** Real client-side filtering — no backend call, but not decorative either. */
 export function FilterBar({
@@ -55,30 +37,17 @@ export function FilterBar({
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
-      <div className="relative w-full sm:w-[300px] sm:shrink-0">
-        <svg
-          viewBox="0 0 24 24"
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search by name, email, or role..."
-          className={`${inputBaseClass} w-full`}
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="Search by name, email, or role..."
+        aria-label="Search users"
+        containerClassName="sm:w-72 sm:shrink-0"
+      />
 
       <FilterDropdown<RoleFilter>
         label="Role"
-        icon={<RoleGlyphIcon className="h-4 w-4" />}
+        icon={<UsersIcon className="size-4" />}
         value={role}
         onChange={onRoleChange}
         options={ROLE_OPTIONS}
@@ -87,7 +56,7 @@ export function FilterBar({
 
       <FilterDropdown<StatusFilter>
         label="Status"
-        icon={<StatusGlyphIcon className="h-4 w-4" />}
+        icon={<ClockIcon className="size-4" />}
         value={status}
         onChange={onStatusChange}
         options={STATUS_OPTIONS}

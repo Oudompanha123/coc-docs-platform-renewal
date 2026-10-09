@@ -2,7 +2,9 @@
  * Input — the text-field primitive (ADR-104 r2.1).
  *
  * Styled to the references the product owner supplied: a filled pill with no
- * visible border at rest, rather than shadcn's default outlined rectangle,
+ * visible border at rest, rather than shadcn's default outlined rectangle.
+ * The coc-docs design system gives fields its 7.2px control radius; the
+ * product owner kept the pill for fields (r2.6) while buttons took 7.2px,
  * and claude.ai's composer for how it behaves on focus. The border is present
  * but transparent, so focus can colour it without the field changing size —
  * a transparent-to-visible border costs no layout, where adding one would
@@ -31,12 +33,14 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Exported so nothing has to restate it. `components/docs/editor` carried its
- * own `fieldInputClass` — a fifth field style, used in about thirty places —
- * and it now points here instead of describing a field of its own.
+ * What every text field shares, single-line or not: the fill, the invisible
+ * border, the calm focus and the invalid state. No shape and no height — those
+ * are what differ between {@link inputBaseClass} and `textareaBaseClass`
+ * (`./textarea`), and keeping them out of here is what stops a multi-line
+ * field inheriting a pill it then has to fight.
  */
-export const inputBaseClass = cn(
-  "bg-muted-surface flex h-10 w-full min-w-0 rounded-full border border-transparent pl-4 pr-4 py-2 text-base transition-[color,box-shadow,background-color,border-color] outline-none md:text-sm",
+export const fieldSurfaceClass = cn(
+  "bg-muted-surface w-full min-w-0 border border-transparent text-base transition-[color,box-shadow,background-color,border-color] outline-none md:text-sm",
   "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground",
   "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium",
   // Focus, the way claude.ai's composer does it: the field lifts off the page
@@ -53,6 +57,15 @@ export const inputBaseClass = cn(
   "aria-invalid:border-destructive/50 aria-invalid:bg-destructive/5",
   "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
 );
+
+/**
+ * The single-line field: the shared surface as a 40px pill. Exported so
+ * nothing has to restate it — `components/docs/editor`'s fields point here.
+ * Dropdowns use `SimpleSelect` (`./select`), on the same surface. Only for one line of text: a
+ * `<textarea>` takes `textareaBaseClass`, because a pill's ends grow with its
+ * height and a multi-line pill is two semicircles.
+ */
+export const inputBaseClass = cn(fieldSurfaceClass, "flex h-10 rounded-full pl-4 pr-4 py-2");
 
 export function Input({ className, type, ...props }: ComponentProps<"input">) {
   return <input type={type} className={cn(inputBaseClass, className)} {...props} />;

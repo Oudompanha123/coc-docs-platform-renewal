@@ -13,7 +13,7 @@ describe("ProductsNavDropdown (public /welcome page)", () => {
   it("opens one grid of every product, not a dropdown per product", async () => {
     const user = userEvent.setup();
     const onRequireAuth = vi.fn();
-    render(<ProductsNavDropdown products={PRODUCTS} isDark={false} onRequireAuth={onRequireAuth} />);
+    render(<ProductsNavDropdown products={PRODUCTS} onRequireAuth={onRequireAuth} />);
 
     expect(screen.getAllByRole("button", { name: /products/i })).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: /products/i }));
@@ -27,7 +27,7 @@ describe("ProductsNavDropdown (public /welcome page)", () => {
   it("clicking a product tile closes the menu and prompts sign-in", async () => {
     const user = userEvent.setup();
     const onRequireAuth = vi.fn();
-    render(<ProductsNavDropdown products={PRODUCTS} isDark={false} onRequireAuth={onRequireAuth} />);
+    render(<ProductsNavDropdown products={PRODUCTS} onRequireAuth={onRequireAuth} />);
 
     await user.click(screen.getByRole("button", { name: /products/i }));
     await user.click(screen.getByRole("menuitem", { name: /jex3\.0/i }));
@@ -38,7 +38,7 @@ describe("ProductsNavDropdown (public /welcome page)", () => {
 
   it("toggles closed on a second click of the trigger", async () => {
     const user = userEvent.setup();
-    render(<ProductsNavDropdown products={PRODUCTS} isDark={false} onRequireAuth={vi.fn()} />);
+    render(<ProductsNavDropdown products={PRODUCTS} onRequireAuth={vi.fn()} />);
 
     const trigger = screen.getByRole("button", { name: /products/i });
     await user.click(trigger);

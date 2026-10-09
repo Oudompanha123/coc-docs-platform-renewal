@@ -1,8 +1,12 @@
 import type { ManagedAccount } from "@/lib/mock/users-roles";
 import { avatarColorFor, ROLE_LABELS } from "@/lib/mock/users-roles";
+import { ClockIcon } from "@/components/layout/icons";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { RoleBadge } from "./RoleBadge";
 import { StatusBadge } from "./StatusBadge";
+import { DropdownMenuItem, DropdownMenuSeparator, RowActions } from "@/components/ui/dropdown-menu";
+import { Eye, Trash2, UserCheck, UserX } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function initialsOf(name: string): string {
   return name
@@ -11,15 +15,6 @@ function initialsOf(name: string): string {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
-
-function ClockIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" strokeLinecap="round" />
-    </svg>
-  );
 }
 
 export function AccountsTable({
@@ -42,38 +37,46 @@ export function AccountsTable({
   onOpen: (account: ManagedAccount) => void;
 }) {
   return (
-    <div className="overflow-x-auto overflow-y-hidden rounded-[10px] border border-border">
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted">
-            <th className="px-4 py-3">Name</th>
-            <th className="px-4 py-3">Email</th>
-            <th className="px-4 py-3">Role</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Last Login</th>
-            <th className="px-4 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Last Login</TableHead>
+            <TableHead className="w-12 text-right"><span className="sr-only">Actions</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {accounts.map((account, index) => (
-            <tr key={account.id} className="transition-colors hover:bg-[#f8fafc]">
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-3">
+            <TableRow key={account.id}>
+              <TableCell>
+                <div className="flex items-center gap-2.5">
                   <UserAvatar
                     avatarUrl={account.avatarUrl}
                     initials={initialsOf(account.name)}
                     name={account.name}
-                    className="h-10 w-10 text-sm shadow-sm"
+                    className="size-8 text-xs"
                     style={{ backgroundColor: avatarColorFor(index) }}
                   />
-                  <div>
-                    <p className="font-semibold text-dash-ink">{account.name}</p>
-                    <p className="text-xs text-muted">{ROLE_LABELS[account.role]}</p>
+                  <div className="min-w-0">
+                    {/* The name opens the details panel — the commonest action,
+                        kept one click away now the buttons are in the menu. */}
+                    <button
+                      type="button"
+                      onClick={() => onOpen(account)}
+                      className="truncate text-left font-medium text-foreground underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+                    >
+                      {account.name}
+                    </button>
+                    <p className="text-xs text-muted-foreground">{ROLE_LABELS[account.role]}</p>
                   </div>
                 </div>
-              </td>
-              <td className="px-4 py-4 text-muted">{account.email}</td>
-              <td className="px-4 py-4">
+              </TableCell>
+              <TableCell className="text-muted-foreground">{account.email}</TableCell>
+              <TableCell>
                 {/* Every role this account holds (ADR-016), not just the
                     highest — an account with more than one shows all of them,
                     since showing only the effective role hid that fact
@@ -83,58 +86,46 @@ export function AccountsTable({
                     <RoleBadge key={role} role={role} />
                   ))}
                 </div>
-              </td>
-              <td className="px-4 py-4">
+              </TableCell>
+              <TableCell>
                 <StatusBadge status={account.status} />
-              </td>
-              <td className="px-4 py-4">
+              </TableCell>
+              <TableCell>
                 <div className="flex items-start gap-1.5">
-                  <ClockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted" />
+                  <ClockIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                   <div>
-                    <p className="text-dash-ink">{account.lastLogin}</p>
-                    <p className="text-xs text-muted">{account.ipAddress}</p>
+                    <p className="text-foreground">{account.lastLogin}</p>
+                    <p className="text-xs text-muted-foreground">{account.ipAddress}</p>
                   </div>
                 </div>
-              </td>
-              <td className="px-4 py-4 text-right">
-                <button
-                  type="button"
-                  onClick={() => onOpen(account)}
-                  className="mr-2 rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:border-primary hover:text-foreground"
-                >
-                  Details
-                </button>
-                {account.status !== "deactivated" ? (
-                  <button
-                    type="button"
-                    onClick={() => onDeactivate(account)}
-                    className="mr-2 inline-flex items-center rounded-full bg-danger/10 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/20"
-                  >
-                    Deactivate
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onReactivate(account)}
-                    className="mr-2 inline-flex items-center rounded-full bg-[#1f9d6b]/10 px-4 py-1.5 text-sm font-semibold text-[#1f9d6b] transition-colors hover:bg-[#1f9d6b]/20"
-                  >
-                    Reactivate
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onDelete(account)}
-                  aria-label={`Delete ${account.name}`}
-                  title="Delete permanently"
-                  className="inline-flex items-center rounded-full border border-danger/30 px-3 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
+              </TableCell>
+              <TableCell className="w-12 text-right">
+                {/* One "⋯" menu per row (ADR-104 r2.10) instead of three
+                    buttons: the row reads as a person first, and Delete is a
+                    deliberate step away instead of beside Details. */}
+                <RowActions label={`Actions for ${account.name}`}>
+                  <DropdownMenuItem onSelect={() => onOpen(account)}>
+                    <Eye /> View details
+                  </DropdownMenuItem>
+                  {account.status !== "deactivated" ? (
+                    <DropdownMenuItem onSelect={() => onDeactivate(account)}>
+                      <UserX /> Deactivate
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onSelect={() => onReactivate(account)}>
+                      <UserCheck /> Reactivate
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onSelect={() => onDelete(account)}>
+                    <Trash2 /> Delete permanently
+                  </DropdownMenuItem>
+                </RowActions>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

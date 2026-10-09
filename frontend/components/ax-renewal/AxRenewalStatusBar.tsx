@@ -40,7 +40,7 @@ export function AxRenewalStatusBar() {
 
   if (!detail) {
     return (
-      <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 border-t border-border bg-white px-4 text-xs text-muted">
+      <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 border-t border-surface-border bg-card px-4 text-xs text-muted-foreground">
         <span>No project selected</span>
         {user?.displayName && (
           <span className="ml-auto">
@@ -60,7 +60,7 @@ export function AxRenewalStatusBar() {
     detail.confirmations.database != null && !detail.dbConnection && detail.dbChanges.length === 0;
 
   return (
-    <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 overflow-x-auto border-t border-border bg-white px-4 font-mono text-xs text-muted">
+    <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 overflow-x-auto border-t border-surface-border bg-card px-4 font-mono text-xs text-muted-foreground">
       <span className={analyzed ? "text-foreground" : ""}>{analyzed ? "analysed" : "not analysed"}</span>
       {analyzed && (
         <>

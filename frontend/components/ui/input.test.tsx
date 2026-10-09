@@ -12,7 +12,7 @@ describe("Input", () => {
     expect(field).toHaveValue("someone@example.com");
   });
 
-  it("is a filled pill with no visible border — the reference design, not shadcn's default", () => {
+  it("is a filled pill with no visible border — fields stay pills while buttons take the 7.2px control radius", () => {
     render(<Input aria-label="Email" />);
 
     const className = screen.getByLabelText("Email").className;

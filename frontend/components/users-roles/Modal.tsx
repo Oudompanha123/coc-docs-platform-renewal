@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type Transiti
 
 /** No modal primitive exists elsewhere in this app yet — this is the minimal
  *  shell both AddAccountModal and DeactivateModal need, styled to match the
- *  existing card convention (rounded-2xl border-border bg-white shadow).
+ *  existing card convention (rounded-2xl border-surface-border bg-card shadow).
  *  `title` is optional so a caller that needs a custom header (icon above
  *  the heading, e.g. DeactivateModal's warning state) can build it as part
  *  of `children` instead. */
-const DEFAULT_CLASS_NAME = "w-full max-w-md overflow-y-auto rounded-[10px] border border-border bg-white p-5 shadow-xl";
+const DEFAULT_CLASS_NAME = "w-full max-w-md overflow-y-auto rounded-xl border border-surface-border bg-card p-5 shadow-xl";
 
 /** Length of the `animated` fade, both directions — matches `duration-250` below. */
 export const MODAL_FADE_MS = 250;
@@ -23,8 +23,12 @@ export function Modal({
   closing = false,
   onExited,
   placement = "center",
+  ariaLabel,
 }: {
   title?: string;
+  /** Makes the panel a named `role="dialog"` — for a caller that draws its
+   *  own header and has no inner dialog element of its own. */
+  ariaLabel?: string;
   onClose: () => void;
   children: ReactNode;
   /** Replaces the whole default class list (not merged) — for a caller that
@@ -114,11 +118,18 @@ export function Modal({
     >
       <div aria-hidden="true" data-modal-dim className={`absolute inset-0 bg-black/40${fade}`} onTransitionEnd={onDimTransitionEnd} />
       <div
+        // Opt-in: with `ariaLabel` the panel is the dialog to assistive
+        // technology. Not on by default, because several callers already
+        // mark their own content `role="dialog"`, and two nested dialogs are
+        // worse than one.
+        role={ariaLabel ? "dialog" : undefined}
+        aria-modal={ariaLabel ? true : undefined}
+        aria-label={ariaLabel}
         className={`relative ${className}${panelFade}`}
         style={{ maxHeight: "100%" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {title && <h2 className="text-base font-bold text-dash-ink">{title}</h2>}
+        {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
         <div className={bodyClasses || undefined}>{children}</div>
       </div>
     </div>

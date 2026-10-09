@@ -15,7 +15,7 @@ const TABS = [
 export function ClaudeUsageTabs() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Claude Usage" className="mb-5 flex gap-6 border-b border-border">
+    <nav aria-label="Claude Usage" className="mb-4 flex gap-6 border-b border-surface-border">
       {TABS.map((tab) => {
         const active = pathname === tab.href;
         return (
@@ -23,8 +23,8 @@ export function ClaudeUsageTabs() {
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`relative pb-3 text-sm transition-colors focus-visible:outline-none ${
-              active ? "font-bold text-dash-ink" : "font-medium text-muted hover:text-dash-ink"
+            className={`relative flex h-9 items-center text-sm font-medium transition-colors focus-visible:outline-none ${
+              active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.label}
