@@ -18,7 +18,7 @@ The product owner asked for a **View Logs** page in the Claude Usage section: a 
 
 ## 2. Decision
 
-> Every real `claude-team-usage scan` (not `--dry-run`) sends one record to a new `POST /api/ingest/scan-log`, stored in a new table `claude_usage_scan_log` (V66). An admin-only page at `/claude-usage/logs` lists and explains them. The backend derives Success / Warning / Failed from the steps.
+> Every real `claude-team-usage scan` (not `--dry-run`) sends one record to a new `POST /api/ingest/scan-log`, stored in a new table `claude_usage_scan_log` (V66). An admin-only page at `/claude-usage/monitoring` (originally `/claude-usage/logs`; see §6) lists and explains them. The backend derives Success / Warning / Failed from the steps.
 
 ### Key Choices
 
@@ -29,7 +29,7 @@ The product owner asked for a **View Logs** page in the Claude Usage section: a 
 5. **Delivery when the server is down**: the CLI writes each record to a local outbox (`scan-logs-pending.json`, newest 50) and sends it oldest-first. It stops at the first transient failure (network, timeout, 5xx) and keeps the rest for the next scan. It drops records the server definitively refused (400, or 404 from an older server), and keeps 401/403 records, which a fresh `login` fixes. Each record is a single request with no retry (`send(..., { retry: false })`) under the existing 10 s timeout (CODE-002). A record that arrives more than 2 minutes after its scan finished is labelled in the UI as delivered from the queue.
 6. **Privacy**: counts, step names and short messages only — never the token, a transcript line or a prompt. The CLI masks `coc_…` tokens and `Bearer …` values and replaces the home directory with `~`. The server masks tokens and bearer values again, and clips details to 300 characters and errors to 500.
 7. **Admin reads**: `GET /api/v1/admin/claude-usage/scan-logs?from&to` takes ISO dates, inclusive, in the team's Asia/Phnom_Penh zone. Without dates it returns the last 7 days; a range may cover at most 92 days, and at most 2,000 rows come back, newest first, with `truncated`. `GET …/scan-logs/{id}` adds the steps. Both sit under the existing `/api/v1/admin/**` ADMIN floor. Each record has a readable `scanRef` (`SCAN-yyyyMMdd-HHmmss-XXXX`), built from the start time plus four characters of the client id.
-8. **UI**: `/claude-usage/logs` sits under the same admin-only shell as `/claude-usage`, with a Dashboard / View Logs tab strip on both pages. The page has summary cards (Total, Successful, Warnings, Failed, Last Scan) and filters (date range, user, status, search). Date range is fetched from the server; the other filters work on the loaded rows. The summary cards ignore the status and search filters. The page has a table and a detail modal with scan information, an error panel and the step timeline. It reuses the existing stat card, pagination, modal, field and pill styles.
+8. **UI**: `/claude-usage/monitoring` sits under the same admin-only shell as `/claude-usage`, with a Dashboard / View Logs tab strip on both pages. The page has summary cards (Total, Successful, Warnings, Failed, Last Scan) and filters (date range, user, status, search). Date range is fetched from the server; the other filters work on the loaded rows. The summary cards ignore the status and search filters. The page has a table and a detail modal with scan information, an error panel and the step timeline. It reuses the existing stat card, pagination, modal, field and pill styles.
 
 ## 3. Alternatives Considered
 
@@ -51,4 +51,8 @@ The product owner asked for a **View Logs** page in the Claude Usage section: a 
 
 ## 5. Files
 
-`backend/src/main/resources/db/migration/V66__claude_usage_scan_log.sql`; `claudeusage/ClaudeUsageScanLog{,Repository,Service}.java`; `web/ClaudeUsageIngestController.java` (`/api/ingest/scan-log`), `web/AdminClaudeUsageController.java` (`/scan-logs`), `web/ApiDtos.java`, `config/SecurityConfig.java`; `tools/claude-team-usage/src/{scan-log.js,scan.js,usage-parser.js,upload.js}`, `bin/cli.js`, 0.4.0; `frontend/app/(shell)/claude-usage/logs/page.tsx`, `components/claude-usage/{ScanLogsView,ScanLogTable,ScanLogDetailModal,ScanStatusBadge,ClaudeUsageTabs}.tsx`, `lib/claudeUsage/scanLogs.ts`, `lib/admin/claudeUsage.ts`.
+`backend/src/main/resources/db/migration/V66__claude_usage_scan_log.sql`; `claudeusage/ClaudeUsageScanLog{,Repository,Service}.java`; `web/ClaudeUsageIngestController.java` (`/api/ingest/scan-log`), `web/AdminClaudeUsageController.java` (`/scan-logs`), `web/ApiDtos.java`, `config/SecurityConfig.java`; `tools/claude-team-usage/src/{scan-log.js,scan.js,usage-parser.js,upload.js}`, `bin/cli.js`, 0.4.0; `frontend/app/(shell)/claude-usage/monitoring/page.tsx`, `frontend/next.config.ts`, `components/claude-usage/{ScanLogsView,ScanLogTable,ScanLogDetailModal,ScanStatusBadge,ClaudeUsageTabs}.tsx`, `lib/claudeUsage/scanLogs.ts`, `lib/admin/claudeUsage.ts`.
+
+## 6. Amendment — route renamed (2026-10-09)
+
+The page moved from `/claude-usage/logs` to `/claude-usage/monitoring` (PM instruction). The page, its components and the API are unchanged. `next.config.ts` permanently redirects (308) the old URL to the new one, so existing bookmarks and shared links keep working. The new folder name also avoids any `.gitignore` rule named `logs/`, which is what kept the original page out of git (commit `0e6dec4`).

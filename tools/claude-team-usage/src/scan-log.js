@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { configDir } from './config.js';
-import { send } from './upload.js';
+import { send, TRACKING_DISABLED } from './upload.js';
 
 /** The fixed step catalogue, in order. The backend accepts exactly these keys. */
 export const STEPS = [
@@ -142,7 +142,9 @@ function savePending(records, env = process.env) {
  * oldest first. Stops at the first transient failure (network, timeout, 5xx)
  * and keeps the rest for the next scan. A definite refusal (400, or 404 from a
  * server older than ADR-099) drops that record — resending it cannot succeed —
- * except 401/403, which a fresh `login` fixes, so those are kept.
+ * except a credential 401/403, which a fresh `login` fixes, so those are kept.
+ * A 403 `tracking-disabled` or 409 `disabled-period` (ADR-105) is dropped:
+ * the server will never accept a scan from a time tracking was disabled.
  *
  * Never throws and never changes the scan's own result: the log is about the
  * scan, not part of it.
@@ -181,7 +183,10 @@ export async function deliverScanLogs({ creds, record, io, fetchImpl, verbose = 
       if (error?.transient) {
         stopped = true;
         keep.push(entry);
-      } else if (error?.status === 401 || error?.status === 403) {
+      } else if ((error?.status === 401 || error?.status === 403) && error?.code !== TRACKING_DISABLED) {
+        // A credential problem: a fresh `login` fixes it, so keep the record.
+        // Not "tracking disabled" (ADR-105) — the server will never accept a
+        // scan from that time, so that one is dropped like any other refusal.
         keep.push(entry);
       } else if (verbose) {
         io.err(`[debug] scan log ${entry.scanId} not accepted: ${error.message}`);

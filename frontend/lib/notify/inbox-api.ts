@@ -63,6 +63,48 @@ export async function fetchInbox(limit = 30): Promise<Inbox> {
   return (await response.json()) as Inbox;
 }
 
+/** One page of the bell's expanded "View all" list (ADR-106). */
+export interface InboxPage {
+  items: InboxNotification[];
+  /** Whether another page follows — what decides "Load more". */
+  hasMore: boolean;
+  /** Same whole-inbox count the bell's badge shows. */
+  unreadCount: number;
+}
+
+/**
+ * One page of `GET /api/v1/notifications/inbox/history`, newest first.
+ *
+ * <p>Keyset paging: pass the last row already held as `after` to get the rows
+ * older than it, so a notification arriving between two "Load more" clicks
+ * neither repeats nor skips a row.
+ */
+export async function fetchInboxPage(
+  options: { after?: { id: string; createdAt: string }; unreadOnly?: boolean; limit?: number } = {},
+): Promise<InboxPage> {
+  const params = new URLSearchParams({ limit: String(options.limit ?? 20) });
+  if (options.unreadOnly) params.set("unread", "true");
+  if (options.after) {
+    params.set("before", options.after.createdAt);
+    params.set("beforeId", options.after.id);
+  }
+  let response: Response;
+  try {
+    response = await fetch(`${BACKEND_URL}/api/v1/notifications/inbox/history?${params}`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new AuthApiError("Couldn't reach the server. Check your connection and try again.");
+  }
+  if (response.status === 401) {
+    throw new SessionExpiredError("Your session has ended. Please sign in again.");
+  }
+  if (!response.ok) {
+    throw new AuthApiError("Couldn't load your notifications.");
+  }
+  return (await response.json()) as InboxPage;
+}
+
 /**
  * Marks one read.
  *

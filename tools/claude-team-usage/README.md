@@ -155,6 +155,12 @@ USER_EMAIL=you@company.com  INGEST_URL=https://<coc-docs>/api/ingest  INGEST_SEC
 - **`SELF_SIGNED_CERT_IN_CHAIN`**: a corporate proxy is intercepting HTTPS. Set
   `NODE_EXTRA_CA_CERTS` to its root CA. Don't disable certificate checks.
 - **`rejected (401)`**: this machine was revoked. Run `claude-team-usage login`.
+- **"Claude usage tracking has been disabled for your account by an administrator"**: an
+  admin turned tracking off for you. Nothing is uploaded while it is off, and signing in
+  again won't change that — ask your Coc Docs administrator. (Since 0.5.0.)
+- **`skipped, not recorded: tracking was disabled for your account at that time`**: after
+  tracking is turned back on, days from while it was off are refused for good. The CLI
+  remembers them and doesn't send them again. (Since 0.5.0.)
 - **`usage directory not found`**: Claude Code hasn't run here, or keeps its transcripts
   elsewhere. Set `CLAUDE_PROJECTS_DIR`.
 
