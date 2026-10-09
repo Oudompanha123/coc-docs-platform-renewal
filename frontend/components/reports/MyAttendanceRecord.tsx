@@ -63,7 +63,7 @@ function CheckCard({
 }
 
 /**
- * The signed-in caller's own attendance for one date — `/reports/attendance`'s
+ * The signed-in caller's own attendance for one date — `/account/settings#attendance`'s
  * body. `report` is always {@link HrmsAttendanceReport.scopedToViewer}, so
  * `report.rows` holds at most the caller's own single row (TM-025); this
  * component never widens that, it only decides how to show what arrived.

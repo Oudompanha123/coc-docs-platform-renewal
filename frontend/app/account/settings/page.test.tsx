@@ -33,6 +33,7 @@ vi.mock("@/components/account/ConnectedAccountsCard", () => ({
 vi.mock("@/components/account/SecurityCard", () => ({ SecurityCard: () => <div>Security content</div> }));
 vi.mock("@/components/account/SessionsCard", () => ({ SessionsCard: () => <div>Sessions content</div> }));
 vi.mock("@/components/account/ClaudeUsageCard", () => ({ ClaudeUsageCard: () => <div>Claude Usage content</div> }));
+vi.mock("@/components/account/AttendanceCard", () => ({ AttendanceCard: () => <div>Attendance content</div> }));
 
 // `hidden`-attribute elements get an empty computed accessible name in
 // jsdom even with the `hidden: true` query option (which only re-admits
@@ -87,6 +88,14 @@ describe("AccountSettingsPage — tab behavior", () => {
     expect(screen.getByRole("tabpanel", { name: "Security" })).toBeVisible();
     expect(panelById("account")).not.toBeVisible();
     expect(window.location.hash).toBe("#security");
+  });
+
+  it("opens the Attendance section from #attendance (the /reports/attendance redirect)", () => {
+    window.location.hash = "#attendance";
+    render(<AccountSettingsPage />);
+
+    expect(screen.getByRole("tabpanel", { name: "Attendance" })).toBeVisible();
+    expect(screen.getByText("Attendance content")).toBeVisible();
   });
 
   it("opens directly to the section named in the URL hash (AC3)", () => {

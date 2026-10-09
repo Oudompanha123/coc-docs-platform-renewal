@@ -11,6 +11,7 @@ import { ConnectedAccountsCard, type HrmsLinkState } from "@/components/account/
 import { SecurityCard } from "@/components/account/SecurityCard";
 import { SessionsCard } from "@/components/account/SessionsCard";
 import { ClaudeUsageCard } from "@/components/account/ClaudeUsageCard";
+import { AttendanceCard } from "@/components/account/AttendanceCard";
 import { SettingsToast, type SettingsToastState } from "@/components/account/SettingsToast";
 import { useProductStats } from "@/lib/docs/useProductStats";
 import { fetchMyAttendance } from "@/lib/me/attendance";
@@ -149,6 +150,7 @@ export default function AccountSettingsPage() {
                 ...(canSeeClaudeUsage
                   ? [{ id: "claude-usage" as const, content: <ClaudeUsageCard /> }]
                   : []),
+                { id: "attendance", content: <AttendanceCard /> },
                 { id: "connected-accounts", content: <ConnectedAccountsCard state={hrmsLink} /> },
                 { id: "security", content: <SecurityCard /> },
                 { id: "sessions", content: <SessionsCard /> },
