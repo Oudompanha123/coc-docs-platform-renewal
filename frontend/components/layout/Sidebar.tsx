@@ -129,7 +129,14 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
   // while the mobile drawer — the same markup — always renders in full.
   const renderContent = (rail: boolean) => (
     <div className="admin-sidebar flex h-full flex-col border-r border-nav-border bg-nav py-3">
-      <div className={`flex h-10 items-center justify-between ${rail ? "px-2" : "px-4"}`}>
+      <div className={`flex h-10 items-center ${rail ? "justify-center px-2" : "justify-between px-4"}`}>
+        {/* Collapsed to the icon rail, the wordmark has no room — the "C"
+            mark alone keeps the brand at the top of the rail instead of an
+            empty gap. Same artwork as the app icon; it reads on both themes. */}
+        {rail && (
+          // eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content
+          <img src="/logo-coc-docs-platform-mark.png" alt="Coc Docs Platform" className="size-8 object-contain" />
+        )}
         <div className={rail ? "hidden" : "flex items-center gap-2.5"}>
           {/* Two logos, one per theme: the admin artwork's lettering is white and
               would vanish on the light sidebar. `dark:` is the shell-scoped

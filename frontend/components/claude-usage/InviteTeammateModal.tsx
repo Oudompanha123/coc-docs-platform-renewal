@@ -2,7 +2,7 @@
 
 import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 import { useState } from "react";
-import { Modal } from "@/components/users-roles/Modal";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 import type { TeamRole } from "@/lib/admin/claudeUsage";
 import { inputBaseClass } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/select";
@@ -33,14 +33,14 @@ export function InviteTeammateModal({
           (or their own Home page): it downloads a script already filled in with their identity and a
           personal token, so there is no shared secret to hand over.
         </p>
-        <div className="mt-5 flex justify-end">
+        <ModalFooter>
           <Button
             type="button"
             onClick={onClose}
           >
             Done
           </Button>
-        </div>
+        </ModalFooter>
       </Modal>
     );
   }
@@ -107,10 +107,10 @@ export function InviteTeammateModal({
           </p>
         )}
 
-        <div className="mt-5 flex justify-end gap-2">
+        <ModalFooter>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             onClick={onClose}
           >
             Cancel
@@ -121,7 +121,7 @@ export function InviteTeammateModal({
           >
             {busy ? "Sending…" : "Send invite"}
           </Button>
-        </div>
+        </ModalFooter>
       </form>
     </Modal>
   );

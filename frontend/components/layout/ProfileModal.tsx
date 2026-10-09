@@ -94,7 +94,7 @@ export function ProfileModal({
   return (
     <Modal
       onClose={onClose}
-      className="relative w-full max-w-md rounded-xl border border-surface-border bg-card pb-5 shadow-xl"
+      className="relative w-full max-w-md rounded-2xl border border-surface-border bg-card shadow-xl"
     >
       {/* Avatar straddles the card's top edge (half above, half inside), so
           it reads as a floating profile photo rather than boxed inside the
@@ -187,16 +187,14 @@ export function ProfileModal({
       </div>
 
       {/* Outside the scroll region on purpose, so Close stays in view. */}
-      <div className="mt-4 flex justify-end gap-2 px-5">
-        <Link
-          href={editHref}
-          onClick={onClose}
-          className="rounded-control bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          Edit Profile
-        </Link>
+      <div className="mt-4 flex flex-col-reverse gap-2 rounded-b-2xl border-t border-surface-border bg-muted-surface/40 px-5 py-4 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" onClick={onClose}>
           Close
+        </Button>
+        <Button asChild>
+          <Link href={editHref} onClick={onClose}>
+            Edit Profile
+          </Link>
         </Button>
       </div>
     </Modal>

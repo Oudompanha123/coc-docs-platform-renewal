@@ -1,6 +1,6 @@
 "use client";
 
-import { Modal } from "@/components/users-roles/Modal";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 import { Button } from "@/components/ui/button";
 import type { ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 
@@ -36,10 +36,10 @@ export function RemoveMemberModal({
         </li>
       </ul>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <ModalFooter>
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           onClick={onClose}
         >
           Cancel
@@ -51,7 +51,7 @@ export function RemoveMemberModal({
         >
           Disable
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

@@ -21,7 +21,6 @@ import { UserAvatar } from "./UserAvatar";
 import { ShieldIcon } from "@/components/auth/icons";
 import {
   BellIcon,
-  ChevronDownIcon,
   LogOutIcon,
   AuditIcon,
   MenuIcon,
@@ -554,7 +553,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             onClick={() => toggleMenu("user")}
             aria-haspopup="menu"
             aria-expanded={openMenu === "user"}
-            className="flex min-w-0 items-center gap-2 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            // Avatar only, as on the member header: the name and role are the
+            // first thing in the menu this opens, and stay in the accessible
+            // name so the button is still announced as the person.
+            aria-label={`${user?.name ?? "Guest"}${user?.role ? `, ${user.role}` : ""}`}
+            title={user?.name ?? "Guest"}
+            className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <UserAvatar
               avatarUrl={user?.avatarUrl ?? null}
@@ -562,11 +566,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               name={user?.name ?? "Guest"}
               className={`h-8 w-8 ${userAvatar}`}
             />
-            <div className="hidden min-w-0 text-left sm:block">
-              <p className="truncate text-sm font-medium text-foreground">{user?.name ?? "Guest"}</p>
-              <p className="truncate text-xs text-muted-foreground">{user?.role ?? ""}</p>
-            </div>
-            <ChevronDownIcon className="hidden size-4 text-muted-foreground sm:block" />
           </button>
 
           {openMenu === "user" && (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TrashIcon } from "@/components/layout/icons";
-import { Modal } from "./Modal";
+import { Modal, ModalFooter } from "./Modal";
 import { Button } from "@/components/ui/button";
 import type { ManagedAccount } from "@/lib/mock/users-roles";
 import { Input } from "@/components/ui/input";
@@ -50,14 +50,14 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
             ? "You cannot delete your own account. Ask another Super Admin to do it."
             : "This is the last remaining Super Admin. Promote another account to Super Admin first."}
         </p>
-        <div className="mt-5 flex justify-end">
+        <ModalFooter>
           <Button
             type="button"
             onClick={onClose}
           >
             OK
           </Button>
-        </div>
+        </ModalFooter>
       </Modal>
     );
   }
@@ -110,7 +110,7 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
         />
       </label>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <ModalFooter>
         <Button
           type="button"
           variant="outline"
@@ -126,7 +126,7 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
         >
           Delete permanently
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

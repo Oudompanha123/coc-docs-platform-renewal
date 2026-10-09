@@ -1,7 +1,8 @@
 "use client";
 
-import { Modal } from "@/components/users-roles/Modal";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 import { Spinner } from "@/components/layout/Spinner";
+import { Button } from "@/components/ui/button";
 
 export type AnnouncementAction = "publish" | "unpublish" | "delete";
 
@@ -59,27 +60,18 @@ export function AnnouncementConfirmModal({
           {error}
         </p>
       )}
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={busy}
-          className="rounded-control border border-surface-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent disabled:opacity-50"
-        >
+      <ModalFooter>
+        <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={busy}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
-            copy.danger ? "bg-danger" : "bg-primary"
-          }`}
-        >
+        </Button>
+        {/* The Button primitive, not hand-written: its `text-white` on
+            `bg-primary` drew white-on-white in dark mode, where the primary
+            turns near-white. */}
+        <Button type="button" variant={copy.danger ? "destructive" : "default"} onClick={onConfirm} disabled={busy}>
           {busy && <Spinner />}
           {copy.confirm}
-        </button>
-      </div>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }

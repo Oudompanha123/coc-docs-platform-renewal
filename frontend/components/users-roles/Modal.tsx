@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode, type TransitionEvent } from "react";
+import { XIcon } from "@/components/layout/icons";
+import { cn } from "@/lib/utils";
 
 /** No modal primitive exists elsewhere in this app yet — this is the minimal
  *  shell both AddAccountModal and DeactivateModal need, styled to match the
@@ -8,7 +10,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode, type Transiti
  *  `title` is optional so a caller that needs a custom header (icon above
  *  the heading, e.g. DeactivateModal's warning state) can build it as part
  *  of `children` instead. */
-const DEFAULT_CLASS_NAME = "w-full max-w-md overflow-y-auto rounded-xl border border-surface-border bg-card p-5 shadow-xl";
+const DEFAULT_CLASS_NAME = "w-full max-w-md overflow-y-auto rounded-2xl border border-surface-border bg-card p-6 shadow-xl";
 
 /** Length of the `animated` fade, both directions — matches `duration-250` below. */
 export const MODAL_FADE_MS = 250;
@@ -106,7 +108,7 @@ export function Modal({
     : drawer
       ? ` transition-transform duration-250 ease-out motion-reduce:transition-none ${shown ? "translate-x-0" : "translate-x-full"}`
       : ` transition-[opacity,transform] duration-250 ease-in-out ${shown ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]"}`;
-  const bodyClasses = [title ? "mt-4" : "", bodyClassName ?? ""].filter(Boolean).join(" ");
+  const bodyClasses = [title ? "mt-3" : "", bodyClassName ?? ""].filter(Boolean).join(" ");
 
   // The dim is its own layer, a sibling of the panel rather than its parent,
   // so fading it never fades the panel too — nested, the two opacities
@@ -129,9 +131,44 @@ export function Modal({
         style={{ maxHeight: "100%" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {title && <h2 className="text-base font-semibold text-foreground">{title}</h2>}
+        {title && (
+          // shadcn's dialog header (ADR-104 r2.10): the title, and a close
+          // button in the corner — a titled dialog used to be closable only
+          // from its own footer or Escape.
+          <div className="flex items-start justify-between gap-4">
+            <h2 className="text-lg font-semibold leading-tight text-foreground">{title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close dialog"
+              className="-mr-2 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <XIcon className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
         <div className={bodyClasses || undefined}>{children}</div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A dialog's action row, as shadcn's DialogFooter (ADR-104 r2.10): its own
+ * strip at the foot of the panel — a hairline above, a faint fill — with the
+ * buttons on the right, primary last; on a phone they stack full width with
+ * the primary on top. The negative margins reach the panel's `p-6` edges, so
+ * it is for the default panel only; a custom-padded dialog builds its own.
+ */
+export function ModalFooter({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "-mx-6 -mb-6 mt-6 flex flex-col-reverse gap-2 rounded-b-2xl border-t border-surface-border bg-muted-surface/40 px-6 py-4 sm:flex-row sm:justify-end",
+        className,
+      )}
+    >
+      {children}
     </div>
   );
 }

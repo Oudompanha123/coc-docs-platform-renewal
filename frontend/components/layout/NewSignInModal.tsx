@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "@/components/users-roles/Modal";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 import { Button } from "@/components/ui/button";
 import { revokeSession, type SessionSummary } from "@/lib/auth/api";
 import { ShieldIcon } from "@/components/auth/icons";
@@ -91,14 +91,14 @@ export function NewSignInModal({
         password.
       </p>
 
-      <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <ModalFooter>
         <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           This was me
         </Button>
         <Button type="button" variant="destructive" onClick={() => void endSession()} disabled={busy}>
           {busy ? "Ending…" : "End this session"}
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

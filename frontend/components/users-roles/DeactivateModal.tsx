@@ -1,7 +1,7 @@
 "use client";
 
 import { WarningIcon } from "@/components/layout/icons";
-import { Modal } from "./Modal";
+import { Modal, ModalFooter } from "./Modal";
 import { Button } from "@/components/ui/button";
 import type { ManagedAccount } from "@/lib/mock/users-roles";
 
@@ -35,14 +35,14 @@ export function DeactivateModal({ account, isLastActiveSuperAdmin, isSelf, onClo
           This account cannot be deactivated because it&apos;s the last remaining Super Admin. Promote another account
           to Super Admin first.
         </p>
-        <div className="mt-5 flex justify-end">
+        <ModalFooter>
           <Button
             type="button"
             onClick={onClose}
           >
             OK
           </Button>
-        </div>
+        </ModalFooter>
       </Modal>
     );
   }
@@ -51,14 +51,14 @@ export function DeactivateModal({ account, isLastActiveSuperAdmin, isSelf, onClo
     return (
       <Modal title="Can't deactivate this account" onClose={onClose}>
         <p className="text-sm text-foreground">You cannot deactivate your own account.</p>
-        <div className="mt-5 flex justify-end">
+        <ModalFooter>
           <Button
             type="button"
             onClick={onClose}
           >
             OK
           </Button>
-        </div>
+        </ModalFooter>
       </Modal>
     );
   }
@@ -83,7 +83,7 @@ export function DeactivateModal({ account, isLastActiveSuperAdmin, isSelf, onClo
       <p className="mt-4 text-sm text-muted-foreground">This account will no longer be able to access Coc Docs Platform.</p>
       <p className="mt-2 text-sm font-semibold text-[#1f9d6b]">Existing content and audit history will be preserved.</p>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <ModalFooter>
         <Button
           type="button"
           variant="outline"
@@ -98,7 +98,7 @@ export function DeactivateModal({ account, isLastActiveSuperAdmin, isSelf, onClo
         >
           Deactivate
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

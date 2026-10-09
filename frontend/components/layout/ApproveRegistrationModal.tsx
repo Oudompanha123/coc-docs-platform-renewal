@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "@/components/users-roles/Modal";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 import { Button } from "@/components/ui/button";
 import { Radio } from "@/components/ui/radio";
 import { approveAccount, type AccountRole, type PendingAccount } from "@/lib/admin/accounts";
@@ -110,14 +110,14 @@ export function ApproveRegistrationModal({
         </p>
       )}
 
-      <div className="mt-5 flex justify-end gap-2">
+      <ModalFooter>
         <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button type="button" onClick={() => void approve()} disabled={busy} aria-busy={busy}>
           {busy ? "Approving…" : "Approve"}
         </Button>
-      </div>
+      </ModalFooter>
     </Modal>
   );
 }

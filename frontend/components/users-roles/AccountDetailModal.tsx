@@ -48,8 +48,8 @@ function initialsOf(name: string): string {
 /** One read-only fact, as a small tile. */
 function FactTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-lg border border-surface-border bg-muted-surface/50 px-3 py-2.5">
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-foreground">
+    <div className="flex items-start gap-3">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted-surface text-muted-foreground">
         {icon}
       </span>
       <div className="min-w-0">
@@ -142,21 +142,21 @@ export function AccountDetailModal({
   return (
     <Modal
       onClose={onClose}
-      className="flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-surface-border bg-card shadow-xl"
+      className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-surface-border bg-card shadow-xl"
       bodyClassName="flex min-h-0 flex-1 flex-col"
     >
       {/* Header — who this is, at a glance. */}
       <div className="relative shrink-0 border-b border-surface-border">
-        <div className="flex items-start gap-3 px-5 py-4">
+        <div className="flex items-start gap-4 px-6 pb-5 pt-6">
           <UserAvatar
             avatarUrl={account.avatarUrl}
             initials={initialsOf(account.displayName)}
             name={account.displayName}
-            className={`flex size-12 items-center justify-center text-base font-semibold text-white ${AVATAR_GRADIENTS.purple}`}
+            className={`flex size-14 items-center justify-center text-lg font-semibold text-white ${AVATAR_GRADIENTS.purple}`}
           />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium text-muted-foreground">Account details</p>
-            <h2 className="mt-0.5 truncate text-base font-semibold text-foreground">{account.displayName}</h2>
+            <h2 className="mt-0.5 truncate text-lg font-semibold leading-tight text-foreground">{account.displayName}</h2>
             <p className="truncate text-sm text-muted-foreground" title={account.email}>
               {account.email}
             </p>
@@ -176,7 +176,7 @@ export function AccountDetailModal({
             size="icon"
             onClick={onClose}
             aria-label="Close account details"
-            className="-mr-1.5 -mt-1 size-8 text-muted-foreground"
+            className="-mr-2 -mt-2 size-8 rounded-full text-muted-foreground"
           >
             <XIcon className="size-4" />
           </Button>
@@ -184,9 +184,9 @@ export function AccountDetailModal({
       </div>
 
       {/* Body — the facts, then what can be changed. Scrolls on its own. */}
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
         <section aria-label="Account overview">
-          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-4 rounded-xl border border-surface-border p-4 sm:grid-cols-2">
             <FactTile icon={<ClockIcon className="size-4" />} label="Last sign-in" value={formatWhen(account.lastSignInAt)} />
             <FactTile icon={<CalendarCheckIcon className="size-4" />} label="Created" value={formatWhen(account.createdAt)} />
           </dl>
@@ -204,7 +204,7 @@ export function AccountDetailModal({
 
         <section aria-labelledby="detail-edit-heading" className="space-y-4">
           <h3 id="detail-edit-heading" className="text-sm font-semibold text-foreground">
-            Edit account
+            Profile
           </h3>
 
           <div>
@@ -221,6 +221,11 @@ export function AccountDetailModal({
               Google sign-in overwrites this with the provider&apos;s name, so a correction here lasts
               until this person next signs in.
             </p>
+          </div>
+
+          <div className="border-t border-surface-border pt-5">
+            <h3 className="text-sm font-semibold text-foreground">Access</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">What this person can open, and whether they can sign in at all.</p>
           </div>
 
           <div>
@@ -244,14 +249,14 @@ export function AccountDetailModal({
               aria-labelledby="detail-active-label"
               onClick={() => setActive((v) => !v)}
               className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                active ? "bg-primary" : "bg-border"
+                active ? "bg-primary" : "bg-muted-foreground/30"
               }`}
             >
               <span
                 aria-hidden="true"
                 // #fff, not bg-card: the dark theme repaints .bg-card, and the knob must
                 // stay white on either track.
-                className={`inline-block h-5 w-5 rounded-full bg-[#fff] shadow transition-transform ${
+                className={`inline-block h-5 w-5 rounded-full bg-background shadow-sm transition-transform ${
                   active ? "translate-x-[22px]" : "translate-x-0.5"
                 }`}
               />
@@ -284,8 +289,9 @@ export function AccountDetailModal({
       </div>
 
       {/* Footer — always in view. */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-surface-border bg-muted-surface/50 px-5 py-3">
-        <span className="text-xs text-muted-foreground" aria-live="polite">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-surface-border bg-muted-surface/40 px-6 py-4">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-live="polite">
+          {dirty && <span aria-hidden="true" className="size-1.5 rounded-full bg-amber-500" />}
           {dirty ? "Unsaved changes" : ""}
         </span>
         <div className="flex gap-2">
