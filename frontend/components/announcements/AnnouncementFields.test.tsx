@@ -52,6 +52,11 @@ describe("AnnouncementCategoryPicker", () => {
     }
     render(<Harness />);
 
+    // Labelled "Announcement Type", with the four types the push banner names.
+    expect(screen.getByRole("group", { name: "Announcement Type" })).toBeInTheDocument();
+    for (const label of ["Information", "Update", "Maintenance", "Important"]) {
+      expect(screen.getByRole("radio", { name: new RegExp(label) })).toBeInTheDocument();
+    }
     expect(screen.getByText("Planned downtime or slowness")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Information/ })).toBeChecked();
 

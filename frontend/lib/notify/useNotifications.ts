@@ -10,7 +10,13 @@ import {
   markNotificationRead,
   type InboxNotification,
 } from "@/lib/notify/inbox-api";
-import { ensureBackgroundPushRegistered, isNotificationsEnabled, NOTIFICATION_ICON } from "@/lib/notify/push";
+import { CATEGORY_LABELS, type AnnouncementCategory } from "@/lib/announcements/announcements-api";
+import {
+  ensureBackgroundPushRegistered,
+  isNotificationsEnabled,
+  NOTIFICATION_ICON,
+  type BannerOptions,
+} from "@/lib/notify/push";
 import { subscribeToNotifications } from "@/lib/notify/stream";
 
 /**
@@ -59,6 +65,13 @@ export type NotificationItem = {
    * other type, and for an announcement row stored before it was recorded.
    */
   category: string | null;
+  /**
+   * The start of an announcement's text, flattened from its Markdown by the
+   * backend (ADR-103) — what the push banner showed, so a banner raised by an
+   * open tab shows the same. Absent for every other type and for rows stored
+   * before it was recorded.
+   */
+  excerpt?: string | null;
 };
 
 export type Notifications = {
@@ -124,9 +137,10 @@ function render(n: InboxNotification): { title: string; detail: string } {
         title: "Run reviewed",
         detail: body || "Your AX Renewal implementation run was reviewed",
       };
-    // ADR-098. The title rides in the payload for the bell only — the push
-    // that went with it carried the fixed `body`. Opening it fetches the
-    // current text, so an edit made after publishing is what is read.
+    // ADR-098. The title rides in the payload for the bell row. The push now
+    // carries the type, title and an excerpt (ADR-103) — see bannerFor.
+    // Opening it fetches the current text, so an edit made after publishing
+    // is what is read.
     case "announcement.published":
       return {
         title: "Announcement",
@@ -160,7 +174,33 @@ function toItem(n: InboxNotification): NotificationItem {
     iconUrl: typeof n.payload.iconUrl === "string" ? n.payload.iconUrl : null,
     subjectName: typeof n.payload.subjectName === "string" ? n.payload.subjectName : null,
     category: typeof n.payload.category === "string" ? n.payload.category : null,
+    excerpt: typeof n.payload.excerpt === "string" ? n.payload.excerpt : null,
   };
+}
+
+/**
+ * What a browser banner shows for this item.
+ *
+ * <p>The bell row's own title and detail for every type but one. An
+ * announcement gets the same banner its push carried (ADR-103): its type and
+ * title as the heading and the start of its text, with the logo as the icon —
+ * so a member with the site open sees what a member with it closed sees.
+ */
+export function bannerFor(item: NotificationItem): { title: string; options: BannerOptions } {
+  if (item.type === "announcement.published") {
+    const label = CATEGORY_LABELS[item.category as AnnouncementCategory] ?? "Announcement";
+    return {
+      title: `${label} · ${item.detail}`,
+      options: {
+        body: item.excerpt ?? "",
+        // One per announcement, matching the push's own tag: a banner that
+        // reuses a tag replaces the old one *without showing*, so a shared tag
+        // hid every announcement after the first.
+        tag: `${item.type}:${item.targetId}`,
+      },
+    };
+  }
+  return { title: item.title, options: { body: item.detail, tag: item.type } };
 }
 
 /**
@@ -226,14 +266,14 @@ function alertBrowser(item: NotificationItem, onClick: () => void) {
     if (!isNotificationsEnabled()) {
       return;
     }
-    const banner = new Notification(item.title, {
-      body: item.detail,
+    const { title, options } = bannerFor(item);
+    const banner = new Notification(title, {
+      ...options,
       // Somebody's picture when the notification is about a person, their
       // initials when they have none, and otherwise the system's own logo —
       // never the browser's generic default, which says nothing about where
       // the banner came from.
       icon: item.iconUrl ?? (item.subjectName ? initialsIcon(item.subjectName) : NOTIFICATION_ICON),
-      tag: item.type,
     });
 
     // A banner that does nothing when clicked is worse than none: it says

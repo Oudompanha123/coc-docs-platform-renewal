@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BarChartIcon,
   BellIcon,
+  CalendarCheckIcon,
   ExternalLinkIcon,
   LinkIcon,
   LogOutIcon,
@@ -24,6 +25,7 @@ const SECTION_LABELS: Record<SettingsSectionId, { label: string; Icon: IconCompo
   appearance: { label: "Appearance", Icon: SunIcon },
   notifications: { label: "Notifications", Icon: BellIcon },
   "claude-usage": { label: "Claude Usage", Icon: BarChartIcon },
+  attendance: { label: "Attendance", Icon: CalendarCheckIcon },
   "connected-accounts": { label: "Connected accounts", Icon: LinkIcon },
   security: { label: "Security", Icon: ShieldIcon },
   sessions: { label: "Sessions", Icon: MonitorIcon },

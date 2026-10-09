@@ -17,4 +17,13 @@ describe("next.config.ts redirects", () => {
       permanent: true,
     });
   });
+
+  it("permanently redirects /reports/attendance to the Attendance section on /account/settings", async () => {
+    const redirects = await nextConfig.redirects?.();
+    expect(redirects).toContainEqual({
+      source: "/reports/attendance",
+      destination: "/account/settings#attendance",
+      permanent: true,
+    });
+  });
 });

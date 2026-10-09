@@ -36,8 +36,45 @@ describe("AnnouncementModal (ADR-098)", () => {
     expect(screen.getByText("Announcement · Maintenance")).toBeInTheDocument();
     expect(screen.getByText(/^Posted .* · 2h ago$/)).toBeInTheDocument();
     expect(screen.getByText(/^Until /)).toBeInTheDocument();
-    // Line breaks are the author's; the text is rendered as text, never HTML.
-    expect(screen.getByText(/Line one\.\s+Line two\./)).toBeInTheDocument();
+    // Line breaks are the author's, kept as a <br> within the paragraph.
+    const paragraph = screen.getByText(/Line one\./);
+    expect(paragraph.tagName).toBe("P");
+    expect(paragraph.querySelector("br")).not.toBeNull();
+    expect(paragraph).toHaveTextContent("Line one.Line two.");
+  });
+
+  it("renders the body's Markdown, and never its HTML (ADR-102)", async () => {
+    fetchAnnouncement.mockResolvedValue({
+      ...maintenance,
+      body: [
+        "## What changes",
+        "",
+        "The **portal** is _offline_ from `22:00`.",
+        "",
+        "- Save your work",
+        "- [Status page](https://status.example.com)",
+        "",
+        "> Thanks for your patience.",
+        "",
+        "<img src=x onerror=alert(1)> [bad](javascript:alert(1))",
+      ].join("\n"),
+    });
+    const { container } = render(<AnnouncementModal id="a1" onClose={() => {}} />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "What changes" })).toBeInTheDocument();
+    expect(screen.getByText("portal").tagName).toBe("STRONG");
+    expect(screen.getByText("offline").tagName).toBe("EM");
+    expect(screen.getByText("22:00").tagName).toBe("CODE");
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    const link = screen.getByRole("link", { name: "Status page" });
+    expect(link).toHaveAttribute("href", "https://status.example.com");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByText("Thanks for your patience.").closest("blockquote")).not.toBeNull();
+
+    // The HTML is shown as typed, and the javascript: link is only its text.
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText(/<img src=x onerror=alert\(1\)>/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "bad" })).not.toBeInTheDocument();
   });
 
   it("closes from Got it, the corner button and Escape", async () => {
