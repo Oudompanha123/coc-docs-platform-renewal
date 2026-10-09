@@ -65,9 +65,12 @@ export const OtpCodeInput = forwardRef<
                 key={i}
                 className={`flex h-12 items-center justify-center rounded-xl border text-xl font-semibold tabular-nums transition-all duration-150 sm:h-14 ${
                   invalid
-                    ? "border-destructive/40 bg-destructive/5 text-destructive"
+                    ? "border-destructive/50 bg-destructive/5 text-destructive"
                     : isActive
-                      ? "border-ring bg-background text-foreground ring-ring/50 ring-[3px]"
+                      ? // The same lift the field primitive uses, rather than a
+                        // ring — six boxes each wearing a halo is a lot of
+                        // noise for one cursor position.
+                        "border-surface-border bg-background text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.12)]"
                       : filled
                         ? "border-surface-border bg-background text-foreground"
                         : "border-transparent bg-muted-surface text-foreground"

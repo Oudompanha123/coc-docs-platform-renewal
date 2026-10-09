@@ -57,6 +57,18 @@ describe("Input", () => {
 
     const field = screen.getByLabelText("Email");
     expect(field).toHaveAttribute("aria-invalid", "true");
-    expect(field.className).toContain("aria-invalid:border-destructive");
+    expect(field.className).toContain("aria-invalid:border-destructive/50");
+  });
+
+  it("focuses by lifting, not by drawing a ring around itself", () => {
+    // The ring is the thing being deliberately left out — a 3px halo around a
+    // pill reads as a second border. If one reappears here, someone has
+    // pasted shadcn's default back in.
+    render(<Input aria-label="Email" />);
+
+    const className = screen.getByLabelText("Email").className;
+    expect(className).toContain("focus-visible:bg-background");
+    expect(className).toContain("focus-visible:border-surface-border");
+    expect(className).not.toContain("focus-visible:ring");
   });
 });
