@@ -28,6 +28,22 @@ const pending = () => {
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : [];
 };
 const stepOf = (record, key) => record.steps.find((s) => s.key === key);
+// The server's two tracking refusals (ADR-105), as ApiExceptionHandler writes them.
+const DISABLED_403 = {
+  status: 403,
+  body: { detail: 'Claude usage tracking is disabled for this account by an administrator. This report was not recorded', code: 'tracking-disabled' },
+};
+const GAP_409 = {
+  status: 409,
+  body: { detail: 'This report is from a period when Claude usage tracking was disabled for this account. It will not be recorded', code: 'disabled-period' },
+};
+const usageUploads = () => backend.requests.filter((r) => r.url === '/api/ingest');
+const ledgerDays = () => {
+  const file = path.join(configHome, 'reported.json');
+  if (!fs.existsSync(file)) return {};
+  const ledger = JSON.parse(fs.readFileSync(file, 'utf8'));
+  return Object.values(ledger.accounts)[0]?.days ?? {};
+};
 const line = (id, output, hours = 2) => usageLine({ id, requestId: `req_${id}`, model: 'claude-opus-5-5', input: 0, output, timestamp: ago(hours) });
 
 beforeEach(async () => {
@@ -37,13 +53,17 @@ beforeEach(async () => {
   backend = await fakeBackend(
     (req) => {
       if (mode === 'down') return { status: 503, body: { detail: 'down' } };
+      if (mode === 'disabled') return DISABLED_403;
       if (req.url === '/api/ingest/scan') return { status: 200, body: { action: 'scan-recorded' } };
+      if (mode === 'gap') return GAP_409;
       return { status: 200, body: { action: 'updated' } };
     },
     {
       scanLog: () => {
         if (mode === 'down') return { status: 503, body: { detail: 'down' } };
         if (mode === 'old') return null;
+        if (mode === 'disabled') return DISABLED_403;
+        if (mode === 'auth403') return { status: 403, body: { detail: 'this token may only report usage for its own account' } };
         backend.scanLogs.at(-1).accepted = true;
         return { status: 200, body: { action: 'recorded' } };
       },
@@ -156,5 +176,55 @@ describe('redact', () => {
     assert.match(out, /Bearer \*\*\*/);
     assert.ok(!out.includes(home));
     assert.match(out, /~/);
+  });
+});
+
+describe('tracking disabled by an administrator (ADR-105)', () => {
+  it('while disabled: says to contact the administrator, never to log in, and queues nothing to resend', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    mode = 'disabled';
+
+    const run = await scan();
+
+    assert.equal(run.code, 1);
+    assert.match(run.stderr, /disabled for your account by an administrator/);
+    assert.match(run.stderr, /Contact your Coc Docs administrator/);
+    assert.doesNotMatch(run.stderr, /login|sign in/i, 'signing in again cannot help, so it is not suggested');
+    assert.equal(usageUploads().length, 1, 'a 403 is final — not retried within the scan');
+    assert.equal(pending().length, 0, 'the server will never take a scan log from this time, so it is dropped');
+    assert.equal(Object.keys(ledgerDays()).length, 0, 'nothing marked as sent');
+  });
+
+  it('a genuine credential 403 still keeps its login advice, and its scan log waits for a fresh login', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    mode = 'auth403';
+
+    const run = await scan();
+
+    assert.equal(run.code, 0, run.stderr);
+    assert.equal(pending().length, 1, 'kept — a fresh login fixes a credential problem');
+  });
+
+  it('after Enable: a day from the disabled period is skipped for good and never sent again', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    mode = 'gap';
+
+    const first = await scan();
+
+    assert.equal(first.code, 0, first.stderr);
+    assert.match(first.stdout, /not recorded — tracking was disabled for this account then/);
+    assert.match(first.stderr, /skipped, not recorded: tracking was disabled for your account at that time/);
+    assert.doesNotMatch(first.stderr, /login/);
+    assert.equal(usageUploads().length, 1);
+    const [day] = Object.values(ledgerDays());
+    assert.equal(day.skipped, true);
+    assert.equal(logs().at(-1).uploadStatus, 'not-needed');
+
+    // More usage the same day, then another scan: the skipped day is not resent.
+    writeTranscript(projects, 'proj/b.jsonl', [line('m2', 500)]);
+    const second = await scan();
+
+    assert.equal(second.code, 0, second.stderr);
+    assert.equal(usageUploads().length, 1, 'the refused day was not sent again');
   });
 });

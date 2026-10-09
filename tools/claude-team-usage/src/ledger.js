@@ -69,6 +69,8 @@ const activityOf = (a) => (a ? { requests: a.requestCount, activeSeconds: a.acti
  */
 export function isDue(entry, payload) {
   const prior = entry.days[payload.date];
+  // The server refused this day for good — tracking was disabled then (ADR-105).
+  if (prior?.skipped) return false;
   if (!prior || sum(payload) > sum(prior)) return true;
   const now = activityOf(payload.activity);
   if (!now) return false;
@@ -80,6 +82,15 @@ export function recordSent(entry, payload) {
   const { input, output, cacheRead, cacheCreation } = payload;
   const activity = activityOf(payload.activity);
   entry.days[payload.date] = { input, output, cacheRead, cacheCreation, ...(activity ? { activity } : {}) };
+}
+
+/**
+ * Marks a day the server refused for good (409 `disabled-period`, ADR-105), so
+ * a plain scan never sends it again. Pruned with the rest after LOOKBACK_DAYS.
+ */
+export function recordSkipped(entry, payload) {
+  const { input, output, cacheRead, cacheCreation } = payload;
+  entry.days[payload.date] = { input, output, cacheRead, cacheCreation, skipped: true };
 }
 
 /** Drops days older than `oldest` (YYYY-MM-DD) — they can no longer be scanned anyway. */
