@@ -138,7 +138,7 @@ export function SettingsSideMenu({
                 onKeyDown={(e) => handleTabKeyDown(e, index, desktopRefs)}
                 className={`settings-nav-item flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
                   active === id
-                    ? "settings-nav-item-active bg-brand-purple/10 text-brand-purple"
+                    ? "settings-nav-item-active bg-secondary text-foreground"
                     : "text-dash-ink hover:bg-page"
                 }`}
               >
@@ -199,7 +199,7 @@ export function SettingsSideMenu({
             onKeyDown={(e) => handleTabKeyDown(e, index, mobileRefs)}
             className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               active === id
-                ? "settings-nav-item-active border-brand-purple bg-brand-purple/10 text-brand-purple"
+                ? "settings-nav-item-active border-primary bg-secondary text-foreground"
                 : "border-border text-dash-ink"
             }`}
           >

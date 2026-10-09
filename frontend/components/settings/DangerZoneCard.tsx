@@ -85,7 +85,7 @@ export function DangerZoneCard() {
   }
 
   return (
-    <div className="rounded-[10px] border border-danger/40 bg-danger/5 p-6 shadow-sm">
+    <div className="rounded-xl border border-danger/40 bg-danger/5 p-6 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-danger to-[#e0873c] text-white">
           <WarningIcon className="h-5 w-5" />
@@ -112,7 +112,7 @@ export function DangerZoneCard() {
             size="default"
             onClick={() => void handleExport()}
             disabled={exporting || !user}
-            className="shrink-0 gap-1.5 rounded-full bg-white text-dash-ink shadow-sm transition-all hover:bg-white hover:border-brand-purple/20 hover:shadow hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="shrink-0 gap-1.5 rounded-full bg-card text-dash-ink shadow-sm transition-all hover:bg-card hover:border-primary/20 hover:shadow hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
             <DownloadIcon className="h-3.5 w-3.5" />
             {exporting ? "Exporting…" : "Export data"}
@@ -160,7 +160,7 @@ export function DangerZoneCard() {
             sure", never "here's why you can't".
           */}
           {showDeactivateConfirm && (
-            <div className="mt-3 rounded-lg border border-danger/30 bg-white p-4">
+            <div className="mt-3 rounded-lg border border-danger/30 bg-card p-4">
               <p className="text-sm font-semibold text-dash-ink">Deactivate your account?</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS.map((days) => (

@@ -55,7 +55,7 @@ export function SecurityCard() {
   }, []);
 
   return (
-    <section id="security" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
+    <section id="security" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
       <h2 className="text-base font-bold text-dash-ink">Security</h2>
       <p className="mt-0.5 text-sm text-muted">How you sign in, and your recent sign-in activity.</p>
 
@@ -64,8 +64,8 @@ export function SecurityCard() {
 
       {state.status === "ready" && (
         <div className="mt-5 space-y-5">
-          <div className="flex items-center gap-3 rounded-[10px] border border-border px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-blue/10 text-brand-blue">
+          <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
               <GoogleIcon className="h-4 w-4" />
             </div>
             <div>

@@ -64,9 +64,21 @@
 
 /* Brand accent colors outside @theme inline so utilities use var() at runtime,
    enabling live accent-color changes via JS setProperty(). */
+/* The brand accents, retired (ADR-104 r2.0). These were #6d3ce0 → #404040,
+   the purple-to-blue gradient that meant "primary action" across the whole
+   product. The upgrade is to shadcn's neutral language, so they now resolve
+   to two steps of near-black.
+
+   They are not deleted, and that is deliberate: roughly a hundred files use
+   `from-brand-purple to-brand-blue` for icon tiles, avatars and accent rules.
+   Repointing the token repaints every one of them in a single edit and keeps
+   them consistent while the structural repaint works through area by area.
+   Deleting the names instead would mean a hundred-file sweep before anything
+   could render, and a half-finished sweep would leave the app in two
+   palettes at once. The names go once nothing references them. */
 @theme {
-  --color-brand-purple: #6d3ce0;
-  --color-brand-blue: #4c6ff0;
+  --color-brand-purple: #171717;
+  --color-brand-blue: #404040;
 }
 
 @theme inline {
@@ -77,20 +89,27 @@
      `font-pretendard` utility this generates on anything that wants it. */
   --font-pretendard: var(--font-pretendard);
 
-  --color-ink: #28226d;
-  --color-muted: #6b6b80;
-  --color-border: #ececf2;
-  --color-page: #eef0f8;
+  /* The legacy palette, repointed at shadcn's neutrals (ADR-104 r2.0).
+     Every one of these used to be brand-tinted: ink was #28226d (a deep
+     indigo), page #eef0f8 (a blue-grey), the sidebar #161226 (a purple-black).
+     The tints were what made the product look like its old self no matter
+     which component you replaced.
 
-  /* Admin dashboard tokens — the mockup's "ink" (#16141f) reads darker/neutral
-     than the auth pages' brand-tinted --color-ink (#28226d), so it gets its
-     own token instead of overwriting a value already set at the user's
-     request for /login and /register. */
-  --color-dash-ink: #16141f;
-  --color-sidebar: #161226;
-  --color-sidebar-hover: #211d33;
-  --color-sidebar-muted: #9490ab;
-  --color-danger: #d6304a;
+     `--color-ink` and `--color-dash-ink` existed as two values because the
+     admin mockup wanted a neutral black while the auth pages had a
+     brand-tinted one. With no tint left there is nothing to tell them apart,
+     so both are the foreground now. They stay as two names only until the
+     files using them are swept. */
+  --color-ink: #0a0a0a;
+  --color-muted: #737373;
+  --color-border: #e5e5e5;
+  --color-page: #f5f5f5;
+
+  --color-dash-ink: #0a0a0a;
+  --color-sidebar: #171717;
+  --color-sidebar-hover: #262626;
+  --color-sidebar-muted: #a1a1a1;
+  --color-danger: #e7000b;
 
   /* shadcn/ui's semantic names, pointed at this product's values (ADR-104
      decision 2). These generate bg-card / text-muted-foreground / ring-ring
@@ -144,7 +163,7 @@
 :root[data-theme="dark"] {
   --background: #0a0a0a;
   --foreground: #ededed;
-  --color-page: #121018;
+  --color-page: #0a0a0a;
 }
 
 /* Full dark theme for the admin shell (AppShell.tsx root carries
@@ -208,39 +227,39 @@
    that one shell alone. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]).bg-white,
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-white {
-  background-color: #1e1a30;
+  background-color: #171717;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-gray-100 {
-  background-color: #2a2545;
+  background-color: #262626;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-border {
-  border-color: #332e4d;
+  border-color: #2a2a2a;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-border {
-  background-color: #332e4d;
+  background-color: #2a2a2a;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .divide-border > :not([hidden]) ~ :not([hidden]) {
-  border-color: #332e4d;
+  border-color: #2a2a2a;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-white {
-  border-color: #1e1a30;
+  border-color: #171717;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-dash-ink {
-  color: #f2effa;
+  color: #fafafa;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-dash-ink\/70 {
-  color: rgb(242 239 250 / 70%);
+  color: rgb(250 250 250 / 70%);
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-ink {
-  color: #f2effa;
+  color: #fafafa;
 }
 
 /* The header's bell/mail icon buttons (MemberHeader.tsx) are the only
@@ -248,11 +267,11 @@
    .text-ink is covered above but an opacity-suffixed class is its own,
    separate generated utility and needs its own rule. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-ink\/70 {
-  color: rgb(242 239 250 / 70%);
+  color: rgb(250 250 250 / 70%);
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-muted {
-  color: #8a93a8;
+  color: #a1a1a1;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-muted {
@@ -264,14 +283,14 @@
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:bg-page:hover {
-  background-color: #2a2545;
+  background-color: #262626;
 }
 
 /* AccountsTable's header tint + row hover use a literal #f8fafc (a specific
    hex the user asked for in light mode) rather than a theme token. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f8fafc\],
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:bg-\[\#f8fafc\]:hover {
-  background-color: #2a2545;
+  background-color: #262626;
 }
 
 /* ConnectedAccountsCard's Linked/Not-linked chips (Settings — Connected
@@ -321,7 +340,7 @@
    Admin's solid #5b4fe8 fill needs no override, same reasoning as the
    brand-purple solids above). */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#24216b\] {
-  color: #f2effa;
+  color: #fafafa;
 }
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f3f4f6\] {
   background-color: rgb(107 114 128 / 16%);
@@ -343,7 +362,7 @@
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:text-dash-ink:hover {
-  color: #f2effa;
+  color: #fafafa;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-brand-purple\/10 {
@@ -461,7 +480,7 @@ a:hover .hero-download-tile--linux {
 
 /* The admin shell's own page backdrop, on direct request — #1a1a1a, same
    value as the member landing area's below, rather than the plain dark
-   default (#121018) every shell otherwise falls back to. Same pattern as
+   default (#0a0a0a) every shell otherwise falls back to. Same pattern as
    ax-renewal's own --color-page override just above: a shell-scoped
    custom-property redefinition, no per-class override list needed since
    every .bg-page use already reads var(--color-page) at runtime. */
@@ -472,7 +491,7 @@ a:hover .hero-download-tile--linux {
 /* The admin shell's cards/panels (.bg-white) — same #1a1a1a as the page
    backdrop above, on direct request (the first pass only changed the
    backdrop, not these boxes, which still read the shared block's navy
-   #1e1a30). Same both-forms pattern as ax-renewal's own .bg-white override
+   #171717). Same both-forms pattern as ax-renewal's own .bg-white override
    just below: the compound self-referencing selector in case some admin
    root element ever carries data-shell="admin" and .bg-white together, plus
    the ordinary descendant form for every card/panel beneath it. */
@@ -496,7 +515,7 @@ a:hover .hero-download-tile--linux {
 }
 
 /* The member landing area's own dark background, on direct request —
-   #1a1a1a rather than the shared block's navy-tinted #1e1a30. Same
+   #1a1a1a rather than the shared block's navy-tinted #171717. Same
    specificity-wins-by-source-order trick as the ax-renewal override just
    above: a plain [data-shell="home"] selector, not wrapped in :is(), so it
    wins only for this shell without touching admin's shared navy dark theme
@@ -876,13 +895,13 @@ a:hover .hero-download-tile--linux {
 }
 
 :root[data-theme="dark"] [data-shell="ax-renewal"] .border-white\/10 {
-  border-color: #332e4d;
+  border-color: #2a2a2a;
 }
 
 /* Icon rail's own inner div — dark theme only; light theme never had a
    border-right here, so no light-mode rule is needed to remove one. */
 :root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar.w-\[52px\] {
-  border-right: 1px solid #332e4d;
+  border-right: 1px solid #2a2a2a;
 }
 
 /* Explorer panel itself (not just its nav list) — dark theme only; light
@@ -893,12 +912,12 @@ a:hover .hero-download-tile--linux {
 
 /* text-dash-ink/.text-muted are GLOBAL tokens (#16141f / #6b6b80, used
    across the whole app, not just ax-renewal) — pixel-sampled reference
-   values differ slightly (#14152c / #6b7095, confirmed consistently
+   values differ slightly (#171717 / #6b7095, confirmed consistently
    across five separate heading/value-text samples for dash-ink), so
    these are scoped overrides here rather than changing the shared token
    and affecting admin/home too. */
 [data-shell="ax-renewal"] .text-dash-ink {
-  color: #14152c;
+  color: #171717;
 }
 
 [data-shell="ax-renewal"] .text-muted {
@@ -910,7 +929,7 @@ a:hover .hero-download-tile--linux {
    background stays dark enough for white text to read), but in light
    theme the background is now a pale tint (#eaf1fe) where white text is
    nearly invisible — confirmed by the reference itself, which shows dark
-   ink (#14152c, the same as every other heading/value text) for this
+   ink (#171717, the same as every other heading/value text) for this
    label, not white.
 
    This plain rule has no theme guard, so on its own it would win in BOTH
@@ -919,7 +938,7 @@ a:hover .hero-download-tile--linux {
    right after it explicitly restores white for dark, at higher
    specificity, exactly like every other light/dark pair in this file. */
 [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md.text-white {
-  color: #14152c;
+  color: #171717;
 }
 
 :root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md.text-white {
@@ -954,7 +973,7 @@ a:hover .hero-download-tile--linux {
      exact value — covers sub-item row text and (via currentColor
      inheritance, since nav icons carry no color class of their own) nav
      item icons. */
-  color: #8a93a8;
+  color: #a1a1a1;
 }
 
 /* Every other remaining accent use of brand-purple, dark theme — the
@@ -976,10 +995,10 @@ a:hover .hero-download-tile--linux {
    text-brand-purple, not text-sidebar-muted, as their base color (unique
    combo: only this button pairs text-brand-purple with tracking-wider).
    More specific than the general text-brand-purple rule above, so this
-   #8a93a8 wins here specifically, now that the icon-badge square in front
+   #a1a1a1 wins here specifically, now that the icon-badge square in front
    of it is gone. */
 :root[data-theme="dark"] [data-shell="ax-renewal"] .text-brand-purple.tracking-wider {
-  color: #8a93a8;
+  color: #a1a1a1;
 }
 
 /* "No tab open" empty-state illustration (main content area) — the front
@@ -1127,14 +1146,14 @@ html {
 /* Dark theme only — the global #ccc thumb reads as a light-gray smudge
    against this panel's near-black background, so this reuses the same
    muted-slate tone already used for this exact element's own border-right
-   (#332e4d) rather than inventing a new dark value. Light theme keeps the
+   (#2a2a2a) rather than inventing a new dark value. Light theme keeps the
    default #ccc, which already reads fine there. */
 :root[data-theme="dark"] [data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 :root[data-theme="dark"] [data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 /* Every other scrollbar, on request — admin's and AX Renewal's own <main>
@@ -1144,34 +1163,34 @@ html {
    container of their own (min-h-screen, not h-screen/overflow-hidden), so
    the thing that actually scrolls is <html> itself — reached here with
    :has(), not a descendant selector, since html is an *ancestor* of
-   [data-shell="home"], never a descendant of it. Same muted-slate #332e4d
+   [data-shell="home"], never a descendant of it. Same muted-slate #2a2a2a
    already used for ax-renewal's nav above, for one consistent dark
    scrollbar everywhere rather than a different shade per shell. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"]) main {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"]) main::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 :root[data-theme="dark"]:has([data-shell="home"]) {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 :root[data-theme="dark"]:has([data-shell="home"])::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 /* /welcome's own dark toggle is separate from the shared data-theme
    mechanism (see WelcomePage's own effect in app/welcome/page.tsx) — same
-   #332e4d, applied through its own marker class instead. */
+   #2a2a2a, applied through its own marker class instead. */
 html.welcome-dark-scroll {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 html.welcome-dark-scroll::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 /* Tailwind v4 resolves @theme color tokens to a static literal at build
@@ -1378,7 +1397,7 @@ button:not(:disabled) {
   inset: 0;
   border-radius: 9999px;
   /* Transparent at the tail, full brand colour at the head (12 o'clock). */
-  background: conic-gradient(from 0deg, rgba(109, 60, 224, 0) 0deg, #6d3ce0 210deg, #4c6ff0 360deg);
+  background: conic-gradient(from 0deg, rgba(109, 60, 224, 0) 0deg, #6d3ce0 210deg, #404040 360deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
   animation: cdp-spin 0.9s linear infinite;
@@ -1394,7 +1413,7 @@ button:not(:disabled) {
   height: 5px;
   margin-left: -2.5px;
   border-radius: 9999px;
-  background: #4c6ff0;
+  background: #404040;
 }
 
 @keyframes cdp-spin {

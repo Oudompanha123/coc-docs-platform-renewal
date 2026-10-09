@@ -80,7 +80,7 @@ export function TotpSetupWizard({
   if (loadError) {
     return (
       <div className="mt-4 max-w-sm space-y-3">
-        <p role="alert" className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+        <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {loadError}
         </p>
         <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
@@ -96,7 +96,7 @@ export function TotpSetupWizard({
 
   return (
     <div className="mt-4 max-w-sm space-y-4">
-      <div className="rounded-[10px] border border-border p-4">
+      <div className="rounded-xl border border-border p-4">
         <p className="text-xs font-semibold text-dash-ink">1. Scan this QR code with Google Authenticator</p>
         {/* eslint-disable-next-line @next/next/no-img-element -- a data: URI, not a remote image next/image can optimize */}
         <img

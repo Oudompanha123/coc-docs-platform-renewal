@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { Input } from "@/components/ui/input";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { createProduct, deleteProduct, fetchNavStructure } from "@/lib/docs/nav-api";
@@ -47,9 +48,9 @@ function NavLink({
       target={item.newTab ? "_blank" : undefined}
       rel={item.newTab ? "noopener noreferrer" : undefined}
       aria-current={active ? "page" : undefined}
-      className={`group relative flex h-[42px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue ${
+      className={`group relative flex h-[42px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         active
-          ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow"
+          ? "bg-primary text-white shadow"
           : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
       }`}
     >
@@ -128,7 +129,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
+          className="rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
           <XIcon className="h-5 w-5" />
         </button>
@@ -190,20 +191,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 )}
 
                 {addingProduct && (
-                  <form onSubmit={handleAddProduct} className="rounded-xl border border-white/15 bg-white/5 p-2.5">
-                    <input
+                  <form onSubmit={handleAddProduct} className="rounded-xl border border-white/15 bg-card/5 p-2.5">
+                    {/* The primitive, inverted for the dark sidebar: its
+                        `bg-muted-surface` fill is a light grey and would be a
+                        white block here. Everything else — height, radius,
+                        focus ring — comes from Input. */}
+                    <Input
                       autoFocus
                       value={newProductLabel}
                       onChange={(e) => setNewProductLabel(e.target.value)}
                       placeholder="Product name"
                       required
-                      className="w-full rounded-lg border border-white/15 bg-transparent px-2.5 py-1.5 text-sm text-white placeholder:text-sidebar-muted focus:outline-none"
+                      className="h-9 border-white/15 bg-transparent text-sm text-white placeholder:text-sidebar-muted"
                     />
                     <div className="mt-2 flex gap-2">
                       <button
                         type="submit"
                         disabled={addProductBusy}
-                        className="flex-1 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {addProductBusy ? "Adding…" : "Add"}
                       </button>

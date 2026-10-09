@@ -21,7 +21,7 @@ export function ClaudeUsageCard() {
   if (!canSee) return null;
 
   return (
-    <section id="claude-usage" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
+    <section id="claude-usage" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
       <h2 className="text-base font-bold text-dash-ink">Claude Usage</h2>
       <p className="mt-0.5 text-sm text-muted">Track your Claude token usage.</p>
       <div className="mt-5">

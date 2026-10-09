@@ -78,7 +78,7 @@ export function PushNotificationsCard() {
   return (
     <div className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-purple/10 text-brand-purple">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
           <BellIcon className="h-4 w-4" />
         </div>
         <div>
@@ -96,12 +96,12 @@ export function PushNotificationsCard() {
         aria-label="Toggle browser notifications on this device"
         disabled={support !== "ready" || busy}
         onClick={() => void toggle()}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-40 ${
-          enabled ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
+        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 ${
+          enabled ? "bg-primary" : "bg-border"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-[left] ${
             enabled ? "left-[22px]" : "left-0.5"
           }`}
         />

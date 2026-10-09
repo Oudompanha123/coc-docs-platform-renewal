@@ -155,7 +155,7 @@ export function MailCredentialCard() {
     <div className="py-3.5 first:pt-0 last:pb-0">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-purple/10 text-brand-purple">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
             <MailIcon className="h-4 w-4" />
           </div>
           <div>
@@ -273,7 +273,7 @@ export function MailCredentialCard() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="you@gmail.com"
-            className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-dash-ink outline-none focus:border-brand-purple"
+            className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-dash-ink outline-none focus:border-primary"
           />
 
           <label className="mt-3 block text-xs font-semibold text-dash-ink" htmlFor="app-password">
@@ -288,7 +288,7 @@ export function MailCredentialCard() {
             value={appPassword}
             onChange={(e) => setAppPassword(e.target.value)}
             placeholder="16 characters, spaces are fine"
-            className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-dash-ink outline-none focus:border-brand-purple"
+            className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-dash-ink outline-none focus:border-primary"
           />
           <p className="mt-1 text-xs text-muted">
             Not your Google password. Create one at myaccount.google.com → Security → App passwords.

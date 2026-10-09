@@ -17,7 +17,7 @@ import {
  * dialog is what disposes of ~60 colleagues' hours, so nothing here lifts the
  * report into a parent that outlives the dialog.
  *
- * <p>Built on this product's own dialog shell — the `bg-white` /
+ * <p>Built on this product's own dialog shell — the `bg-card` /
  * `border-border` / `text-dash-ink` card every other modal here uses — rather
  * than a palette of its own. That matters beyond consistency: `globals.css`
  * defines its dark-mode overrides per class, so a card pinned to a literal
@@ -78,7 +78,7 @@ export function HrmsReportModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl overflow-hidden rounded-[10px] border border-border bg-white text-dash-ink shadow-xl"
+        className="w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-card text-dash-ink shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">

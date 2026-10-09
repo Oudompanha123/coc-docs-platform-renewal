@@ -76,7 +76,7 @@ export function SecurityTab() {
         <div className="py-4 first:pt-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
                 <LockIcon className="h-5 w-5" />
               </div>
               <div>
@@ -123,7 +123,7 @@ export function SecurityTab() {
             GitHub/Flow Team here — those aren't real for this product. */}
         <div className="flex items-center justify-between gap-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
               <GoogleIcon className="h-5 w-5" />
             </div>
             <div>
@@ -159,7 +159,7 @@ export function SecurityTab() {
             className="flex w-full items-center justify-between gap-4 text-left disabled:cursor-not-allowed disabled:opacity-60"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
                 <ShieldIcon className="h-5 w-5" />
               </div>
               <div>

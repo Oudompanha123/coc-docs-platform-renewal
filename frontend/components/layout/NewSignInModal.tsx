@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/users-roles/Modal";
+import { Button } from "@/components/ui/button";
 import { revokeSession, type SessionSummary } from "@/lib/auth/api";
 import { ShieldIcon } from "@/components/auth/icons";
 
@@ -57,7 +58,7 @@ export function NewSignInModal({
   return (
     <Modal onClose={onClose}>
       <div className="flex flex-col items-center text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white">
           <ShieldIcon className="h-6 w-6" />
         </div>
         <h2 className="mt-3 text-base font-bold text-dash-ink">New sign-in to your account</h2>
@@ -66,7 +67,7 @@ export function NewSignInModal({
         </p>
       </div>
 
-      <dl className="mt-5 divide-y divide-border rounded-[10px] border border-border">
+      <dl className="mt-5 divide-y divide-border rounded-xl border border-border">
         <div className="flex items-start justify-between gap-4 px-4 py-3">
           <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Device</dt>
           <dd className="text-right text-sm font-semibold text-dash-ink">{session.device}</dd>
@@ -91,22 +92,12 @@ export function NewSignInModal({
       </p>
 
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={busy}
-          className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:opacity-60"
-        >
+        <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           This was me
-        </button>
-        <button
-          type="button"
-          onClick={() => void endSession()}
-          disabled={busy}
-          className="rounded-full bg-danger px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-        >
+        </Button>
+        <Button type="button" variant="destructive" onClick={() => void endSession()} disabled={busy}>
           {busy ? "Ending…" : "End this session"}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

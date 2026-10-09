@@ -14,14 +14,14 @@ type AccordionSectionProps = {
 
 /**
  * One accordion section — the outer card (radius/shadow/padding) matches
- * Overview's card convention exactly (rounded-2xl border-border bg-white
+ * Overview's card convention exactly (rounded-2xl border-border bg-card
  * shadow-sm), and the header icon chip reuses Overview's StatCard icon-tile
  * treatment (h-10 w-10 rounded-xl gradient tile), so this reads as the same
  * visual system rather than a new one.
  */
 export function AccordionSection({ icon: Icon, title, description, isOpen, onToggle, children }: AccordionSectionProps) {
   return (
-    <div className="rounded-[10px] border border-border bg-white shadow-sm">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
       {/* A disclosure header, not a button: the whole card top is the hit
           area, it carries aria-expanded, and it has no button styling of its
           own. Belongs to a Collapsible primitive in phase 3 (ADR-104 §2.5). */}
@@ -33,7 +33,7 @@ export function AccordionSection({ icon: Icon, title, description, isOpen, onTog
         className="flex w-full items-center justify-between gap-4 p-5 text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
             <Icon className="h-5 w-5" />
           </div>
           <div>

@@ -43,8 +43,8 @@ type TopbarProps = {
 type MenuKey = "notifications" | "mail" | "user";
 
 /** Same panel container the Users & Roles ⋯ menu uses: rounded-xl border
- *  border-border bg-white shadow-lg, with hover:bg-page on each item. */
-const PANEL_CLASSES = "absolute right-0 z-20 mt-2 rounded-xl border border-border bg-white shadow-lg";
+ *  border-border bg-card shadow-lg, with hover:bg-page on each item. */
+const PANEL_CLASSES = "absolute right-0 z-20 mt-2 rounded-xl border border-border bg-card shadow-lg";
 
 function CountBadge({
   count,
@@ -66,7 +66,7 @@ function CountBadge({
       aria-label={`${label}, ${count} unread`}
       aria-haspopup="menu"
       aria-expanded={active}
-      className="relative rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+      className="relative rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
       {count > 0 && (
@@ -208,13 +208,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <div className="contents">
-    <header className="flex items-center justify-between border-b border-border bg-white px-4 py-4 sm:px-6 lg:px-8">
+    <header className="flex items-center justify-between border-b border-border bg-card px-4 py-4 sm:px-6 lg:px-8">
       <div className="flex items-start gap-3 min-w-0">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="rounded-xl p-2 text-dash-ink transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple lg:hidden"
+          className="rounded-xl p-2 text-dash-ink transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
           <MenuIcon className="h-5 w-5" />
         </button>
@@ -231,7 +231,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
           aria-pressed={darkMode}
-          className="rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className="rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
         </button>
@@ -258,7 +258,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       onClick={() => setNotificationFilter(key)}
                       className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                         notificationFilter === key
-                          ? "bg-brand-purple/10 text-brand-purple"
+                          ? "bg-secondary text-foreground"
                           : "border border-border text-muted hover:bg-page"
                       }`}
                     >
@@ -272,7 +272,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                     type="button"
                     onClick={() => notifications.markAllRead()}
                     disabled={notifications.unreadCount === 0}
-                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                   >
                     Read all
                   </button>
@@ -305,7 +305,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         setOpenMenu(null);
                       }}
                       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                        n.read ? "" : "bg-brand-purple/5"
+                        n.read ? "" : "bg-secondary"
                       }`}
                     >
                       {n.type === "auth.new-device" ? (
@@ -341,7 +341,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       {!n.read && (
                         <span
                           aria-label="Unread"
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                         />
                       )}
                     </button>
@@ -352,7 +352,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                 <Link
                   href="/users-roles?tab=pending"
                   onClick={() => setOpenMenu(null)}
-                  className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
+                  className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-page"
                 >
                   View all
                 </Link>
@@ -386,7 +386,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       onClick={() => setActivityFilter(key)}
                       className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                         activityFilter === key
-                          ? "bg-brand-purple/10 text-brand-purple"
+                          ? "bg-secondary text-foreground"
                           : "border border-border text-muted hover:bg-page"
                       }`}
                     >
@@ -400,7 +400,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                     type="button"
                     onClick={() => activity.markAllRead()}
                     disabled={activity.count === 0}
-                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                   >
                     Read all
                   </button>
@@ -444,7 +444,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         }
                       }}
                       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                        item.read ? "" : "bg-brand-purple/5"
+                        item.read ? "" : "bg-secondary"
                       }`}
                     >
                       <ActivityAvatar item={item} />
@@ -467,7 +467,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       {!item.read && (
                         <span
                           aria-label="Unread"
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                         />
                       )}
                     </button>
@@ -484,7 +484,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             onClick={() => toggleMenu("user")}
             aria-haspopup="menu"
             aria-expanded={openMenu === "user"}
-            className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+            className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <UserAvatar
               avatarUrl={user?.avatarUrl ?? null}

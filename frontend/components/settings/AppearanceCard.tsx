@@ -11,8 +11,19 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: IconComponent }[] = [
   { value: "system", label: "System", Icon: MonitorIcon },
 ];
 
-const CUSTOM_KEY = "coc-docs-accent-custom";
-const DEFAULT_HEX = "#6d3ce0";
+/**
+ * A new key, not the old `coc-docs-accent-custom` (ADR-104 r2.0).
+ *
+ * This card writes `--color-brand-purple` onto <html> at runtime from
+ * whatever is stored, which means a browser holding the old default would
+ * paint the retired purple straight back over the neutral palette on every
+ * load — the repaint would appear not to have happened, and only for people
+ * who had used the app before. Changing the key retires those stored values
+ * with the palette they belonged to. Anyone who had deliberately chosen an
+ * accent picks it again once.
+ */
+const CUSTOM_KEY = "coc-docs-accent-v2";
+const DEFAULT_HEX = "#171717";
 
 /** Derive a complementary tone by shifting hue +30°. */
 function deriveBlue(hex: string): string {
@@ -94,9 +105,9 @@ export function AppearanceCard() {
               type="button"
               onClick={() => selectTheme(value)}
               aria-pressed={theme === value}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 theme === value
-                  ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
+                  ? "border-primary bg-secondary text-foreground"
                   : "border-border text-dash-ink hover:bg-page"
               }`}
             >

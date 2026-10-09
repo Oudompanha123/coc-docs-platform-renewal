@@ -9,7 +9,7 @@ import { ActiveSessions } from "@/components/settings/ActiveSessions";
  */
 export function SessionsCard() {
   return (
-    <section id="sessions" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
+    <section id="sessions" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
       <h2 className="text-base font-bold text-dash-ink">Sessions</h2>
       <p className="mt-0.5 text-sm text-muted">Devices signed in to your account.</p>
       <div className="mt-1">

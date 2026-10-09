@@ -21,7 +21,7 @@ export function ConnectedAccountsCard({ state }: { state: HrmsLinkState }) {
   return (
     <section
       id="connected-accounts"
-      className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm"
+      className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm"
     >
       <h2 className="text-base font-bold text-dash-ink">Connected accounts</h2>
       <p className="mt-0.5 text-sm text-muted">Accounts linked to your profile.</p>
@@ -31,9 +31,9 @@ export function ConnectedAccountsCard({ state }: { state: HrmsLinkState }) {
         {state.kind === "error" && <p className="text-sm text-danger">{state.message}</p>}
 
         {state.kind === "linked" && (
-          <div className="flex items-center justify-between gap-4 rounded-[10px] border border-border px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-blue/10 text-brand-blue">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
                 <LinkIcon className="h-4 w-4" />
               </div>
               <div>
@@ -49,7 +49,7 @@ export function ConnectedAccountsCard({ state }: { state: HrmsLinkState }) {
         )}
 
         {state.kind === "not-linked" && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#f5d896] bg-[#fffbeb] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#f5d896] bg-[#fffbeb] px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-[#b45309]">HRMS KOSIGN — not linked</p>
               <p className="mt-0.5 text-xs text-[#b45309]">

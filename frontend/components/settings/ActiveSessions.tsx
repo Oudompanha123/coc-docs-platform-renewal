@@ -48,7 +48,7 @@ export function ActiveSessions() {
   return (
     <div className="py-4 last:pb-0">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
           <PulseIcon className="h-5 w-5" />
         </div>
         <p className="text-sm font-semibold text-dash-ink">Active sessions</p>
@@ -65,7 +65,7 @@ export function ActiveSessions() {
               <p className="text-sm font-semibold text-dash-ink">
                 {session.device}
                 {session.current && (
-                  <span className="ml-2 inline-flex items-center rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-semibold text-brand-blue">
+                  <span className="ml-2 inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-foreground">
                     This device
                   </span>
                 )}

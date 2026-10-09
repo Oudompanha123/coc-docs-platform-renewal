@@ -103,7 +103,7 @@ export function ProfileCard() {
                 if (e.key === "Escape") setEditing(false);
               }}
               aria-label="Display name"
-              className="w-56 rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+              className="w-56 rounded-lg border border-border px-2.5 py-1.5 text-sm focus:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/15"
             />
           ) : (
             <p className="truncate text-sm font-semibold text-dash-ink">{name}</p>

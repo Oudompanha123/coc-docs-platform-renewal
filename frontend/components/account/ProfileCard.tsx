@@ -129,7 +129,7 @@ export function ProfileCard({
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : "—";
 
   return (
-    <section id="account" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
+    <section id="account" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
       <h2 className="text-base font-bold text-dash-ink">Account</h2>
       <p className="mt-0.5 text-sm text-muted">Your account details on Coc Docs Platform.</p>
 

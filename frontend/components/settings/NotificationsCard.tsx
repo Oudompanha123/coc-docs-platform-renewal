@@ -113,7 +113,7 @@ export function NotificationsCard() {
           return (
             <div key={pref.type} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-blue/10 text-brand-blue">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
@@ -134,12 +134,12 @@ export function NotificationsCard() {
                 aria-label={pref.label}
                 disabled={busy}
                 onClick={() => void toggle(pref)}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60 ${
-                  pref.enabled ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 ${
+                  pref.enabled ? "bg-primary" : "bg-border"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-card shadow transition-[left] ${
                     pref.enabled ? "left-[22px]" : "left-0.5"
                   }`}
                 />

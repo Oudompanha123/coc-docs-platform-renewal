@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal } from "@/components/users-roles/Modal";
+import { Button } from "@/components/ui/button";
 import { approveAccount, type AccountRole, type PendingAccount } from "@/lib/admin/accounts";
 import { ApplicantAvatar } from "./ApplicantAvatar";
 
@@ -59,7 +60,7 @@ export function ApproveRegistrationModal({
 
   return (
     <Modal title="New registration" onClose={onClose}>
-      <div className="flex items-center gap-3 rounded-[10px] border border-border bg-page px-3 py-2.5">
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-page px-3 py-2.5">
         <ApplicantAvatar
           name={account.displayName}
           avatarUrl={account.avatarUrl}
@@ -82,8 +83,8 @@ export function ApproveRegistrationModal({
           {ROLE_CHOICES.map((choice) => (
             <label
               key={choice.value}
-              className={`flex cursor-pointer items-start gap-3 rounded-[10px] border px-3 py-2.5 transition-colors ${
-                role === choice.value ? "border-brand-purple bg-brand-purple/5" : "border-border hover:bg-page"
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                role === choice.value ? "border-primary bg-secondary" : "border-border hover:bg-page"
               }`}
             >
               <input
@@ -92,7 +93,7 @@ export function ApproveRegistrationModal({
                 value={choice.value}
                 checked={role === choice.value}
                 onChange={() => setRole(choice.value)}
-                className="mt-0.5 h-4 w-4 text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+                className="mt-0.5 h-4 w-4 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <span>
                 <span className="block text-sm font-semibold text-dash-ink">{choice.label}</span>
@@ -104,29 +105,18 @@ export function ApproveRegistrationModal({
       </fieldset>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
 
       <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={busy}
-          className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:opacity-60"
-        >
+        <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => void approve()}
-          disabled={busy}
-          aria-busy={busy}
-          className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        </Button>
+        <Button type="button" onClick={() => void approve()} disabled={busy} aria-busy={busy}>
           {busy ? "Approving…" : "Approve"}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

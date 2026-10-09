@@ -81,7 +81,7 @@ export function AppearanceCard() {
   }
 
   return (
-    <section id="appearance" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
+    <section id="appearance" className="scroll-mt-24 rounded-xl border border-border bg-card p-6 shadow-sm">
       <h2 className="text-base font-bold text-dash-ink">Appearance</h2>
       <p className="mt-0.5 text-sm text-muted">Choose how the site looks for you.</p>
 
@@ -101,7 +101,7 @@ export function AppearanceCard() {
             onClick={() => select(value)}
             aria-pressed={theme === value}
             className={`rounded-xl border-2 p-3 text-left transition-colors ${
-              theme === value ? "border-brand-purple ring-4 ring-brand-purple/15" : "border-border hover:bg-page"
+              theme === value ? "border-primary ring-4 ring-ring/50" : "border-border hover:bg-page"
             }`}
           >
             <div className="overflow-hidden rounded-lg border border-border">
@@ -115,7 +115,7 @@ export function AppearanceCard() {
               <span
                 aria-hidden="true"
                 className={`h-4 w-4 shrink-0 rounded-full border-2 ${
-                  theme === value ? "border-brand-purple bg-brand-purple" : "border-border"
+                  theme === value ? "border-primary bg-primary" : "border-border"
                 }`}
               />
             </div>

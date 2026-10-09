@@ -7,6 +7,7 @@ import { uploadAvatar, removeAvatar } from "@/lib/auth/api";
 import { UserAvatar } from "./UserAvatar";
 import { CameraIcon } from "./icons";
 import { Modal } from "@/components/users-roles/Modal";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/users-roles/StatusBadge";
 import { RoleBadge } from "@/components/users-roles/RoleBadge";
 import type { AccountRole } from "@/lib/mock/users-roles";
@@ -93,7 +94,7 @@ export function ProfileModal({
   return (
     <Modal
       onClose={onClose}
-      className="relative w-full max-w-md rounded-[10px] border border-border bg-white pb-5 shadow-xl"
+      className="relative w-full max-w-md rounded-xl border border-border bg-card pb-5 shadow-xl"
     >
       {/* Avatar straddles the card's top edge (half above, half inside), so
           it reads as a floating profile photo rather than boxed inside the
@@ -115,7 +116,7 @@ export function ProfileModal({
               avatarUrl={user?.avatarUrl ?? null}
               initials={initials}
               name={user?.displayName ?? ""}
-              className={`h-24 w-24 text-2xl shadow-lg ring-4 ring-brand-purple/40 ring-offset-2 ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
+              className={`h-24 w-24 text-2xl shadow-lg ring-4 ring-ring/40 ring-offset-2 ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
             />
             <span
               className={`absolute inset-0 flex items-center justify-center rounded-full bg-black/40 transition-opacity ${
@@ -125,7 +126,7 @@ export function ProfileModal({
               <CameraIcon className="h-7 w-7 text-white" />
             </span>
           </div>
-          <span className="mt-1.5 text-xs font-medium text-brand-purple underline-offset-2 group-hover:underline">
+          <span className="mt-1.5 text-xs font-medium text-foreground underline-offset-2 group-hover:underline">
             {avatarBusy ? "Uploading…" : "Change photo"}
           </span>
           <input
@@ -190,17 +191,13 @@ export function ProfileModal({
         <Link
           href={editHref}
           onClick={onClose}
-          className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
         >
           Edit Profile
         </Link>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-gray-50"
-        >
+        <Button type="button" variant="outline" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </Modal>
   );
