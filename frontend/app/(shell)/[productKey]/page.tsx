@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { LayersIcon } from "@/components/layout/icons";
 import { PRODUCT_ICONS } from "@/components/layout/nav-config";
 import { ProductContentTable } from "@/components/docs/editor/ProductContentTable";
-import { useNavStructure } from "@/lib/docs/useNavStructure";
+import { peekRedirectHint, useNavStructure } from "@/lib/docs/useNavStructure";
 
 /** A product's admin content-management page — replaces the 5 near-identical
  *  static files this used to be (app/jex3-0/page.tsx, app/coach/page.tsx,
@@ -18,6 +18,13 @@ export default function ProductManagePage() {
   const product = products?.find((p) => p.key === productKey);
 
   if (products && !product) {
+    // The sidebar's own rename just swapped this URL's key out of the shared
+    // cache and is in the middle of `router.replace`-ing to the new one — the
+    // cache update and the route change are two independently-scheduled
+    // state changes, so this render can land in between them. Rendering
+    // nothing for that one instant (rather than a 404) is what makes the
+    // rename feel instant instead of flashing a wrong page first.
+    if (peekRedirectHint(productKey)) return null;
     notFound();
   }
   if (!product) return null;
