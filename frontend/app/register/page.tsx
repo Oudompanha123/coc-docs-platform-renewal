@@ -8,6 +8,7 @@ import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { LockIcon, MailIcon, PersonIcon, PlusIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
 import { Spinner } from "@/components/layout/Spinner";
+import { Button } from "@/components/ui/button";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
@@ -269,40 +270,44 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isVerifying}
             aria-busy={isVerifying}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full shadow-sm"
           >
             {isVerifying && <Spinner />}
             {isVerifying ? "Verifying…" : "Verify Email"}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-5 rounded-xl border border-border bg-page px-4 py-3 text-center text-sm text-muted">
           Didn&apos;t get a code? Check your spam folder, or{" "}
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="inline"
             onClick={handleResend}
             disabled={isResending || resendCooldown > 0}
-            className="font-semibold text-brand-purple hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
+            className="focus-visible:ring-offset-0"
           >
             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : isResending ? "Resending…" : "Resend code"}
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => setStep("form")}
           disabled={isVerifying}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 flex w-full"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Wrong email? Go back
-        </button>
+        </Button>
       </AuthShell>
     );
   }
@@ -410,6 +415,10 @@ export default function RegisterPage() {
 
         <div>
           <div className="flex items-start gap-2">
+            {/* Same reason as /login's "Remember me": no checkbox primitive
+                yet, and Radix's would change both the pixels and the element
+                getByLabelText resolves to. ADR-104 §4.3. */}
+            {/* eslint-disable-next-line react/forbid-elements */}
             <input
               id="agree-terms"
               type="checkbox"
@@ -441,14 +450,9 @@ export default function RegisterPage() {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="flex w-full">
           {isSubmitting ? "Submitting…" : "Continue"}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-6 px-8 text-center text-sm text-muted md:px-14">

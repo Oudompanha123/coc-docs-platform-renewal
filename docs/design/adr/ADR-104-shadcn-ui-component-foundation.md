@@ -147,7 +147,7 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 
 ### 4.2 Negative / costs accepted
 
-- **Radix becomes a runtime dependency**, one package per primitive. Bundle impact is per-component and tree-shaken, but it is not zero.
+- **Radix becomes a runtime dependency**, one package per primitive. Bundle impact is per-component and tree-shaken, but it is not zero — and phase 1 put a number on it. The five auth routes each gained **≈9–10 kB of First Load JS** (`/login` 118 → 128 kB, `/register` 115 → 126 kB, `/reset-password` 112 → 123 kB), while "First Load JS shared by all" held at 103 kB. Most of that is `tailwind-merge`, which is load-bearing rather than optional: without it a caller's `pl-10` does not displace a primitive's base padding and the winner is decided by stylesheet emission order (see `components/ui/input.tsx`). The cost is paid once and shared more widely as further areas migrate onto the same chunk; it does not scale with the number of migrated components. It should be re-measured at the end of each phase against the 103 kB baseline, and it is the one line in this ADR most likely to justify reversing the decision if it turns out otherwise.
 - **Test churn across up to 87 files.** Unavoidable, and the main reason this is phased.
 - **A coexistence period of several sprints** where migrated and unmigrated areas differ in internals (decision 6 confines this to *between* areas).
 - **Merge conflicts with in-flight feature branches.** Anything touching a component in a phase's area will conflict. Phase order should be announced before each phase starts so parallel work can be sequenced — a coordination cost on the whole team, not only on whoever runs the migration.
@@ -157,7 +157,8 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 
 - [x] **Phase 0** — removed `@blocknote/*` (3) and `@mantine/*` (2); added `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge`
 - [x] **Phase 0** — `components.json`, `lib/utils.ts`, the §2.2 token map and the `@custom-variant dark` rule in `globals.css`. Verified: typecheck clean, lint unchanged at 0 errors / 2 pre-existing warnings, 1418 tests pass, `npm run build` succeeds with shared First Load JS at **103 kB** (the baseline later phases are measured against)
-- [ ] **Phase 1** — Button, Input, Textarea, Label, Select, Checkbox, Switch; `components/ui/`; the decision-7 ESLint rule scoped to the first migrated area; migrate `components/auth` first, as the smallest real area
+- [x] **Phase 1** — `Button`, `Input`, `Label` in `components/ui/`; the decision-7 ESLint rule scoped to `components/auth` and the five auth routes; 11 buttons and every auth text field migrated. **Textarea, Select, Checkbox and Switch were not built**, because no call site in the pilot area needs them and shipping an unused primitive is how `@blocknote/*` came to sit in `package.json` for a year. The two checkboxes on /login and /register are exempted in place with a reason, and get a real primitive when the phase that can absorb the DOM change reaches them
+- [ ] **Phase 1 (cont.)** — remaining areas on the current primitives, one PR each
 - [ ] **Phase 2** — Dialog, DropdownMenu, Popover, Tooltip, Sheet; migrate the 16 modals and the 8 `role="dialog"` sites
 - [ ] **Phase 3** — Table, Card, Badge, Tabs, Avatar, Skeleton
 - [ ] **Phase 4** — Alert, Progress, toast; sweep the remaining areas
@@ -192,6 +193,7 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 |---|---|---|---|
 | 2026-10-09 | 1.0 | Initial draft on branch `feat/shadcn-ui-migration` | AI (Claude Opus 5) |
 | 2026-10-09 | 1.1 | Corrected three things phase 0 proved wrong in the draft: the `dark` variant must be **shell-scoped** or it darkens the auth pages; `--color-muted` and the radius scale must **not** be redefined; the decision-7 ESLint rule is **scoped per migrated area**, not a global warning. Phase 0 marked done with its measured baseline | AI (Claude Opus 5) |
+| 2026-10-09 | 1.2 | Phase 1 done for the auth area. Recorded the measured bundle cost (≈9–10 kB First Load JS per migrated route, shared chunk unchanged at 103 kB) against §4.2, which had predicted the direction but no magnitude. Narrowed phase 1's primitive list to what call sites actually needed. Noted that the test churn §1.4 warns about did **not** materialise here — `Button` and `Input` render the same elements, so all 1418 existing tests passed untouched. That churn is a phase-2 cost, when Radix's overlays change the DOM, and §1.4 should not be read as applying evenly across the phases | AI (Claude Opus 5) |
 
 ---
 

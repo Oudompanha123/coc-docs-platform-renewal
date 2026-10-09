@@ -77,6 +77,14 @@ export const OtpCodeInput = forwardRef<
             );
           })}
         </div>
+        {/* Not the Input primitive, and deliberately so: this field is
+            invisible. It spans the six drawn boxes to catch clicks, paste and
+            the caret, and shares none of Input's border, background, padding
+            or placeholder styling — routing it through the primitive would
+            mean overriding every class the primitive sets. ADR-104 decision 7
+            allows the escape hatch where an affordance genuinely is not one
+            of the primitives; this is that case. */}
+        {/* eslint-disable-next-line react/forbid-elements */}
         <input
           ref={ref}
           id={id}

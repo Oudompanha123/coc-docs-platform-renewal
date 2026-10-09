@@ -1,7 +1,21 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { EyeIcon, EyeOffIcon } from "./icons";
+
+/**
+ * Migrated to the shared primitives in phase 1 of ADR-104. The exported API,
+ * the DOM and the rendered pixels are unchanged — this file is imported by
+ * twenty others, so a change in its shape would not have been a pilot, it
+ * would have been the whole migration at once.
+ *
+ * What is gone is `fieldClasses`: the field styling now lives once, in
+ * `components/ui/input.tsx`, instead of here and in whatever the next form
+ * copied it into.
+ */
 
 type FormFieldProps = {
   label: string;
@@ -17,8 +31,8 @@ type FormFieldProps = {
   id?: string;
 };
 
-const fieldClasses =
-  "w-full rounded-xl border border-border py-3 pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 transition-colors";
+/** The leading-icon inset. `Input`'s own `px-4` covers the right-hand side. */
+const ICON_INSET = "pl-10";
 
 export function FormField({ label, type = "text", value, onChange, placeholder, icon, error, autoComplete, id, name }: FormFieldProps) {
   const generatedId = useId();
@@ -27,12 +41,12 @@ export function FormField({ label, type = "text", value, onChange, placeholder, 
 
   return (
     <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
+      <Label htmlFor={fieldId} className="mb-1.5 block">
         {label}
-      </label>
+      </Label>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">{icon}</span>
-        <input
+        <Input
           id={fieldId}
           name={name}
           type={type}
@@ -42,7 +56,7 @@ export function FormField({ label, type = "text", value, onChange, placeholder, 
           autoComplete={autoComplete}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={fieldClasses}
+          className={ICON_INSET}
         />
       </div>
       {error && (
@@ -70,10 +84,10 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
 
   return (
     <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
+      <Label htmlFor={fieldId} className="mb-1.5 block">
         {label}
-      </label>
-      <input
+      </Label>
+      <Input
         id={fieldId}
         type="text"
         inputMode="numeric"
@@ -84,7 +98,7 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
         placeholder="000000"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className="w-full rounded-xl border border-border py-3 px-4 text-center text-2xl font-semibold tracking-[0.5em] text-ink placeholder:text-muted/40 focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 transition-colors"
+        className="text-center text-2xl font-semibold tracking-[0.5em] placeholder:text-muted/40"
       />
       {error && (
         <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">
@@ -105,12 +119,12 @@ export function PasswordField({ label, value, onChange, placeholder, icon, error
 
   return (
     <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
+      <Label htmlFor={fieldId} className="mb-1.5 block">
         {label}
-      </label>
+      </Label>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">{icon}</span>
-        <input
+        <Input
           id={fieldId}
           name={name}
           type={visible ? "text" : "password"}
@@ -120,17 +134,19 @@ export function PasswordField({ label, value, onChange, placeholder, icon, error
           autoComplete={autoComplete}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={`${fieldClasses} pr-10`}
+          className={`${ICON_INSET} pr-10`}
         />
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:ring-offset-0"
         >
           {visible ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-        </button>
+        </Button>
       </div>
       {error && (
         <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">

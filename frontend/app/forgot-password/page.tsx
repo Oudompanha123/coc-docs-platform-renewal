@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField } from "@/components/auth/FormField";
 import { LockIcon, MailIcon } from "@/components/auth/icons";
+import { Button } from "@/components/ui/button";
 import { AuthApiError, forgotPassword } from "@/lib/auth/api";
 import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 
@@ -103,14 +104,14 @@ export default function ForgotPasswordPage() {
           error={error}
         />
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || feedback?.type === "success"}
           aria-busy={isSubmitting}
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full"
         >
           {isSubmitting ? "Sending…" : "Send Reset Link"}
-        </button>
+        </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted">

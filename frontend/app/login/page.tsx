@@ -9,6 +9,7 @@ import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { DocumentIcon, GoogleIcon, LockIcon, PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
+import { Button } from "@/components/ui/button";
 import { useMinimumDisplay } from "@/lib/layout/useMinimumDisplay";
 import { landingPathFor } from "@/lib/auth/landing";
 import {
@@ -408,27 +409,29 @@ function LoginForm() {
               )}
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isVerifyingOtp}
               aria-busy={isVerifyingOtp}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full shadow-sm"
             >
               {isVerifyingOtp && <Spinner />}
               {isVerifyingOtp ? "Verifying…" : "Verify"}
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setStep("credentials")}
               disabled={isVerifyingOtp}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Back to login
-            </button>
+            </Button>
           </form>
         )}
       </AuthShell>
@@ -505,6 +508,13 @@ function LoginForm() {
 
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-muted">
+              {/* A checkbox primitive does not exist yet. Radix's renders a
+                  <button role="checkbox"> rather than an <input>, which moves
+                  pixels and changes what getByLabelText matches — neither
+                  belongs in a phase whose contract is that nothing visibly
+                  changes. Scheduled with the rest of the form controls; see
+                  ADR-104 §4.3. */}
+              {/* eslint-disable-next-line react/forbid-elements */}
               <input
                 type="checkbox"
                 checked={rememberMe}
@@ -521,15 +531,10 @@ function LoginForm() {
             </Link>
           </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="flex w-full">
             {isSubmitting && <Spinner />}
             {isSubmitting ? "Signing in…" : "Login"}
-          </button>
+          </Button>
 
           {isGoogleSignInConfigured && (
             <>
@@ -539,16 +544,22 @@ function LoginForm() {
                 <span className="h-px flex-1 bg-border" />
               </div>
 
-              <button
+              {/* Its hover was `bg-gray-50`, where the other outline button on
+                  this page used `bg-page`. Two buttons meant to look alike that
+                  did not, which is the kind of thing a shared variant exists to
+                  stop; both are now the product's `bg-page`. The only
+                  intentional pixel change in the ADR-104 phase 1 migration. */}
+              <Button
                 type="button"
+                variant="outline"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleSubmitting}
                 aria-busy={isGoogleSubmitting}
-                className="flex w-full items-center justify-center gap-3 rounded-xl border border-border px-4 py-3 font-semibold text-ink transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full gap-3"
               >
                 {isGoogleSubmitting ? <Spinner /> : <GoogleIcon className="h-5 w-5" aria-hidden="true" />}
                 {isGoogleSubmitting ? "Signing in…" : "Continue with Google"}
-              </button>
+              </Button>
             </>
           )}
         </form>

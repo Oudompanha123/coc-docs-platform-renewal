@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordField } from "@/components/auth/FormField";
 import { LockIcon } from "@/components/auth/icons";
+import { Button } from "@/components/ui/button";
 import { AuthApiError, changePassword } from "@/lib/auth/api";
 import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
 import { SessionProvider, useSession } from "@/lib/auth/SessionProvider";
@@ -153,14 +154,14 @@ function CreatePasswordForm() {
           error={errors.confirmPassword}
         />
 
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting || feedback?.type === "success"}
           aria-busy={isSubmitting}
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full"
         >
           {isSubmitting ? "Creating…" : "Create Password"}
-        </button>
+        </Button>
       </form>
     </AuthShell>
   );
