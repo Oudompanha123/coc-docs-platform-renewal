@@ -11,14 +11,14 @@ import { ROLE_LABELS } from "@/lib/mock/users-roles";
 export function RoleBadge({ role }: { role: DisplayRole }) {
   if (role === "super_admin") {
     return (
-      <span className="inline-flex items-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2.5 py-1 text-xs font-semibold text-white">
+      <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white">
         {ROLE_LABELS[role]}
       </span>
     );
   }
   if (role === "admin") {
     return (
-      <span className="inline-flex items-center rounded-full bg-brand-blue/10 px-2.5 py-1 text-xs font-semibold text-brand-blue">
+      <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-foreground">
         {ROLE_LABELS[role]}
       </span>
     );

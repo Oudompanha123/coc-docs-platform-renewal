@@ -48,7 +48,7 @@ export function Stepper({ steps, currentIndex }: StepperProps) {
                 <span
                   aria-hidden="true"
                   className={`mt-4 h-0.5 flex-1 ${
-                    status === "complete" ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
+                    status === "complete" ? "bg-primary" : "bg-border"
                   }`}
                 />
               )}

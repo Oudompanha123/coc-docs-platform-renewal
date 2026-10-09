@@ -16,7 +16,7 @@ function fmt(n: number): string {
 
 function BudgetBar({ pct, status }: { pct: number; status: BudgetStatus }) {
   const clamped = Math.min(pct, 100);
-  const color = status === "red" ? "bg-red-500" : status === "amber" ? "bg-amber-400" : "bg-brand-purple";
+  const color = status === "red" ? "bg-red-500" : status === "amber" ? "bg-amber-400" : "bg-primary";
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
       <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${clamped}%` }} />
@@ -75,10 +75,10 @@ export function UsageSnapshotPanel() {
           className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
         >
           <div>
-            <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t.panels.myUsage}</h3>
             <p className="mt-1 text-sm text-muted">{t.panels.loadError}</p>
           </div>
-          <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.openMyUsage}</span>
+          <span className="mt-4 text-sm font-semibold text-foreground">{t.panels.openMyUsage}</span>
         </Link>
       );
     }
@@ -90,10 +90,10 @@ export function UsageSnapshotPanel() {
           className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
         >
           <div>
-            <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
+            <h3 className="text-base font-semibold text-foreground">{t.panels.myUsage}</h3>
             <p className="mt-1 text-sm text-muted">{t.panels.noPersonalUsage}</p>
           </div>
-          <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.openMyUsage}</span>
+          <span className="mt-4 text-sm font-semibold text-foreground">{t.panels.openMyUsage}</span>
         </Link>
       );
     }
@@ -102,8 +102,8 @@ export function UsageSnapshotPanel() {
       <div className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm">
         <div>
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
-            <span className="rounded-full bg-brand-purple/10 px-2.5 py-0.5 text-xs font-semibold text-brand-purple capitalize">
+            <h3 className="text-base font-semibold text-foreground">{t.panels.myUsage}</h3>
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground capitalize">
               {t.panels.today}
             </span>
           </div>
@@ -118,7 +118,7 @@ export function UsageSnapshotPanel() {
           )}
         </div>
 
-        <Link href="/claude-usage" className="mt-4 text-sm font-semibold text-brand-purple hover:underline">
+        <Link href="/claude-usage" className="mt-4 text-sm font-semibold text-foreground hover:underline">
           {t.panels.openMyUsage}
         </Link>
       </div>
@@ -146,12 +146,12 @@ export function UsageSnapshotPanel() {
         className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
       >
         <div>
-          <h3 className="text-base font-semibold text-brand-purple">{t.panels.usageTitle}</h3>
+          <h3 className="text-base font-semibold text-foreground">{t.panels.usageTitle}</h3>
           <p className="mt-1 text-sm text-muted">
             {me === "none" ? t.panels.notOnRoster : t.panels.loadError}
           </p>
         </div>
-        <span className="mt-4 text-sm font-semibold text-brand-purple">{t.panels.openUsage}</span>
+        <span className="mt-4 text-sm font-semibold text-foreground">{t.panels.openUsage}</span>
       </Link>
     );
   }
@@ -159,14 +159,14 @@ export function UsageSnapshotPanel() {
   // Real data. `budgetPct` already IS the percentage (e.g. 45 for 45%) --
   // never multiply it by 100 again.
   const pct = me.budgetPct;
-  const pctColor = me.budgetStatus === "red" ? "text-red-500" : me.budgetStatus === "amber" ? "text-amber-500" : "text-brand-purple";
+  const pctColor = me.budgetStatus === "red" ? "text-red-500" : me.budgetStatus === "amber" ? "text-amber-500" : "text-foreground";
 
   return (
     <div className="flex flex-col justify-between rounded-2xl border border-border bg-white p-5 shadow-sm">
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-brand-purple">{t.panels.myUsage}</h3>
-          <span className="rounded-full bg-brand-purple/10 px-2.5 py-0.5 text-xs font-semibold text-brand-purple capitalize">
+          <h3 className="text-base font-semibold text-foreground">{t.panels.myUsage}</h3>
+          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-foreground capitalize">
             {t.panels.thisWeek}
           </span>
         </div>
@@ -212,7 +212,7 @@ export function UsageSnapshotPanel() {
 
       <Link
         href="/claude-usage"
-        className="mt-4 text-sm font-semibold text-brand-purple hover:underline"
+        className="mt-4 text-sm font-semibold text-foreground hover:underline"
       >
         {t.panels.openDashboard}
       </Link>

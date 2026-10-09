@@ -71,7 +71,7 @@ export default function MeetingDeck() {
             <span
               key={i}
               className={`h-1.5 rounded-full transition-all duration-200 ${
-                i === index ? "w-6 bg-brand-purple" : "w-1.5 bg-border"
+                i === index ? "w-6 bg-primary" : "w-1.5 bg-border"
               }`}
             />
           ))}
@@ -86,7 +86,7 @@ export default function MeetingDeck() {
             onClick={() => go(-1)}
             disabled={index === 0}
             aria-label="Previous slide"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:text-muted/50"
+            className="size-9 rounded-full border border-surface-border text-sm font-semibold transition-colors hover:bg-accent disabled:text-muted-foreground/50"
           >
             ←
           </button>
@@ -95,7 +95,7 @@ export default function MeetingDeck() {
             onClick={() => go(1)}
             disabled={index === total - 1}
             aria-label="Next slide"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:text-muted/50"
+            className="size-9 rounded-full border border-surface-border text-sm font-semibold transition-colors hover:bg-accent disabled:text-muted-foreground/50"
           >
             →
           </button>
@@ -111,7 +111,7 @@ export default function MeetingDeck() {
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-purple">{children}</p>
+    <p className="text-xs font-bold uppercase tracking-[0.2em] text-foreground">{children}</p>
   );
 }
 
@@ -126,8 +126,8 @@ function Title({ children }: { children: ReactNode }) {
 /** A box in a diagram. `tone` marks who owns that step. */
 function Node({ label, tone = "ai" }: { label: string; tone?: "ai" | "human" | "plain" }) {
   const styles = {
-    ai: "border-brand-purple/30 bg-brand-purple/5 text-brand-purple",
-    human: "border-brand-blue/40 bg-brand-blue/10 text-brand-blue",
+    ai: "border-primary/30 bg-secondary text-foreground",
+    human: "border-primary/40 bg-secondary text-foreground",
     plain: "border-border bg-white text-dash-ink",
   }[tone];
   return (
@@ -183,7 +183,7 @@ function AgendaSlide() {
       <ol className="mt-10 space-y-5">
         {AGENDA.map((item, i) => (
           <li key={item} className="flex items-start gap-5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-base font-bold text-brand-purple">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-base font-bold text-foreground">
               {i + 1}
             </span>
             <p className="pt-1 text-lg text-dash-ink sm:text-xl">{item}</p>
@@ -208,13 +208,13 @@ function HarnessSlide() {
       <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3">
         {HARNESS_FACTS.map((fact) => (
           <div key={fact.label} className="rounded-xl border border-border p-6">
-            <p className="text-5xl font-extrabold text-brand-purple">{fact.value}</p>
+            <p className="text-5xl font-extrabold text-foreground">{fact.value}</p>
             <p className="mt-2 text-base font-bold text-dash-ink">{fact.label}</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">{fact.detail}</p>
           </div>
         ))}
       </div>
-      <p className="mt-8 border-l-[3px] border-brand-blue pl-5 text-lg leading-relaxed text-dash-ink">
+      <p className="mt-8 border-l-[3px] border-primary pl-5 text-lg leading-relaxed text-dash-ink">
         The harness is not about the AI writing more code. It is about the work leaving a trail —
         a decision becomes a document, a requirement gets an ID, and a person signs off.
       </p>
@@ -239,7 +239,7 @@ function WorkflowSlide() {
             <div className="flex flex-col items-center gap-2">
               <Node label={step} />
               {GATES[i] ? (
-                <span className="rounded-full bg-brand-blue/10 px-2.5 py-1 text-[11px] font-bold text-brand-blue">
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-foreground">
                   {GATES[i]} · human
                 </span>
               ) : (
@@ -254,16 +254,16 @@ function WorkflowSlide() {
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="rounded-xl border border-brand-purple/30 bg-brand-purple/5 p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-brand-purple">The AI does</p>
+        <div className="rounded-xl border border-primary/30 bg-secondary p-6">
+          <p className="text-sm font-bold uppercase tracking-wide text-foreground">The AI does</p>
           <ul className="mt-3 space-y-2 text-base text-dash-ink">
             <li>Drafts the plan, the code, the tests</li>
             <li>Writes down why, as an ADR</li>
             <li>Reviews its own work first</li>
           </ul>
         </div>
-        <div className="rounded-xl border border-brand-blue/40 bg-brand-blue/10 p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-brand-blue">We decide</p>
+        <div className="rounded-xl border border-primary/40 bg-primary/10 p-6">
+          <p className="text-sm font-bold uppercase tracking-wide text-foreground">We decide</p>
           <ul className="mt-3 space-y-2 text-base text-dash-ink">
             <li>Is this the right problem?</li>
             <li>Is this design the one we want?</li>
@@ -348,7 +348,7 @@ function PresentersSlide() {
             key={person.english}
             className="flex items-center gap-4 rounded-xl border border-border p-5"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-base font-bold text-white">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-white">
               {i + 1}
             </span>
             <div>

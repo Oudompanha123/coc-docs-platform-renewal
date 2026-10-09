@@ -72,7 +72,7 @@ export function AxRenewalActivityBar({
             real duplicate, not a style choice. */}
         <span
           aria-hidden="true"
-          className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md"
+          className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md"
         >
           <RenewIcon className="h-5 w-5" />
         </span>
@@ -94,12 +94,12 @@ export function AxRenewalActivityBar({
                 locked
                   ? "cursor-not-allowed text-sidebar-muted opacity-30"
                   : isActive
-                    ? "bg-sidebar-hover text-brand-purple"
+                    ? "bg-sidebar-hover text-foreground"
                     : "text-sidebar-muted hover:bg-sidebar-hover hover:text-dash-ink"
               }`}
             >
               {isActive && !locked && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-brand-purple" aria-hidden="true" />
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" aria-hidden="true" />
               )}
               <group.icon className="h-[30px] w-[30px]" />
             </button>
@@ -112,7 +112,7 @@ export function AxRenewalActivityBar({
           title={sidebarCollapsed ? "Show Explorer" : "Hide Explorer"}
           aria-label={sidebarCollapsed ? "Show Explorer panel" : "Hide Explorer panel"}
           aria-pressed={sidebarCollapsed}
-          className="mt-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-purple/10 text-brand-purple transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
+          className="mt-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-secondary text-foreground transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
         >
           {sidebarCollapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
         </button>

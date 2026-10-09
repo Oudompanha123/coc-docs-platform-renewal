@@ -74,9 +74,9 @@ export function AddAccountModal({
       <form onSubmit={(e) => void submit(e)} noValidate className="flex min-h-0 flex-1 flex-col">
         {/* Header — what this does. */}
         <div className="shrink-0 border-b border-border">
-          <div aria-hidden="true" className="h-1.5 bg-gradient-to-r from-brand-purple to-brand-blue" />
+          <div aria-hidden="true" className="h-1.5 bg-primary" />
           <div className="flex items-start gap-4 px-6 pb-5 pt-5">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md">
               <UserPlusIcon className="h-6 w-6" />
             </span>
             <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ export function AddAccountModal({
               onClick={onClose}
               disabled={isSubmitting}
               aria-label="Close add user"
-              className="-mr-1.5 -mt-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-[#f8fafc] hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-50"
+              className="-mr-1.5 -mt-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-[#f8fafc] hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
               <XIcon className="h-4 w-4" />
             </button>
@@ -123,7 +123,7 @@ export function AddAccountModal({
                 className={`w-full rounded-xl border bg-white py-2.5 pl-10 pr-3.5 text-sm text-dash-ink shadow-sm transition-colors placeholder:text-muted focus:outline-none focus-visible:ring-4 ${
                   error
                     ? "border-danger/60 focus-visible:border-danger focus-visible:ring-danger/15"
-                    : "border-border focus-visible:border-brand-purple focus-visible:ring-brand-purple/15"
+                    : "border-border focus-visible:border-ring focus-visible:ring-ring/50"
                 }`}
               />
             </div>
@@ -148,8 +148,8 @@ export function AddAccountModal({
             <RoleMultiSelect idPrefix="add-account-role" selected={roles} onChange={setRoles} collapseToHighest />
           </div>
 
-          <p className="flex items-start gap-2.5 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3.5 py-3 text-xs leading-relaxed text-dash-ink">
-            <ShieldIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+          <p className="flex items-start gap-2.5 rounded-xl border border-surface-border bg-secondary px-3.5 py-3 text-xs leading-relaxed text-dash-ink">
+            <ShieldIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <span>
               The password is generated for them and never shown here. They&apos;ll be asked to set
               their own the first time they sign in.
@@ -163,7 +163,7 @@ export function AddAccountModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full border border-surface-border px-5 text-sm font-semibold transition-colors hover:bg-accent"
           >
             Cancel
           </button>
@@ -171,7 +171,7 @@ export function AddAccountModal({
             type="submit"
             disabled={isSubmitting}
             aria-busy={isSubmitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting && <Spinner className="h-3.5 w-3.5 border-2" />}
             {isSubmitting ? "Adding…" : "Add Account"}

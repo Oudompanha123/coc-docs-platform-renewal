@@ -66,7 +66,7 @@ export default function ContentEditPage() {
       <AppShell
         pageTitle="Content"
         pageSubtitle="Loading…"
-        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
       >
         <p className="text-sm text-muted">Loading…</p>
       </AppShell>
@@ -78,10 +78,10 @@ export default function ContentEditPage() {
       <AppShell
         pageTitle="Content"
         pageSubtitle="Unknown content id"
-        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+        titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
       >
         <p className="text-sm text-muted">Unknown content id.</p>
-        <Link href="/overview" className="mt-3 inline-block text-sm font-semibold text-brand-purple hover:underline">
+        <Link href="/overview" className="mt-3 inline-block text-sm font-semibold text-foreground hover:underline">
           ← Back to Overview
         </Link>
       </AppShell>
@@ -118,10 +118,10 @@ export default function ContentEditPage() {
     <AppShell
       pageTitle={`${entry.productLabel} — ${entry.label}`}
       pageSubtitle={entry.publicHref}
-      titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       <div className="flex items-center justify-between">
-        <Link href={`/${entry.productKey}`} className="text-sm font-semibold text-brand-purple hover:underline">
+        <Link href={`/${entry.productKey}`} className="text-sm font-semibold text-foreground hover:underline">
           ← Back to {entry.productLabel}
         </Link>
         <div className="flex items-center gap-3">
@@ -130,7 +130,7 @@ export default function ContentEditPage() {
           <Link
             href={entry.publicHref}
             target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/30 hover:text-brand-purple hover:shadow"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:text-foreground hover:shadow"
           >
             View live page
             <span aria-hidden="true" className="text-xs">
@@ -141,7 +141,7 @@ export default function ContentEditPage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="rounded-full bg-brand-purple px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save"}
           </button>
@@ -180,7 +180,7 @@ export default function ContentEditPage() {
                     onClick={() => changeKind(kind)}
                     className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                       draft.kind === kind
-                        ? "bg-brand-purple/10 text-brand-purple"
+                        ? "bg-secondary text-foreground"
                         : "border border-border text-muted hover:bg-page"
                     }`}
                   >

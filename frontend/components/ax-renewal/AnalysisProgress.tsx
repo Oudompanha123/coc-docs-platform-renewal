@@ -73,7 +73,7 @@ export function AnalysisProgress({
         {/* Indeterminate on purpose. One backend call reports nothing until it
             returns, so a percentage would be a guess dressed as a measurement. */}
         <div className="mt-3 h-1 overflow-hidden rounded-full bg-page">
-          <div className="ax-analysing-bar h-full w-1/3 rounded-full bg-brand-purple" />
+          <div className="ax-analysing-bar h-full w-1/3 rounded-full bg-primary" />
         </div>
 
         {onStop && (

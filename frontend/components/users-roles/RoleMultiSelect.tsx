@@ -1,4 +1,5 @@
 import { ROLE_ORDER, ROLE_HINTS, ROLE_LABELS, highestEnforcedRole, type AccountRole } from "@/lib/mock/users-roles";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Checkbox list for all five roles, every one of them real and
@@ -42,7 +43,7 @@ export function RoleMultiSelect({
                 aria-label={ROLE_LABELS[role]}
                 checked={selected.includes(role)}
                 onChange={(e) => toggle(role, e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-border text-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple"
+                className={`${inputBaseClass} mt-0.5 h-4 w-4 text-foreground`}
               />
               <span className="min-w-0">
                 <span className="text-sm font-medium text-dash-ink">{ROLE_LABELS[role]}</span>

@@ -158,7 +158,7 @@ export function MyAttendanceRecord({
         </div>
       )}
 
-      <p className="rounded-[10px] bg-brand-purple/5 px-4 py-3 text-xs text-muted">
+      <p className="rounded-[10px] bg-secondary px-4 py-3 text-xs text-muted">
         You can only see your own record. Wrong data? Please contact an admin.
       </p>
     </div>

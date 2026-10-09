@@ -5,6 +5,7 @@ import { DocumentIcon, PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ProjectSwitcher } from "@/components/ax-renewal/ProjectSwitcher";
 import { createProject, deleteProject, updateProject, type AxRenewalProject } from "@/lib/ax-renewal/api";
 import { writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
+import { inputBaseClass } from "@/components/ui/input";
 
 /** How long "Project deleted successfully" stays up before clearing itself — same window `TopProgressBar` uses for its own auto-hide. */
 const DELETED_MESSAGE_MS = 4000;
@@ -98,7 +99,7 @@ export function ProjectPicker({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple/30 hover:text-brand-purple"
+            className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-primary/30 hover:text-foreground"
           >
             <PlusIcon className="h-3.5 w-3.5" />
             New project
@@ -136,12 +137,12 @@ export function ProjectPicker({
             onChange={(e) => setName(e.target.value)}
             placeholder="Project name"
             required
-            className="rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+            className={inputBaseClass}
           />
           <button
             type="submit"
             disabled={busy}
-            className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[10px] bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create"}
           </button>
@@ -348,7 +349,7 @@ function EditProjectDetailsControl({
       <button
         type="button"
         onClick={handleOpen}
-        className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple/30 hover:text-brand-purple"
+        className="flex items-center gap-1.5 rounded-[10px] border border-transparent px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-primary/30 hover:text-foreground"
       >
         <DocumentIcon className="h-3.5 w-3.5" />
         Edit details
@@ -378,7 +379,7 @@ function EditProjectDetailsControl({
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="mt-1 w-full rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+              className={`${inputBaseClass} mt-1 w-full`}
             />
 
             <label htmlFor="ax-project-description" className="mt-3 block text-xs font-semibold text-muted">
@@ -389,7 +390,7 @@ function EditProjectDetailsControl({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="mt-1 w-full rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+              className={`${inputBaseClass} mt-1 w-full`}
             />
 
             {error && <p role="alert" className="mt-3 text-xs font-medium text-danger">{error}</p>}
@@ -407,7 +408,7 @@ function EditProjectDetailsControl({
                 type="submit"
                 disabled={busy}
                 aria-busy={busy}
-                className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busy ? "Saving…" : "Save"}
               </button>

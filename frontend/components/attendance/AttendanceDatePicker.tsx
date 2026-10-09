@@ -241,7 +241,7 @@ export function AttendanceDatePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-[10px] border border-border bg-white px-3.5 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow"
+        className="flex items-center gap-2 rounded-[10px] border border-border bg-white px-3.5 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4 text-muted" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
           <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
@@ -264,7 +264,7 @@ export function AttendanceDatePicker({
               <button
                 type="button"
                 onClick={() => setSelectedDates(new Set([date]))}
-                className="font-semibold text-brand-purple hover:underline"
+                className="font-semibold text-foreground hover:underline"
               >
                 Clear
               </button>
@@ -302,7 +302,7 @@ export function AttendanceDatePicker({
             {weeks.map((week, weekIndex) => (
               <div
                 key={weekIndex}
-                className={`grid grid-cols-7 rounded-lg py-0.5 ${weekContainsHighlight(week) ? "bg-brand-purple/10" : ""}`}
+                className={`grid grid-cols-7 rounded-lg py-0.5 ${weekContainsHighlight(week) ? "bg-secondary" : ""}`}
               >
                 {week.map((iso, i) => {
                   if (!iso) return <span key={`blank-${weekIndex}-${i}`} className="h-8 w-8" />;
@@ -316,7 +316,7 @@ export function AttendanceDatePicker({
                   return (
                     <div
                       key={iso}
-                      className={`flex h-8 items-center justify-center ${inSpan ? `bg-brand-purple/10 ${spanCapClass(iso)}` : ""}`}
+                      className={`flex h-8 items-center justify-center ${inSpan ? `bg-secondary ${spanCapClass(iso)}` : ""}`}
                     >
                       <button
                         type="button"
@@ -328,11 +328,11 @@ export function AttendanceDatePicker({
                         aria-pressed={selected}
                         className={`flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors ${
                           selected
-                            ? "bg-brand-purple font-semibold text-white"
+                            ? "bg-primary font-semibold text-white"
                             : future
                               ? "cursor-not-allowed text-muted/40"
                               : isToday
-                                ? "text-dash-ink ring-2 ring-inset ring-brand-purple"
+                                ? "text-dash-ink ring-2 ring-inset ring-ring"
                                 : "text-dash-ink hover:bg-page"
                         }`}
                       >
@@ -348,7 +348,7 @@ export function AttendanceDatePicker({
           <button
             type="button"
             onClick={close}
-            className="mt-3 w-full rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue py-1.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            className="mt-3 w-full rounded-lg bg-primary py-1.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
           >
             Done
           </button>

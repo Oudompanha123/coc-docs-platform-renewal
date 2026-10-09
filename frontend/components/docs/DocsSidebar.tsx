@@ -40,7 +40,7 @@ export function DocsSidebar() {
     <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
       <div className="sticky top-0 flex h-screen flex-col overflow-y-auto px-4 py-6">
         <Link href={DOCS_SITE_HOME_HREF} className="flex items-center gap-2.5 px-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
             <DocumentIcon className="h-4 w-4" />
           </div>
           <span className="text-sm font-semibold text-ink">Coc Docs Platform</span>
@@ -56,7 +56,7 @@ export function DocsSidebar() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page hover:text-ink"
+                  active ? "bg-secondary text-foreground" : "text-muted hover:bg-page hover:text-ink"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function DocsSidebar() {
                       href={href}
                       aria-current={active ? "page" : undefined}
                       className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                        active ? "bg-brand-purple/10 font-semibold text-brand-purple" : "text-muted hover:bg-page hover:text-ink"
+                        active ? "bg-secondary font-semibold text-foreground" : "text-muted hover:bg-page hover:text-ink"
                       }`}
                     >
                       {item.label}

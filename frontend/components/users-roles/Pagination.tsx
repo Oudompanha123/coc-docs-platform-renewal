@@ -1,5 +1,6 @@
 "use client";
 
+import { inputBaseClass } from "@/components/ui/input";
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 /**
@@ -51,7 +52,7 @@ export function Pagination({
               onPageChange(1);
             }}
             aria-label="Rows per page"
-            className="appearance-none rounded-lg border border-border bg-white py-1.5 pl-3 pr-8 text-sm font-semibold text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            className={`${inputBaseClass} appearance-none font-semibold`}
           >
             {PAGE_SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>
@@ -78,7 +79,7 @@ export function Pagination({
           disabled={current <= 1}
           onClick={() => onPageChange(current - 1)}
           aria-label="Previous page"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-brand-purple enabled:hover:text-brand-purple disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-primary enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           ‹
         </button>
@@ -92,8 +93,8 @@ export function Pagination({
             aria-current={p === current ? "page" : undefined}
             className={
               p === current
-                ? "flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue text-sm font-semibold text-white"
-                : "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-sm font-semibold text-dash-ink transition-colors hover:border-brand-purple hover:text-brand-purple"
+                ? "flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white"
+                : "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-sm font-semibold text-dash-ink transition-colors hover:border-primary hover:text-foreground"
             }
           >
             {p}
@@ -105,7 +106,7 @@ export function Pagination({
           disabled={current >= pageCount}
           onClick={() => onPageChange(current + 1)}
           aria-label="Next page"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-brand-purple enabled:hover:text-brand-purple disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted transition-colors enabled:hover:border-primary enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           ›
         </button>

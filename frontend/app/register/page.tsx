@@ -249,7 +249,7 @@ export default function RegisterPage() {
                 <span>{codeError}</span>
               </p>
             ) : (
-              <p id="register-code-hint" className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+              <p id="register-code-hint" className="text-muted-foreground mt-3 flex items-center justify-between gap-3 text-xs">
                 <span className="flex items-center gap-1.5 whitespace-nowrap">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" />
@@ -258,10 +258,10 @@ export default function RegisterPage() {
                   {expiresIn > 0 ? (
                     <>
                       Code expires in{" "}
-                      <span className="font-semibold tabular-nums text-ink">{minutesSeconds(expiresIn)}</span>
+                      <span className="text-foreground font-medium tabular-nums">{minutesSeconds(expiresIn)}</span>
                     </>
                   ) : (
-                    <span className="font-semibold text-red-600">Code expired — send a new one below</span>
+                    <span className="text-destructive font-medium">Code expired — send a new one below</span>
                   )}
                 </span>
                 <span className="whitespace-nowrap">Submits automatically</span>
@@ -357,11 +357,11 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form
-        className="no-scrollbar-arrows mt-6 max-h-[760px] space-y-5 overflow-y-auto px-8 md:px-14"
-        onSubmit={handleSubmit}
-        noValidate
-      >
+      {/* Was `max-h-[760px] overflow-y-auto px-8 md:px-14`: a scroll container
+          and horizontal padding that belonged to the split panel this form
+          used to sit inside. With the panel gone they were a stray scrollbar
+          and an inset that pushed the fields off the column's own edge. */}
+      <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
         <FormField
           label="Full Name"
           value={fullName}
@@ -411,26 +411,26 @@ export default function RegisterPage() {
               checked={agree}
               onChange={(e) => setAgree(e.target.checked)}
               aria-describedby={errors.agree ? "agree-terms-error" : undefined}
-              className="mt-0.5 h-4 w-4 rounded border-border text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              className="border-surface-border bg-muted-surface text-primary focus-visible:ring-ring/50 mt-0.5 size-4 rounded focus-visible:ring-[3px] focus-visible:outline-none"
             />
-            <label htmlFor="agree-terms" className="text-sm text-muted">
+            <label htmlFor="agree-terms" className="text-muted-foreground text-sm">
               I agree to the{" "}
               {/* Links, not buttons: <button> is a labelable element, so nesting
                   one in this <label> would make getByLabelText match three
                   controls instead of the checkbox. Both routes exist now
                   (app/terms, app/privacy) — a static segment, so neither is
                   swallowed by app/(shell)/[productKey]. */}
-              <Link href="/terms" className="font-semibold text-brand-purple hover:underline">
+              <Link href="/terms" className="text-foreground font-medium underline underline-offset-4">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-semibold text-brand-purple hover:underline">
+              <Link href="/privacy" className="text-foreground font-medium underline underline-offset-4">
                 Privacy Policy
               </Link>
             </label>
           </div>
           {errors.agree && (
-            <p id="agree-terms-error" role="alert" className="mt-1.5 text-xs text-red-600">
+            <p id="agree-terms-error" role="alert" className="text-destructive mt-1.5 text-xs">
               {errors.agree}
             </p>
           )}
@@ -441,9 +441,9 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-6 px-8 text-center text-sm text-muted md:px-14">
+      <p className="text-muted-foreground mt-6 text-center text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-brand-purple hover:underline">
+        <Link href="/login" className="text-foreground font-medium underline underline-offset-4">
           Login
         </Link>
       </p>

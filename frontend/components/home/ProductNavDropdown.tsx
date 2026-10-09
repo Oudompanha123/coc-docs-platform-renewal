@@ -52,8 +52,8 @@ export function ProductNavDropdown({ product }: { product: NavProduct }) {
         onClick={() => setOpen(false)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
-          active ? "border-brand-purple font-bold text-ink" : "border-transparent"
+        className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:border-primary hover:font-bold hover:text-ink ${
+          active ? "border-primary font-bold text-ink" : "border-transparent"
         }`}
       >
         <Icon className="h-4 w-4" />

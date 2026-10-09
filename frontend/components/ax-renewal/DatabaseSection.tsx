@@ -5,6 +5,7 @@ import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalConfirmation, AxRenewalDbChange, AxRenewalDbConnection } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 type ChangeRow = { changeType: "add_column" | "add_index"; tableName: string; rationale: string };
 
@@ -188,7 +189,7 @@ export function DatabaseSection({
                 disabled={!canEdit}
                 onChange={(e) => setEngine(e.target.value)}
                 placeholder="e.g. PostgreSQL 15"
-                className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className={`${inputBaseClass} w-full`}
               />
             </div>
             <div>
@@ -197,7 +198,7 @@ export function DatabaseSection({
                 value={host}
                 disabled={!canEdit}
                 onChange={(e) => setHost(e.target.value)}
-                className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className={`${inputBaseClass} w-full`}
               />
             </div>
             <div>
@@ -206,7 +207,7 @@ export function DatabaseSection({
                 value={port}
                 disabled={!canEdit}
                 onChange={(e) => setPort(e.target.value.replace(/[^0-9]/g, ""))}
-                className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className={`${inputBaseClass} w-full`}
               />
             </div>
             <div>
@@ -215,7 +216,7 @@ export function DatabaseSection({
                 value={databaseName}
                 disabled={!canEdit}
                 onChange={(e) => setDatabaseName(e.target.value)}
-                className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className={`${inputBaseClass} w-full`}
               />
             </div>
             <div className="sm:col-span-2">
@@ -224,7 +225,7 @@ export function DatabaseSection({
                 value={schemaName}
                 disabled={!canEdit}
                 onChange={(e) => setSchemaName(e.target.value)}
-                className="w-full rounded-lg border border-border px-2.5 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                className={`${inputBaseClass} w-full`}
               />
             </div>
           </div>
@@ -294,14 +295,14 @@ export function DatabaseSection({
                   disabled={!canEdit}
                   onChange={(e) => updateRow(i, "tableName", e.target.value)}
                   placeholder="Table name"
-                  className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                  className={inputBaseClass}
                 />
                 <input
                   value={row.rationale}
                   disabled={!canEdit}
                   onChange={(e) => updateRow(i, "rationale", e.target.value)}
                   placeholder="Why"
-                  className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                  className={inputBaseClass}
                 />
                 {canEdit && (
                   <button
@@ -321,7 +322,7 @@ export function DatabaseSection({
             <button
               type="button"
               onClick={addRow}
-              className="mt-3 flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+              className="mt-3 flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-primary hover:text-foreground"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               Add change
@@ -360,7 +361,7 @@ export function DatabaseSection({
             </p>
           )}
           {!connection && changes.length === 0 && confirmation != null && (
-            <p className="mt-4 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+            <p className="mt-4 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-dash-ink">
               Confirmed as <strong>No database required</strong> — this renewal doesn&apos;t use a database.
             </p>
           )}

@@ -17,6 +17,7 @@ import {
   unpublishAnnouncement,
   type AdminAnnouncement,
 } from "@/lib/admin/announcements";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * What the list filters on. "expired" is its own tab even though it is not a
@@ -172,7 +173,7 @@ export default function AnnouncementsPage() {
     <AppShell
       pageTitle="Announcements"
       pageSubtitle="Notices shown to every member on the user site"
-      titleIcon={<MegaphoneIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<MegaphoneIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -185,7 +186,7 @@ export default function AnnouncementsPage() {
               setNotice(null);
               setEditing("new");
             }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
           >
             <PlusIcon className="h-4 w-4" />
             New announcement
@@ -216,7 +217,7 @@ export default function AnnouncementsPage() {
                   onClick={() => setFilter(f.key)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     filter === f.key
-                      ? "bg-brand-purple/10 text-brand-purple"
+                      ? "bg-secondary text-foreground"
                       : "border border-border text-muted hover:bg-page"
                   }`}
                 >
@@ -231,7 +232,7 @@ export default function AnnouncementsPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search announcements"
               aria-label="Search announcements"
-              className="w-full rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink outline-none focus:border-brand-purple sm:w-64"
+              className={`${inputBaseClass} w-full sm:w-64`}
             />
           </div>
 
@@ -335,7 +336,7 @@ export default function AnnouncementsPage() {
                                 setActionError(null);
                                 setConfirming({ action: "publish", announcement: a });
                               }}
-                              className="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/20"
+                              className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
                             >
                               Publish
                             </button>

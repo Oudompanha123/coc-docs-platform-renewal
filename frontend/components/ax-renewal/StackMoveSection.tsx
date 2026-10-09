@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
+import { inputBaseClass } from "@/components/ui/input";
 import type {
   AxRenewalAnalysis,
   AxRenewalConfirmation,
@@ -226,7 +227,7 @@ export function StackMoveSection({
         </p>
 
         {isSuggestion && (
-          <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+          <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-dash-ink">
             Rows below are a starting point built from what <strong>Run analysis</strong> found on the
             Codebase/Findings tabs — nothing is saved yet. Edit or remove any of them, then{" "}
             <strong>Save stack move</strong>.
@@ -324,7 +325,7 @@ export function StackMoveSection({
                           disabled={!canEdit}
                           onChange={(e) => updateRow(i, "oldTarget", e.target.value)}
                           placeholder="e.g. Node 12"
-                          className="w-full rounded-md border border-amber-300 bg-amber-50 px-2 py-1 font-mono text-xs text-amber-900 placeholder:text-amber-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:opacity-70"
+                          className="w-full rounded-md border border-amber-300 bg-amber-50 px-2 py-1 font-mono text-xs text-amber-900 placeholder:text-amber-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-70"
                         />
                       </div>
 
@@ -368,7 +369,7 @@ export function StackMoveSection({
                           disabled={!canEdit}
                           onChange={(e) => updateRow(i, "newTarget", e.target.value)}
                           placeholder="or type your own target"
-                          className="w-full max-w-xs rounded-lg border border-border px-2 py-1.5 text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                          className={`${inputBaseClass} w-full max-w-xs`}
                         />
 
                         {status.kind === "recommended" ? (

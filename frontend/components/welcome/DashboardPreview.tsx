@@ -329,7 +329,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
       <div className="flex">
         <div className="hidden w-40 shrink-0 flex-col bg-sidebar px-3 py-4 sm:flex">
           <div className="flex items-center gap-2 px-1">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-brand-purple to-brand-blue text-[9px] font-bold text-white">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[9px] font-bold text-white">
               CD
             </div>
             <span className="truncate text-[11px] font-semibold text-white">Coc Docs Platform</span>
@@ -339,7 +339,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             {navPositions[activeNavIndex] && (
               <span
                 aria-hidden="true"
-                className="absolute right-0 left-0 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue transition-[top,height] duration-500 ease-in-out"
+                className="absolute right-0 left-0 rounded-lg bg-primary transition-[top,height] duration-500 ease-in-out"
                 style={{ top: navPositions[activeNavIndex].top, height: navPositions[activeNavIndex].height }}
               />
             )}
@@ -445,7 +445,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             }`}
           >
             <div className="flex min-w-0 items-center gap-2">
-              <FrameIcon className="h-4 w-4 shrink-0 text-brand-purple" />
+              <FrameIcon className="h-4 w-4 shrink-0 text-foreground" />
               <div className="min-w-0">
                 <h3 className={`text-sm font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{frameTitle}</h3>
                 <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{frameSubtitle}</p>
@@ -501,7 +501,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                   key={stat.key}
                   className={`rounded-[10px] border p-2.5 transition-all duration-300 ${
                     isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
-                  } ${isHighlighted ? "scale-[1.04] ring-2 ring-brand-purple shadow-md" : ""}`}
+                  } ${isHighlighted ? "scale-[1.04] ring-2 ring-ring shadow-md" : ""}`}
                 >
                   <div className="flex items-center gap-1.5">
                     <div
@@ -554,7 +554,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
               <div className="flex items-center justify-between">
                 <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Recent Documents</p>
-                <span className="text-[9px] font-semibold text-brand-purple">View all</span>
+                <span className="text-[9px] font-semibold text-foreground">View all</span>
               </div>
               <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
                 {PREVIEW_DOCS.map((doc) => (
@@ -617,7 +617,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
               <div className="flex items-center justify-between">
                 <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{activeProduct.label} items</p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[9px] font-semibold text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[9px] font-semibold text-white">
                   <PlusIcon className="h-2.5 w-2.5" />
                   Add Item
                 </span>
@@ -678,9 +678,9 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             <div className={`rounded-[10px] border ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
               {/* Tab row — Users active, matching the real page's tab bar */}
               <div className={`flex items-center gap-4 border-b px-3 pt-2.5 ${isDark ? "border-[#332e4d]" : "border-border"}`}>
-                <span className="relative pb-2 text-[10px] font-bold text-brand-purple">
+                <span className="relative pb-2 text-[10px] font-bold text-foreground">
                   Users
-                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
                 </span>
                 <span className={`pb-2 text-[10px] font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Pending</span>
                 <span className={`pb-2 text-[10px] font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Roles</span>
@@ -695,7 +695,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                 >
                   Search by name, email, or role…
                 </span>
-                <span className="shrink-0 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[8px] font-semibold text-white">
+                <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[8px] font-semibold text-white">
                   + Add user
                 </span>
               </div>
@@ -732,7 +732,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                     </span>
                     <span
                       className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:inline-block ${
-                        isDark ? "bg-brand-purple/20 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
+                        isDark ? "bg-secondary text-[#c4b5fd]" : "bg-secondary text-foreground"
                       }`}
                     >
                       {account.role}
@@ -751,7 +751,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                   <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
                     Day
                   </span>
-                  <span className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[9px] font-semibold text-white">
+                  <span className="rounded-full bg-primary px-2 py-1 text-[9px] font-semibold text-white">
                     Week
                   </span>
                   <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
@@ -764,7 +764,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               {/* Disclaimer — real wording, not paraphrased */}
               <div
                 className={`rounded-lg border px-2.5 py-1.5 text-[8px] leading-relaxed ${
-                  isDark ? "border-brand-purple/30 bg-brand-purple/10 text-[#c4b5fd]" : "border-brand-purple/20 bg-brand-purple/5 text-brand-purple"
+                  isDark ? "border-primary/30 bg-secondary text-[#c4b5fd]" : "border-surface-border bg-secondary text-foreground"
                 }`}
               >
                 Token counts and API-equivalent cost below are <strong>soft-budget estimates</strong>, not a real invoice
@@ -797,7 +797,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                   {CLAUDE_USAGE_CHART_DAYS.map((d) => (
                     <div key={d.day} className="flex flex-1 flex-col items-center gap-1">
                       <div
-                        className="w-full rounded-t bg-gradient-to-t from-brand-purple to-brand-blue"
+                        className="w-full rounded-t bg-gradient-to-t bg-primary"
                         style={{ height: `${d.pct}%` }}
                       />
                       <span className={`text-[7px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{d.day}</span>

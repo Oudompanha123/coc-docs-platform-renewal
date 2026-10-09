@@ -36,15 +36,15 @@ export function AiEnginePanel() {
     <div className="space-y-4">
       <div className="rounded-[5px] border border-border bg-white p-5">
         <div className="flex items-center gap-2">
-          <SparklesIcon className="h-5 w-5 text-brand-purple" />
+          <SparklesIcon className="h-5 w-5 text-foreground" />
           <h3 className="text-sm font-bold text-dash-ink">AI engine</h3>
         </div>
 
         {status == null ? (
           <p className="mt-4 text-sm text-muted">Checking…</p>
         ) : connected ? (
-          <div className="mt-4 flex items-start gap-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-            <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
+            <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p className="text-sm text-dash-ink">
               Connected on this machine — Run analysis, Generate, and the AX Assistant all use your local Claude
               Code install.{" "}
@@ -54,8 +54,8 @@ export function AiEnginePanel() {
             </p>
           </div>
         ) : (
-          <div className="mt-4 flex items-start gap-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
+            <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
             <p className="text-sm text-dash-ink">
               No AI model is connected on this machine yet. Run analysis uses a small, disclosed keyword match
               against the attached manifest instead of a real reading of your source (see Findings), and Generate/the

@@ -54,7 +54,7 @@ export default function MemberHomePage() {
       <main>
         <section className="px-6 pb-16 pt-16 sm:pt-20">
           <div className="animate-entrance mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
               {productStats.status === "loading"
                 ? "Loading your workspace…"
                 : productStats.status === "error"
@@ -86,7 +86,7 @@ export default function MemberHomePage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href={attention ? productHref(attention.key) : "#products"}
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
                 {attention ? `Continue with ${attention.label}` : "Browse all products"}
               </Link>
@@ -174,7 +174,7 @@ export default function MemberHomePage() {
                 </p>
                 <Link
                   href={attention ? productHref(attention.key) : "#products"}
-                  className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                  className="relative mt-7 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
                   New Document
                 </Link>
@@ -189,7 +189,7 @@ export default function MemberHomePage() {
                 </p>
                 <button
                   type="button"
-                  className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                  className="relative mt-7 inline-flex items-center gap-2 justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
                 >
                   <ShieldIcon className="h-4 w-4 text-white/80" />
                   Ask an Admin for edit access

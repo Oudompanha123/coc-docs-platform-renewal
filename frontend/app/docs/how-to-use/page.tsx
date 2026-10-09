@@ -43,7 +43,7 @@ const WORKFLOWS: Workflow[] = [
 export default function HowToUsePage() {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-purple">How to use</p>
+      <p className="text-sm font-semibold text-foreground">How to use</p>
       <h1 className="mt-1 text-3xl font-bold text-ink">The core workflows.</h1>
       <p className="mt-3 text-base text-muted">
         Coc Docs Platform is a small set of focused pages, not a maze of settings. Here&apos;s what each

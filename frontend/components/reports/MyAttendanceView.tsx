@@ -63,7 +63,7 @@ export function MyAttendanceView() {
               ? "Nothing to export for this date"
               : `Download ${exportableRows.length} record${exportableRows.length === 1 ? "" : "s"} as an Excel file`
           }
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
+          className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
         >
           <DownloadIcon className="h-4 w-4" />
           Export

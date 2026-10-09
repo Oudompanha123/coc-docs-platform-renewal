@@ -19,7 +19,7 @@ function statusTone(status: string): string {
   if (status === "applied" || status === "completed") return "bg-emerald-50 text-emerald-700";
   if (status === "failed") return "bg-danger/10 text-danger";
   if (status === "generating" || status === "applying" || status === "running" || status === "awaiting_review") {
-    return "bg-brand-purple/10 text-brand-purple";
+    return "bg-secondary text-foreground";
   }
   // cancelled, rejected, reverted: a deliberate stop, not a fault.
   return "bg-page text-muted";

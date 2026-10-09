@@ -26,8 +26,8 @@ describe("AttendanceDateNav", () => {
 
     expect(todayButton()).toHaveTextContent("Today");
     expect(todayButton()).toHaveAttribute("aria-pressed", "true");
-    expect(todayButton().className).toContain("bg-brand-purple/10");
-    expect(todayButton().className).toContain("text-brand-purple");
+    expect(todayButton().className).toContain("bg-secondary");
+    expect(todayButton().className).toContain("text-foreground");
   });
 
   it("shows the selected date's short label and neutral style, same as Previous/Next, when it is not today", () => {
@@ -36,8 +36,8 @@ describe("AttendanceDateNav", () => {
     const today = todayButton();
     expect(today).toHaveTextContent("Tue, 22 Sep");
     expect(today).toHaveAttribute("aria-pressed", "false");
-    expect(today.className).not.toContain("bg-brand-purple/10");
-    expect(today.className).not.toContain("text-brand-purple");
+    expect(today.className).not.toContain("bg-secondary");
+    expect(today.className).not.toContain("text-foreground");
     // The exact neutral classes Previous/Next already use.
     expect(today.className).toContain("text-muted");
     expect(today.className).toContain("hover:bg-page");

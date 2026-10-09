@@ -39,7 +39,7 @@ export function AuditTrailPanel({ projectId }: { projectId: string }) {
   return (
     <div className="rounded-[5px] border border-border bg-white">
       <div className="flex items-center gap-2 border-b border-border px-5 py-4">
-        <TagIcon className="h-5 w-5 text-brand-purple" />
+        <TagIcon className="h-5 w-5 text-foreground" />
         <h3 className="text-sm font-bold text-dash-ink">Audit trail</h3>
         {entries && <span className="ml-auto text-xs text-muted">{entries.length} entries</span>}
       </div>

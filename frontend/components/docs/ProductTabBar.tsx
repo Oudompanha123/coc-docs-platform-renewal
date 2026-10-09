@@ -144,7 +144,7 @@ export function ProductTabBar({
                 {pill && (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute rounded-full bg-gradient-to-r from-brand-purple to-brand-blue shadow transition-[left,top,width,height] duration-200 ease-out"
+                    className="pointer-events-none absolute rounded-full bg-primary shadow transition-[left,top,width,height] duration-200 ease-out"
                     style={{ left: pill.left, top: pill.top, width: pill.width, height: pill.height }}
                   />
                 )}

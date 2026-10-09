@@ -103,7 +103,7 @@ function AttendancePageInner() {
     <AppShell
       pageTitle="Attendance"
       pageSubtitle="HRMS KOSIGN · Daily record summary"
-      titleIcon={<CalendarCheckIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<CalendarCheckIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -123,7 +123,7 @@ function AttendancePageInner() {
                   ? "Nothing to export — no one matches the current search"
                   : `Download ${exportableRows.length} record${exportableRows.length === 1 ? "" : "s"} as an Excel file`
               }
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
             >
               <DownloadIcon className="h-4 w-4" />
               Export

@@ -63,7 +63,7 @@ export function UsersEmptyState({
       role="status"
       className="flex flex-col items-center justify-center rounded-[10px] border border-dashed border-border bg-[#f8fafc] px-6 py-14 text-center"
     >
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-purple/10 text-brand-purple">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-foreground">
         {filtering ? <SearchOffGlyph className="h-7 w-7" /> : <PeopleGlyph className="h-7 w-7" />}
       </span>
       {filtering ? (
@@ -76,7 +76,7 @@ export function UsersEmptyState({
           <button
             type="button"
             onClick={onClearFilters}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl border border-brand-purple/30 bg-white px-4 py-2 text-sm font-semibold text-brand-purple shadow-sm transition-colors hover:bg-brand-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-white px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Clear filters
           </button>

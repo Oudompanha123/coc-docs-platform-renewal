@@ -24,6 +24,7 @@ import { axRenewalPermissions } from "@/lib/ax-renewal/permissions";
 import { readUseModel, writeUseModel } from "@/lib/ax-renewal/engine-preference";
 import { describeCommand, parseCommand } from "@/lib/ax-renewal/commands";
 import { SparklesIcon } from "@/components/layout/icons";
+import { inputBaseClass } from "@/components/ui/input";
 
 const PLAN_SECTIONS: PlanSection[] = ["stack_move", "architecture", "pages", "database"];
 
@@ -338,7 +339,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                   aria-selected={mode === key}
                   onClick={() => setMode(key)}
                   className={`px-2.5 py-1 text-xs font-semibold capitalize transition-colors ${
-                    mode === key ? "bg-brand-purple text-white" : "text-muted hover:text-dash-ink"
+                    mode === key ? "bg-primary text-white" : "text-muted hover:text-dash-ink"
                   }`}
                 >
                   {key}
@@ -433,7 +434,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                   key={i}
                   className={
                     message.role === "you"
-                      ? "ml-8 rounded-[10px] bg-brand-purple/10 px-3 py-2 text-sm text-dash-ink"
+                      ? "ml-8 rounded-[10px] bg-secondary px-3 py-2 text-sm text-dash-ink"
                       : "mr-8 rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-dash-ink"
                   }
                 >
@@ -518,7 +519,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                 key={s}
                 type="button"
                 onClick={() => setText(s)}
-                className="rounded-[10px] border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-brand-purple hover:text-brand-purple"
+                className="rounded-[10px] border border-border px-2.5 py-1 font-mono text-xs text-muted hover:border-primary hover:text-foreground"
               >
                 {s}
               </button>
@@ -550,7 +551,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
                 : "Type a command (see suggestions above), or leave a comment…"
             }
             rows={1}
-            className="no-scrollbar min-h-[67px] max-h-[120px] flex-1 resize-none overflow-y-auto rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+            className={`${inputBaseClass} no-scrollbar min-h-[67px] max-h-[120px] flex-1 resize-none overflow-y-auto`}
           />
           {/* A local model reading real source can think for a minute or
               two. Stop aborts the request, same as the analysis panel's
@@ -560,7 +561,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             <button
               type="button"
               onClick={() => abortRef.current?.abort()}
-              className="rounded-[10px] border border-border px-3.5 py-2 text-sm font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+              className="rounded-[10px] border border-border px-3.5 py-2 text-sm font-semibold text-muted transition-colors hover:border-primary hover:text-foreground"
             >
               Stop
             </button>
@@ -568,7 +569,7 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             <button
               type="submit"
               disabled={busy || !text.trim()}
-              className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-[10px] bg-primary px-3.5 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
             </button>

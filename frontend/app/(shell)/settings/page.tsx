@@ -20,7 +20,7 @@ import { BellIcon, PersonIcon, SettingsIcon, SunIcon } from "@/components/layout
 // every time the Security accordion opens/closes), re-firing that effect
 // for no reason. A stable reference means it fires only when the page
 // actually mounts.
-const SETTINGS_TITLE_ICON = <SettingsIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
+const SETTINGS_TITLE_ICON = <SettingsIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />;
 
 /**
  * All sections are real data (see each card's own component) — this page

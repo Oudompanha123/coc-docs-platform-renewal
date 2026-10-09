@@ -402,7 +402,7 @@ function UsersRolesPageInner() {
     <AppShell
       pageTitle="Users & Roles"
       pageSubtitle="Manage who has access to Coc Docs Platform and what they can do"
-      titleIcon={<UsersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<UsersIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       {/* No overflow-hidden: it cut off any dropdown that reaches past the
           card's bottom edge — with one applicant, "Approve as" showed only
@@ -424,7 +424,7 @@ function UsersRolesPageInner() {
             </svg>
             Users
             {tab === "users" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
           <button
@@ -446,12 +446,12 @@ function UsersRolesPageInner() {
                 someone already signed in, which is the trade-off that was
                 chosen deliberately over adding a mail dependency. */}
             {pending.length > 0 && (
-              <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-purple px-1.5 py-0.5 text-[11px] font-bold text-white">
+              <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-bold text-white">
                 {pending.length}
               </span>
             )}
             {tab === "pending" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
           <button
@@ -468,7 +468,7 @@ function UsersRolesPageInner() {
             </svg>
             Roles
             {tab === "roles" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
         </div>
@@ -511,7 +511,7 @@ function UsersRolesPageInner() {
                     setAddedMessage(null);
                     setAddOpen(true);
                   }}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <path d="M12 5v14M5 12h14" strokeLinecap="round" />

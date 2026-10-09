@@ -100,7 +100,7 @@ export function AccountsTable({
                 <button
                   type="button"
                   onClick={() => onOpen(account)}
-                  className="mr-2 rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:border-brand-purple hover:text-brand-purple"
+                  className="mr-2 rounded-full border border-border px-4 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:border-primary hover:text-foreground"
                 >
                   Details
                 </button>

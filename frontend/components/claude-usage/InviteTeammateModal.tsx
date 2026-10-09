@@ -4,6 +4,7 @@ import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 import { useState } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import type { TeamRole } from "@/lib/admin/claudeUsage";
+import { inputBaseClass } from "@/components/ui/input";
 
 export function InviteTeammateModal({
   onClose,
@@ -34,7 +35,7 @@ export function InviteTeammateModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-purple/90"
+            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Done
           </button>
@@ -77,7 +78,7 @@ export function InviteTeammateModal({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="teammate@cocdocs.example"
-          className="mt-1.5 w-full rounded-xl border border-border px-3 py-2 text-sm text-dash-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className={`${inputBaseClass} mt-1.5 w-full`}
         />
 
         <label className="mt-4 block text-xs font-semibold text-muted" htmlFor="invite-role">
@@ -88,7 +89,7 @@ export function InviteTeammateModal({
             id="invite-role"
             value={role}
             onChange={(e) => setRole(e.target.value as TeamRole)}
-            className="w-full appearance-none rounded-xl border border-border bg-white px-3 py-2 pr-9 text-sm text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            className={`${inputBaseClass} w-full appearance-none`}
           >
             <option value="member">Member</option>
             <option value="admin">Admin</option>
@@ -127,7 +128,7 @@ export function InviteTeammateModal({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-full bg-brand-purple px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-purple/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? "Sending…" : "Send invite"}
           </button>

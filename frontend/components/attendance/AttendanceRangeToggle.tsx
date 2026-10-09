@@ -40,7 +40,7 @@ export function AttendanceRangeToggle({
             onClick={() => onChange(range.value)}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
               value === range.value
-                ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow"
+                ? "bg-primary text-white shadow"
                 : "text-muted hover:text-dash-ink"
             }`}
           >

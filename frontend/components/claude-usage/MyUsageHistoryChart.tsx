@@ -1,8 +1,8 @@
 import type { MyClaudeUsagePoint } from "@/lib/claudeUsage/myUsage";
 
 const CHART_HEIGHT_PX = 180;
-const INPUT_COLOR = "#6d3ce0"; // brand-purple
-const OUTPUT_COLOR = "#4c6ff0"; // brand-blue
+const INPUT_COLOR = "#171717"; // neutral primary (ADR-104)
+const OUTPUT_COLOR = "#737373"; // neutral mid-grey (ADR-104)
 
 
 function formatTokensShort(n: number): string {
@@ -91,7 +91,7 @@ export function MyUsageHistoryChart({ data: allDays, today }: { data: MyClaudeUs
                   </div>
                   <span
                     className={`h-3 whitespace-nowrap text-[9px] font-medium sm:text-[10px] ${
-                      isToday ? "font-bold text-brand-purple" : "text-muted"
+                      isToday ? "font-bold text-foreground" : "text-muted"
                     }`}
                   >
                     {label}

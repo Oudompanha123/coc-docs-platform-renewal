@@ -26,7 +26,7 @@ import { useVisiblePolling } from "@/lib/claudeUsage/useVisiblePolling";
 /** How often an open, visible Scan Logs page re-reads the range. */
 export const SCAN_LOG_POLL_INTERVAL_MS = 15_000;
 
-const TITLE_ICON = <DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
+const TITLE_ICON = <DocumentIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />;
 
 const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
   { value: "today", label: "Today" },
@@ -37,7 +37,7 @@ const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
 
 /** Same field look as users-roles/FilterBar. */
 const FIELD =
-  "rounded-xl border border-border bg-white py-2.5 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15";
+  "rounded-xl border border-border bg-white py-2.5 text-sm text-ink focus:outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/50";
 
 /**
  * `/claude-usage/logs` — Scan Logs (ADR-099): every `claude-team-usage scan`
@@ -282,7 +282,7 @@ export function ScanLogsView() {
             ) : filtered.length === 0 ? (
               <EmptyState title="No scans match these filters">
                 {filtersActive && (
-                  <button type="button" onClick={clearFilters} className="mt-1 font-semibold text-brand-purple hover:underline">
+                  <button type="button" onClick={clearFilters} className="mt-1 font-semibold text-foreground hover:underline">
                     Clear filters
                   </button>
                 )}

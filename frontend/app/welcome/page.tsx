@@ -192,7 +192,7 @@ export default function WelcomePage() {
           <nav className={`hidden items-center gap-7 text-[18px] font-medium md:flex ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
             <a
               href={HOME_LINK.href}
-              className={`flex h-[72px] items-center border-b-2 border-transparent transition-all hover:border-brand-purple hover:font-bold ${
+              className={`flex h-[72px] items-center border-b-2 border-transparent transition-all hover:border-primary hover:font-bold ${
                 isDark ? "hover:text-[#f2effa]" : "hover:text-ink"
               }`}
             >
@@ -208,21 +208,21 @@ export default function WelcomePage() {
               onClick={() => setTheme(isDark ? "light" : "dark")}
               aria-label="Toggle dark mode"
               aria-pressed={isDark}
-              className={`rounded-xl p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
-                isDark ? "bg-white/10 text-[#f2effa] hover:bg-white/20" : "bg-gray-100 text-ink/70 hover:bg-brand-purple/20"
+              className={`rounded-xl p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                isDark ? "bg-white/10 text-[#f2effa] hover:bg-white/20" : "bg-gray-100 text-ink/70 hover:bg-secondary"
               }`}
             >
               {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
             </button>
             <Link
               href="/login"
-              className={`hidden text-sm font-semibold hover:text-brand-purple sm:inline ${isDark ? "text-[#f2effa]" : "text-ink"}`}
+              className={`hidden text-sm font-semibold hover:text-foreground sm:inline ${isDark ? "text-[#f2effa]" : "text-ink"}`}
             >
               Log in
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Start free →
             </Link>
@@ -236,11 +236,11 @@ export default function WelcomePage() {
             <>
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-purple/20 blur-3xl"
+                className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-secondary blur-3xl"
               />
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-brand-blue/10 blur-3xl"
+                className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-primary/10 blur-3xl"
               />
             </>
           )}
@@ -248,7 +248,7 @@ export default function WelcomePage() {
           <div className="animate-entrance relative mx-auto max-w-3xl text-center">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                isDark ? "bg-brand-purple/15 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
+                isDark ? "bg-primary/15 text-[#c4b5fd]" : "bg-secondary text-foreground"
               }`}
             >
               <SparklesIcon className="h-3.5 w-3.5" />
@@ -257,7 +257,7 @@ export default function WelcomePage() {
 
             <h1 className={`mt-6 text-4xl font-extrabold leading-tight sm:text-5xl ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
               One workspace for every product&apos;s{" "}
-              <span className="bg-gradient-to-r from-brand-purple to-brand-blue bg-clip-text text-transparent">
+              <span className="bg-primary bg-clip-text text-transparent">
                 documentation
               </span>
               .
@@ -271,7 +271,7 @@ export default function WelcomePage() {
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
                 Get started free
               </Link>
@@ -328,7 +328,7 @@ export default function WelcomePage() {
                   <div
                     className={`rounded-[10px] border p-5 transition-all duration-200 hover:-translate-y-1 ${
                       isDark
-                        ? "border-[#332e4d] bg-[#1e1a30] hover:border-brand-purple/40"
+                        ? "border-[#332e4d] bg-[#1e1a30] hover:border-primary/40"
                         : "border-border bg-white shadow-sm hover:shadow-md"
                     }`}
                   >
@@ -355,7 +355,7 @@ export default function WelcomePage() {
             <p className="relative mt-3 text-sm text-white sm:text-base">Start free — no credit card required.</p>
             <Link
               href="/register"
-              className="relative mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+              className="relative mt-7 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
             >
               Get started free
             </Link>
@@ -438,8 +438,8 @@ export default function WelcomePage() {
             className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-purple/10">
-              <ShieldIcon className="h-7 w-7 text-brand-purple" />
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary">
+              <ShieldIcon className="h-7 w-7 text-foreground" />
             </div>
             <h2 className="text-xl font-bold text-ink">Sign in to access {authGate}</h2>
             <p className="mt-2 text-sm text-muted">
@@ -448,7 +448,7 @@ export default function WelcomePage() {
             <div className="mt-6 flex flex-col gap-3">
               <Link
                 href="/register"
-                className="flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                className="flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 onClick={() => setAuthGate(null)}
               >
                 Get started free

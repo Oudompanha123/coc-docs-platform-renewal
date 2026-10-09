@@ -380,7 +380,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
             <Link
               href="/account/settings#account"
               onClick={onClose}
-              className="flex h-[46px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="flex h-[46px] items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
               <GearIcon className="h-4 w-4" />
               Open settings

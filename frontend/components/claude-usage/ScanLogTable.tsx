@@ -70,7 +70,7 @@ export const ScanLogTable = memo(function ScanLogTable({
                       onView(log);
                     }}
                     aria-label={`View details of the scan by ${name} at ${formatScanTime(log.startedAt)}`}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-white hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-white hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/50"
                   >
                     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                       <path d="m9.5 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />

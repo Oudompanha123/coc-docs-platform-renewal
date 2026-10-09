@@ -10,6 +10,7 @@ import {
 import { AttendanceStatusSelect } from "./AttendanceStatusSelect";
 import { InitialsAvatar } from "./InitialsAvatar";
 import { StatusPill } from "./StatusPill";
+import { inputBaseClass } from "@/components/ui/input";
 
 function TimeCell({ check }: { check: HrmsAttendanceCheck }) {
   const actual = actualTimeOrNull(check);
@@ -116,7 +117,7 @@ export function AttendanceTable({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search name..."
-            className="w-full rounded-xl border border-border py-2 pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            className={`${inputBaseClass} w-full`}
           />
         </div>
       </div>

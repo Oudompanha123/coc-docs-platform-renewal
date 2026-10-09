@@ -38,7 +38,7 @@ export function AxRenewalLanding({ children }: { children: ReactNode }) {
   return (
     <div className="break-words">
       <div className="rounded-[10px] border border-border bg-page p-8 text-center shadow-sm sm:p-12">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
           <RenewIcon className="h-8 w-8" />
         </span>
         <h1 className="mt-4 text-3xl font-extrabold text-dash-ink">Plan a legacy-code renewal</h1>
@@ -53,7 +53,7 @@ export function AxRenewalLanding({ children }: { children: ReactNode }) {
 
       <div className="mt-6">
         <p className="text-center">
-          <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+          <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
             How it works
           </span>
         </p>
@@ -65,7 +65,7 @@ export function AxRenewalLanding({ children }: { children: ReactNode }) {
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {STEPS.map((step, i) => (
             <div key={step.title} className="rounded-[10px] border border-border bg-page p-5 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary text-white">
                 <step.icon className="h-5 w-5" />
               </div>
               <h3 className="mt-3 text-base font-semibold text-dash-ink">

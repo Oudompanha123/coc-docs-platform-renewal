@@ -21,6 +21,7 @@ import {
 import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
 import { readSourcePathOverride, readUseModel, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
+import { inputBaseClass } from "@/components/ui/input";
 import {
   readDroppedFiles,
   readPickedDirectory,
@@ -428,7 +429,7 @@ export function AttachSourceSection({
         <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center gap-3">
             <span
-              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
               aria-hidden="true"
             />
             <div>
@@ -469,7 +470,7 @@ export function AttachSourceSection({
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-page">
             <div
-              className="h-full rounded-full bg-brand-purple transition-[width] duration-300"
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
               style={{ width: `${Math.round(((stage.index + 1) / ATTACH_STAGE_LABELS.length) * 100)}%` }}
             />
           </div>
@@ -480,13 +481,13 @@ export function AttachSourceSection({
                 <div key={label} className="flex items-start gap-3 py-2.5">
                   {status === "run" ? (
                     <span
-                      className="mt-0.5 h-[22px] w-[22px] shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+                      className="mt-0.5 h-[22px] w-[22px] shrink-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
                       aria-hidden="true"
                     />
                   ) : (
                     <span
                       className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md font-mono text-[11px] font-bold ${
-                        status === "done" ? "bg-brand-purple/10 text-brand-purple" : "bg-page text-muted"
+                        status === "done" ? "bg-secondary text-foreground" : "bg-page text-muted"
                       }`}
                     >
                       {status === "done" ? "✓" : i + 1}
@@ -535,10 +536,10 @@ export function AttachSourceSection({
               }}
               onDrop={handleDrop}
               className={`rounded-[10px] border-2 border-dashed p-12 text-center transition-colors ${
-                dragOver ? "border-brand-purple bg-brand-purple/5" : "border-border bg-page"
+                dragOver ? "border-primary bg-secondary" : "border-border bg-page"
               }`}
             >
-              <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">
                 <PaperclipIcon className="h-4 w-4" />
               </span>
               <p className="mt-3 text-base font-semibold text-dash-ink">Attach the project you want renewed</p>
@@ -547,7 +548,7 @@ export function AttachSourceSection({
                 <button
                   type="button"
                   onClick={chooseFolder}
-                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                  className="rounded-[10px] bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   Choose a folder
                 </button>
@@ -615,9 +616,9 @@ export function AttachSourceSection({
               <div className="relative flex items-center gap-2 border-b border-border bg-page px-5 py-3">
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+                  className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-secondary to-secondary blur-2xl"
                 />
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
                   <DocumentIcon className="h-4 w-4" />
                 </span>
                 <h3 className="text-sm font-bold text-dash-ink">{pickedStats ? "Reviewing" : "Attached"}</h3>
@@ -686,7 +687,7 @@ export function AttachSourceSection({
                   <button
                     type="button"
                     onClick={chooseFolder}
-                    className="rounded-[10px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+                    className="rounded-[10px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-primary hover:text-foreground"
                   >
                     Replace source
                   </button>
@@ -758,7 +759,7 @@ export function AttachSourceSection({
             placeholder="e.g. C:\Users\you\projects\legacy-app"
             spellCheck={false}
             autoComplete="off"
-            className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 font-mono text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`${inputBaseClass} mt-2 w-full font-mono`}
           />
         </div>
       )}
@@ -774,10 +775,10 @@ export function AttachSourceSection({
         <div className="relative overflow-hidden rounded-[10px] border border-border bg-page p-5">
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-secondary to-secondary blur-2xl"
           />
           <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-base font-bold text-white">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-white">
               ✓
             </span>
             Analysis complete
@@ -799,7 +800,7 @@ export function AttachSourceSection({
             <button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=understand-architecture`)}
-              className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="rounded-[10px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open architecture
             </button>
@@ -809,7 +810,7 @@ export function AttachSourceSection({
         <div className="rounded-[10px] border border-border bg-page p-5">
           <div className="flex items-center justify-between">
             <h3 className="flex items-center gap-3 text-sm font-bold text-dash-ink">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
                 <SparklesIcon className="h-4 w-4" />
               </span>
               Run analysis
@@ -819,7 +820,7 @@ export function AttachSourceSection({
                 type="button"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[10px] bg-primary px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis"}
               </button>

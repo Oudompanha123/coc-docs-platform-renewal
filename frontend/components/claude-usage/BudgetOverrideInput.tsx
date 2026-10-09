@@ -45,7 +45,7 @@ export function BudgetOverrideInput({
           if (e.key === "Enter") e.currentTarget.blur();
         }}
         placeholder={`Default (${formatDefaultBudget()})`}
-        className="w-44 rounded-xl border border-muted/40 bg-white px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple"
+        className="w-44 rounded-xl border border-muted/40 bg-white px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
       />
       <span className="text-xs text-muted">tokens / week</span>
     </div>

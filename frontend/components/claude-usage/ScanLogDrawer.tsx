@@ -88,7 +88,7 @@ export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: 
             type="button"
             aria-label="Close"
             onClick={requestClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/50"
           >
             <XIcon className="h-5 w-5" />
           </button>
@@ -164,7 +164,7 @@ function Problem({ diagnosis, outcome, person }: { diagnosis: ScanDiagnosis; out
         <ol className="mt-3 space-y-4">
           {diagnosis.fix.map((step, i) => (
             <li key={step.text} className="flex gap-3 text-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-xs font-bold text-brand-purple">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-foreground">
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
@@ -195,7 +195,7 @@ function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: 
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-lg py-1 text-left text-sm font-semibold text-muted transition-colors hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+        className="flex w-full items-center justify-between rounded-lg py-1 text-left text-sm font-semibold text-muted transition-colors hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/50"
       >
         Technical details
         <svg

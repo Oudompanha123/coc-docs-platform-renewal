@@ -75,7 +75,7 @@ function rangeLabel(period: Period, offset: number, from: string, to: string): s
 // Hoisted, not inline: AppShell republishes the page header whenever this
 // element's identity changes, so an inline literal re-rendered the topbar on
 // every render of this page — including opening and closing a user's detail.
-const TITLE_ICON = <BarChartIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
+const TITLE_ICON = <BarChartIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />;
 
 export function AdminClaudeUsageView() {
   const [period, setPeriod] = useState<Period>("week");
@@ -180,7 +180,7 @@ export function AdminClaudeUsageView() {
               type="button"
               onClick={() => handlePeriodChange(unit)}
               className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
-                period === unit ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow" : "text-muted hover:text-dash-ink"
+                period === unit ? "bg-primary text-white shadow" : "text-muted hover:text-dash-ink"
               }`}
             >
               {unit}

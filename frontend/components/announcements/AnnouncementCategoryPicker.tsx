@@ -33,8 +33,8 @@ export function AnnouncementCategoryPicker({
           return (
             <label
               key={category}
-              className={`relative flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-purple ${
-                selected ? "border-brand-purple bg-brand-purple/10" : "border-border bg-white hover:bg-page"
+              className={`relative flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring ${
+                selected ? "border-primary bg-secondary" : "border-border bg-white hover:bg-page"
               }`}
             >
               <input
@@ -49,7 +49,7 @@ export function AnnouncementCategoryPicker({
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className={`block text-sm font-semibold ${selected ? "text-brand-purple" : "text-dash-ink"}`}>
+                <span className={`block text-sm font-semibold ${selected ? "text-foreground" : "text-dash-ink"}`}>
                   {meta.label}
                 </span>
                 <span className="block truncate text-xs text-muted">{meta.hint}</span>
@@ -57,7 +57,7 @@ export function AnnouncementCategoryPicker({
               <span
                 aria-hidden="true"
                 className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                  selected ? "border-brand-purple bg-brand-purple" : "border-border bg-white"
+                  selected ? "border-primary bg-primary" : "border-border bg-white"
                 }`}
               >
                 {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}

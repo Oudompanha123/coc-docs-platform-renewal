@@ -50,7 +50,7 @@ export function ProductsNavDropdown({
         aria-haspopup="menu"
         aria-expanded={open}
         className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:font-bold ${
-          open ? "border-brand-purple font-bold" : "border-transparent hover:border-brand-purple"
+          open ? "border-primary font-bold" : "border-transparent hover:border-primary"
         } ${isDark ? "hover:text-[#f2effa]" : "hover:text-ink"}`}
       >
         Products
@@ -81,12 +81,12 @@ export function ProductsNavDropdown({
                   role="menuitem"
                   onClick={() => { setOpen(false); onRequireAuth(product.label); }}
                   className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
-                    isDark ? "hover:bg-white/10" : "hover:bg-brand-purple/10"
+                    isDark ? "hover:bg-white/10" : "hover:bg-secondary"
                   }`}
                 >
                   <span
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                      isDark ? "bg-brand-purple/15 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
+                      isDark ? "bg-primary/15 text-[#c4b5fd]" : "bg-secondary text-foreground"
                     }`}
                   >
                     <Icon className="h-5 w-5" />

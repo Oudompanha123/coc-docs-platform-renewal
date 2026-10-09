@@ -33,7 +33,7 @@ export function AxRenewalBreadcrumb({ active, detail }: AxRenewalBreadcrumbProps
     ) : meta.section != null ? (
       <span
         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-          confirmed ? "bg-brand-purple/10 text-brand-purple" : "bg-page text-muted"
+          confirmed ? "bg-secondary text-foreground" : "bg-page text-muted"
         }`}
       >
         {confirmed ? "confirmed" : "draft"}

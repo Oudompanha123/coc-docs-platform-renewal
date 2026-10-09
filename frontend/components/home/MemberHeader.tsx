@@ -61,7 +61,7 @@ function CountIcon({
       aria-label={`${label}, ${count}`}
       aria-haspopup="menu"
       aria-expanded={active}
-      className="relative rounded-xl bg-gray-100 p-2.5 text-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+      className="relative rounded-xl bg-gray-100 p-2.5 text-ink/70 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
       {count > 0 && (
@@ -102,20 +102,20 @@ function ProductsDropdown({
               href={href}
               role="menuitem"
               onClick={onClose}
-              className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-brand-purple/10 ${
-                active ? "bg-brand-purple/10" : ""
+              className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-secondary ${
+                active ? "bg-secondary" : ""
               }`}
             >
               <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-brand-purple ${
-                  active ? "bg-brand-purple/20" : "bg-brand-purple/10"
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-foreground ${
+                  active ? "bg-secondary" : "bg-secondary"
                 }`}
               >
                 <Icon className="h-5 w-5" />
               </span>
               <span
                 className={`truncate text-[15px] font-medium ${
-                  active ? "text-brand-purple" : "text-ink"
+                  active ? "text-foreground" : "text-ink"
                 }`}
               >
                 {product.label}
@@ -239,8 +239,8 @@ export function MemberHeader({
   }
 
   const navLinkClass = (active: boolean) =>
-    `header-nav-link flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
-      active ? "header-nav-link-active border-brand-purple font-bold text-ink" : "border-transparent text-muted"
+    `header-nav-link flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-primary hover:font-bold hover:text-ink ${
+      active ? "header-nav-link-active border-primary font-bold text-ink" : "border-transparent text-muted"
     }`;
 
   return (
@@ -337,7 +337,7 @@ export function MemberHeader({
                         onClick={() => setNotificationFilter(key)}
                         className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                           notificationFilter === key
-                            ? "bg-brand-purple/10 text-brand-purple"
+                            ? "bg-secondary text-foreground"
                             : "border border-border text-muted hover:bg-page"
                         }`}
                       >
@@ -348,7 +348,7 @@ export function MemberHeader({
                       type="button"
                       onClick={() => notifications.markAllRead()}
                       disabled={notifications.unreadCount === 0}
-                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                     >
                       Read all
                     </button>
@@ -386,7 +386,7 @@ export function MemberHeader({
                           }
                         }}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                          n.read ? "" : "bg-brand-purple/5"
+                          n.read ? "" : "bg-secondary"
                         }`}
                       >
                         {n.type === "announcement.published" && (
@@ -405,7 +405,7 @@ export function MemberHeader({
                         {!n.read && (
                           <span
                             aria-label="Unread"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                           />
                         )}
                       </button>
@@ -439,7 +439,7 @@ export function MemberHeader({
                         onClick={() => setActivityFilter(key)}
                         className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                           activityFilter === key
-                            ? "bg-brand-purple/10 text-brand-purple"
+                            ? "bg-secondary text-foreground"
                             : "border border-border text-muted hover:bg-page"
                         }`}
                       >
@@ -453,7 +453,7 @@ export function MemberHeader({
                       type="button"
                       onClick={() => activity.markAllRead()}
                       disabled={activity.count === 0}
-                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                     >
                       Read all
                     </button>
@@ -480,7 +480,7 @@ export function MemberHeader({
                         }
                       }}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                          item.read ? "" : "bg-brand-purple/5"
+                          item.read ? "" : "bg-secondary"
                         }`}
                       >
                         <ActivityAvatar item={item} />
@@ -500,7 +500,7 @@ export function MemberHeader({
                         {!item.read && (
                           <span
                             aria-label="Unread"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                           />
                         )}
                       </button>
@@ -519,7 +519,7 @@ export function MemberHeader({
               onClick={() => toggleMenu("user")}
               aria-haspopup="menu"
               aria-expanded={openMenu === "user"}
-              className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <UserAvatar
                 avatarUrl={user?.avatarUrl ?? null}
@@ -566,10 +566,10 @@ export function MemberHeader({
                     role="menuitem"
                     onClick={() => setOpenMenu(null)}
                     className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors hover:bg-page ${
-                      isSettingsActive ? "bg-brand-purple/10 text-brand-purple" : "text-ink"
+                      isSettingsActive ? "bg-secondary text-foreground" : "text-ink"
                     }`}
                   >
-                    <GearIcon className={`h-4 w-4 ${isSettingsActive ? "text-brand-purple" : "text-muted"}`} />
+                    <GearIcon className={`h-4 w-4 ${isSettingsActive ? "text-foreground" : "text-muted"}`} />
                     Settings
                   </Link>
                 </div>

@@ -122,7 +122,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
               onClick={() => set("layout", layout)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                 (value.layout ?? "centered") === layout
-                  ? "bg-brand-purple/10 text-brand-purple"
+                  ? "bg-secondary text-foreground"
                   : "border border-border text-muted hover:bg-page"
               }`}
             >
@@ -203,8 +203,8 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     aria-checked={shown}
                     aria-label={`Show the ${label} download button`}
                     onClick={() => toggleShow(os)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
-                      shown ? "bg-gradient-to-r from-brand-purple to-brand-blue" : "bg-border"
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      shown ? "bg-primary" : "bg-border"
                     }`}
                   >
                     <span
@@ -363,7 +363,7 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
                     </button>
                   </>
                 ) : (
-                  <label className="text-xs font-semibold text-brand-purple hover:underline">
+                  <label className="text-xs font-semibold text-foreground hover:underline">
                     {uploadingIndex === i ? "Uploading…" : "Upload image instead of icon"}
                     <input
                       type="file"

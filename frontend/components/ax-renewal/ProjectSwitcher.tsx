@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@/components/layout/icons";
 import type { AxRenewalProject } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Trigger + dropdown panel, single-select, checkmark on the active project —
@@ -70,7 +71,7 @@ export function ProjectSwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex min-w-[220px] items-center justify-between gap-2 rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm font-medium text-dash-ink transition-colors hover:bg-page focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
+        className={`${inputBaseClass} flex min-w-[220px] items-center justify-between gap-2 font-medium hover:bg-page disabled:hover:bg-white`}
       >
         <span className="truncate">{active?.name ?? "No projects yet"}</span>
         {list.length > 0 && (
@@ -93,7 +94,7 @@ export function ProjectSwitcher({
                   aria-pressed={scope === value}
                   onClick={() => setChosenScope(value)}
                   className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-colors ${
-                    scope === value ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+                    scope === value ? "bg-secondary text-foreground" : "text-muted hover:bg-page"
                   }`}
                 >
                   {value === "mine" ? "Mine" : "All"}
@@ -114,7 +115,7 @@ export function ProjectSwitcher({
                 aria-selected={isActive}
                 onClick={() => selectProject(p.id)}
                 className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
-                  isActive ? "bg-brand-purple/10 font-semibold text-brand-purple" : "text-dash-ink hover:bg-page"
+                  isActive ? "bg-secondary font-semibold text-foreground" : "text-dash-ink hover:bg-page"
                 }`}
               >
                 <span className="truncate">{p.name}</span>

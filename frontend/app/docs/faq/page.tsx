@@ -47,7 +47,7 @@ const FAQ_ITEMS: FaqItem[] = [
 export default function FaqPage() {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-purple">FAQ</p>
+      <p className="text-sm font-semibold text-foreground">FAQ</p>
       <h1 className="mt-1 text-3xl font-bold text-ink">Quick answers.</h1>
       <p className="mt-3 text-base text-muted">The most common questions about how Coc Docs Platform works.</p>
 

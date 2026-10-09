@@ -33,7 +33,7 @@ export function ConfirmationBar({
       <div className="flex items-center gap-2 text-sm">
         {confirmed ? (
           <>
-            <CheckCircleIcon className="h-4 w-4 shrink-0 text-brand-purple" />
+            <CheckCircleIcon className="h-4 w-4 shrink-0 text-foreground" />
             <span className="text-dash-ink">
               {/* Who signed it off, not only when — on a team that is the
                   question (ADR-076). A display name, never an email. */}
@@ -64,7 +64,7 @@ export function ConfirmationBar({
           onClick={onConfirm}
           disabled={busy || !canConfirm}
           title={canConfirm ? undefined : "Only a Super Admin or an account with the Developer role may confirm this"}
-          className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-[5px] bg-primary px-4 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? "Confirming…" : `Confirm ${sectionLabel(section)}`}
         </button>

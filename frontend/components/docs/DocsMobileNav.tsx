@@ -34,7 +34,7 @@ export function DocsMobileNav() {
               key={item.href}
               href={item.href}
               className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+                active ? "bg-secondary text-foreground" : "text-muted hover:bg-page"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -72,7 +72,7 @@ export function DocsMobileNav() {
                   key={href}
                   href={href}
                   className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+                    active ? "bg-secondary text-foreground" : "text-muted hover:bg-page"
                   }`}
                 >
                   {item.label}

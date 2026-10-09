@@ -77,7 +77,7 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
 
       <main className="relative">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-32 left-1/2 h-80 w-[640px] -translate-x-1/2 rounded-full bg-brand-purple/10 blur-3xl" />
+          <div className="absolute -top-32 left-1/2 h-80 w-[640px] -translate-x-1/2 rounded-full bg-secondary blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-5xl px-6 py-10">
@@ -87,7 +87,7 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
               <p className="mt-2 text-sm text-muted">{product.label} is available to developers, reviewers, leads and admins.</p>
               <Link
                 href="/home"
-                className="mt-5 inline-flex rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+                className="mt-5 inline-flex rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
               >
                 Back to Products
               </Link>

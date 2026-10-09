@@ -125,7 +125,7 @@ export function GeneratedChangesReview({
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${
                     c.changeKind === "create"
-                      ? "bg-brand-purple/10 text-brand-purple"
+                      ? "bg-secondary text-foreground"
                       : c.changeKind === "delete"
                         ? "bg-danger/10 text-danger"
                         : "bg-amber-50 text-amber-800"
@@ -140,7 +140,7 @@ export function GeneratedChangesReview({
                   <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-[#fdf1e3]/30 p-3 font-mono text-xs text-dash-ink">
                     {c.beforeContent ?? "(new file)"}
                   </pre>
-                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-brand-purple/5 p-3 font-mono text-xs text-dash-ink">
+                  <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all bg-secondary p-3 font-mono text-xs text-dash-ink">
                     {c.afterContent ?? "(deleted)"}
                   </pre>
                 </div>
@@ -206,7 +206,7 @@ export function GeneratedChangesReview({
             type="button"
             onClick={() => void handleApprove()}
             disabled={busy}
-            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? "Working…" : "Approve and apply"}
           </button>

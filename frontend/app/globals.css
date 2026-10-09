@@ -1466,89 +1466,18 @@ button:not(:disabled) {
   display: none;
 }
 
-/* Standardized focus border across every text-like input, textarea, and
-   select, instead of editing the many one-off form controls scattered
-   across auth, admin, and the doc editor, several of which used a
-   different focus convention from each other. important overrides
-   Tailwind's own focus ring/border utility classes, which otherwise win
-   on specificity; box-shadow and outline are cleared so the border is
-   the only visible focus indicator. input without a type attribute is
-   included since several doc-editor inputs omit it while still behaving
-   as text fields, and the attribute selector otherwise would not match. */
-input:not([type]):focus,
-input:not([type]):focus-visible,
-input[type="text"]:focus,
-input[type="text"]:focus-visible,
-input[type="email"]:focus,
-input[type="email"]:focus-visible,
-input[type="password"]:focus,
-input[type="password"]:focus-visible,
-input[type="search"]:focus,
-input[type="search"]:focus-visible,
-input[type="tel"]:focus,
-input[type="tel"]:focus-visible,
-input[type="url"]:focus,
-input[type="url"]:focus-visible,
-input[type="number"]:focus,
-input[type="number"]:focus-visible,
-input[type="date"]:focus,
-input[type="date"]:focus-visible,
-textarea:focus,
-textarea:focus-visible,
-select:focus,
-select:focus-visible {
-  border: 1px solid #1c70e2 !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
+/* The blanket `!important` rules that used to live here — a 6px radius and
+   a blue focus border forced onto every text-like input, textarea and select —
+   are gone (ADR-104 r2.1). They existed because field styling was scattered
+   across auth, admin and the doc editor with a different convention in each
+   place, and a global override was the only way to make them agree.
 
-/* The one exception: OtpCodeInput's real input is invisible, spread over the
-   six digit boxes that show what it holds and which box is next. The rule
-   above drew a blue frame round the whole row of boxes; here the boxes are
-   the focus indicator. Higher specificity, and after it, so it wins. */
-input.otp-code-input[type="text"],
-input.otp-code-input[type="text"]:focus,
-input.otp-code-input[type="text"]:focus-visible {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-/* Standardized resting border-radius on the same text-like input set as
-   the focus rule above, applied regardless of focus state. Same
-   important-override reasoning: these elements carry Tailwind rounded
-   utility classes of varying values (rounded-lg, rounded-xl, and so on)
-   scattered across the app, each with higher selector specificity than a
-   plain element selector. Checkbox, radio, file, and color inputs are
-   excluded, matching the focus rule above, since forcing a rectangular
-   6px radius onto those native shapes was never asked for. */
-input:not([type]),
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-input[type="number"],
-input[type="date"],
-textarea,
-select {
-  border-radius: 6px !important;
-}
-
-/* MarkdownEditor's textarea sits inside a framed box (toolbar above it) that
-   already shows focus with its own border. The two rules above drew a second,
-   rounded frame inside that one; here the outer frame is the focus indicator.
-   Higher specificity, and after both, so it wins. */
-textarea.markdown-editor-input,
-textarea.markdown-editor-input:focus,
-textarea.markdown-editor-input:focus-visible {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
+   `components/ui/input.tsx` is that agreement now, so the override has nothing
+   left to fix and plenty to break: it squared off the new pill fields and drew
+   a grey rectangle around them, beating the primitive on `!important` where no
+   Tailwind class could answer back. The two exceptions beneath it went with it,
+   since both existed only to undo it, and both elements already set their own
+   `border-0`. */
 
 /* Home page CTA band (components/home/CtaWaveBackground.tsx) — the ribbon
    SVG is two copies of one tile side by side at 200% width; sliding exactly

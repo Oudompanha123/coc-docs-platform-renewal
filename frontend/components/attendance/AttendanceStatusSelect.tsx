@@ -1,6 +1,7 @@
 "use client";
 
 import type { StatusKind } from "@/lib/attendance/stats";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * One status column's filter.
@@ -42,7 +43,7 @@ export function AttendanceStatusSelect({
         disabled={disabled}
         onChange={(e) => onChange((e.target.value || null) as StatusKind | null)}
         aria-label={label}
-        className="appearance-none rounded-xl border border-border bg-white py-2 pl-7 pr-8 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${inputBaseClass} appearance-none`}
       >
         <option value="">{label}: all</option>
         {options.map((kind) => (

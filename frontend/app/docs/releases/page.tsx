@@ -39,7 +39,7 @@ const RELEASES: Release[] = [
 export default function ReleasesPage() {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-purple">Releases</p>
+      <p className="text-sm font-semibold text-foreground">Releases</p>
       <h1 className="mt-1 text-3xl font-bold text-ink">What&apos;s new.</h1>
       <p className="mt-3 text-base text-muted">Real, ongoing work on Coc Docs Platform — most recent first.</p>
 
@@ -48,11 +48,11 @@ export default function ReleasesPage() {
           <div key={release.date} className="relative">
             <span
               className={`absolute -left-[31px] top-1 h-3 w-3 rounded-full ${
-                i === 0 ? "bg-brand-purple" : "border-2 border-border bg-white"
+                i === 0 ? "bg-primary" : "border-2 border-border bg-white"
               }`}
             />
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-brand-purple">{release.date}</span>
+              <span className="text-sm font-semibold text-foreground">{release.date}</span>
               {i === 0 && (
                 <span className="rounded-full bg-[#e1f5ec] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1f9d6b]">
                   Latest

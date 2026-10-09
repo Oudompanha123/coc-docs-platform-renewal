@@ -5,7 +5,7 @@ import { Spinner } from "@/components/layout/Spinner";
 import type { AxRenewalRunLocallyState } from "@/lib/ax-renewal/api";
 
 const PRIMARY =
-  "inline-flex items-center gap-2 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center gap-2 rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";
 const SECONDARY =
   "inline-flex items-center gap-2 rounded-[5px] border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50";
 

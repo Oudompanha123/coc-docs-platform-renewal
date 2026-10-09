@@ -10,7 +10,7 @@ import { TagIcon } from "@/components/layout/icons";
 export function DocsStubPage({ header, item }: { header: { label: string }; item: { label: string } }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-purple">{header.label}</p>
+      <p className="text-sm font-semibold text-foreground">{header.label}</p>
       <h1 className="mt-1 text-3xl font-bold text-ink">{item.label}</h1>
 
       <div className="mt-8 flex flex-col items-center justify-center rounded-[10px] border border-border bg-page p-16 text-center">

@@ -65,7 +65,7 @@ export function AxRenewalNotificationsBell() {
         aria-label={`Notifications, ${notifications.unreadCount} unread`}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="relative shrink-0 rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+        className="relative shrink-0 rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <BellIcon className="h-4 w-4" />
         {notifications.unreadCount > 0 && (
@@ -86,7 +86,7 @@ export function AxRenewalNotificationsBell() {
                   type="button"
                   onClick={() => setFilter(key)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
-                    filter === key ? "bg-brand-purple/10 text-brand-purple" : "border border-border text-muted hover:bg-page"
+                    filter === key ? "bg-secondary text-foreground" : "border border-border text-muted hover:bg-page"
                   }`}
                 >
                   {key}
@@ -96,7 +96,7 @@ export function AxRenewalNotificationsBell() {
                 type="button"
                 onClick={() => notifications.markAllRead()}
                 disabled={notifications.unreadCount === 0}
-                className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
               >
                 Read all
               </button>
@@ -119,7 +119,7 @@ export function AxRenewalNotificationsBell() {
                     setOpen(false);
                   }}
                   className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                    n.read ? "" : "bg-brand-purple/5"
+                    n.read ? "" : "bg-secondary"
                   }`}
                 >
                   {n.type === "auth.new-device" ? (
@@ -136,7 +136,7 @@ export function AxRenewalNotificationsBell() {
                     <span className="block truncate text-xs text-muted">{n.detail}</span>
                   </span>
                   {!n.read && (
-                    <span aria-label="Unread" className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple" />
+                    <span aria-label="Unread" className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                   )}
                 </button>
               ))
@@ -146,7 +146,7 @@ export function AxRenewalNotificationsBell() {
             <Link
               href="/users-roles?tab=pending"
               onClick={() => setOpen(false)}
-              className="block w-full rounded-b-[10px] border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
+              className="block w-full rounded-b-[10px] border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-page"
             >
               View all
             </Link>

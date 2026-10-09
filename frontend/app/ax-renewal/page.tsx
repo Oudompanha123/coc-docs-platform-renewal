@@ -54,6 +54,7 @@ import {
   type AxRenewalRunLocallyStatus,
   type PlanSection,
 } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 export default function AxRenewalPage() {
   const { user } = useSession();
@@ -136,8 +137,8 @@ export default function AxRenewalPage() {
       )}
 
       {viewingAsSuperAdminOnly && (
-        <div role="status" className="flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+        <div role="status" className="flex items-start gap-3 rounded-[10px] border border-surface-border bg-secondary px-4 py-3">
+          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
           <p className="text-sm text-dash-ink">
             You&rsquo;re not a member of this project. You can open it because you&rsquo;re a Super Admin; its members
             are listed under <strong className="font-semibold">Workspace → Members</strong>.
@@ -271,8 +272,8 @@ export default function AxRenewalPage() {
 /** The honest "no model connected" disclaimer, shared by every Understand panel that reads the analysis. */
 function NoModelBanner() {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-      <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+    <div className="flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
+      <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
       <p className="text-sm text-dash-ink">
         No AI model is connected on this deployment yet — this is a keyword-matched placeholder, not a real reading
         of the attached source.
@@ -725,7 +726,7 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
             <button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=stack-move`)}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+              className="rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open the stack move
             </button>
@@ -951,7 +952,7 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
                     onClick={() => setIndex(i)}
                     className={`rounded-full border px-2.5 py-1 font-mono text-xs transition-colors ${
                       i === safeIndex
-                        ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
+                        ? "border-primary bg-secondary text-foreground"
                         : "border-border text-muted hover:bg-page"
                     }`}
                   >
@@ -1129,8 +1130,8 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
                 ))}
               </div>
             </div>
-            <div className="bg-brand-purple/5 p-3">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-brand-purple">New</h4>
+            <div className="bg-secondary p-3">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-foreground">New</h4>
               <div className="mt-2 space-y-1.5">
                 {layers.map((l) => (
                   <p key={l.layerKey} className="text-sm text-dash-ink">
@@ -1184,7 +1185,7 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
           <button
             type="button"
             onClick={() => goTo("stack-move")}
-            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            className="rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
           >
             Choose the target stack
           </button>
@@ -1274,14 +1275,14 @@ function OutputPanel({
             disabled={!canEdit}
             onChange={(e) => setTarget(e.target.value)}
             placeholder="Target (repo URL or path)"
-            className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-2"
+            className={`${inputBaseClass} sm:col-span-2`}
           />
           <input
             value={branch}
             disabled={!canEdit}
             onChange={(e) => setBranch(e.target.value)}
             placeholder="Branch (optional)"
-            className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-3"
+            className={`${inputBaseClass} sm:col-span-3`}
           />
         </div>
 
@@ -1473,7 +1474,7 @@ function ImplementationPanel({
               placeholder="e.g. C:\Users\you\projects\legacy-app"
               spellCheck={false}
               autoComplete="off"
-              className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 font-mono text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${inputBaseClass} mt-2 w-full font-mono`}
             />
           </div>
         )}
@@ -1484,7 +1485,7 @@ function ImplementationPanel({
               type="button"
               onClick={() => void handleStart()}
               disabled={!readyToStart || starting}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-[5px] bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {starting ? "Starting…" : run ? "Rebuild" : "Start implementation"}
             </button>
@@ -1517,13 +1518,13 @@ function ImplementationPanel({
               disabled={startingUiChange}
               rows={2}
               placeholder="e.g. make the primary button purple and increase the page padding"
-              className="mt-2 w-full resize-none rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${inputBaseClass} mt-2 w-full resize-none`}
             />
             <button
               type="button"
               onClick={() => void handleStartUiChange()}
               disabled={startingUiChange || !uiChangeText.trim()}
-              className="mt-2 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 rounded-[5px] bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {startingUiChange ? "Starting…" : "Generate this change"}
             </button>
@@ -1541,7 +1542,7 @@ function ImplementationPanel({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span
-                    className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+                    className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
                     aria-hidden="true"
                   />
                   <div>
@@ -1567,7 +1568,7 @@ function ImplementationPanel({
                 <p className="font-semibold text-dash-ink">
                   Status: {run.status.replace(/_/g, " ")}
                   {run.runKind !== "plan" && (
-                    <span className="ml-2 rounded-full bg-brand-purple/10 px-2 py-0.5 text-[11px] font-semibold uppercase text-brand-purple">
+                    <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold uppercase text-foreground">
                       {run.runKind === "error_fix" ? "error fix" : "UI change"}
                     </span>
                   )}
@@ -1797,7 +1798,7 @@ function RunLocallyPanel({
             <span
               className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                 status.status === "running"
-                  ? "bg-brand-purple"
+                  ? "bg-primary"
                   : status.status === "starting"
                     ? "animate-pulse bg-amber-400"
                     : status.status === "failed"
@@ -1830,7 +1831,7 @@ function RunLocallyPanel({
                 ? "border-emerald-500 bg-emerald-50 text-emerald-800"
                 : guidance.tone === "error"
                   ? "border-danger/30 bg-danger/10 text-danger"
-                  : "border-brand-purple/20 bg-brand-purple/5 text-dash-ink"
+                  : "border-surface-border bg-secondary text-dash-ink"
             }`}
           >
             {guidance.message}
@@ -1850,7 +1851,7 @@ function RunLocallyPanel({
                 type="button"
                 onClick={() => void handleExplain()}
                 disabled={explaining}
-                className="rounded-[10px] border border-brand-purple/30 bg-brand-purple/5 px-3 py-1.5 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[10px] border border-primary/30 bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {explaining ? "Asking the local model…" : "Ask AI to explain this"}
               </button>
@@ -1863,7 +1864,7 @@ function RunLocallyPanel({
                   type="button"
                   onClick={() => void handleApplyFix()}
                   disabled={fixing}
-                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[10px] bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {fixing ? "Starting…" : "Generate a fix"}
                 </button>
@@ -1892,7 +1893,7 @@ function RunLocallyPanel({
             href={status.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-purple hover:underline"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:underline"
           >
             <GlobeIcon className="h-4 w-4" />
             Open {status.url}

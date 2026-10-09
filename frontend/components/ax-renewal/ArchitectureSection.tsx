@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalAnalysis, AxRenewalArchitecture, AxRenewalConfirmation, AxRenewalStackLayer } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Every Stack move layer that is actually moving — a real `newTarget`
@@ -192,7 +193,7 @@ export function ArchitectureSection({
             <div className="divide-y divide-border">
               {moving.map((l, i) => (
                 <div key={l.layerKey} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-xs font-bold text-brand-purple">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-foreground">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -239,14 +240,14 @@ export function ArchitectureSection({
       </p>
 
       {isSuggestion && (
-        <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+        <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-dash-ink">
           Drafted from Stack move&apos;s recorded decisions and Module coupling&apos;s real findings — nothing is
           saved yet. Edit it into your own words, then <strong>Save architecture</strong>.
         </p>
       )}
 
       {suggestionNotYetIncluded && (
-        <div className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+        <div className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-dash-ink">
           <p>
             <strong>Stack move or Module coupling has something new</strong> since this was last saved — not
             reflected below yet:
@@ -256,7 +257,7 @@ export function ArchitectureSection({
             <button
               type="button"
               onClick={useLiveSuggestion}
-              className="mt-2 rounded-full border border-brand-purple/30 px-2.5 py-1 text-[11px] font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10"
+              className="mt-2 rounded-full border border-primary/30 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary"
             >
               Add this to my summary
             </button>
@@ -270,7 +271,7 @@ export function ArchitectureSection({
         onChange={(e) => setSummary(e.target.value)}
         rows={8}
         placeholder="e.g. Browser → API layer (controllers only) → Service layer (business rules) → Data access, against the existing schema…"
-        className="mt-4 w-full resize-y rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+        className={`${inputBaseClass} mt-4 w-full resize-y`}
       />
 
       {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}

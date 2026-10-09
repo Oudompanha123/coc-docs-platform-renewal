@@ -28,7 +28,7 @@ export default function ProductManagePage() {
     <AppShell
       pageTitle={product.label}
       pageSubtitle={`Manage ${product.label}'s knowledge base content`}
-      titleIcon={<Icon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<Icon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       <ProductContentTable productKey={product.key} productLabel={product.label} />
     </AppShell>

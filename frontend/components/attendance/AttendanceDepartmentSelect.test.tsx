@@ -1,3 +1,4 @@
+import { inputBaseClass } from "@/components/ui/input";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -35,26 +36,22 @@ describe("AttendanceDepartmentSelect", () => {
     expect(screen.getByRole("option", { name: "No departments" })).toBeInTheDocument();
   });
 
-  it("matches the Users & Roles 'All Status' select's exact visual classes", () => {
+  it("is styled by the shared field primitive, not a copy of one", () => {
+    // This used to list the fourteen literal classes it shared with the
+    // Users & Roles "All Status" select, because keeping two hand-written
+    // class strings in step was the only way to make them match. They are
+    // both `inputBaseClass` now (ADR-104), so asserting against the constant
+    // checks the thing that actually matters — that this select did not grow
+    // a field style of its own — and keeps on checking it when the palette
+    // changes again.
     render(<AttendanceDepartmentSelect departments={["COOCON Department"]} value="COOCON Department" onChange={() => {}} />);
 
     const select = screen.getByRole("combobox", { name: "Department" });
-    for (const cls of [
-      "appearance-none",
-      "rounded-xl",
-      "border",
-      "border-border",
-      "bg-white",
-      "py-2.5",
-      "pl-9",
-      "pr-9",
-      "text-sm",
-      "text-ink",
-      "focus-visible:border-brand-purple",
-      "focus-visible:ring-4",
-      "focus-visible:ring-brand-purple/15",
-    ]) {
+    for (const cls of inputBaseClass.split(" ")) {
       expect(select.className).toContain(cls);
     }
+    // Its own addition: the native arrow is replaced by the chevron this
+    // component draws.
+    expect(select.className).toContain("appearance-none");
   });
 });

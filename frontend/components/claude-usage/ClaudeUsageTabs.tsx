@@ -29,7 +29,7 @@ export function ClaudeUsageTabs() {
           >
             {tab.label}
             {active && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </Link>
         );

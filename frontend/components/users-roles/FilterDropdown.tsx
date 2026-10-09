@@ -143,19 +143,19 @@ export function FilterDropdown<T extends string>({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-label={`${label}: ${selected?.label ?? ""}`}
-        className={`flex w-full items-center gap-2 rounded-xl border py-2.5 pl-3 pr-2.5 text-sm shadow-sm transition-colors focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`flex w-full items-center gap-2 rounded-xl border py-2.5 pl-3 pr-2.5 text-sm shadow-sm transition-colors focus:outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60 ${
           filtering
-            ? "border-brand-purple/40 bg-brand-purple/5 font-semibold text-brand-purple"
+            ? "border-primary/40 bg-secondary font-semibold text-foreground"
             : "border-border bg-white text-dash-ink hover:bg-[#f8fafc]"
-        } ${open ? "border-brand-purple ring-4 ring-brand-purple/15" : ""}`}
+        } ${open ? "border-primary ring-4 ring-ring/15" : ""}`}
       >
-        <span className={`shrink-0 ${filtering ? "text-brand-purple" : "text-muted"}`}>{icon}</span>
+        <span className={`shrink-0 ${filtering ? "text-foreground" : "text-muted"}`}>{icon}</span>
         {selected?.dotClassName && filtering && (
           <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${selected.dotClassName}`} />
         )}
         <span className="min-w-0 flex-1 truncate text-left">{selected?.label}</span>
         <ChevronDownIcon
-          className={`h-4 w-4 shrink-0 transition-transform ${filtering ? "text-brand-purple" : "text-muted"} ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 transition-transform ${filtering ? "text-foreground" : "text-muted"} ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -184,9 +184,9 @@ export function FilterDropdown<T extends string>({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => pick(option.value)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/40 ${
+                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
                   isSelected
-                    ? "bg-brand-purple/10 font-semibold text-brand-purple"
+                    ? "bg-secondary font-semibold text-foreground"
                     : "text-dash-ink hover:bg-[#f8fafc] focus-visible:bg-[#f8fafc]"
                 }`}
               >
@@ -196,7 +196,7 @@ export function FilterDropdown<T extends string>({
                 {option.hint ? (
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{option.label}</span>
-                    <span className={`block text-xs font-normal ${isSelected ? "text-brand-purple/80" : "text-muted"}`}>
+                    <span className={`block text-xs font-normal ${isSelected ? "text-foreground/80" : "text-muted"}`}>
                       {option.hint}
                     </span>
                   </span>

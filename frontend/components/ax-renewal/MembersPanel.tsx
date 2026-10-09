@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TrashIcon, UserPlusIcon } from "@/components/layout/icons";
 import { addMember, removeMember, type AxRenewalMember } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Who is on this project (ADR-069, ADR-070). Only members and super admins
@@ -95,7 +96,7 @@ export function MembersPanel({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-dash-ink">
                       {m.displayName}
-                      {isYou && <span className="ml-2 text-xs font-semibold text-brand-purple">you</span>}
+                      {isYou && <span className="ml-2 text-xs font-semibold text-foreground">you</span>}
                     </p>
                     <p className="text-xs text-muted">Added {new Date(m.addedAt).toLocaleDateString()}</p>
                   </div>
@@ -133,12 +134,12 @@ export function MembersPanel({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="teammate@example.com"
               required
-              className="min-w-[220px] flex-1 rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+              className={`${inputBaseClass} min-w-[220px] flex-1`}
             />
             <button
               type="submit"
               disabled={adding}
-              className="flex items-center gap-1.5 rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-[10px] bg-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
             >
               <UserPlusIcon className="h-3.5 w-3.5" />
               {adding ? "Adding…" : "Add member"}

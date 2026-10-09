@@ -266,7 +266,7 @@ export function UserActivityModal({
                           <button
                             type="button"
                             onClick={() => setProject(null)}
-                            className="text-xs font-semibold text-brand-blue hover:underline"
+                            className="text-xs font-semibold text-foreground hover:underline"
                           >
                             All projects
                           </button>
@@ -459,7 +459,7 @@ function Filters({
   onProject: (project: string | null) => void;
 }) {
   const inputClass =
-    "rounded-lg border border-border bg-white px-2.5 py-1.5 text-sm text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15";
+    "rounded-lg border border-border bg-white px-2.5 py-1.5 text-sm text-dash-ink focus:outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/50";
   return (
     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div role="group" aria-label="Date range" className="flex flex-wrap gap-1.5">
@@ -471,8 +471,8 @@ function Filters({
             onClick={() => onPreset(p.value)}
             className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
               preset === p.value
-                ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white"
-                : "border border-border bg-white text-dash-ink hover:border-brand-purple hover:text-brand-purple"
+                ? "bg-primary text-white"
+                : "border border-border bg-white text-dash-ink hover:border-primary hover:text-foreground"
             }`}
           >
             {p.label}
@@ -524,7 +524,7 @@ function Filters({
 
 function Metric({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
   return (
-    <div className={`rounded-xl border px-4 py-3.5 ${emphasis ? "border-brand-purple/20 bg-brand-purple/5" : "border-border bg-[#f8fafc]"}`}>
+    <div className={`rounded-xl border px-4 py-3.5 ${emphasis ? "border-surface-border bg-secondary" : "border-border bg-[#f8fafc]"}`}>
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1.5 text-2xl font-bold text-dash-ink">{value}</p>
     </div>
@@ -561,7 +561,7 @@ function ProjectRow({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${active ? "bg-brand-blue/5" : "hover:bg-[#f8fafc]"}`}
+      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${active ? "bg-primary/5" : "hover:bg-[#f8fafc]"}`}
     >
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-dash-ink">{project.name}</p>
@@ -575,7 +575,7 @@ function ProjectRow({
         <br />
         Last used {span(project.lastAt)}
       </p>
-      <ChevronRightIcon className={`h-4 w-4 shrink-0 ${active ? "text-brand-blue" : "text-muted"}`} />
+      <ChevronRightIcon className={`h-4 w-4 shrink-0 ${active ? "text-foreground" : "text-muted"}`} />
     </button>
   );
 }
@@ -651,7 +651,7 @@ function ProjectTokenBars({ projects }: { projects: ClaudeUsageActivityProject[]
           <span className={`w-40 shrink-0 truncate ${row.rest ? "text-muted" : "text-dash-ink"}`}>{row.name}</span>
           <span className="h-2 flex-1 overflow-hidden rounded-full bg-page">
             <span
-              className={`block h-full rounded-full ${row.rest ? "bg-[#c4c4d0]" : "bg-brand-blue"}`}
+              className={`block h-full rounded-full ${row.rest ? "bg-[#c4c4d0]" : "bg-primary"}`}
               style={{ width: `${max > 0 ? Math.max(2, (row.totalTokens / max) * 100) : 0}%` }}
             />
           </span>
@@ -716,7 +716,7 @@ function DayDetail({ day, onBack }: { day: ClaudeUsageActivityDay; onBack: () =>
 
   return (
     <div className="mt-6">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-blue hover:underline">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-semibold text-foreground hover:underline">
         <ChevronLeftIcon className="h-4 w-4" />
         Back to activity
       </button>

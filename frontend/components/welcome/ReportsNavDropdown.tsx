@@ -45,7 +45,7 @@ export function ReportsNavDropdown({
         aria-haspopup="menu"
         aria-expanded={open}
         className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:font-bold ${
-          open ? "border-brand-purple font-bold" : "border-transparent hover:border-brand-purple"
+          open ? "border-primary font-bold" : "border-transparent hover:border-primary"
         } ${isDark ? "hover:text-[#f2effa]" : "hover:text-ink"}`}
       >
         Reports &amp; Records
@@ -64,12 +64,12 @@ export function ReportsNavDropdown({
             role="menuitem"
             onClick={() => { setOpen(false); onRequireAuth("Attendance"); }}
             className={`group flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors ${
-              isDark ? "hover:bg-white/10" : "hover:bg-brand-purple/10"
+              isDark ? "hover:bg-white/10" : "hover:bg-secondary"
             }`}
           >
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                isDark ? "bg-brand-purple/15 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
+                isDark ? "bg-primary/15 text-[#c4b5fd]" : "bg-secondary text-foreground"
               }`}
             >
               <CalendarCheckIcon className="h-[18px] w-[18px]" />

@@ -15,7 +15,7 @@ export default function OverviewPage() {
     <AppShell
       pageTitle="Overview"
       pageSubtitle="Your documentation workspace at a glance"
-      titleIcon={<HomeIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<HomeIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       {productStats.status === "loading" && <p className="mt-6 text-sm text-muted">Loading your workspace…</p>}
 
@@ -53,7 +53,7 @@ export default function OverviewPage() {
               <div>
                 <div className="flex items-center justify-between pl-5 pr-[15px]">
                   <h2 className="text-base font-bold text-dash-ink">Recent Documents</h2>
-                  <a href="#" className="text-sm font-semibold text-brand-purple hover:underline">
+                  <a href="#" className="text-sm font-semibold text-foreground hover:underline">
                     View all
                   </a>
                 </div>

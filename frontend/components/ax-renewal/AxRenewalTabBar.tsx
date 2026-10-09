@@ -16,7 +16,7 @@ type AxRenewalTabBarProps = {
 function accentColor(group: string): string {
   if (group === "Understand") return "bg-[#9c4620]";
   if (group === "Workspace") return "bg-muted";
-  return "bg-brand-purple";
+  return "bg-primary";
 }
 
 /**
@@ -95,7 +95,7 @@ export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTa
               <span className={`absolute inset-x-0 top-0 h-[2px] ${accentColor(meta.group)}`} aria-hidden="true" />
             )}
             <button type="button" onClick={() => onSelect(key)} className="flex min-w-0 flex-1 items-center gap-1.5">
-              <meta.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-brand-purple" : "text-muted"}`} />
+              <meta.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-foreground" : "text-muted"}`} />
               <span className="truncate">{meta.label}</span>
             </button>
             <button

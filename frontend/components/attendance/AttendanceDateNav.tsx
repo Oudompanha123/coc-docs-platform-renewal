@@ -40,7 +40,7 @@ export function AttendanceDateNav({
           title="Go to today"
           className={`min-w-[108px] border-x border-border px-3 py-1.5 text-sm font-semibold transition-colors ${
             date === todayIso()
-              ? "rounded-md bg-brand-purple/10 text-brand-purple"
+              ? "rounded-md bg-secondary text-foreground"
               : "text-muted hover:bg-page hover:text-dash-ink"
           }`}
         >

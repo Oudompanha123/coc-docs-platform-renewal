@@ -1,5 +1,6 @@
 import { DISPLAY_ROLE_ORDER, ROLE_LABELS, type AccountStatus, type DisplayRole } from "@/lib/mock/users-roles";
 import { FilterDropdown, type FilterOption } from "./FilterDropdown";
+import { inputBaseClass } from "@/components/ui/input";
 
 export type StatusFilter = AccountStatus | "all";
 export type RoleFilter = DisplayRole | "all";
@@ -71,7 +72,7 @@ export function FilterBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search by name, email, or role..."
-          className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-ink shadow-sm placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+          className={`${inputBaseClass} w-full`}
         />
       </div>
 

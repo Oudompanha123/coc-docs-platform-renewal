@@ -1,5 +1,6 @@
 "use client";
 
+import { Label } from "@/components/ui/label";
 import { forwardRef, useState } from "react";
 
 const LENGTH = 6;
@@ -50,9 +51,9 @@ export const OtpCodeInput = forwardRef<
 
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-semibold text-ink">
+      <Label htmlFor={id} className="mb-2 block">
         {label}
-      </label>
+      </Label>
       <div className="relative">
         <div aria-hidden="true" className="grid grid-cols-6 gap-2 sm:gap-3">
           {Array.from({ length: LENGTH }, (_, i) => {
@@ -62,17 +63,17 @@ export const OtpCodeInput = forwardRef<
             return (
               <div
                 key={i}
-                className={`flex h-14 items-center justify-center rounded-xl border-2 text-2xl font-bold tabular-nums transition-all duration-150 sm:h-16 ${
+                className={`flex h-12 items-center justify-center rounded-xl border text-xl font-semibold tabular-nums transition-all duration-150 sm:h-14 ${
                   invalid
-                    ? "border-red-300 bg-red-50 text-red-700"
+                    ? "border-destructive/40 bg-destructive/5 text-destructive"
                     : isActive
-                      ? "border-brand-purple bg-white text-ink shadow-[0_0_0_4px_rgba(109,60,224,0.15)]"
+                      ? "border-ring bg-background text-foreground ring-ring/50 ring-[3px]"
                       : filled
-                        ? "border-brand-purple/40 bg-brand-purple/5 text-ink"
-                        : "border-border bg-white text-ink"
+                        ? "border-surface-border bg-background text-foreground"
+                        : "border-transparent bg-muted-surface text-foreground"
                 } ${disabled ? "opacity-60" : ""}`}
               >
-                {filled ? digit : isActive ? <span className="h-6 w-0.5 animate-pulse rounded-full bg-brand-purple" /> : null}
+                {filled ? digit : isActive ? <span className="bg-foreground h-5 w-0.5 animate-pulse rounded-full" /> : null}
               </div>
             );
           })}

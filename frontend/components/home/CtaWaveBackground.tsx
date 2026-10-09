@@ -70,7 +70,7 @@ export function CtaWaveBackground() {
       />
       <div
         aria-hidden="true"
-        className="absolute top-1/2 left-1/2 h-56 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-purple/30 blur-3xl"
+        className="absolute top-1/2 left-1/2 h-56 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/30 blur-3xl"
       />
 
       <svg

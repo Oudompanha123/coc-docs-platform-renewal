@@ -40,7 +40,7 @@ export default function DocsOverviewPage() {
   return (
     <div>
       <div className="animate-entrance text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
           <DocumentIcon className="h-8 w-8" />
         </div>
         <h1 className="mt-6 text-4xl font-extrabold text-ink">Coc Docs Platform</h1>
@@ -48,14 +48,14 @@ export default function DocsOverviewPage() {
         <p className="mt-1 text-sm text-muted">One platform. Every workspace.</p>
         <Link
           href="/register"
-          className="mt-7 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+          className="mt-7 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
         >
           Get started
         </Link>
       </div>
 
       <div className="animate-entrance mt-16 [animation-delay:120ms]">
-        <p className="text-center text-sm font-semibold text-brand-purple">Overview</p>
+        <p className="text-center text-sm font-semibold text-foreground">Overview</p>
         <h2 className="mt-1 text-center text-2xl font-bold text-ink">
           Everything your team&apos;s docs need, in one place.
         </h2>
@@ -69,7 +69,7 @@ export default function DocsOverviewPage() {
                 className="animate-entrance rounded-[10px] border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
                 style={{ animationDelay: `${180 + i * 60}ms` }}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="mt-3 text-base font-semibold text-ink">{feature.title}</h3>

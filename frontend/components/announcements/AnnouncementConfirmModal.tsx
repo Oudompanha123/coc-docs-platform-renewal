@@ -73,7 +73,7 @@ export function AnnouncementConfirmModal({
           onClick={onConfirm}
           disabled={busy}
           className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
-            copy.danger ? "bg-danger" : "bg-gradient-to-r from-brand-purple to-brand-blue"
+            copy.danger ? "bg-danger" : "bg-primary"
           }`}
         >
           {busy && <Spinner />}

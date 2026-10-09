@@ -122,7 +122,7 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-black/5 hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-black/5 hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <XIcon className="h-4 w-4" />
         </button>
@@ -213,7 +213,7 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
                 ref={primaryRef}
                 type="button"
                 onClick={onClose}
-                className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-2 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
               >
                 Got it
               </button>

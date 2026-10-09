@@ -171,7 +171,7 @@ export function MarkdownEditor({
                     disabled={disabled || mode === "preview"}
                     aria-label={tool.label}
                     title={title}
-                    className="flex h-7 min-w-7 items-center justify-center rounded-md px-1 text-dash-ink/70 transition-colors hover:bg-brand-purple/10 hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-dash-ink/70"
+                    className="flex h-7 min-w-7 items-center justify-center rounded-md px-1 text-dash-ink/70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-dash-ink/70"
                   >
                     {tool.icon}
                   </button>
@@ -198,7 +198,7 @@ export function MarkdownEditor({
               aria-selected={mode === key}
               onClick={() => setMode(key)}
               className={`rounded px-2.5 py-0.5 text-xs font-semibold transition-colors ${
-                mode === key ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:text-dash-ink"
+                mode === key ? "bg-secondary text-foreground" : "text-muted hover:text-dash-ink"
               }`}
             >
               {key === "write" ? "Write" : "Preview"}
@@ -250,7 +250,7 @@ const SWATCH_CLASSES: Record<TextColor, string> = {
   orange: "bg-orange-600",
   green: "bg-green-600",
   blue: "bg-blue-600",
-  purple: "bg-brand-purple",
+  purple: "bg-primary",
   gray: "bg-gray-500",
 };
 
@@ -314,7 +314,7 @@ function TextColorPicker({ disabled, onPick }: { disabled?: boolean; onPick: (co
         aria-haspopup="menu"
         aria-expanded={open}
         title="Text color"
-        className="flex h-7 min-w-7 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-dash-ink/70 transition-colors hover:bg-brand-purple/10 hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-dash-ink/70"
+        className="flex h-7 min-w-7 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-dash-ink/70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-dash-ink/70"
       >
         <span aria-hidden="true" className="text-xs font-bold leading-none">
           A
@@ -338,7 +338,7 @@ function TextColorPicker({ disabled, onPick }: { disabled?: boolean; onPick: (co
                 onClick={() => pick(color)}
                 aria-label={COLOR_LABELS[color]}
                 title={COLOR_LABELS[color]}
-                className={`flex h-7 items-center justify-center rounded-md text-sm font-bold transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${TEXT_COLOR_CLASSES[color]} ${
+                className={`flex h-7 items-center justify-center rounded-md text-sm font-bold transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${TEXT_COLOR_CLASSES[color]} ${
                   color === last ? "bg-page" : ""
                 }`}
               >

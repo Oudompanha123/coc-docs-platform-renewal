@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal } from "./Modal";
 import type { ManagedAccount } from "@/lib/mock/users-roles";
+import { inputBaseClass } from "@/components/ui/input";
 
 function TrashIcon({ className }: { className?: string }) {
   return (
@@ -62,7 +63,7 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
           >
             OK
           </button>
@@ -83,7 +84,7 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
       <h2 className="mt-3 text-lg font-bold text-dash-ink">Delete Account?</h2>
 
       <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-border bg-page px-3 py-2.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-xs font-semibold text-white">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
           {initialsFor(account.name)}
         </div>
         <div className="min-w-0">
@@ -115,7 +116,7 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
           autoComplete="off"
           spellCheck={false}
           aria-label={`Type ${account.email} to confirm deletion`}
-          className="mt-1.5 w-full rounded-xl border border-border px-3 py-2 text-sm text-dash-ink outline-none focus:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className={`${inputBaseClass} mt-1.5 w-full`}
         />
       </label>
 

@@ -26,7 +26,7 @@ export const TEXT_COLOR_CLASSES: Record<TextColor, string> = {
   orange: "text-orange-600",
   green: "text-green-600",
   blue: "text-blue-600",
-  purple: "text-brand-purple",
+  purple: "text-foreground",
   gray: "text-gray-500",
 };
 
@@ -65,7 +65,7 @@ function renderBlock(block: Block, key: number): ReactNode {
     }
     case "quote":
       return (
-        <blockquote key={key} className="space-y-3 border-l-4 border-brand-purple/30 pl-4 italic text-muted">
+        <blockquote key={key} className="space-y-3 border-l-4 border-primary/30 pl-4 italic text-muted">
           {block.children.map(renderBlock)}
         </blockquote>
       );
@@ -117,7 +117,7 @@ function renderInline(nodes: Inline[]): ReactNode[] {
             key={i}
             href={node.href}
             {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-            className="font-medium text-brand-purple underline underline-offset-2 hover:opacity-80"
+            className="font-medium text-foreground underline underline-offset-2 hover:opacity-80"
           >
             {renderInline(node.children)}
           </a>

@@ -107,7 +107,7 @@ export function AxRenewalSidebar({
             onClick={toggleTheme}
             aria-label="Toggle dark mode"
             aria-pressed={darkMode}
-            className="shrink-0 rounded-xl bg-brand-purple/10 p-2 text-brand-purple transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
+            className="shrink-0 rounded-xl bg-secondary p-2 text-foreground transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
           >
             {darkMode ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
           </button>
@@ -115,7 +115,7 @@ export function AxRenewalSidebar({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded-[10px] p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
+            className="rounded-[10px] p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           >
             <XIcon className="h-5 w-5" />
           </button>
@@ -134,19 +134,19 @@ export function AxRenewalSidebar({
               type="button"
               onClick={() => toggleGroup(group.label)}
               aria-expanded={isOpen}
-              className="flex w-full items-center gap-1.5 rounded-[10px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-purple transition-colors"
+              className="flex w-full items-center gap-1.5 rounded-[10px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-foreground transition-colors"
             >
               <ChevronDownIcon
                 className={`h-[17px] w-[17px] shrink-0 transition-transform ${isOpen ? "" : "-rotate-90"}`}
               />
-              <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md bg-primary text-white">
                 <group.icon className="h-3 w-3" />
               </span>
               <span className="truncate">{group.label}</span>
               {group.badge && (
                 <span
                   className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-                    isGroupComplete(group.badge) ? "bg-brand-purple/20 text-brand-purple" : "bg-page text-muted"
+                    isGroupComplete(group.badge) ? "bg-secondary text-foreground" : "bg-page text-muted"
                   }`}
                 >
                   {group.badge}
@@ -171,7 +171,7 @@ export function AxRenewalSidebar({
                   sub.locked
                     ? "cursor-not-allowed text-sidebar-muted/40"
                     : subActive
-                      ? "bg-gradient-to-r from-brand-purple to-brand-blue font-semibold text-white shadow-md"
+                      ? "bg-primary font-semibold text-white shadow-md"
                       : "text-sidebar-muted hover:bg-sidebar-hover hover:text-dash-ink"
                 }`;
                 return sub.locked ? (

@@ -41,7 +41,7 @@ export function formatStepDuration(secs: number): string {
 function kindTone(kind: string): string {
   if (kind === "error") return "text-danger";
   if (kind === "done") return "text-emerald-700";
-  if (kind === "edit" || kind === "write") return "text-brand-purple";
+  if (kind === "edit" || kind === "write") return "text-foreground";
   return "text-muted";
 }
 
@@ -147,7 +147,7 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
           <span
             key={s.key}
             className={`h-1.5 flex-1 rounded-full ${
-              i < stepIndex ? "bg-brand-purple" : i === stepIndex ? "animate-pulse bg-brand-purple/60" : "bg-border"
+              i < stepIndex ? "bg-primary" : i === stepIndex ? "animate-pulse bg-primary/60" : "bg-border"
             }`}
           />
         ))}
@@ -162,9 +162,9 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
                 aria-hidden="true"
                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                   state === "done"
-                    ? "bg-brand-purple text-white"
+                    ? "bg-primary text-white"
                     : state === "current"
-                      ? "animate-spin border-2 border-brand-purple/30 border-t-brand-purple"
+                      ? "animate-spin border-2 border-primary/30 border-t-primary"
                       : "border border-border"
                 }`}
               >

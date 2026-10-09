@@ -28,20 +28,20 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Exported so nothing has to restate it. `components/docs/editor` carried its
+ * own `fieldInputClass` — a fifth field style, used in about thirty places —
+ * and it now points here instead of describing a field of its own.
+ */
+export const inputBaseClass = cn(
+  "bg-muted-surface flex h-10 w-full min-w-0 rounded-full border border-transparent pl-4 pr-4 py-2 text-base transition-[color,box-shadow,background-color] outline-none md:text-sm",
+  "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground",
+  "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium",
+  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+  "aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-invalid:ring-[3px]",
+  "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+);
+
 export function Input({ className, type, ...props }: ComponentProps<"input">) {
-  return (
-    <input
-      type={type}
-      className={cn(
-        "bg-muted-surface flex h-10 w-full min-w-0 rounded-full border border-transparent pl-4 pr-4 py-2 text-base transition-[color,box-shadow,background-color] outline-none md:text-sm",
-        "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground",
-        "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-invalid:ring-[3px]",
-        "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <input type={type} className={cn(inputBaseClass, className)} {...props} />;
 }

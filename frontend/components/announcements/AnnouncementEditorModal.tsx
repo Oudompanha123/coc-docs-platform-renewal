@@ -21,7 +21,7 @@ const MAX_TITLE = 150;
 const MAX_BODY = 5000;
 
 const INPUT_CLASS =
-  "mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink outline-none focus:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple";
+  "mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink outline-none focus:border-ring focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * Create or edit an announcement (ADR-098).
@@ -110,7 +110,7 @@ export function AnnouncementEditorModal({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         {isLive && (
-          <p role="status" className="rounded-[10px] bg-brand-purple/10 px-3 py-2 text-xs font-medium text-brand-purple">
+          <p role="status" className="rounded-[10px] bg-secondary px-3 py-2 text-xs font-medium text-foreground">
             This announcement is live. Saving updates it for everyone straight away.
           </p>
         )}
@@ -192,8 +192,8 @@ export function AnnouncementEditorModal({
             disabled={!canSubmit}
             className={
               isLive
-                ? "flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                : "flex items-center gap-2 rounded-full border border-brand-purple px-4 py-2 text-sm font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:opacity-50"
+                ? "flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                : "flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
             }
           >
             {saving === "draft" && <Spinner />}
@@ -204,7 +204,7 @@ export function AnnouncementEditorModal({
               type="button"
               onClick={() => void save(true)}
               disabled={!canPublish}
-              className="flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving === "publish" && <Spinner />}
               Save &amp; publish

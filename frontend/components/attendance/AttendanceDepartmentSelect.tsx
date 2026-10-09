@@ -1,6 +1,7 @@
 "use client";
 
 import { HomeIcon } from "@/components/layout/icons";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Matches Users & Roles' "All Status" filter select exactly (same
@@ -31,7 +32,7 @@ export function AttendanceDepartmentSelect({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         aria-label="Department"
-        className="appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm text-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${inputBaseClass} appearance-none`}
       >
         {disabled ? (
           <option value="">No departments</option>

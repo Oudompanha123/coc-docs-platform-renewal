@@ -104,7 +104,7 @@ export function PendingTab({
           role="status"
           className="flex flex-col items-center justify-center rounded-[10px] border border-dashed border-border bg-[#f8fafc] px-6 py-14 text-center"
         >
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-purple/10 text-brand-purple">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-foreground">
             <CheckGlyph className="h-7 w-7" />
           </span>
           <h3 className="mt-4 text-base font-bold text-dash-ink">Nobody is waiting</h3>
@@ -171,7 +171,7 @@ export function PendingTab({
                   type="button"
                   disabled={working}
                   onClick={() => void act(account.id, "approve", () => onApprove(account.id, role))}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {working && busy?.action === "approve" ? (
                     <Spinner className="h-3.5 w-3.5 border-2" />

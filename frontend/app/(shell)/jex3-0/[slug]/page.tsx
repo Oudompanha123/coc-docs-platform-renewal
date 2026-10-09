@@ -31,7 +31,7 @@ export default function Jex30SubPage() {
       <AppShell
         pageTitle={`Jex3.0 — ${item.label}`}
         pageSubtitle="jexmcp3.0"
-        titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+        titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
       >
         <ContentRenderer content={content} variant="admin" />
       </AppShell>
@@ -42,7 +42,7 @@ export default function Jex30SubPage() {
     <AppShell
       pageTitle={`Jex3.0 — ${item.label}`}
       pageSubtitle="Not written yet"
-      titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<LayersIcon className="hidden h-8 w-8 shrink-0 text-foreground sm:block" />}
     >
       <div className="flex flex-col items-center justify-center rounded-[10px] border border-border bg-page p-16 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-muted shadow-sm">

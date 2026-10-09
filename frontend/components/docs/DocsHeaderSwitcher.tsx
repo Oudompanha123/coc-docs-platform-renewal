@@ -58,7 +58,7 @@ export function DocsHeaderSwitcher({ active, products }: { active: NavProduct; p
                 aria-selected={isActive}
                 onClick={() => selectProduct(product)}
                 className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                  isActive ? "bg-brand-purple/10 font-semibold text-brand-purple" : "text-ink hover:bg-page"
+                  isActive ? "bg-secondary font-semibold text-foreground" : "text-ink hover:bg-page"
                 }`}
               >
                 {product.label}
