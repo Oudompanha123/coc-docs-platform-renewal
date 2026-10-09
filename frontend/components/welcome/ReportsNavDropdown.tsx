@@ -44,9 +44,9 @@ export function ReportsNavDropdown({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:font-bold ${
+        className={`flex h-14 items-center gap-1.5 border-b-2 transition-colors ${
           open ? "border-primary font-bold" : "border-transparent hover:border-primary"
-        } ${isDark ? "hover:text-[#f2effa]" : "hover:text-ink"}`}
+        } ${isDark ? "hover:text-[#fafafa]" : "hover:text-ink"}`}
       >
         Reports &amp; Records
         <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -55,8 +55,8 @@ export function ReportsNavDropdown({
       {open && (
         <div
           role="menu"
-          className={`absolute left-0 top-[72px] z-30 w-72 rounded-[10px] border py-2 shadow-lg ${
-            isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
+          className={`absolute left-0 top-14 z-30 w-72 rounded-xl border py-2 shadow-lg ${
+            isDark ? "border-[#2a2a2a] bg-[#171717]" : "border-border bg-white"
           }`}
         >
           <button
@@ -69,7 +69,7 @@ export function ReportsNavDropdown({
           >
             <span
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                isDark ? "bg-primary/15 text-[#c4b5fd]" : "bg-secondary text-foreground"
+                isDark ? "bg-primary/15 text-[#fafafa]" : "bg-secondary text-foreground"
               }`}
             >
               <CalendarCheckIcon className="h-[18px] w-[18px]" />
@@ -77,17 +77,17 @@ export function ReportsNavDropdown({
             <span className="min-w-0 flex-1">
               <span
                 className={`flex items-center justify-between gap-2 truncate text-sm font-medium ${
-                  isDark ? "text-[#f2effa]" : "text-ink"
+                  isDark ? "text-[#fafafa]" : "text-ink"
                 }`}
               >
                 Attendance
                 <LockIcon
                   className={`h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 ${
-                    isDark ? "text-[#a79fc9]" : "text-muted"
+                    isDark ? "text-[#a1a1a1]" : "text-muted"
                   }`}
                 />
               </span>
-              <span className={`block truncate text-xs ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+              <span className={`block truncate text-xs ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
                 Your daily check-in &amp; out
               </span>
             </span>

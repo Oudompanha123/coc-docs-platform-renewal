@@ -301,7 +301,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
           )}
           {avatarError && <p className="mt-1 text-xs text-danger">{avatarError}</p>}
 
-          <h2 id="profile-popup-name" className="mt-3 text-[19px] font-bold text-[#24216b]">
+          <h2 id="profile-popup-name" className="mt-3 text-base font-semibold text-[#24216b]">
             {name}
           </h2>
           {roleChip && (
@@ -372,7 +372,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
 
           <div className="mt-5 flex w-full flex-col gap-2.5">
             {hrmsLink.kind === "not-linked" && (
-              <p className="rounded-[10px] border border-[#f5d896] bg-[#fffbeb] px-3 py-2.5 text-xs text-[#b45309]">
+              <p className="rounded-xl border border-[#f5d896] bg-[#fffbeb] px-3 py-2.5 text-xs text-[#b45309]">
                 Ask an admin to link your HRMS account to see attendance.
               </p>
             )}

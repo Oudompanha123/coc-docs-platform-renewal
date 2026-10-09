@@ -73,7 +73,7 @@ export default function MemberHomePage() {
               </p>
             )}
 
-            <h1 className="mt-6 text-4xl font-extrabold leading-tight text-ink sm:text-5xl">
+            <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
               {`Pick up where you left off, ${firstName}.`}
             </h1>
 
@@ -99,7 +99,7 @@ export default function MemberHomePage() {
             </div>
           </div>
 
-          <div className="animate-entrance relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-[10px] border border-border bg-white shadow-2xl [animation-delay:120ms]">
+          <div className="animate-entrance relative mx-auto mt-16 max-w-5xl overflow-hidden rounded-xl border border-border bg-white shadow-2xl [animation-delay:120ms]">
             <div className="flex items-center gap-1.5 border-b border-border px-4 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
@@ -143,7 +143,7 @@ export default function MemberHomePage() {
 
         <section className="mx-auto max-w-5xl px-6 py-20">
           <ScrollReveal>
-            <h2 className="text-center text-3xl font-bold text-ink">Everything you need, in one place.</h2>
+            <h2 className="text-center text-2xl font-semibold tracking-tight text-ink">Everything you need, in one place.</h2>
             <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">
               Your documents and your open tasks.
             </p>
@@ -156,7 +156,7 @@ export default function MemberHomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto w-full max-w-5xl overflow-hidden rounded-xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
             {/* Scrim: the photo is bright enough that white text needs a dark
                 layer under it to stay legible, same "decorative absolute div
                 painted before the relative-positioned copy" pattern /welcome's
@@ -164,7 +164,7 @@ export default function MemberHomePage() {
             <div aria-hidden="true" className="absolute top-0 right-0 bottom-0 left-0 bg-black/60" />
             {canManage ? (
               <>
-                <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
+                <h2 className="relative text-xl font-semibold tracking-tight text-white sm:text-2xl">
                   {productStats.status === "ready"
                     ? `${notWritten} document${notWritten === 1 ? "" : "s"} still need${notWritten === 1 ? "s" : ""} writing.`
                     : "Keep your knowledge base up to date."}
@@ -181,7 +181,7 @@ export default function MemberHomePage() {
               </>
             ) : (
               <>
-                <h2 className="relative text-2xl font-bold text-white sm:text-3xl">
+                <h2 className="relative text-xl font-semibold tracking-tight text-white sm:text-2xl">
                   Spotted something missing or out of date?
                 </h2>
                 <p className="relative mt-3 text-sm text-white sm:text-base">

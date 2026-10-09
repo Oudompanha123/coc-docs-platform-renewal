@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
 import { ReportsNavDropdown } from "@/components/welcome/ReportsNavDropdown";
@@ -173,27 +174,30 @@ export default function WelcomePage() {
   }, []);
 
   return (
-    <div className={isDark ? "min-h-screen bg-[#0d0b1a]" : "min-h-screen bg-white"}>
+    <div className={isDark ? "min-h-screen bg-[#0a0a0a]" : "min-h-screen bg-white"}>
       <header
         className={`sticky top-0 z-30 border-b shadow-sm transition-colors duration-200 ${
-          isDark ? "bg-[#0d0b1a]" : "bg-white"
-        } ${scrolled ? (isDark ? "border-[#332e4d]" : "border-border") : "border-transparent"}`}
+          isDark ? "bg-[#0a0a0a]" : "bg-white"
+        } ${scrolled ? (isDark ? "border-[#2a2a2a]" : "border-border") : "border-transparent"}`}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
+        {/* The bar was 72px tall with a 55px logo and 18px nav links. Scaled
+            to the kit: a 56px bar, a 32px logo and 14px links — the header is
+            furniture, and at the old size it competed with the hero. */}
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
             <img
               src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
               alt="Coc Docs Platform"
-              className="h-[55px] w-auto rounded-lg"
+              className="h-8 w-auto rounded-md"
             />
           </div>
 
-          <nav className={`hidden items-center gap-7 text-[18px] font-medium md:flex ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+          <nav className={`hidden items-center gap-6 text-sm font-medium md:flex ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
             <a
               href={HOME_LINK.href}
-              className={`flex h-[72px] items-center border-b-2 border-transparent transition-all hover:border-primary hover:font-bold ${
-                isDark ? "hover:text-[#f2effa]" : "hover:text-ink"
+              className={`flex h-14 items-center border-b-2 border-transparent transition-colors hover:border-primary ${
+                isDark ? "hover:text-[#fafafa]" : "hover:text-ink"
               }`}
             >
               {HOME_LINK.label}
@@ -202,30 +206,24 @@ export default function WelcomePage() {
             <ReportsNavDropdown isDark={isDark} onRequireAuth={setAuthGate} />
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setTheme(isDark ? "light" : "dark")}
               aria-label="Toggle dark mode"
               aria-pressed={isDark}
-              className={`rounded-xl p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                isDark ? "bg-white/10 text-[#f2effa] hover:bg-white/20" : "bg-gray-100 text-ink/70 hover:bg-secondary"
+              className={`rounded-full p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                isDark ? "text-[#fafafa] hover:bg-white/10" : "text-muted hover:bg-secondary"
               }`}
             >
-              {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+              {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
             </button>
-            <Link
-              href="/login"
-              className={`hidden text-sm font-semibold hover:text-foreground sm:inline ${isDark ? "text-[#f2effa]" : "text-ink"}`}
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-            >
-              Start free →
-            </Link>
+            <Button asChild variant="ghost" size="sm" className={isDark ? "hidden text-[#fafafa] hover:bg-white/10 sm:inline-flex" : "hidden sm:inline-flex"}>
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild size="sm" className={isDark ? "bg-[#fafafa] text-[#171717] hover:bg-[#fafafa]/90" : undefined}>
+              <Link href="/register">Start free</Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -247,60 +245,61 @@ export default function WelcomePage() {
 
           <div className="animate-entrance relative mx-auto max-w-3xl text-center">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                isDark ? "bg-primary/15 text-[#c4b5fd]" : "bg-secondary text-foreground"
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                isDark ? "border-[#2a2a2a] bg-[#171717] text-[#a1a1a1]" : "border-surface-border bg-muted-surface text-muted-foreground"
               }`}
             >
-              <SparklesIcon className="h-3.5 w-3.5" />
+              <SparklesIcon className="h-3 w-3" />
               Now tracking documentation coverage
             </span>
 
-            <h1 className={`mt-6 text-4xl font-extrabold leading-tight sm:text-5xl ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
+            {/* Was `text-4xl sm:text-5xl font-extrabold`. The kit's headings
+                are a weight lighter and a step smaller, with the tracking
+                pulled in — extrabold at 48px reads as a poster, not a product.
+                The gradient on "documentation" went with the brand; what is
+                left of that span would be the same colour as the rest of the
+                line, so it is underlined instead of recoloured. */}
+            <h1 className={`mt-5 text-3xl font-semibold tracking-tight sm:text-4xl ${isDark ? "text-[#fafafa]" : "text-ink"}`}>
               One workspace for every product&apos;s{" "}
-              <span className="bg-primary bg-clip-text text-transparent">
+              <span className="decoration-muted-foreground/40 underline decoration-2 underline-offset-4">
                 documentation
               </span>
               .
             </h1>
 
-            <p className={`mx-auto mt-5 max-w-xl text-base sm:text-lg ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+            <p className={`mx-auto mt-4 max-w-xl text-sm sm:text-base ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
               Coc Docs Platform tracks what&apos;s written, what&apos;s missing, and who&apos;s behind it — across
               every product your team ships.
             </p>
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+            <div className="mt-7 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
+              <Button asChild size="lg" className={isDark ? "bg-[#fafafa] text-[#171717] hover:bg-[#fafafa]/90" : undefined}>
+                <Link href="/register">Get started free</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className={isDark ? "border-[#2a2a2a] bg-[#171717] text-[#fafafa] hover:bg-[#262626]" : undefined}
               >
-                Get started free
-              </Link>
-              <Link
-                href="/login"
-                className={`inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
-                  isDark
-                    ? "border-[#332e4d] bg-[#1e1a30] text-[#f2effa] hover:bg-[#2a2545]"
-                    : "border-border bg-white text-ink shadow-sm hover:bg-page"
-                }`}
-              >
-                View live workspace
-              </Link>
+                <Link href="/login">View live workspace</Link>
+              </Button>
             </div>
           </div>
 
-          <div className="animate-entrance relative mx-auto mt-16 max-w-4xl [animation-delay:120ms]">
+          <div className="animate-entrance relative mx-auto mt-14 max-w-4xl [animation-delay:120ms]">
             <DashboardPreview theme={theme} />
           </div>
         </section>
 
-        <section className={`border-y px-6 py-10 ${isDark ? "border-[#332e4d] bg-[#0d0b1a]" : "border-border bg-white"}`}>
+        <section className={`border-y px-6 py-10 ${isDark ? "border-[#2a2a2a] bg-[#0a0a0a]" : "border-border bg-white"}`}>
           <ScrollReveal>
-            <p className={`text-center text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+            <p className={`text-center text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
               Trusted by teams at
             </p>
             <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3">
               {TRUSTED_BY.map((name) => (
-                <span key={name} className={`text-lg font-bold ${isDark ? "text-[#a79fc9]/40" : "text-muted/50"}`}>
+                <span key={name} className={`text-base font-semibold ${isDark ? "text-[#a1a1a1]/40" : "text-muted/50"}`}>
                   {name}
                 </span>
               ))}
@@ -308,12 +307,12 @@ export default function WelcomePage() {
           </ScrollReveal>
         </section>
 
-        <section id="features" className="mx-auto max-w-5xl px-6 py-20">
+        <section id="features" className="mx-auto max-w-5xl px-6 py-16">
           <ScrollReveal>
-            <h2 className={`text-center text-3xl font-bold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
+            <h2 className={`text-center text-2xl font-semibold tracking-tight ${isDark ? "text-[#fafafa]" : "text-ink"}`}>
               Every product, one coverage view.
             </h2>
-            <p className={`mx-auto mt-3 max-w-xl text-center text-base ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+            <p className={`mx-auto mt-3 max-w-xl text-center text-sm ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
               Coc Docs Platform keeps every product&apos;s documentation in one place, so gaps get noticed before
               someone hits them.
             </p>
@@ -326,19 +325,19 @@ export default function WelcomePage() {
               return (
                 <ScrollReveal key={feature.title} delayMs={i * 60}>
                   <div
-                    className={`rounded-[10px] border p-5 transition-all duration-200 hover:-translate-y-1 ${
+                    className={`rounded-xl border p-5 transition-colors ${
                       isDark
-                        ? "border-[#332e4d] bg-[#1e1a30] hover:border-primary/40"
-                        : "border-border bg-white shadow-sm hover:shadow-md"
+                        ? "border-[#2a2a2a] bg-[#171717] hover:border-[#3a3a3a]"
+                        : "border-surface-border bg-card hover:border-muted-foreground/30"
                     }`}
                   >
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone.bg} ${tone.fg}`}>
-                      <Icon className="h-5 w-5" />
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone.bg} ${tone.fg}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <h3 className={`mt-3 text-base font-semibold ${isDark ? "text-[#f2effa]" : "text-ink"}`}>
+                    <h3 className={`mt-3 text-sm font-semibold ${isDark ? "text-[#fafafa]" : "text-ink"}`}>
                       {feature.title}
                     </h3>
-                    <p className={`mt-1 text-sm ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{feature.description}</p>
+                    <p className={`mt-1 text-sm ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>{feature.description}</p>
                   </div>
                 </ScrollReveal>
               );
@@ -347,23 +346,22 @@ export default function WelcomePage() {
         </section>
 
         <section className="px-6 pb-20">
-          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-[10px] bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-14 text-center sm:px-16">
+          <ScrollReveal className="relative mx-auto max-w-4xl overflow-hidden rounded-xl bg-[url('/background-banner.jpg')] bg-cover bg-center px-6 py-12 text-center sm:px-16">
             {/* Scrim: same "photo background needs a dark layer under white
                 text" treatment as the Member home page's own CTA band. */}
             <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
-            <h2 className="relative text-2xl font-bold text-white sm:text-3xl">Bring your docs into one workspace.</h2>
-            <p className="relative mt-3 text-sm text-white sm:text-base">Start free — no credit card required.</p>
-            <Link
-              href="/register"
-              className="relative mt-7 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
-            >
-              Get started free
-            </Link>
+            <h2 className="relative text-xl font-semibold tracking-tight text-white sm:text-2xl">
+              Bring your docs into one workspace.
+            </h2>
+            <p className="relative mt-2.5 text-sm text-white/80">Start free — no credit card required.</p>
+            <Button asChild size="lg" className="relative mt-6 bg-white text-[#171717] hover:bg-white/90">
+              <Link href="/register">Get started free</Link>
+            </Button>
           </ScrollReveal>
         </section>
       </main>
 
-      <footer className={`border-t py-12 ${isDark ? "border-[#332e4d]" : "border-border"}`}>
+      <footer className={`border-t py-12 ${isDark ? "border-[#2a2a2a]" : "border-border"}`}>
         <ScrollReveal className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
@@ -371,7 +369,7 @@ export default function WelcomePage() {
               <img
                 src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
                 alt="Coc Docs Platform"
-                className="h-[55px] w-auto rounded-md"
+                className="h-7 w-auto rounded-md"
               />
             </div>
 
@@ -379,14 +377,14 @@ export default function WelcomePage() {
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.heading}>
                   <p
-                    className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#f2effa]" : "text-ink"}`}
+                    className={`text-xs font-semibold uppercase tracking-wider ${isDark ? "text-[#fafafa]" : "text-ink"}`}
                   >
                     {column.heading}
                   </p>
                   <ul className="mt-3 space-y-2.5">
                     {column.links.map((link) => {
                       const isAuthLink = link.label === "Create an account" || link.label === "Log in";
-                      const linkClass = `text-sm ${isDark ? "text-[#a79fc9] hover:text-[#f2effa]" : "text-muted hover:text-ink"}`;
+                      const linkClass = `text-sm ${isDark ? "text-[#a1a1a1] hover:text-[#fafafa]" : "text-muted hover:text-ink"}`;
                       return (
                         <li key={link.label}>
                           {isAuthLink ? (
@@ -413,13 +411,13 @@ export default function WelcomePage() {
 
           <div
             className={`mt-10 flex flex-col items-center justify-between gap-4 border-t pt-6 sm:flex-row ${
-              isDark ? "border-[#332e4d]" : "border-border"
+              isDark ? "border-[#2a2a2a]" : "border-border"
             }`}
           >
-            <span className={`text-xs ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>© 2026 Coc Docs Platform</span>
-            <div className={`flex items-center gap-5 text-xs font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+            <span className={`text-xs ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>© 2026 Coc Docs Platform</span>
+            <div className={`flex items-center gap-5 text-xs font-medium ${isDark ? "text-[#a1a1a1]" : "text-muted"}`}>
               {FOOTER_LEGAL_LINKS.map((link) => (
-                <a key={link.label} href={link.href} className={isDark ? "hover:text-[#f2effa]" : "hover:text-ink"}>
+                <a key={link.label} href={link.href} className={isDark ? "hover:text-[#fafafa]" : "hover:text-ink"}>
                   {link.label}
                 </a>
               ))}

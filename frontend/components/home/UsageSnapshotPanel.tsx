@@ -110,7 +110,7 @@ export function UsageSnapshotPanel() {
 
           <div className="mt-4 rounded-xl bg-page p-3">
             <p className="text-xs text-muted">{t.panels.tokens}</p>
-            <p className="mt-0.5 text-lg font-bold text-ink">{fmt(mine.todayTotalTokens)}</p>
+            <p className="mt-0.5 text-base font-semibold text-ink">{fmt(mine.todayTotalTokens)}</p>
           </div>
 
           {mine.todayTotalTokens === 0 && (
@@ -174,11 +174,11 @@ export function UsageSnapshotPanel() {
         <div className="mt-4 grid grid-cols-3 gap-3">
           <div className="rounded-xl bg-page p-3">
             <p className="text-xs text-muted">{t.panels.tokens}</p>
-            <p className="mt-0.5 text-lg font-bold text-ink">{fmt(me.totalTokens)}</p>
+            <p className="mt-0.5 text-base font-semibold text-ink">{fmt(me.totalTokens)}</p>
           </div>
           <div className="rounded-xl bg-page p-3">
             <p className="text-xs text-muted">{t.panels.costEst}</p>
-            <p className="mt-0.5 text-lg font-bold text-ink">${me.costUsd.toFixed(2)}</p>
+            <p className="mt-0.5 text-base font-semibold text-ink">${me.costUsd.toFixed(2)}</p>
           </div>
           <div className="rounded-xl bg-page p-3">
             <p className="text-xs text-muted">{t.panels.budget}</p>

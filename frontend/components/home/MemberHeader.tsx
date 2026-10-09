@@ -86,7 +86,7 @@ function ProductsDropdown({
   return (
     <div
       role="menu"
-      className="absolute left-0 top-[72px] z-30 w-80 rounded-2xl border border-border bg-white p-4 shadow-xl"
+      className="absolute left-0 top-14 z-30 w-80 rounded-2xl border border-border bg-white p-4 shadow-xl"
     >
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted">
         PRODUCTS
@@ -239,8 +239,8 @@ export function MemberHeader({
   }
 
   const navLinkClass = (active: boolean) =>
-    `header-nav-link flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-primary hover:font-bold hover:text-ink ${
-      active ? "header-nav-link-active border-primary font-bold text-ink" : "border-transparent text-muted"
+    `header-nav-link flex h-14 items-center gap-1.5 border-b-2 text-sm font-medium transition-all hover:border-primary hover:text-ink ${
+      active ? "header-nav-link-active border-primary font-semibold text-ink" : "border-transparent text-muted"
     }`;
 
   return (
@@ -257,13 +257,13 @@ export function MemberHeader({
           <img
             src="/logo-coc-docs-platform.png"
             alt="Coc Docs Platform"
-            className="logo-light h-[55px] w-auto rounded-lg"
+            className="logo-light h-8 w-auto rounded-lg"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-coc-docs-platform-dark-mode.png"
             alt="Coc Docs Platform"
-            className="logo-dark hidden h-[55px] w-auto rounded-lg"
+            className="logo-dark hidden h-8 w-auto rounded-lg"
           />
         </Link>
 

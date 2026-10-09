@@ -33,13 +33,13 @@ export function HomeFooter({
             <img
               src="/logo-coc-docs-platform.png"
               alt="Coc Docs Platform"
-              className="logo-light h-[55px] w-auto rounded-md"
+              className="logo-light h-8 w-auto rounded-md"
             />
             {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
             <img
               src="/logo-coc-docs-platform-dark-mode-white.png"
               alt="Coc Docs Platform"
-              className="logo-dark hidden h-[55px] w-auto rounded-md"
+              className="logo-dark hidden h-8 w-auto rounded-md"
             />
           </div>
 

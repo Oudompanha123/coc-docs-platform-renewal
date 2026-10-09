@@ -49,9 +49,9 @@ export function ProductsNavDropdown({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex h-[72px] items-center gap-1.5 border-b-2 transition-all hover:font-bold ${
+        className={`flex h-14 items-center gap-1.5 border-b-2 transition-colors ${
           open ? "border-primary font-bold" : "border-transparent hover:border-primary"
-        } ${isDark ? "hover:text-[#f2effa]" : "hover:text-ink"}`}
+        } ${isDark ? "hover:text-[#fafafa]" : "hover:text-ink"}`}
       >
         Products
         <ChevronDownIcon className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -60,13 +60,13 @@ export function ProductsNavDropdown({
       {open && (
         <div
           role="menu"
-          className={`absolute left-0 top-[72px] z-30 w-[22rem] rounded-2xl border p-4 shadow-xl ${
-            isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
+          className={`absolute left-0 top-14 z-30 w-[22rem] rounded-2xl border p-4 shadow-xl ${
+            isDark ? "border-[#2a2a2a] bg-[#171717]" : "border-border bg-white"
           }`}
         >
           <p
             className={`mb-3 text-[11px] font-semibold uppercase tracking-widest ${
-              isDark ? "text-[#756c98]" : "text-muted"
+              isDark ? "text-[#737373]" : "text-muted"
             }`}
           >
             PRODUCTS
@@ -86,20 +86,20 @@ export function ProductsNavDropdown({
                 >
                   <span
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                      isDark ? "bg-primary/15 text-[#c4b5fd]" : "bg-secondary text-foreground"
+                      isDark ? "bg-primary/15 text-[#fafafa]" : "bg-secondary text-foreground"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
                   </span>
                   <span
                     className={`flex min-w-0 flex-1 items-center justify-between gap-2 truncate text-[15px] font-medium ${
-                      isDark ? "text-[#f2effa]" : "text-ink"
+                      isDark ? "text-[#fafafa]" : "text-ink"
                     }`}
                   >
                     <span className="truncate">{product.label}</span>
                     <LockIcon
                       className={`h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 ${
-                        isDark ? "text-[#a79fc9]" : "text-muted"
+                        isDark ? "text-[#a1a1a1]" : "text-muted"
                       }`}
                     />
                   </span>

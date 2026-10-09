@@ -26,9 +26,9 @@ function formatDueDate(dueDate: string | null): string | null {
 export function TasksPanel({ tasks }: { tasks: Task[] | null }) {
   const { t } = useLanguage();
   return (
-    <div className="overflow-hidden rounded-[10px] border border-border bg-white py-5 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-white py-5 shadow-sm">
       <div className="flex items-center justify-between pl-5 pr-[15px]">
-        <h2 className="text-base font-bold text-dash-ink">{t.panels.yourTasks}</h2>
+        <h2 className="text-sm font-semibold text-dash-ink">{t.panels.yourTasks}</h2>
       </div>
       <div className={`mt-1 divide-y divide-border pl-5 pr-[20px] ${RECENT_PANEL_LIST_HEIGHT}`}>
         {tasks !== null && (

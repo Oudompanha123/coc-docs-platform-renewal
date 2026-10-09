@@ -19,7 +19,7 @@ export function ProductGlanceCard({ product, stat }: { product: NavProduct; stat
   return (
     <Link
       href={productHref(product.key)}
-      className="block rounded-[10px] border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+      className="block rounded-xl border border-border bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
     >
       <div className="flex items-center gap-2.5">
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white ${AVATAR_GRADIENTS[stat.tone]}`}>
@@ -28,7 +28,7 @@ export function ProductGlanceCard({ product, stat }: { product: NavProduct; stat
         <p className="truncate text-sm font-semibold text-dash-ink">{product.label}</p>
       </div>
 
-      <p className="mt-3 text-xl font-bold text-dash-ink">{stat.value}</p>
+      <p className="mt-3 text-lg font-semibold text-dash-ink">{stat.value}</p>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-page">
         <div className={`h-full rounded-full ${AVATAR_GRADIENTS[stat.tone]}`} style={{ width: `${pct}%` }} />
       </div>
