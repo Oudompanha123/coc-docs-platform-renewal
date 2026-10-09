@@ -1,8 +1,53 @@
 @import "tailwindcss";
 
+/* The `dark:` variant, taught this project's dark mode (ADR-104 decision 3).
+   shadcn/ui primitives are written against `dark:` utilities and assume a
+   `.dark` class on <html>. This project has never used one: lib/theme.ts
+   writes data-theme="light|dark" on <html>, and dark mode deliberately
+   applies only inside the three shells — login, register and welcome stay
+   light whatever the stored preference is (see the long note further down).
+
+   So the variant is defined to match that exactly, in both the forms the
+   rest of this file already handles: the shell element itself, and anything
+   inside it. Get this wrong in the permissive direction and every migrated
+   primitive on /login quietly turns dark the first time a visitor who once
+   chose dark mode signs out. */
+@custom-variant dark (&:where(
+  :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]),
+  :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) *
+));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Semantic surface tokens for the shadcn/ui primitives (ADR-104 decision 2).
+     Declared here as plain custom properties and exposed through `@theme
+     inline` below, so the generated utilities emit `var(--card)` rather than
+     a baked literal. That indirection is what lets one override under the
+     dark selector reach `.bg-card` everywhere at once — the thing the note
+     further down this file explains is NOT possible for the older `@theme`
+     tokens, each of which needs its own per-utility dark rule.
+
+     Values are the product's existing ones, not shadcn's neutral palette. A
+     migrated component has to be indistinguishable from the one it replaced,
+     so nothing here introduces a colour the UI did not already use. */
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: var(--color-brand-purple);
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f8;
+  --secondary-foreground: #28226d;
+  --accent: #eef0f8;
+  --accent-foreground: #28226d;
+  --muted-surface: #eef0f8;
+  --muted-text: #6b6b80;
+  --destructive: #d6304a;
+  --destructive-foreground: #ffffff;
+  --input: #ececf2;
+  --ring: #4c6ff0;
 }
 
 /* Brand accent colors outside @theme inline so utilities use var() at runtime,
@@ -34,6 +79,34 @@
   --color-sidebar-hover: #211d33;
   --color-sidebar-muted: #9490ab;
   --color-danger: #d6304a;
+
+  /* shadcn/ui's semantic names, pointed at this product's values (ADR-104
+     decision 2). These generate bg-card / text-muted-foreground / ring-ring
+     and the rest, which is the vocabulary every copied primitive is written
+     in. Each one resolves through the var() declared in :root above, so dark
+     mode is a variable swap rather than a per-utility override.
+
+     `--color-muted` is NOT redefined. It already exists above as a *text*
+     colour (`text-muted`, used across the app), whereas shadcn's `muted` is a
+     *surface*. Redefining it would repaint text in dozens of files that have
+     nothing to do with this migration, so shadcn's pair maps onto two
+     separate variables instead. */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted-surface: var(--muted-surface);
+  --color-muted-foreground: var(--muted-text);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,6 +144,29 @@
    visitor's last theme choice was "dark". */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) {
   color-scheme: dark;
+
+  /* Dark values for the shadcn/ui tokens (ADR-104 decision 2). Seventeen
+     declarations instead of seventeen per-utility override rules, because
+     those tokens are exposed through `@theme inline` as var() references —
+     the utilities read the variable at runtime, so redefining it here is
+     enough. The older `@theme` tokens below cannot work this way, which is
+     why each of them still needs its own rule.
+
+     Colours are taken from the overrides already in this file, so a shadcn
+     surface matches the hand-rolled card sitting next to it during the
+     migration rather than being a second, slightly different dark grey. */
+  --card: #1e1a30;
+  --card-foreground: #f2effa;
+  --popover: #1e1a30;
+  --popover-foreground: #f2effa;
+  --primary-foreground: #ffffff;
+  --secondary: #2a2545;
+  --secondary-foreground: #f2effa;
+  --accent: #2a2545;
+  --accent-foreground: #f2effa;
+  --muted-surface: #2a2545;
+  --muted-text: #8a93a8;
+  --input: #332e4d;
 }
 
 /* Both forms: a descendant (the common case) AND the shell element itself,

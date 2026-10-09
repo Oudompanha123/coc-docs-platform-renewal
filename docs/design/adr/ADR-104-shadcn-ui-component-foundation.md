@@ -62,18 +62,32 @@ None external. No requirement in `REQUIREMENTS-SPEC.md` asks for this; no gate i
    |---|---|
    | `--primary` | `--color-brand-purple` |
    | `--background` / `--foreground` | existing `--background` / `--foreground` |
-   | `--border` / `--input` | `--color-border` |
-   | `--muted-foreground` | `--color-muted` |
+   | `--input` | `--color-border`'s value (`#ececf2`) |
+   | `--muted-foreground` | the existing `--color-muted` value (`#6b6b80`) |
+   | `--muted-surface` | `--color-page` (`#eef0f8`) |
+   | `--card` / `--popover` | `#ffffff` |
    | `--destructive` | `--color-danger` |
    | `--ring` | `--color-brand-blue` |
+
+   Two details settled while implementing this, both worth recording because the obvious choice is wrong in each:
+
+   - **`--color-muted` is not redefined.** It already exists in this project as a *text* colour (`text-muted`, used across dozens of files), whereas shadcn's `muted` is a *surface*. Overwriting it would repaint text in files that have nothing to do with this migration. shadcn's pair is therefore split across two variables: `--color-muted-foreground` takes the existing text value, and the surface becomes `--color-muted-surface`.
+   - **The radius scale is not touched.** shadcn's Tailwind-4 preset normally redefines `--radius-sm|md|lg|xl`. The existing UI is built on Tailwind's default scale via `rounded-lg`/`rounded-xl`, so overriding those tokens would silently reshape every corner in the app. Only a standalone `--radius` is introduced, and primitives use the stock utilities.
+
+   The new tokens are exposed through `@theme inline` as `var()` references rather than literals. That indirection is what makes dark mode a swap of a dozen variables under the existing shell-scoped selector, instead of one override rule per utility — which is what the older `@theme` tokens in `globals.css` require, and which that file's own comments document as a frustration.
 
    A migrated component must be visually indistinguishable from the one it replaced. Any deliberate visual change is a separate PR with its own before/after, never smuggled in under a primitive swap.
 
 3. **The existing theme mechanism stays.** shadcn assumes a `.dark` class on `<html>`; this project uses `data-theme="dark"` plus a `system` media-query fallback, and `lib/theme.ts` is already wired into three shells and a settings screen. The attribute wins. Tailwind 4 is told so once, in `globals.css`:
 
    ```css
-   @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+   @custom-variant dark (&:where(
+     :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]),
+     :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) *
+   ));
    ```
+
+   **The shell scoping is not decoration.** Dark mode in this project is not "dark when the attribute is set" — it is deliberately confined to the three shells, and `/login`, `/register` and `/welcome` stay light whatever the stored preference is, because they share class names (`text-muted`, `border-border`) with the shells. The obvious one-line variant (`&:where([data-theme="dark"], [data-theme="dark"] *)`) is wrong in the permissive direction: it would turn every migrated primitive on the auth pages dark for any visitor who had once chosen dark mode and then signed out. Both selector forms are present for the same reason the rest of the file carries both — a descendant combinator never matches an element against itself, and several page roots carry `data-shell` and the styled class on one element.
 
    `lib/theme.ts` is not modified. No component learns about theming.
 
@@ -83,7 +97,7 @@ None external. No requirement in `REQUIREMENTS-SPEC.md` asks for this; no gate i
 
    | Phase | Scope | Why here |
    |---|---|---|
-   | **0 — Groundwork** | Remove the 5 dead Mantine/BlockNote packages; `shadcn init`; token map; `dark` variant; create `components/ui/`; add the ESLint rule from decision 7 in warn mode | No visual change, no test change. Independently revertible |
+   | **0 — Groundwork** | Remove the 5 dead Mantine/BlockNote packages; add the Radix/`cva`/`clsx`/`tailwind-merge` base; `components.json`; `lib/utils.ts` (`cn`); the token map and the `dark` variant in `globals.css` | No visual change, no test change, nothing imports any of it yet. Independently revertible. `components/ui/` and the decision-7 ESLint rule arrive in phase 1 — git cannot carry an empty directory, and the rule has no migrated area to guard until then |
    | **1 — Form & action** | `Button`, `Input`, `Textarea`, `Label`, `Select`, `Checkbox`, `Switch` | Smallest DOM delta, highest reuse (97 files hold a raw `<button>`). Builds confidence before touching focus management |
    | **2 — Overlays** | `Dialog`, `DropdownMenu`, `Popover`, `Tooltip`, `Sheet` | The biggest correctness win: replaces 8 hand-rolled `role="dialog"` implementations and their focus traps, outside-click handlers and Escape wiring with audited ones. Also the biggest test churn — deliberately after phase 1 |
    | **3 — Data display** | `Table`, `Card`, `Badge`, `Tabs`, `Avatar`, `Skeleton` | The 8 table-bearing files and the dashboard cards converge on one shape |
@@ -92,7 +106,7 @@ None external. No requirement in `REQUIREMENTS-SPEC.md` asks for this; no gate i
 
 6. **One product area per pull request, never a partial screen.** The unit of migration is a directory under `components/` (`account`, `announcements`, `attendance`, `auth`, `ax-renewal`, `claude-usage`, `dashboard`, `docs`, `home`, `layout`, `legal`, `markdown`, `reports`, `settings`, `users-roles`, `welcome`) together with the routes that render it. A PR that leaves one screen with a shadcn `Button` beside a hand-rolled one does not merge. Mixed primitives *between* areas during the migration are expected and fine; mixed primitives *within a screen* are not.
 
-7. **New code uses the primitives.** Once phase 1 lands, a new component importing a raw `<button>`/`<input>` where a primitive exists is a review rejection. An ESLint rule carries this: warn from phase 0, error at phase 5, so the rule never blocks the migration that creates the thing it requires.
+7. **New code uses the primitives, enforced per migrated area.** A new component reaching for a raw `<button>`/`<input>` where a primitive exists is a review rejection, and an ESLint rule carries it. The rule is scoped by file glob to the areas already migrated, and the glob grows with each PR — so it **errors** in migrated areas from the moment they land, and is silent elsewhere. The first draft of this ADR said "warn globally from phase 0"; that was wrong in practice, because 97 files currently hold a raw `<button>` and a global warning would bury the two real lint warnings the project has under hundreds of expected ones, making `npm run lint` useless for the entire migration. Scoping it instead means the signal stays sharp and a migrated area can never regress.
 
 8. **Nothing about authorisation, validation or data moves.** Primitives are presentational. `CONST-TECH-05` and `CONST-TECH-07` are untouched — no shadcn component makes a decision the backend owns, and `lib/content/validate.ts` stays advisory. Each migrated file keeps its `// req:` traceability comments verbatim.
 
@@ -141,10 +155,9 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 
 ### 4.3 Follow-up work
 
-- [ ] **Phase 0** — remove `@blocknote/*` (3) and `@mantine/*` (2) from `package.json`; confirm `npm run build` is unaffected
-- [ ] **Phase 0** — `npx shadcn@latest init`; commit `components.json` with the §2.2 token map; add the `@custom-variant dark` line to `globals.css`
-- [ ] **Phase 0** — ESLint rule for decision 7, in warn mode
-- [ ] **Phase 1** — Button, Input, Textarea, Label, Select, Checkbox, Switch; migrate `components/auth` first, as the smallest real area
+- [x] **Phase 0** — removed `@blocknote/*` (3) and `@mantine/*` (2); added `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge`
+- [x] **Phase 0** — `components.json`, `lib/utils.ts`, the §2.2 token map and the `@custom-variant dark` rule in `globals.css`. Verified: typecheck clean, lint unchanged at 0 errors / 2 pre-existing warnings, 1418 tests pass, `npm run build` succeeds with shared First Load JS at **103 kB** (the baseline later phases are measured against)
+- [ ] **Phase 1** — Button, Input, Textarea, Label, Select, Checkbox, Switch; `components/ui/`; the decision-7 ESLint rule scoped to the first migrated area; migrate `components/auth` first, as the smallest real area
 - [ ] **Phase 2** — Dialog, DropdownMenu, Popover, Tooltip, Sheet; migrate the 16 modals and the 8 `role="dialog"` sites
 - [ ] **Phase 3** — Table, Card, Badge, Tabs, Avatar, Skeleton
 - [ ] **Phase 4** — Alert, Progress, toast; sweep the remaining areas
@@ -178,6 +191,7 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 | Date | Version | Changes | Author |
 |---|---|---|---|
 | 2026-10-09 | 1.0 | Initial draft on branch `feat/shadcn-ui-migration` | AI (Claude Opus 5) |
+| 2026-10-09 | 1.1 | Corrected three things phase 0 proved wrong in the draft: the `dark` variant must be **shell-scoped** or it darkens the auth pages; `--color-muted` and the radius scale must **not** be redefined; the decision-7 ESLint rule is **scoped per migrated area**, not a global warning. Phase 0 marked done with its measured baseline | AI (Claude Opus 5) |
 
 ---
 
