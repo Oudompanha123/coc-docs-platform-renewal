@@ -11,12 +11,26 @@
 export const HTTP_TIMEOUT_MS = 10_000;
 const RETRY_DELAY_MS = 1_500;
 
-/** `transient` failures are worth one retry; everything else is final. */
+/**
+ * The server's machine-readable `code` for the two refusals that are about the
+ * account's tracking, not its credential (ADR-105). Matched on these, never on
+ * the wording.
+ */
+export const TRACKING_DISABLED = 'tracking-disabled';
+export const DISABLED_PERIOD = 'disabled-period';
+
+/** What a person sees when an administrator has disabled their tracking. Never "log in again" — that cannot help. */
+export const TRACKING_DISABLED_MESSAGE =
+  'Claude usage tracking has been disabled for your account by an administrator, so nothing was uploaded. ' +
+  'Contact your Coc Docs administrator if you think this is a mistake.';
+
+/** `transient` failures are worth one retry; everything else is final. `code` is the server's reason, when it gave one. */
 export class UploadError extends Error {
-  constructor(message, { status = null, transient = false } = {}) {
+  constructor(message, { status = null, transient = false, code = null } = {}) {
     super(message);
     this.status = status;
     this.transient = transient;
+    this.code = code;
   }
 }
 
@@ -47,15 +61,22 @@ function explainNetworkError(error, url) {
   return `${error.message}${code ? ` (${code})` : ''}`;
 }
 
-/** The backend's own ApiException body carries a `detail`; fall back to the raw text. */
-async function readDetail(res) {
+/** The backend's own ApiException body carries a `detail`, and sometimes a `code`; fall back to the raw text. */
+async function readProblem(res) {
   const body = await res.text().catch(() => '');
   try {
     const parsed = JSON.parse(body);
-    return String(parsed.detail ?? parsed.message ?? body).slice(0, 200);
+    return {
+      detail: String(parsed.detail ?? parsed.message ?? body).slice(0, 200),
+      code: typeof parsed.code === 'string' ? parsed.code : null,
+    };
   } catch {
-    return body.slice(0, 200);
+    return { detail: body.slice(0, 200), code: null };
   }
+}
+
+async function readDetail(res) {
+  return (await readProblem(res)).detail;
 }
 
 async function postOnce(url, token, payload, { bypassToken, fetchImpl }) {
@@ -98,10 +119,25 @@ async function postOnce(url, token, payload, { bypassToken, fetchImpl }) {
     );
   }
   if (res.status === 403) {
+    const { detail, code } = await readProblem(res);
+    // Not a credential problem: signing in again cannot help, so don't say it.
+    if (code === TRACKING_DISABLED) {
+      throw new UploadError(TRACKING_DISABLED_MESSAGE, { status: 403, code });
+    }
     throw new UploadError(
-      `rejected (403): ${(await readDetail(res)) || 'this token may only report usage for its own account'}. ` +
+      `rejected (403): ${detail || 'this token may only report usage for its own account'}. ` +
         'Run `claude-team-usage login` and sign in as yourself.',
-      { status: 403 },
+      { status: 403, code },
+    );
+  }
+  if (res.status === 409) {
+    const { detail, code } = await readProblem(res);
+    // One record from a time tracking was disabled: refused for good, never retried.
+    throw new UploadError(
+      code === DISABLED_PERIOD
+        ? 'not recorded: tracking was disabled for your account at that time'
+        : `HTTP 409 ${detail}`,
+      { status: 409, code },
     );
   }
   if (res.status === 404) {
