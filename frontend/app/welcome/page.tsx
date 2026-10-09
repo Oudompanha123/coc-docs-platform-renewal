@@ -176,7 +176,10 @@ export default function WelcomePage() {
   return (
     <div className={isDark ? "min-h-screen bg-[#0a0a0a]" : "min-h-screen bg-white"}>
       <header
-        className={`sticky top-0 z-30 border-b shadow-sm transition-colors duration-200 ${
+        // No shadow. The border appearing on scroll is the whole signal that
+        // the bar has detached from the page; a shadow underneath it says the
+        // same thing twice, and says it while the page is still at the top.
+        className={`sticky top-0 z-30 border-b transition-colors duration-200 ${
           isDark ? "bg-[#0a0a0a]" : "bg-white"
         } ${scrolled ? (isDark ? "border-[#2a2a2a]" : "border-border") : "border-transparent"}`}
       >

@@ -246,7 +246,9 @@ export function MemberHeader({
   return (
     <>
       <MemberThemeSync />
-      <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
+      {/* Border only, no shadow — matching the admin Topbar and the AX Renewal
+          bar, which were already built that way. */}
+      <header className="sticky top-0 z-30 border-b border-border bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
 
         {/* Logo — two images, dark mode's own CSS (globals.css) shows/hides
