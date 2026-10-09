@@ -120,7 +120,7 @@ export function ChangePasswordForm({
       )}
 
       <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-dash-ink">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
         </Button>
         {/* Gains a visible focus ring and a hover state, neither of which it

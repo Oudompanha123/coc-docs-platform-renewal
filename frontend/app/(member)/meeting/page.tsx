@@ -133,7 +133,7 @@ function Node({ label, tone = "ai" }: { label: string; tone?: "ai" | "human" | "
   const styles = {
     ai: "border-primary/30 bg-secondary text-foreground",
     human: "border-primary/40 bg-secondary text-foreground",
-    plain: "border-surface-border bg-white text-foreground",
+    plain: "border-surface-border bg-card text-foreground",
   }[tone];
   return (
     <span
@@ -260,7 +260,7 @@ function WorkflowSlide() {
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl border border-primary/30 bg-secondary p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-foreground">The AI does</p>
+          <p className="text-sm font-medium text-foreground">The AI does</p>
           <ul className="mt-3 space-y-2 text-base text-foreground">
             <li>Drafts the plan, the code, the tests</li>
             <li>Writes down why, as an ADR</li>
@@ -268,7 +268,7 @@ function WorkflowSlide() {
           </ul>
         </div>
         <div className="rounded-xl border border-primary/40 bg-primary/10 p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-foreground">We decide</p>
+          <p className="text-sm font-medium text-foreground">We decide</p>
           <ul className="mt-3 space-y-2 text-base text-foreground">
             <li>Is this the right problem?</li>
             <li>Is this design the one we want?</li>
@@ -359,8 +359,8 @@ function PresentersSlide() {
             <div>
               {/* Pretendard, not Inter: Inter carries no Hangul and the
                   browser would silently fall back to whatever it has. */}
-              <p className="font-pretendard text-lg font-bold text-foreground">{person.korean}</p>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="font-pretendard text-lg font-semibold text-foreground">{person.korean}</p>
+              <p className="text-xs font-medium text-muted-foreground">
                 {person.english}
               </p>
             </div>

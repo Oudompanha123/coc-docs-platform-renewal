@@ -56,7 +56,6 @@ const HOME_LINK = { label: "Home", href: "/login" };
 
 const FOOTER_LEGAL_LINKS = [
   { label: "Privacy", href: "/privacy" },
-  { label: "Terms", href: "/terms" },
   { label: "Contact", href: "#" },
   { label: "Status", href: "#" },
 ];
@@ -295,7 +294,7 @@ export default function WelcomePage() {
 
         <section className="border-y border-surface-border bg-background px-6 py-10">
           <ScrollReveal>
-            <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <p className="text-center text-xs font-medium text-muted-foreground">
               Trusted by teams at
             </p>
             <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3">
@@ -375,7 +374,7 @@ export default function WelcomePage() {
             <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.heading}>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-foreground">{column.heading}</p>
+                  <p className="text-xs font-medium text-foreground">{column.heading}</p>
                   <ul className="mt-3 space-y-2">
                     {column.links.map((link) => {
                       const isAuthLink = link.label === "Create an account" || link.label === "Log in";

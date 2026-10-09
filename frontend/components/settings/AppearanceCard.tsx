@@ -93,7 +93,7 @@ export function AppearanceCard() {
     <div className="flex flex-col gap-6">
       {/* Theme */}
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Theme</p>
+        <p className="text-xs font-medium text-muted-foreground">Theme</p>
         <div className="mt-2 flex gap-2">
           {THEME_OPTIONS.map(({ value, label, Icon }) => (
             // A single-choice chip group, styled from the selection rather
@@ -120,7 +120,7 @@ export function AppearanceCard() {
 
       {/* Accent color */}
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Accent color</p>
+        <p className="text-xs font-medium text-muted-foreground">Accent color</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {/* Left alone on purpose, and worth a second look when someone
               touches this card: a <button> wrapping an <input type="color">

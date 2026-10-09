@@ -45,7 +45,7 @@ export function HomeFooter({
 
           <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.product}</p>
+              <p className="text-xs font-medium text-foreground">{t.footer.product}</p>
               <ul className="mt-3 space-y-2.5">
                 <li><Link href="/home" className="text-sm text-muted-foreground hover:text-foreground">{t.nav.home}</Link></li>
                 <li><Link href={productHref("jex3-0")} className="text-sm text-muted-foreground hover:text-foreground">Jex3.0</Link></li>
@@ -55,7 +55,7 @@ export function HomeFooter({
             </div>
 
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.team}</p>
+              <p className="text-xs font-medium text-foreground">{t.footer.team}</p>
               <ul className="mt-3 space-y-2.5">
                 <li><Link href={productHref("team")} className="text-sm text-muted-foreground hover:text-foreground">Team</Link></li>
                 <li><Link href={productHref("usage")} className="text-sm text-muted-foreground hover:text-foreground">Usage</Link></li>
@@ -63,7 +63,7 @@ export function HomeFooter({
             </div>
 
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.account}</p>
+              <p className="text-xs font-medium text-foreground">{t.footer.account}</p>
               <ul className="mt-3 space-y-2.5">
                 <li>
                   <button type="button" onClick={onOpenProfile} className="text-sm text-muted-foreground hover:text-foreground">
@@ -91,7 +91,7 @@ export function HomeFooter({
             </div>
 
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-foreground">{t.footer.help}</p>
+              <p className="text-xs font-medium text-foreground">{t.footer.help}</p>
               <ul className="mt-3 space-y-2.5">
                 <li><Link href="/docs/get-started" className="text-sm text-muted-foreground hover:text-foreground">{t.footer.getStarted}</Link></li>
                 <li><Link href="/docs/how-to-use" className="text-sm text-muted-foreground hover:text-foreground">{t.footer.howToUse}</Link></li>

@@ -177,8 +177,32 @@ export async function createProduct(key: string, label: string, icon: string): P
   return { ...created, items: [] };
 }
 
-export async function updateProduct(key: string, label: string, icon: string): Promise<void> {
-  await adminRequest(`/products/${key}`, "PUT", { label, icon });
+/** The key the caller sent (`previousKey`) alongside the product as it
+ *  stands now — `product.key` only differs from it when the new label
+ *  slugified to a different URL slug (task: "product rename: ... slug
+ *  follows the new name"). */
+export type UpdateProductResult = { previousKey: string; product: NavProduct };
+
+export async function updateProduct(key: string, label: string, icon: string): Promise<UpdateProductResult> {
+  const response = await adminRequest(`/products/${key}`, "PUT", { label, icon });
+  const body = (await response.json()) as { previousKey: string; product: Omit<NavProduct, "items"> };
+  return { previousKey: body.previousKey, product: { ...body.product, items: [] } };
+}
+
+/** The product a now-retired slug belongs to, for the frontend's own
+ *  `middleware.ts` 308 redirect — `null` when `slug` was never a product's
+ *  key at all (never redirect to a guess). Public (`GET /api/v1/nav/**`),
+ *  same as {@link fetchNavStructure}. */
+export async function fetchCurrentKeyForOldSlug(slug: string): Promise<string | null> {
+  let response: Response;
+  try {
+    response = await fetch(`${NAV_URL}/products/by-old-slug/${slug}`);
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  const body = (await response.json()) as { currentKey: string };
+  return body.currentKey;
 }
 
 export async function deleteProduct(key: string): Promise<void> {
@@ -204,4 +228,58 @@ export async function deleteItem(productKey: string, slug: string): Promise<void
 
 export async function reorderItems(productKey: string, slugs: string[]): Promise<void> {
   await adminRequest(`/products/${productKey}/items/reorder`, "PUT", { slugs });
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar kebab menu: ADMINISTRATION-block item rename/move + custom groups
+// ---------------------------------------------------------------------------
+
+export type NavGroupConfig = { id: string; name: string; builtin: boolean; sortOrder: number };
+export type NavItemOverrideConfig = {
+  itemKey: string;
+  customLabel: string | null;
+  groupId: string | null;
+  /** Set only once a move has happened — the position "moved item goes to
+   *  the end of the target group" assigned it. Null for a rename-only
+   *  override, or one that's never been moved. */
+  sortOrder: number | null;
+};
+
+export type AdminNavConfig = {
+  products: NavProduct[];
+  groups: NavGroupConfig[];
+  itemOverrides: NavItemOverrideConfig[];
+};
+
+/** Everything the sidebar's kebab menu needs: live products, every group,
+ *  and every ADMINISTRATION-block item override, in one call. */
+export async function fetchAdminNavConfig(): Promise<AdminNavConfig> {
+  const response = await adminRequest("", "GET");
+  return (await response.json()) as AdminNavConfig;
+}
+
+/** A static item's key is its href (e.g. "/legal-pages") — sent without its
+ *  leading slash, which the backend restores (a literal "/" would otherwise
+ *  split into an extra path segment). Rename sends only `label`, move sends
+ *  only `groupId`; the other is left as it already is. */
+export async function updateNavItemOverride(
+  itemKey: string,
+  update: { label?: string; groupId?: string },
+): Promise<NavItemOverrideConfig> {
+  const segment = itemKey.startsWith("/") ? itemKey.slice(1) : itemKey;
+  const response = await adminRequest(`/items/${segment}`, "PATCH", update);
+  return (await response.json()) as NavItemOverrideConfig;
+}
+
+export async function createNavGroup(name: string): Promise<NavGroupConfig> {
+  const response = await adminRequest("/groups", "POST", { name });
+  return (await response.json()) as NavGroupConfig;
+}
+
+export async function renameNavGroup(id: string, name: string): Promise<void> {
+  await adminRequest(`/groups/${id}`, "PUT", { name });
+}
+
+export async function deleteNavGroup(id: string): Promise<void> {
+  await adminRequest(`/groups/${id}`, "DELETE");
 }

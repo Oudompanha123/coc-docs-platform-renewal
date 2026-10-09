@@ -437,8 +437,8 @@ export function DashboardPreview() {
           <div key={activeNavIndex} className="animate-tab-content flex flex-1 flex-col">
           {/* Distinct card-coloured header bar with a bottom border, matching the
               real admin shell's own Topbar (components/layout/Topbar.tsx:
-              "flex items-center justify-between border-b border-border
-              bg-white px-4 py-4 ...") — previously this row just floated on
+              "flex items-center justify-between border-b border-surface-border
+              bg-card px-4 py-4 ...") — previously this row just floated on
               the same gray body background as the content below it. */}
           <div
             className="flex items-center justify-between gap-2 border-b px-4 py-2.5 sm:px-5 border-surface-border bg-card"
@@ -507,7 +507,7 @@ export function DashboardPreview() {
                       <Icon className="h-3 w-3" />
                     </div>
                     <p
-                      className="truncate text-[8px] font-semibold uppercase tracking-wide text-muted-foreground"
+                      className="truncate text-[8px] font-medium text-muted-foreground"
                     >
                       {stat.label}
                     </p>
@@ -750,7 +750,7 @@ export function DashboardPreview() {
                     className="rounded-xl border p-2 border-surface-border bg-card"
                   >
                     <p
-                      className="truncate text-[7px] font-semibold uppercase tracking-wide text-muted-foreground"
+                      className="truncate text-[7px] font-medium text-muted-foreground"
                     >
                       {stat.label}
                     </p>

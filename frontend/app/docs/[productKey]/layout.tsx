@@ -106,14 +106,23 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{product.label} Documentation</h1>
               <p className="mt-1 text-sm text-muted-foreground">Browse guides and references for {product.label}</p>
 
-              <div className="mt-5">
-                <ProductTabBar
-                  productKey={product.key}
-                  items={product.items}
-                  activeSlug={activeItem.slug}
-                  align={product.key === "usage" ? "start" : "center"}
-                />
-              </div>
+              {/* A single item needs no tabs to switch between — and a lone
+                  pill sitting alone in the bar's own white shell reads as
+                  broken, not as a feature with nothing to show. Not rendered
+                  at all (not just hidden) so there is no empty wrapper left
+                  taking up space: `ProductDocsPage`'s own content already
+                  opens with `mt-6` of its own, so the gap below the header
+                  stays the same single `mt-6` either way, never doubled. */}
+              {product.items.length > 1 && (
+                <div className="mt-6">
+                  <ProductTabBar
+                    productKey={product.key}
+                    items={product.items}
+                    activeSlug={activeItem.slug}
+                    align={product.key === "usage" ? "start" : "center"}
+                  />
+                </div>
+              )}
 
               <ProductDocsProvider value={{ product, activeItem }}>{children}</ProductDocsProvider>
             </>

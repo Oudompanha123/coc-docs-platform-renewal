@@ -75,7 +75,7 @@ export function SecurityCard() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent sign-ins</p>
+            <p className="text-xs font-medium text-muted-foreground">Recent sign-ins</p>
             {state.recentSignIns.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">No sign-in history yet.</p>
             ) : (

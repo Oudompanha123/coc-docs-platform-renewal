@@ -17,6 +17,7 @@
 import type { SVGProps } from "react";
 import {
   Activity,
+  Ban,
   Bell,
   CalendarCheck,
   Camera,
@@ -57,6 +58,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Scale,
   Settings,
   Sparkles,
   Sun,
@@ -151,3 +153,7 @@ export const PaperclipIcon = lucide(Paperclip);
 export const CalendarCheckIcon = lucide(CalendarCheck);
 /** The Announcements page's glyph — a megaphone (ADR-098). */
 export const MegaphoneIcon = lucide(Megaphone);
+/** "Not permitted" — the legal pages' highlight-card icon for Fair use. */
+export const BanIcon = lucide(Ban);
+/** The legal pages' sidebar/header glyph — a balance scale. */
+export const ScaleIcon = lucide(Scale);

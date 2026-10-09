@@ -112,11 +112,11 @@ export function ProfileCard() {
 
       <dl className="grid flex-1 grid-cols-2 gap-x-6 gap-y-3 border-l border-surface-border pl-6 sm:grid-cols-3">
         <div className="min-w-0">
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</dt>
+          <dt className="text-xs font-medium text-muted-foreground">Email</dt>
           <dd className="mt-0.5 truncate text-sm text-foreground">{user.email}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Account status</dt>
+          <dt className="text-xs font-medium text-muted-foreground">Account status</dt>
           <dd className="mt-0.5 flex items-center gap-1.5 text-sm text-foreground">
             {/* Active by construction: a deactivated account cannot hold a
                 session, so a caller reading this page is active. */}
@@ -125,7 +125,7 @@ export function ProfileCard() {
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Joined</dt>
+          <dt className="text-xs font-medium text-muted-foreground">Joined</dt>
           <dd className="mt-0.5 text-sm text-foreground">{formatJoined(user.createdAt)}</dd>
         </div>
       </dl>

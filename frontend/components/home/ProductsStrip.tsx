@@ -16,7 +16,7 @@ export function ProductsStrip({ products, stats }: { products: NavProduct[]; sta
   const { t } = useLanguage();
   return (
     <section id="products" className="animate-entrance border-y border-surface-border bg-background px-6 py-8">
-      <p className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">{t.productsStrip.label}</p>
+      <p className="text-center text-xs font-medium text-muted-foreground">{t.productsStrip.label}</p>
       <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-3">
         {products.map((product) => {
           const stat = stats.find((s) => s.id === product.key);
