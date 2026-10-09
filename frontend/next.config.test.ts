@@ -17,4 +17,13 @@ describe("next.config.ts redirects", () => {
       permanent: true,
     });
   });
+
+  it("permanently redirects the old /claude-usage/logs URL to /claude-usage/monitoring", async () => {
+    const redirects = await nextConfig.redirects?.();
+    expect(redirects).toContainEqual({
+      source: "/claude-usage/logs",
+      destination: "/claude-usage/monitoring",
+      permanent: true,
+    });
+  });
 });
