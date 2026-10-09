@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MailIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { SessionExpiredError } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 import {
@@ -171,17 +172,22 @@ export function MailCredentialCard() {
 
         <div className="flex shrink-0 gap-2">
           {configured && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="xs"
               onClick={() => void remove()}
               disabled={busy}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-dash-ink disabled:opacity-40"
+              className="rounded-lg text-muted hover:bg-transparent hover:text-dash-ink disabled:opacity-40"
             >
               Remove
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="xs"
+            className="rounded-lg text-dash-ink hover:bg-surface-2 disabled:opacity-40"
             onClick={() => {
               setExpanded((open) => {
                 // Seed on open, not on mount: the address a person is
@@ -194,10 +200,9 @@ export function MailCredentialCard() {
               });
             }}
             disabled={busy}
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-surface-2 disabled:opacity-40"
           >
             {expanded ? "Cancel" : configured ? "Replace" : "Set up"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -226,14 +231,16 @@ export function MailCredentialCard() {
 
           {canUseOauth && (
             <>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => void connectGoogle()}
                 disabled={busy}
-                className="mt-3 w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-surface-2 disabled:opacity-40"
+                className="mt-3 flex w-full rounded-lg bg-surface text-dash-ink hover:bg-surface-2 disabled:opacity-40"
               >
                 {busy ? "Connecting…" : "Connect with Google"}
-              </button>
+              </Button>
               <p className="mt-1 text-xs text-muted">
                 Recommended. One permission screen, nothing to type, and you can revoke it from your Google
                 account at any time.
@@ -247,6 +254,18 @@ export function MailCredentialCard() {
           <label className="mt-3 block text-xs font-semibold text-dash-ink" htmlFor="smtp-username">
             Gmail address
           </label>
+          {/* These two keep their own field styling, and that is the finding,
+              not an oversight. This card uses a THIRD text-field style —
+              `rounded-lg`, `bg-surface`, and a focus treatment that changes
+              the border and draws no ring at all — where the auth pages use
+              one and the settings cards another. Routing it through Input's
+              `dashboard` variant would mean overriding the radius, the
+              background and the focus ring, which is a longer way of writing
+              what is already here; encoding a third variant for one card is
+              how a primitive stops being one. Three field styles is a design
+              question for the PM, recorded in ADR-104 §4.3, and the answer
+              should remove two of them rather than enshrine all three. */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <input
             id="smtp-username"
             type="email"
@@ -260,6 +279,8 @@ export function MailCredentialCard() {
           <label className="mt-3 block text-xs font-semibold text-dash-ink" htmlFor="app-password">
             App Password
           </label>
+          {/* Same third field style — see the note above. */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <input
             id="app-password"
             type="password"
@@ -281,14 +302,15 @@ export function MailCredentialCard() {
 
           {error && <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p>}
 
-          <button
+          <Button
             type="button"
+            size="md"
             onClick={() => void save()}
             disabled={busy || username.trim() === "" || appPassword.trim() === ""}
-            className="mt-3 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+            className="mt-3 rounded-lg text-xs hover:opacity-100 disabled:opacity-40"
           >
             {busy ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

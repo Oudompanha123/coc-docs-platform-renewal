@@ -9,6 +9,11 @@ export function Tabs({ tabs, active, onChange }: { tabs: Tab[]; active: string; 
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         return (
+          // role="tab" with an underline indicator — a tab, not a button.
+          // Phase 3's Tabs primitive replaces this file outright, along with
+          // the roving-tabindex keyboard handling it does not yet implement
+          // (ADR-104 §2.5).
+          // eslint-disable-next-line react/forbid-elements
           <button
             key={tab.id}
             type="button"

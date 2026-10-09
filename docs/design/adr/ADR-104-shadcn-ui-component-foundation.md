@@ -18,6 +18,7 @@ Measured on `dev` at `2554da5`, 2026-10-09:
 | | |
 |---|---|
 | Component files (`components/**/*.tsx`, excluding tests) | **174** |
+| Of the raw `<button>` sites, how many are actually buttons | **roughly half** — see §1.5 |
 | Component test files | **87** |
 | Routes (`app/**/page.tsx`) | **37** |
 | Modal components | **16** |
@@ -47,6 +48,23 @@ None external. No requirement in `REQUIREMENTS-SPEC.md` asks for this; no gate i
 - **RISK — test churn.** 87 test files query the rendered DOM. Radix primitives render different structure and ARIA wiring than the hand-rolled equivalents, so a meaningful fraction of those tests will need rewriting. This is the single largest cost and it is not optional work.
 - **RISK — half-migrated screens.** The failure mode of every incremental UI migration is a screen where two button styles sit next to each other for a quarter. §2 decision 6 exists solely to prevent it.
 - **RISK — token drift.** shadcn components ship expecting their own token names. Adopted verbatim, they would render in shadcn's default palette rather than this product's, and the brand colours would quietly become decoration applied on top.
+
+### 1.5 The 97-file figure overstates the work
+
+Added after migrating three areas, because it changes how the remaining phases should be read.
+
+"97 files contain a raw `<button>`" is true and misleading. Across `auth`, `account` and `settings`, about half the `<button>` elements found were not buttons in any design-system sense:
+
+| What it actually is | Where | Goes to |
+|---|---|---|
+| Tabs with roving `tabIndex` and arrow-key handling | `SettingsSideMenu` (×2), `settings/Tabs` | Phase 3 `Tabs` |
+| Disclosure headers spanning a whole card or row | `AccordionSection`, `SecurityTab` | Phase 3 `Collapsible` |
+| Selection chips and cards driven by `aria-pressed` | `account/AppearanceCard`, `settings/AppearanceCard`, `DangerZoneCard`'s grace-period chips | `ToggleGroup` / `RadioGroup` |
+| `role="switch"` toggles | `NotificationsCard`, `PushNotificationsCard` | `Switch` |
+| A nav row styled to match the `<Link>` beside it | `SettingsSideMenu`'s Log out | Stays as it is |
+| An invisible input, or one hidden behind a label | `OtpCodeInput`, the avatar file picker, the colour swatch | Stays as it is |
+
+Each is marked in place with an `eslint-disable-next-line` and a one-line reason naming what it is waiting for, so the linter now carries the remaining to-do list rather than a document going stale beside it. The practical effect: `Button` and `Input` cover less ground than the raw counts suggest, and the overlay and form-control primitives of phases 2–3 cover more.
 
 ## 2. Decision
 
@@ -158,7 +176,11 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 - [x] **Phase 0** — removed `@blocknote/*` (3) and `@mantine/*` (2); added `@radix-ui/react-slot`, `class-variance-authority`, `clsx`, `tailwind-merge`
 - [x] **Phase 0** — `components.json`, `lib/utils.ts`, the §2.2 token map and the `@custom-variant dark` rule in `globals.css`. Verified: typecheck clean, lint unchanged at 0 errors / 2 pre-existing warnings, 1418 tests pass, `npm run build` succeeds with shared First Load JS at **103 kB** (the baseline later phases are measured against)
 - [x] **Phase 1** — `Button`, `Input`, `Label` in `components/ui/`; the decision-7 ESLint rule scoped to `components/auth` and the five auth routes; 11 buttons and every auth text field migrated. **Textarea, Select, Checkbox and Switch were not built**, because no call site in the pilot area needs them and shipping an unused primitive is how `@blocknote/*` came to sit in `package.json` for a year. The two checkboxes on /login and /register are exempted in place with a reason, and get a real primitive when the phase that can absorb the DOM change reaches them
-- [ ] **Phase 1 (cont.)** — remaining areas on the current primitives, one PR each
+- [x] **Phase 1 (cont.)** — `components/account` and `components/settings`. 20 further buttons and the profile fields migrated; `md` size and a `destructiveOutline` variant added; `Input` gained a `dashboard` variant
+- [ ] **Phase 1 (cont.)** — remaining areas on the current primitives, one PR each: `layout`, `users-roles`, `claude-usage`, `announcements`, `attendance`, `home`, `welcome`, `reports`, `markdown`, `docs`, `ax-renewal`
+- [ ] **PM decision — how many text-field styles does this product have?** Four were found while migrating, and nothing distinguishes them but the week each was written: the auth pages (`py-3`, 4px focus ring, border changes on focus), the settings cards (`py-2`, 2px ring, border fixed), `MailCredentialCard` (`rounded-lg`, `bg-surface`, border-only focus, no ring at all) and `settings/ProfileCard` (`rounded-lg`, `px-2.5 py-1.5`, 4px ring). Two are encoded as `Input` variants; the other two are left in place with a note, because a primitive with four variants is a class string with extra syntax. The answer should delete three of them, and it is a design decision rather than a migration one
+- [ ] **PM decision — the button size scale.** Same story: `py-3`, `py-2.5`, `py-2` and `py-1.5` all exist for the same kinds of action, alongside four radii (`rounded-xl`, `rounded-full`, `rounded-lg`, `rounded-md`) and three disabled opacities (40, 50, 60). The migration preserves every one of them rather than silently normalising; collapsing the scale is a visible change and needs its own before/after
+- [ ] **Bug found, not fixed** — `components/settings/AppearanceCard.tsx` nests `<input type="color">` inside a `<button>`. Interactive content inside interactive content is invalid HTML and unpredictable under assistive technology. Fixing it means deciding how the swatch opens its picker, which is a design change rather than a primitive swap, so it is reported here instead of being altered under cover of this work
 - [ ] **Phase 2** — Dialog, DropdownMenu, Popover, Tooltip, Sheet; migrate the 16 modals and the 8 `role="dialog"` sites
 - [ ] **Phase 3** — Table, Card, Badge, Tabs, Avatar, Skeleton
 - [ ] **Phase 4** — Alert, Progress, toast; sweep the remaining areas
@@ -193,6 +215,7 @@ The gap to the runner-up is **>10%**, so no PM tie-break is mandated by the scor
 |---|---|---|---|
 | 2026-10-09 | 1.0 | Initial draft on branch `feat/shadcn-ui-migration` | AI (Claude Opus 5) |
 | 2026-10-09 | 1.1 | Corrected three things phase 0 proved wrong in the draft: the `dark` variant must be **shell-scoped** or it darkens the auth pages; `--color-muted` and the radius scale must **not** be redefined; the decision-7 ESLint rule is **scoped per migrated area**, not a global warning. Phase 0 marked done with its measured baseline | AI (Claude Opus 5) |
+| 2026-10-09 | 1.3 | `components/account` and `components/settings` migrated. Added §1.5: about half the raw `<button>` sites are tabs, disclosures, chips or switches rather than buttons, so the 97-file figure overstates what `Button` and `Input` can reach. Recorded two PM decisions the migration surfaced but must not make on its own — four text-field styles and a four-step button scale — and one invalid-HTML bug found in `settings/AppearanceCard` | AI (Claude Opus 5) |
 | 2026-10-09 | 1.2 | Phase 1 done for the auth area. Recorded the measured bundle cost (≈9–10 kB First Load JS per migrated route, shared chunk unchanged at 103 kB) against §4.2, which had predicted the direction but no magnitude. Narrowed phase 1's primitive list to what call sites actually needed. Noted that the test churn §1.4 warns about did **not** materialise here — `Button` and `Input` render the same elements, so all 1418 existing tests passed untouched. That churn is a phase-2 cost, when Radix's overlays change the DOM, and §1.4 should not be read as applying evenly across the phases | AI (Claude Opus 5) |
 
 ---

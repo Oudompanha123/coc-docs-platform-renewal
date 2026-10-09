@@ -116,6 +116,13 @@ export function SettingsSideMenu({
         <div className="sticky top-20 space-y-1">
           <div role="tablist" aria-orientation="vertical" className="space-y-1">
             {sections.map(({ id, label, Icon }, index) => (
+              // A tab, not a button. It carries role="tab", a roving
+              // tabIndex and this component's own arrow-key handling, and it
+              // is styled to match the <Link> rows beside it rather than any
+              // Button variant. Tabs are a phase-3 primitive (ADR-104 §2.5),
+              // and that primitive owns the keyboard pattern this file
+              // currently implements by hand.
+              // eslint-disable-next-line react/forbid-elements
               <button
                 key={id}
                 ref={(el) => {
@@ -151,6 +158,11 @@ export function SettingsSideMenu({
               <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
             </Link>
           )}
+          {/* A nav row that happens to act rather than navigate. Its styling
+              is deliberately identical to the <Link> directly above it, and a
+              Button variant would break that match for no gain. Left as it
+              is (ADR-104 decision 7). */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             type="button"
             onClick={() => void signOut()}
@@ -170,6 +182,9 @@ export function SettingsSideMenu({
         className="no-scrollbar-arrows -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 md:hidden"
       >
         {sections.map(({ id, label, Icon }, index) => (
+          // The same tab list at mobile width — see the note on the desktop
+          // one above.
+          // eslint-disable-next-line react/forbid-elements
           <button
             key={id}
             ref={(el) => {

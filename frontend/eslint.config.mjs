@@ -27,7 +27,9 @@ const compat = new FlatCompat({
  */
 const MIGRATED_TO_UI_PRIMITIVES = [
   "components/ui/**/*.tsx",
+  "components/account/**/*.tsx",
   "components/auth/**/*.tsx",
+  "components/settings/**/*.tsx",
   "app/login/**/*.tsx",
   "app/register/**/*.tsx",
   "app/forgot-password/**/*.tsx",
@@ -48,7 +50,10 @@ const eslintConfig = [
   },
   {
     files: MIGRATED_TO_UI_PRIMITIVES,
-    ignores: ["components/ui/**/*.tsx"],
+    // The primitives themselves have to render the real elements, and a test
+    // rendering a bare <button> as a stand-in for "some other control" is
+    // making a point about the component under test, not shipping UI.
+    ignores: ["components/ui/**/*.tsx", "**/*.test.tsx"],
     rules: {
       "react/forbid-elements": [
         "error",

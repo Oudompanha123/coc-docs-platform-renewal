@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { ChevronDownIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { TotpDisableForm, TotpSetupWizard } from "@/components/settings/TotpSetupForm";
 import { ActiveSessions } from "@/components/settings/ActiveSessions";
 import { getMfaStatus } from "@/lib/auth/api";
@@ -89,16 +90,18 @@ export function SecurityTab() {
               </div>
             </div>
             {!changingPassword && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="md"
                 onClick={() => {
                   setChangingPassword(true);
                   setPasswordNotice(null);
                 }}
-                className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+                className="shrink-0 rounded-full text-dash-ink"
               >
                 {user?.hasPassword ? "Change password" : "Set password"}
-              </button>
+              </Button>
             )}
           </div>
           {changingPassword && (
@@ -140,6 +143,10 @@ export function SecurityTab() {
             offering the toggle would turn "on" a control that does nothing
             until they also set a password (ADR-030/ADR-029). */}
         <div className="py-4">
+          {/* A disclosure header spanning the whole row, with no button
+              styling of its own — same shape as AccordionSection. Phase 3's
+              Collapsible (ADR-104 §2.5). */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             type="button"
             aria-expanded={mfaMode !== "idle"}

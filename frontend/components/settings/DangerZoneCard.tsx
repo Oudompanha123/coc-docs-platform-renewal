@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronRightIcon, DownloadIcon, TrashIcon, WarningIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import {
   deactivateMyAccount,
   AuthApiError,
@@ -102,15 +103,20 @@ export function DangerZoneCard() {
               </p>
             </div>
           </div>
-          <button
+          {/* Keeps its lift-on-hover: an override rather than a variant,
+              because one button in the app does this and a variant nobody
+              else uses is just a class string with extra steps. */}
+          <Button
             type="button"
+            variant="outline"
+            size="md"
             onClick={() => void handleExport()}
             disabled={exporting || !user}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="shrink-0 gap-1.5 rounded-full bg-white text-dash-ink shadow-sm transition-all hover:bg-white hover:border-brand-purple/20 hover:shadow hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
             <DownloadIcon className="h-3.5 w-3.5" />
             {exporting ? "Exporting…" : "Export data"}
-          </button>
+          </Button>
         </div>
         <div className="py-3.5 last:pb-0">
           <div className="flex items-start justify-between gap-4">
@@ -128,14 +134,16 @@ export function DangerZoneCard() {
                 before you've even opened it. Opens the confirm panel below,
                 in place — no popup (ADR-042). */}
             {!showDeactivateConfirm && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="inline"
                 onClick={() => setShowDeactivateConfirm(true)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md py-2 text-sm font-semibold text-muted transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
+                className="shrink-0 gap-1 rounded-md py-2 text-sm hover:text-danger focus-visible:ring-danger/40 focus-visible:ring-offset-0"
               >
                 Deactivate account
                 <ChevronRightIcon className="h-4 w-4" />
-              </button>
+              </Button>
             )}
           </div>
 
@@ -156,6 +164,12 @@ export function DangerZoneCard() {
               <p className="text-sm font-semibold text-dash-ink">Deactivate your account?</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {DEACTIVATION_GRACE_PERIOD_DAYS_OPTIONS.map((days) => (
+                  // A chip in a single-choice group, driven by aria-pressed and
+                  // styled from the selection rather than from a variant. It
+                  // belongs to a ToggleGroup primitive, with the other form
+                  // controls (ADR-104 §4.3) — same shape as the theme cards in
+                  // components/account/AppearanceCard.
+                  // eslint-disable-next-line react/forbid-elements
                   <button
                     key={days}
                     type="button"
@@ -185,23 +199,27 @@ export function DangerZoneCard() {
                 <li>Your content and audit history are preserved either way.</li>
               </ul>
               <div className="mt-4 flex justify-end gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="xs"
                   onClick={handleCancelDeactivate}
                   disabled={deactivating}
-                  className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
+                  className="text-dash-ink"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="destructiveOutline"
+                  size="xs"
                   onClick={() => void handleConfirmDeactivate()}
                   disabled={deactivating}
                   aria-busy={deactivating}
-                  className="rounded-full border border-danger px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full"
                 >
                   {deactivating ? "Deactivating…" : `Yes, deactivate in ${graceDays} days`}
-                </button>
+                </Button>
               </div>
             </div>
           )}

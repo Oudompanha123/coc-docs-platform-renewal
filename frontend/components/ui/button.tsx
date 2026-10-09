@@ -41,10 +41,22 @@ const buttonVariants = cva(
         /** Destructive confirmation. No auth call site yet; added when one needs it. */
         destructive:
           "bg-destructive text-destructive-foreground transition-opacity hover:opacity-90 disabled:opacity-60",
+        /** The settings area's "Revoke" / "Delete" affordances — outlined in the danger colour, not filled. */
+        destructiveOutline:
+          "border border-danger text-danger transition-colors hover:bg-danger/10 disabled:opacity-60",
       },
       size: {
         default: "rounded-xl px-4 py-3",
         sm: "rounded-xl px-4 py-2.5 text-sm",
+        /**
+         * The settings/dashboard scale. Two pixels shorter than `sm`, which
+         * is not a distinction anyone designed — the auth pages and the
+         * settings cards were simply built at different times. Both are kept
+         * for now so migration moves no pixels; collapsing them into one is a
+         * design decision, and it belongs in a PR that can show the before
+         * and after rather than being smuggled in here.
+         */
+        md: "rounded-xl px-4 py-2 text-sm",
         /** Compact pair at the foot of a card form — Cancel / Save. */
         xs: "rounded-xl px-3 py-1.5 text-xs",
         icon: "h-4 w-4 rounded p-0",

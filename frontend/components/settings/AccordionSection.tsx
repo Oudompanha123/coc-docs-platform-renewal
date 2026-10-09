@@ -22,6 +22,10 @@ type AccordionSectionProps = {
 export function AccordionSection({ icon: Icon, title, description, isOpen, onToggle, children }: AccordionSectionProps) {
   return (
     <div className="rounded-[10px] border border-border bg-white shadow-sm">
+      {/* A disclosure header, not a button: the whole card top is the hit
+          area, it carries aria-expanded, and it has no button styling of its
+          own. Belongs to a Collapsible primitive in phase 3 (ADR-104 §2.5). */}
+      {/* eslint-disable-next-line react/forbid-elements */}
       <button
         type="button"
         onClick={onToggle}

@@ -86,6 +86,9 @@ export function PushNotificationsCard() {
           <p className="text-xs text-muted">{description()}</p>
         </div>
       </div>
+      {/* role="switch" — waiting on the Switch primitive, same as
+          NotificationsCard (ADR-104 §4.3). */}
+      {/* eslint-disable-next-line react/forbid-elements */}
       <button
         type="button"
         role="switch"

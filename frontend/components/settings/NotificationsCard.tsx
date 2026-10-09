@@ -121,6 +121,12 @@ export function NotificationsCard() {
                   <p className="text-xs text-muted">{pref.description}</p>
                 </div>
               </div>
+              {/* role="switch" — a Switch primitive, which ADR-104 §2.5 puts
+                  in phase 1's list and which has not been built because no
+                  migrated area needed one until now. Radix's changes the DOM
+                  under these toggles, so it lands with the other form
+                  controls rather than here (§4.3). */}
+              {/* eslint-disable-next-line react/forbid-elements */}
               <button
                 type="button"
                 role="switch"

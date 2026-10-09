@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CodeField, PasswordField } from "@/components/auth/FormField";
 import { LockIcon } from "@/components/auth/icons";
+import { Button } from "@/components/ui/button";
 import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupMaterial } from "@/lib/auth/api";
 
 const CODE_FIELD_ID = "totp-setup-code";
@@ -83,13 +84,9 @@ export function TotpSetupWizard({
         <p role="alert" className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {loadError}
         </p>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-        >
+        <Button type="button" variant="outline" size="xs" onClick={onCancel} className="text-dash-ink">
           Cancel
-        </button>
+        </Button>
       </div>
     );
   }
@@ -121,21 +118,12 @@ export function TotpSetupWizard({
         <p className="text-xs font-semibold text-dash-ink">2. Enter the 6-digit code it shows</p>
         <CodeField id={CODE_FIELD_ID} label="Verification Code" value={code} onChange={setCode} error={codeError} />
         <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-          >
+          <Button type="button" variant="outline" size="xs" onClick={onCancel} className="text-dash-ink">
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isVerifying}
-            aria-busy={isVerifying}
-            className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          </Button>
+          <Button type="submit" size="xs" disabled={isVerifying} aria-busy={isVerifying}>
             {isVerifying ? "Verifying…" : "Verify & turn on"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -192,21 +180,19 @@ export function TotpDisableForm({
         error={error}
       />
       <div className="flex justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-        >
+        <Button type="button" variant="outline" size="xs" onClick={onCancel} className="text-dash-ink">
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          variant="destructiveOutline"
+          size="xs"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
-          className="rounded-full border border-danger px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full"
         >
           {isSubmitting ? "Turning off…" : "Turn off"}
-        </button>
+        </Button>
       </div>
     </form>
   );

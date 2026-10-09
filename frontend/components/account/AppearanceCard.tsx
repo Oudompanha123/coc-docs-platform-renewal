@@ -87,6 +87,14 @@ export function AppearanceCard() {
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {THEME_OPTIONS.map(({ value, label, Icon }) => (
+          // A selection card, not a button: it holds a preview image, a label
+          // and a radio dot, and it is one of three mutually exclusive
+          // choices. It shares no styling with any Button variant — forcing it
+          // through one would mean overriding the border, padding, alignment
+          // and layout, which is a longer way of writing this element. It
+          // belongs to a RadioGroup primitive, scheduled with the other form
+          // controls (ADR-104 §4.3).
+          // eslint-disable-next-line react/forbid-elements
           <button
             key={value}
             type="button"

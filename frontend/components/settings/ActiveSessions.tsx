@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PulseIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
 
 /* The user agent used to be parsed here, into "Chrome on Windows". The server
@@ -83,13 +84,15 @@ export function ActiveSessions() {
               </p>
             </div>
             {!session.current && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="xs"
                 onClick={() => void signOutSession(session.id)}
-                className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                className="shrink-0 rounded-full text-dash-ink"
               >
                 Sign out
-              </button>
+              </Button>
             )}
           </div>
         ))}

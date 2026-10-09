@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { UserAvatar } from "@/components/layout/UserAvatar";
+import { Button } from "@/components/ui/button";
 import { updateProfile } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 
@@ -87,6 +88,11 @@ export function ProfileCard() {
         />
         <div className="min-w-0">
           {editing ? (
+            // A fourth text-field style, after the auth pages', the settings
+            // cards' and MailCredentialCard's: `rounded-lg`, `px-2.5 py-1.5`,
+            // and auth's 4px focus ring. Left as it is for the same reason —
+            // see the note in MailCredentialCard. ADR-104 §4.3.
+            // eslint-disable-next-line react/forbid-elements
             <input
               type="text"
               value={draft}
@@ -131,34 +137,39 @@ export function ProfileCard() {
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         {editing ? (
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="md"
               onClick={() => setEditing(false)}
-              className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+              className="rounded-full text-dash-ink"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="md"
               onClick={() => void handleSave()}
               disabled={!changed || saving}
-              className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full"
             >
               {saving ? "Saving…" : "Save"}
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="md"
             onClick={() => {
               setDraft(name);
               setError(null);
               setEditing(true);
             }}
-            className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+            className="rounded-full text-dash-ink"
           >
             Edit profile
-          </button>
+          </Button>
         )}
 
         {error && <p className="text-xs text-danger">{error}</p>}

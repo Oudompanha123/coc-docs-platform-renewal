@@ -85,6 +85,10 @@ export function AppearanceCard() {
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Theme</p>
         <div className="mt-2 flex gap-2">
           {THEME_OPTIONS.map(({ value, label, Icon }) => (
+            // A single-choice chip group, styled from the selection rather
+            // than a variant — ToggleGroup, with the other form controls
+            // (ADR-104 §4.3).
+            // eslint-disable-next-line react/forbid-elements
             <button
               key={value}
               type="button"
@@ -107,6 +111,15 @@ export function AppearanceCard() {
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Accent color</p>
         <div className="mt-2 flex flex-wrap gap-2">
+          {/* Left alone on purpose, and worth a second look when someone
+              touches this card: a <button> wrapping an <input type="color">
+              is interactive content nested inside interactive content, which
+              the HTML spec does not allow. Browsers tolerate it, assistive
+              technology is less predictable. Fixing it means deciding how the
+              swatch should open its picker, which is a design change, not a
+              primitive swap — so it is reported rather than quietly altered
+              here (ADR-104 §4.3). */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             type="button"
             onClick={() => colorInputRef.current?.click()}
@@ -119,6 +132,7 @@ export function AppearanceCard() {
               aria-hidden="true"
             />
             Choose color
+            {/* eslint-disable-next-line react/forbid-elements */}
             <input
               ref={colorInputRef}
               type="color"
