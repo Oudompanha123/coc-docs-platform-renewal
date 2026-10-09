@@ -9,6 +9,7 @@ import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
 import { Spinner } from "@/components/layout/Spinner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
@@ -401,17 +402,12 @@ export default function RegisterPage() {
 
         <div>
           <div className="flex items-start gap-2">
-            {/* Same reason as /login's "Remember me": no checkbox primitive
-                yet, and Radix's would change both the pixels and the element
-                getByLabelText resolves to. ADR-104 §4.3. */}
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <input
+            <Checkbox
               id="agree-terms"
-              type="checkbox"
               checked={agree}
               onChange={(e) => setAgree(e.target.checked)}
               aria-describedby={errors.agree ? "agree-terms-error" : undefined}
-              className="border-surface-border bg-muted-surface text-primary focus-visible:ring-ring/50 mt-0.5 size-4 rounded focus-visible:ring-[3px] focus-visible:outline-none"
+              className="mt-0.5"
             />
             <label htmlFor="agree-terms" className="text-muted-foreground text-sm">
               I agree to the{" "}

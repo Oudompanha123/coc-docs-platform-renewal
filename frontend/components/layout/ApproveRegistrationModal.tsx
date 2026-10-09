@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { Button } from "@/components/ui/button";
+import { Radio } from "@/components/ui/radio";
 import { approveAccount, type AccountRole, type PendingAccount } from "@/lib/admin/accounts";
 import { ApplicantAvatar } from "./ApplicantAvatar";
 
@@ -87,13 +88,12 @@ export function ApproveRegistrationModal({
                 role === choice.value ? "border-primary bg-secondary" : "border-border hover:bg-page"
               }`}
             >
-              <input
-                type="radio"
+              <Radio
                 name="approve-role"
                 value={choice.value}
                 checked={role === choice.value}
                 onChange={() => setRole(choice.value)}
-                className="mt-0.5 h-4 w-4 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-0.5"
               />
               <span>
                 <span className="block text-sm font-semibold text-dash-ink">{choice.label}</span>

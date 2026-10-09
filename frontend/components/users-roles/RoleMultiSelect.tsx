@@ -1,5 +1,5 @@
 import { ROLE_ORDER, ROLE_HINTS, ROLE_LABELS, highestEnforcedRole, type AccountRole } from "@/lib/mock/users-roles";
-import { inputBaseClass } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 /**
  * Checkbox list for all five roles, every one of them real and
@@ -37,13 +37,17 @@ export function RoleMultiSelect({
           const id = `${idPrefix}-${role}`;
           return (
             <label key={role} htmlFor={id} className="flex items-start gap-2.5">
-              <input
+              {/* Was carrying `inputBaseClass` — a text field's pill, 40px
+                  tall and full width, applied to a 16px checkbox. The sweep
+                  that pointed every field at the primitive matched on the
+                  class string rather than the input's type and caught this
+                  one by mistake. */}
+              <Checkbox
                 id={id}
-                type="checkbox"
                 aria-label={ROLE_LABELS[role]}
                 checked={selected.includes(role)}
                 onChange={(e) => toggle(role, e.target.checked)}
-                className={`${inputBaseClass} mt-0.5 h-4 w-4 text-foreground`}
+                className="mt-0.5"
               />
               <span className="min-w-0">
                 <span className="text-sm font-medium text-dash-ink">{ROLE_LABELS[role]}</span>

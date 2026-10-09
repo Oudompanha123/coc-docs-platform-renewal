@@ -10,6 +10,7 @@ import { DocumentIcon, GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useMinimumDisplay } from "@/lib/layout/useMinimumDisplay";
 import { landingPathFor } from "@/lib/auth/landing";
 import {
@@ -499,18 +500,7 @@ function LoginForm() {
 
           <div className="flex items-center justify-between">
             <label className="text-muted-foreground flex items-center gap-2 text-sm">
-              {/* Still a native checkbox. Radix's renders a
-                  <button role="checkbox">, which changes what
-                  getByLabelText resolves to in several tests; it lands with
-                  the rest of the form controls (ADR-104 §4.3). Restyled to
-                  the neutral palette in the meantime. */}
-              {/* eslint-disable-next-line react/forbid-elements */}
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="border-surface-border bg-muted-surface text-primary focus-visible:ring-ring/50 size-4 rounded focus-visible:ring-[3px] focus-visible:outline-none"
-              />
+              <Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
               Remember me
             </label>
             <Link
