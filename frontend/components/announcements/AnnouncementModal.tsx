@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ClockIcon, CalendarCheckIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { CATEGORY_META } from "@/components/announcements/categories";
+import { MarkdownContent } from "@/components/markdown/MarkdownContent";
 import { fetchAnnouncement, type Announcement } from "@/lib/announcements/announcements-api";
 import { formatDateTime } from "@/lib/announcements/expiry";
 import { timeAgo } from "@/lib/notify/activity";
@@ -30,8 +31,9 @@ const TITLE_ID = "announcement-modal-title";
  * {@link CATEGORY_META} the admin picked from), so "Maintenance" and
  * "Important" look different before a word is read.
  *
- * <p>The body is plain text in a `whitespace-pre-wrap` block, never HTML, so
- * an announcement can carry line breaks but cannot carry markup.
+ * <p>The body is Markdown, rendered by {@link MarkdownContent} into React
+ * elements — never HTML — so an announcement can carry formatting but cannot
+ * carry markup (ADR-102, revising ADR-098's plain-text body).
  */
 export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => void }) {
   const [state, setState] = useState<State>({ status: "loading" });
@@ -200,9 +202,10 @@ export function AnnouncementModal({ id, onClose }: { id: string; onClose: () => 
                 )}
               </div>
 
-              <p className="mt-4 whitespace-pre-wrap break-words text-[15px] leading-7 text-dash-ink/70">
-                {announcement.body}
-              </p>
+              <MarkdownContent
+                source={announcement.body}
+                className="mt-4 text-[15px] leading-7 text-dash-ink/70"
+              />
             </div>
 
             <footer className="flex justify-end border-t border-border px-6 py-4">

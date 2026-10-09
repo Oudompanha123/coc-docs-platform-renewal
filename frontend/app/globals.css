@@ -1393,6 +1393,19 @@ select {
   border-radius: 6px !important;
 }
 
+/* MarkdownEditor's textarea sits inside a framed box (toolbar above it) that
+   already shows focus with its own border. The two rules above drew a second,
+   rounded frame inside that one; here the outer frame is the focus indicator.
+   Higher specificity, and after both, so it wins. */
+textarea.markdown-editor-input,
+textarea.markdown-editor-input:focus,
+textarea.markdown-editor-input:focus-visible {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* Home page CTA band (components/home/CtaWaveBackground.tsx) — the ribbon
    SVG is two copies of one tile side by side at 200% width; sliding exactly
    one tile-width (-50%) lines the second copy up where the first started,

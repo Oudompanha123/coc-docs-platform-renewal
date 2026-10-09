@@ -47,11 +47,17 @@ messaging.onBackgroundMessage((payload) => {
     // came from instead of showing the browser's generic default icon. Same
     // path as NOTIFICATION_ICON in lib/notify/push.ts.
     icon: payload.data?.icon || "/notification-icon.png",
+    // A large picture, when a push carries one. None does today: the
+    // announcement logo was dropped in favour of the icon (ADR-103).
+    image: payload.data?.image || undefined,
     // Collapses repeats: five registrations while the browser is closed
     // replace one another rather than stacking five identical banners. The
     // count is wrong either way — the queue is the authority — and one
     // notification that says "go and look" beats five that say it louder.
-    tag: payload.data?.type ?? "coc-docs",
+    // The backend's tag: the type for most (repeats collapse), but one per
+    // announcement — a banner that reuses a tag replaces the old one without
+    // showing, so a shared one hid every announcement after the first.
+    tag: payload.data?.tag || payload.data?.type || "coc-docs",
     data: { link: payload.data?.link ?? "/" },
   });
 });

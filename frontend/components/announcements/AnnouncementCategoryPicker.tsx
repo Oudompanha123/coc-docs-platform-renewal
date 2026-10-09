@@ -4,7 +4,7 @@ import { ANNOUNCEMENT_CATEGORIES, type AnnouncementCategory } from "@/lib/announ
 import { CATEGORY_META } from "./categories";
 
 /**
- * The editor's category choice, as four labelled cards rather than a bare
+ * The editor's Announcement Type choice, as four labelled cards rather than a bare
  * select (ADR-098): each says what the category is for and shows the colour
  * members will see, so an admin is not guessing what "Update" versus
  * "Information" means.
@@ -24,8 +24,8 @@ export function AnnouncementCategoryPicker({
 }) {
   return (
     <fieldset disabled={disabled}>
-      <legend className="text-sm font-semibold text-dash-ink">Category</legend>
-      <div role="radiogroup" aria-label="Category" className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <legend className="text-sm font-semibold text-dash-ink">Announcement Type</legend>
+      <div role="radiogroup" aria-label="Announcement Type" className="mt-1.5 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {ANNOUNCEMENT_CATEGORIES.map((category) => {
           const meta = CATEGORY_META[category];
           const Icon = meta.icon;
