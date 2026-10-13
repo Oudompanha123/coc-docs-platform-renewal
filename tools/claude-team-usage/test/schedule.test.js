@@ -106,7 +106,7 @@ describe('schedule (Windows Task Scheduler)', () => {
   it('reads back the paths, command and schedule of a registered task', () => {
     const args = commandLine({ node: NODE, cli: CLI, args: SCAN_ARGS, log: LOG });
     const task = parseTask(buildTaskXml({ userId: 'u', command: 'C:\\Windows\\System32\\cmd.exe', args, today: '2026-10-06' }));
-    assert.deepEqual(task, { command: 'C:\\Windows\\System32\\cmd.exe', args, node: NODE, cli: CLI, marker: '[schedule: daily 11:00,16:00]' });
+    assert.deepEqual(task, { command: 'C:\\Windows\\System32\\cmd.exe', args, node: NODE, cli: CLI, marker: '[schedule: daily 11:00,16:00]', userId: 'u' });
 
     // The 0.3.0 task: no --scheduled, no marker.
     const old = parseTask(`<Description>Reports … at 11:00 and 16:00.</Description><Command>cmd.exe</Command>
