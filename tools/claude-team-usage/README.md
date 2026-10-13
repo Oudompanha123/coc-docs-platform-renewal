@@ -75,7 +75,7 @@ checks the task still runs **this** installation, and re-registers it in place i
 the CLI has moved or gone; it never creates a second one. For troubleshooting:
 
 ```bat
-claude-team-usage schedule status    :: Node.js/CLI it runs, last run, its result, next run, latest log
+claude-team-usage schedule status    :: program + launcher, Node.js/CLI it runs, last run/result, next run, last repair, latest log
 claude-team-usage schedule remove    :: stop the automatic scans (login/scan won't re-add them)
 claude-team-usage schedule           :: turn them back on / refresh after moving Node.js
 claude-team-usage schedule test      :: TESTING ONLY: also scan every 5 min for 24 h (`test 2` = every 2 min)
@@ -103,6 +103,14 @@ The task is a Task Scheduler task named `claude-team-usage`:
   asleep, or logged out); a `====` line with no header means Node.js itself could not start.
 - It runs with no window: Task Scheduler starts `wscript.exe bin\run-hidden.jscript`, which
   runs the scan hidden and hands its exit code back as **Last Result**.
+- **A console window at 11:00/16:00?** Versions 0.2.0 and 0.3.0 registered the task with
+  `cmd.exe`, which opens one every run. `npm install -g claude-team-usage` (0.5.1 or later)
+  repairs that task in place during the install: same name, same 11:00/16:00, your sign-in
+  untouched. It only repairs a task that already exists and belongs to your Windows account,
+  and never creates one. `schedule status` shows the task's `program` and `launcher`
+  (expect `wscript.exe` and `run-hidden.jscript`), and the `last repair` outcome. Every
+  repair attempt is also a `[repair]` line in the log. If npm runs with `ignore-scripts`,
+  run `claude-team-usage login` once instead.
 
 Run it now to test: `schtasks /Run /TN claude-team-usage`, then `claude-team-usage schedule status`.
 A last result of `0` plus a `sent … tokens` line in the log means the upload worked;
