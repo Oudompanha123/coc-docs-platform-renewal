@@ -17,6 +17,10 @@ import {
   unpublishAnnouncement,
   type AdminAnnouncement,
 } from "@/lib/admin/announcements";
+import { SearchInput } from "@/components/ui/search-input";
+import { DropdownMenuItem, DropdownMenuSeparator, RowActions } from "@/components/ui/dropdown-menu";
+import { EyeOff, Pencil, Send } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 /**
  * What the list filters on. "expired" is its own tab even though it is not a
@@ -172,12 +176,12 @@ export default function AnnouncementsPage() {
     <AppShell
       pageTitle="Announcements"
       pageSubtitle="Notices shown to every member on the user site"
-      titleIcon={<MegaphoneIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<MegaphoneIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted">
-            Administration / <b className="font-semibold text-dash-ink">Announcements</b>
+          <p className="text-sm text-muted-foreground">
+            Administration / <b className="font-semibold text-foreground">Announcements</b>
           </p>
           <button
             type="button"
@@ -185,7 +189,7 @@ export default function AnnouncementsPage() {
               setNotice(null);
               setEditing("new");
             }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 rounded-control bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             <PlusIcon className="h-4 w-4" />
             New announcement
@@ -195,7 +199,7 @@ export default function AnnouncementsPage() {
         {notice && (
           <div
             role="status"
-            className="flex items-center justify-between gap-3 rounded-[10px] bg-[#e1f5ec] px-4 py-2.5 text-sm font-medium text-[#1f9d6b]"
+            className="flex items-center justify-between gap-3 rounded-xl bg-[#e1f5ec] px-4 py-2.5 text-sm font-medium text-[#1f9d6b]"
           >
             {notice}
             <button type="button" onClick={() => setNotice(null)} className="text-xs font-semibold underline">
@@ -204,8 +208,8 @@ export default function AnnouncementsPage() {
           </div>
         )}
 
-        <div className="overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-border px-4 py-3">
             <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filter announcements">
               {FILTERS.map((f) => (
                 <button
@@ -216,8 +220,8 @@ export default function AnnouncementsPage() {
                   onClick={() => setFilter(f.key)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     filter === f.key
-                      ? "bg-brand-purple/10 text-brand-purple"
-                      : "border border-border text-muted hover:bg-page"
+                      ? "bg-secondary text-foreground"
+                      : "border border-surface-border text-muted-foreground hover:bg-accent"
                   }`}
                 >
                   {f.label}
@@ -225,20 +229,19 @@ export default function AnnouncementsPage() {
                 </button>
               ))}
             </div>
-            <input
-              type="search"
+            <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search announcements"
               aria-label="Search announcements"
-              className="w-full rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink outline-none focus:border-brand-purple sm:w-64"
+              containerClassName="sm:w-64"
             />
           </div>
 
           {loading && !items && (
             <div className="animate-pulse space-y-3 p-4" role="status" aria-label="Loading announcements">
               {Array.from({ length: 3 }, (_, i) => (
-                <div key={i} className="h-14 rounded-lg bg-page" />
+                <div key={i} className="h-14 rounded-lg bg-muted-surface" />
               ))}
             </div>
           )}
@@ -250,7 +253,7 @@ export default function AnnouncementsPage() {
               <button
                 type="button"
                 onClick={() => void load()}
-                className="rounded-[10px] border border-danger/40 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
+                className="rounded-control border border-danger/40 px-4 py-1.5 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
               >
                 Retry
               </button>
@@ -259,8 +262,8 @@ export default function AnnouncementsPage() {
 
           {!loadError && items && visible.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
-              <MegaphoneIcon className="h-8 w-8 text-muted" />
-              <p className="text-sm text-muted">
+              <MegaphoneIcon className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
                 {items.length === 0
                   ? "No announcements yet. Create one to let every member know what's new."
                   : "No announcements match this view."}
@@ -269,96 +272,86 @@ export default function AnnouncementsPage() {
           )}
 
           {!loadError && visible.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="bg-page text-xs font-semibold uppercase tracking-wide text-muted">
-                  <tr>
-                    <th className="px-4 py-2.5">Announcement</th>
-                    <th className="px-4 py-2.5">Type</th>
-                    <th className="px-4 py-2.5">Status</th>
-                    <th className="px-4 py-2.5">Published</th>
-                    <th className="px-4 py-2.5">Expires</th>
-                    <th className="px-4 py-2.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
+            <Table className="min-w-[760px]">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">Announcement</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Published</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead className="w-12 pr-4 text-right"><span className="sr-only">Actions</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {visible.map((a) => (
-                    <tr key={a.id} className="align-top transition-colors hover:bg-[#f8fafc]">
-                      <td className="max-w-[320px] px-4 py-3">
-                        <p className="truncate font-semibold text-dash-ink">{a.title}</p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-muted">{markdownToPlainText(a.body)}</p>
-                        <p className="mt-1 text-[11px] text-muted">
-                          Updated {formatDate(a.updatedAt)}
-                          {a.updatedByName ? ` by ${a.updatedByName}` : ""}
+                    <TableRow key={a.id}>
+                      {/* One line per row (ADR-104 r2.10): the title, then as much of
+                          the body as fits, muted. The "Updated … by …" line went —
+                          Published already says when and by whom, and three lines a
+                          row made a dozen announcements a long scroll. */}
+                      <TableCell className="max-w-[360px] pl-4">
+                        <p className="truncate" title={a.title}>
+                          <span className="font-medium text-foreground">{a.title}</span>
+                          <span className="text-muted-foreground"> — {markdownToPlainText(a.body)}</span>
                         </p>
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell>
                         <AnnouncementCategoryBadge category={a.category} />
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell>
                         <StatusPill announcement={a} />
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted">
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                         {a.status === "draft" ? "—" : formatDate(a.publishedAt)}
-                        {a.status !== "draft" && a.publishedByName && (
-                          <span className="block">by {a.publishedByName}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted">{a.expiresAt ? formatDate(a.expiresAt) : "Never"}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
+                        {a.status !== "draft" && a.publishedByName && ` · `}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{a.expiresAt ? formatDate(a.expiresAt) : "Never"}</TableCell>
+                      <TableCell className="pr-4 text-right">
+                        <RowActions label={`Actions for "${a.title}"`}>
+                          <DropdownMenuItem
+                            onSelect={() => {
                               setNotice(null);
                               setEditing(a);
                             }}
-                            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
                           >
-                            Edit
-                          </button>
+                            <Pencil /> Edit
+                          </DropdownMenuItem>
                           {a.status === "published" ? (
-                            <button
-                              type="button"
-                              onClick={() => {
+                            <DropdownMenuItem
+                              onSelect={() => {
                                 setActionError(null);
                                 setConfirming({ action: "unpublish", announcement: a });
                               }}
-                              className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
                             >
-                              Unpublish
-                            </button>
+                              <EyeOff /> Unpublish
+                            </DropdownMenuItem>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
+                            <DropdownMenuItem
+                              onSelect={() => {
                                 setActionError(null);
                                 setConfirming({ action: "publish", announcement: a });
                               }}
-                              className="rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/20"
                             >
-                              Publish
-                            </button>
+                              <Send /> Publish
+                            </DropdownMenuItem>
                           )}
-                          <button
-                            type="button"
-                            aria-label={`Delete "${a.title}"`}
-                            title="Delete"
-                            onClick={() => {
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => {
                               setActionError(null);
                               setConfirming({ action: "delete", announcement: a });
                             }}
-                            className="rounded-full p-1.5 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                           >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                            <TrashIcon /> Delete
+                          </DropdownMenuItem>
+                        </RowActions>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+            </Table>
           )}
         </div>
       </div>

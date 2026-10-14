@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { HomeIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 
 /** Static torn-page-with-sad-face icon next to the "404" — no shared icon
  *  like this exists elsewhere in the app yet (one-off, same pattern as
@@ -10,15 +11,15 @@ function TornPageIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 48 48" className={className} fill="none" aria-hidden="true">
       <path
         d="M12 4h18l10 10v26a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Z"
-        fill="#e7e9f5"
-        stroke="#c3c7e0"
+        fill="#f5f5f5"
+        stroke="#d4d4d4"
         strokeWidth="1.5"
       />
-      <path d="M30 4v8a2 2 0 0 0 2 2h8" fill="none" stroke="#c3c7e0" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M16 26l4-3 3 3 4-4 3 3" fill="none" stroke="#a7abcf" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="18" cy="34" r="1.6" fill="#6b6b80" />
-      <circle cx="28" cy="34" r="1.6" fill="#6b6b80" />
-      <path d="M17 41c1.5-2 3-2 4-2s2.5 0 4 2" stroke="#6b6b80" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+      <path d="M30 4v8a2 2 0 0 0 2 2h8" fill="none" stroke="#d4d4d4" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M16 26l4-3 3 3 4-4 3 3" fill="none" stroke="#a3a3a3" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="18" cy="34" r="1.6" fill="#737373" />
+      <circle cx="28" cy="34" r="1.6" fill="#737373" />
+      <path d="M17 41c1.5-2 3-2 4-2s2.5 0 4 2" stroke="#737373" strokeWidth="1.6" strokeLinecap="round" fill="none" />
     </svg>
   );
 }
@@ -58,23 +59,22 @@ export default function NotFound() {
 
       <div className="relative flex min-h-screen items-center px-6 py-16 md:px-12 lg:px-[calc(var(--spacing)*150)]">
         <div className="text-center lg:text-left">
-          <div className="flex items-center justify-center gap-5 lg:justify-start">
-            <span className="text-7xl font-black tracking-tight text-dash-ink sm:text-8xl">404</span>
-            <span aria-hidden="true" className="h-14 w-px bg-dash-ink/15 sm:h-16" />
-            <TornPageIcon className="h-14 w-14 sm:h-16 sm:w-16" />
+          <div className="flex items-center justify-center gap-4 lg:justify-start">
+            <span className="text-foreground text-6xl font-bold tracking-tight sm:text-7xl">404</span>
+            <span aria-hidden="true" className="bg-foreground/15 h-12 w-px sm:h-14" />
+            <TornPageIcon className="size-12 sm:size-14" />
           </div>
-          <h1 className="mt-5 text-3xl font-bold tracking-tight text-dash-ink sm:text-4xl">Page Not Found</h1>
-          <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-muted lg:mx-0">
+          <h1 className="text-foreground mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Page Not Found</h1>
+          <p className="mx-auto text-muted-foreground mt-3 max-w-md text-sm leading-relaxed sm:text-base lg:mx-0">
             The page you are looking for might have been removed, had its name changed, or is temporarily
             unavailable.
           </p>
-          <Link
-            href="/overview"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2"
-          >
-            <HomeIcon className="h-4 w-4" />
-            Go Back Home
-          </Link>
+          <Button asChild size="lg" className="mt-6">
+            <Link href="/overview">
+              <HomeIcon className="size-4" />
+              Go Back Home
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

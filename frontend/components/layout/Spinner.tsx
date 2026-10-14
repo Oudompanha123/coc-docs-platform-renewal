@@ -1,14 +1,19 @@
-/** The app's one spinner design — a bordered ring with Tailwind's
- *  `animate-spin` — extracted from the login page's full-panel "redirecting"
- *  indicator so button-level busy states (Login, Logout, nav links) can
- *  reuse the same look instead of a second design. Colored via `currentColor`
- *  (`border-current`) so it reads correctly in white-on-gradient buttons and
- *  plain-text contexts alike — wrap it in a text-color class to tint it. */
-export function Spinner({ className = "h-4 w-4 border-2" }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-block shrink-0 animate-spin rounded-full border-current/25 border-t-current ${className}`}
-    />
-  );
+import { LoaderCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/** The app's one spinner — shadcn/ui's, which is Lucide's `LoaderCircle`
+ *  turning on `animate-spin` (ADR-104 r2.5). It replaced a bordered CSS ring.
+ *  Coloured by `currentColor`, so it takes the text colour of the button or
+ *  line it sits in — a primary button's foreground, a muted label's grey.
+ *
+ *  Older call sites still pass the ring's `border-2`. Preflight gives every
+ *  element `border: 0 solid`, so on an SVG that would draw a square box round
+ *  the spinner; border utilities are dropped here rather than trusted to every
+ *  caller having been updated. */
+export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  const sizing = className
+    .split(/\s+/)
+    .filter((c) => c && !/^border(-|$)/.test(c))
+    .join(" ");
+  return <LoaderCircle aria-hidden="true" className={cn("shrink-0 animate-spin", sizing)} />;
 }

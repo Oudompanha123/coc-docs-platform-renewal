@@ -58,6 +58,17 @@ describe("SettingsSideMenu", () => {
     expect(screen.getAllByRole("button", { name: /log out/i }).length).toBe(1);
   });
 
+  it("puts Password & 2FA directly below Security and above Sessions, with its own icon", () => {
+    renderMenu();
+    const items = screen.getAllByRole("tab").map((el) => el.textContent);
+    const desktop = items.slice(0, items.length / 2);
+    const index = desktop.indexOf("Password & 2FA");
+
+    expect(desktop[index - 1]).toBe("Security");
+    expect(desktop[index + 1]).toBe("Sessions");
+    expect(screen.getAllByRole("tab", { name: "Password & 2FA" })[0]!.querySelector("svg")).not.toBeNull();
+  });
+
   it("puts Sessions last among the tabs, after Security", () => {
     renderMenu();
     const items = screen.getAllByRole("tab").map((el) => el.textContent);

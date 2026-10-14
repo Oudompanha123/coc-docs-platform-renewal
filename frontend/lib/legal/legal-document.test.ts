@@ -1,52 +1,59 @@
 import { describe, expect, it } from "vitest";
-import { legalDocWordCount, slugifyAnchor, uniqueAnchor } from "./legal-document";
+import { BLANK_LEGAL_DOCUMENT, formatLegalDate, legalDocReadMinutes, legalDocWordCount, normalizeLegalDocument } from "./legal-document";
 
-describe("slugifyAnchor", () => {
-  it("lowercases and dashes a plain title", () => {
-    expect(slugifyAnchor("Acceptable Use")).toBe("acceptable-use");
+describe("legal-document", () => {
+  it("a blank page has an empty body and the default byline", () => {
+    expect(BLANK_LEGAL_DOCUMENT.body).toBe("");
+    expect(BLANK_LEGAL_DOCUMENT.updatedBy).toBe("the Platform Team");
   });
 
-  it("strips punctuation instead of dashing it", () => {
-    expect(slugifyAnchor("Your \"Content\" & Data")).toBe("your-content-data");
+  it("counts words and read minutes from the one body", () => {
+    expect(legalDocWordCount({ body: "## Intro\n\nHello there friend." })).toBe(5);
+    expect(legalDocReadMinutes({ body: "" })).toBe(1);
+    expect(legalDocReadMinutes({ body: "word ".repeat(401) })).toBe(3);
   });
 
-  it("trims leading/trailing dashes left by leading/trailing punctuation", () => {
-    expect(slugifyAnchor("  -- Hello! --  ")).toBe("hello");
-  });
-
-  it("falls back to \"section\" for a title with no letters or digits", () => {
-    expect(slugifyAnchor("")).toBe("section");
-    expect(slugifyAnchor("!!!")).toBe("section");
-  });
-});
-
-describe("uniqueAnchor", () => {
-  it("returns the anchor unchanged when nothing collides", () => {
-    expect(uniqueAnchor("contact", new Set(["intro"]))).toBe("contact");
-  });
-
-  it("appends -2 on a first collision", () => {
-    expect(uniqueAnchor("contact", new Set(["contact"]))).toBe("contact-2");
-  });
-
-  it("keeps incrementing past multiple collisions", () => {
-    expect(uniqueAnchor("contact", new Set(["contact", "contact-2", "contact-3"]))).toBe("contact-4");
+  it("formats yyyy-mm-dd without a timezone shift, and leaves anything else alone", () => {
+    expect(formatLegalDate("2026-10-01")).toBe("1 Oct 2026");
+    expect(formatLegalDate("soon")).toBe("soon");
   });
 });
 
-describe("legalDocWordCount", () => {
-  it("sums every section body plus the end note", () => {
-    const words = legalDocWordCount({
-      sections: [
-        { id: "a", title: "A", body: "one two three" },
-        { id: "b", title: "B", body: "four five" },
-      ],
-      endNote: "six",
+
+describe("normalizeLegalDocument — content saved before V81", () => {
+  it("converts Privacy's highlights/CTA shape the way V81 does", () => {
+    const doc = normalizeLegalDocument({
+      title: "Privacy Policy",
+      lead: "What we collect.",
+      lastUpdated: "2026-10-01",
+      plainLanguage: "We collect little.",
+      highlights: [{ icon: "eye", title: "Only what's needed", text: "Name and email." }],
+      sections: [{ id: "a", title: "Information we collect", icon: "db", body: "- Email" }],
+      cta: { title: "Have a question?", text: "Ask us." },
     });
-    expect(words).toBe(6);
+    expect(doc.subtitle).toBe("What we collect.");
+    expect(doc.updatedBy).toBe("the Platform Team");
+    expect(doc.body).toBe(
+      "> We collect little.\n\n- **Only what's needed** — Name and email.\n\n## Information we collect\n\n- Email\n\n## Have a question?\n\nAsk us.",
+    );
   });
 
-  it("counts zero for an empty document", () => {
-    expect(legalDocWordCount({ sections: [], endNote: "" })).toBe(0);
+  it("converts Terms' sections/endNote shape", () => {
+    const doc = normalizeLegalDocument({
+      title: "Terms",
+      subtitle: "Legal",
+      status: "draft",
+      sections: [{ id: "x", title: "Intro", body: "Hi." }],
+      endNote: "*Bye.*",
+      lastUpdated: "2026-10-01",
+      updatedBy: "Legal Team",
+    });
+    expect(doc).toEqual({ title: "Terms", subtitle: "Legal", lastUpdated: "2026-10-01", updatedBy: "Legal Team", body: "## Intro\n\nHi.\n\n---\n\n*Bye.*" });
+  });
+
+  it("fills every field for an empty or missing object, and leaves a current one alone", () => {
+    expect(normalizeLegalDocument(undefined)).toEqual({ title: "", subtitle: "", lastUpdated: "", updatedBy: "the Platform Team", body: "" });
+    const current = { title: "T", subtitle: "", lastUpdated: "2026-10-01", updatedBy: "X", body: "## A" };
+    expect(normalizeLegalDocument(current)).toEqual(current);
   });
 });

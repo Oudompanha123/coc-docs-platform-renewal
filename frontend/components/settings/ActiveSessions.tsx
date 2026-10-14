@@ -1,7 +1,9 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { PulseIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { listSessions, revokeSession, type SessionSummary } from "@/lib/auth/api";
 
 /* The user agent used to be parsed here, into "Chrome on Windows". The server
@@ -47,24 +49,24 @@ export function ActiveSessions() {
   return (
     <div className="py-4 last:pb-0">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-          <PulseIcon className="h-5 w-5" />
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+          <PulseIcon className="size-4" />
         </div>
-        <p className="text-sm font-semibold text-dash-ink">Active sessions</p>
+        <p className="text-sm font-medium text-foreground">Active sessions</p>
       </div>
-      <div className="mt-3 divide-y divide-border">
-        {loading && <p className="py-3 text-xs text-muted">Loading your sessions…</p>}
+      <div className="mt-3 divide-y divide-surface-border">
+        {loading && <SkeletonGroup label="Loading your sessions"><SkeletonList rows={2} /></SkeletonGroup>}
         {error && <p className="py-3 text-xs text-danger">{error}</p>}
         {!loading && !error && sessions.length === 0 && (
-          <p className="py-3 text-xs text-muted">No other sessions.</p>
+          <p className="py-3 text-xs text-muted-foreground">No other sessions.</p>
         )}
         {sessions.map((session) => (
           <div key={session.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-dash-ink">
+              <p className="text-sm font-medium text-foreground">
                 {session.device}
                 {session.current && (
-                  <span className="ml-2 inline-flex items-center rounded-full bg-brand-blue/10 px-2 py-0.5 text-xs font-semibold text-brand-blue">
+                  <span className="ml-2 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground">
                     This device
                   </span>
                 )}
@@ -73,23 +75,25 @@ export function ActiveSessions() {
                   // belongs to. Somebody who dismissed the notification, or
                   // never had notifications on, can still see which of
                   // these appeared out of nowhere.
-                  <span className="ml-2 inline-flex items-center rounded-full bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">
+                  <span className="ml-2 inline-flex items-center rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-medium text-danger">
                     New device
                   </span>
                 )}
               </p>
-              <p className="truncate text-xs text-muted">
+              <p className="truncate text-xs text-muted-foreground">
                 {session.ipAddress ?? "Unknown address"} · signed in {formatWhen(session.issuedAt)}
               </p>
             </div>
             {!session.current && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => void signOutSession(session.id)}
-                className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
+                className="shrink-0 text-foreground"
               >
                 Sign out
-              </button>
+              </Button>
             )}
           </div>
         ))}

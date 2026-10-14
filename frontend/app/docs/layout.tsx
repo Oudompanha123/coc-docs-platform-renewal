@@ -27,11 +27,11 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-background">
       <DocsSidebar />
       <div className="min-w-0 flex-1">
         <DocsMobileNav />
-        <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">{children}</main>
+        <main className="mx-auto max-w-3xl px-6 py-10 sm:py-12">{children}</main>
       </div>
     </div>
   );

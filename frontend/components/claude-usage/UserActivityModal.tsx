@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton, SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { Pagination } from "@/components/users-roles/Pagination";
@@ -26,6 +27,9 @@ import {
   type ActivityPreset,
 } from "@/lib/claudeUsage/activity";
 import { formatCost, formatTokens, modelDisplayName } from "@/lib/claudeUsage/format";
+import { DatePicker } from "@/components/ui/date-picker";
+import { SimpleSelect } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 /**
  * The admin "User Activity" detail, opened from a row of {@link UsageTable}
@@ -143,20 +147,20 @@ export function UserActivityModal({
       onExited={onClose}
       // Sized to its content, up to the viewport (Modal's maxHeight: 100%):
       // compact for an empty range, scrolling inside for a long one.
-      className="w-full max-w-4xl overflow-y-auto overscroll-contain rounded-2xl border border-border bg-white shadow-xl"
+      className="w-full max-w-4xl overflow-y-auto overscroll-contain rounded-2xl border border-surface-border bg-card shadow-xl"
     >
       <div role="dialog" aria-modal="true" aria-labelledby="user-activity-title" className="p-5 sm:p-7">
         {/* Sticky so the title and close button stay in reach while a long
             activity list scrolls; the negative margins carry its white
             background over the panel's own padding. */}
-        <div className="sticky top-0 z-10 -mx-5 -mt-5 flex items-start justify-between gap-4 bg-white px-5 pb-3 pt-5 sm:-mx-7 sm:-mt-7 sm:px-7 sm:pt-7">
+        <div className="sticky top-0 z-10 -mx-5 -mt-5 flex items-start justify-between gap-4 bg-card px-5 pb-3 pt-5 sm:-mx-7 sm:-mt-7 sm:px-7 sm:pt-7">
           <div className="flex items-baseline gap-3">
-            <h2 id="user-activity-title" className="text-lg font-bold text-dash-ink">
+            <h2 id="user-activity-title" className="text-lg font-semibold text-foreground">
               {selectedDay ? "Day detail" : "User Activity"}
             </h2>
             {/* In the title row, not above the content, so it adds no height. */}
             {refreshing && (
-              <span role="status" className="text-xs text-muted">
+              <span role="status" className="text-xs text-muted-foreground">
                 Updating…
               </span>
             )}
@@ -165,7 +169,7 @@ export function UserActivityModal({
             type="button"
             aria-label="Close"
             onClick={requestClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <XIcon className="h-5 w-5" />
           </button>
@@ -180,10 +184,10 @@ export function UserActivityModal({
         />
 
         {onBudgetChange && member.status !== "removed" && (
-          <div className="mt-4 flex flex-col gap-2 rounded-[10px] border border-border bg-page px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex flex-col gap-2 rounded-xl border border-surface-border bg-muted-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-dash-ink">Soft budget</p>
-              <p className="text-xs text-muted">Weekly; scales to the period selected on the dashboard. Leave empty for the team default.</p>
+              <p className="text-sm font-semibold text-foreground">Soft budget</p>
+              <p className="text-xs text-muted-foreground">Weekly; scales to the period selected on the dashboard. Leave empty for the team default.</p>
             </div>
             <BudgetOverrideInput member={member} onChange={onBudgetChange} />
           </div>
@@ -205,21 +209,29 @@ export function UserActivityModal({
             />
 
             {error && (
-              <div role="alert" className="mt-6 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              <div role="alert" className="mt-6 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
                 {error}
               </div>
             )}
 
             {!activity && !error && range && (
-              <p className="mt-6 rounded-[10px] border border-border px-4 py-8 text-center text-sm text-muted">
-                Loading activity…
-              </p>
+              <SkeletonGroup label="Loading activity" className="mt-6">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div key={i} className="rounded-xl border border-surface-border p-3">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="mt-2 h-6 w-20" />
+                    </div>
+                  ))}
+                </div>
+                <SkeletonTable className="mt-4" rows={5} />
+              </SkeletonGroup>
             )}
 
             {activity && activity.days.length === 0 && (
               <p
                 aria-busy={refreshing}
-                className={`mt-6 rounded-[10px] border border-border px-4 py-8 text-center text-sm text-muted transition-opacity duration-200 ${refreshing ? "opacity-50" : ""}`}
+                className={`mt-6 rounded-[10px] border border-surface-border px-4 py-8 text-center text-sm text-muted-foreground transition-opacity duration-200 ${refreshing ? "opacity-50" : ""}`}
               >
                 {project ? `No usage on ${project} in this range.` : "No usage reported in this range."}
               </p>
@@ -231,7 +243,7 @@ export function UserActivityModal({
                 className={`mt-6 flex flex-col gap-7 transition-opacity duration-200 ${refreshing ? "pointer-events-none opacity-50" : ""}`}
               >
                 {activity.daysWithoutActivity > 0 && (
-                  <p className="rounded-[10px] border border-[#e0873c]/30 bg-[#e0873c]/10 px-4 py-3 text-xs text-dash-ink">
+                  <p className="rounded-xl border border-[#e0873c]/30 bg-[#e0873c]/10 px-4 py-3 text-xs text-foreground">
                     {activity.daysWithoutActivity === activity.days.length
                       ? "This range was reported by an older version of the reporter, so requests, sessions, active time and projects aren't available — only tokens."
                       : `${activity.daysWithoutActivity} of ${activity.days.length} days were reported by an older version of the reporter. Their tokens are included; their requests, sessions and active time are not.`}{" "}
@@ -248,7 +260,7 @@ export function UserActivityModal({
                     <Metric label="Active duration" value={formatDuration(activity.summary.activeSeconds)} />
                     <Metric label="Total tokens" value={formatTokens(activity.summary.totalTokens)} emphasis />
                   </div>
-                  <p className="mt-2 text-xs text-muted">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {formatTokens(activity.summary.inputTokens)} input · {formatTokens(activity.summary.outputTokens)} output
                     {activity.summary.apiCallCount != null && <> · {formatCount(activity.summary.apiCallCount)} API calls</>}
                     {activity.summary.conversationCount != null && (
@@ -266,14 +278,14 @@ export function UserActivityModal({
                           <button
                             type="button"
                             onClick={() => setProject(null)}
-                            className="text-xs font-semibold text-brand-blue hover:underline"
+                            className="text-xs font-semibold text-foreground hover:underline"
                           >
                             All projects
                           </button>
                         ) : null
                       }
                     />
-                    <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
+                    <ul className="mt-3 divide-y divide-surface-border overflow-hidden rounded-xl border border-surface-border">
                       {activity.projects.map((p) => (
                         <li key={p.name}>
                           <ProjectRow
@@ -322,7 +334,7 @@ export function UserActivityModal({
               </div>
             )}
 
-            <p className="mt-6 text-xs text-muted">
+            <p className="mt-6 text-xs text-muted-foreground">
               A request is one prompt the person sent. A session is continuous activity, ending after 30 minutes with
               none; active duration adds up each session. Times are Phnom Penh time. Prompts themselves are never
               collected.
@@ -398,9 +410,9 @@ function MemberHeader({
           style={{ backgroundColor: avatarColor }}
         />
         <div className="min-w-0">
-          <p className="truncate text-lg font-semibold text-dash-ink">{member.displayName}</p>
-          <p className="truncate text-sm text-muted">{member.email}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+          <p className="truncate text-lg font-semibold text-foreground">{member.displayName}</p>
+          <p className="truncate text-sm text-muted-foreground">{member.email}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
             <span aria-hidden="true" className={`h-2 w-2 rounded-full ${activeToday ? "bg-[#1f9d6b]" : "bg-[#c4c4d0]"}`} />
             {label} · {formatLastActive(last)}
           </p>
@@ -429,7 +441,7 @@ function MemberHeader({
             <button
               type="button"
               disabled
-              className="inline-flex cursor-not-allowed items-center rounded-[4px] bg-page px-4 py-1.5 text-sm font-semibold text-muted"
+              className="inline-flex cursor-not-allowed items-center rounded-[4px] bg-muted-surface px-4 py-1.5 text-sm font-semibold text-muted-foreground"
             >
               Disabled
             </button>
@@ -458,8 +470,6 @@ function Filters({
   projectOptions: string[];
   onProject: (project: string | null) => void;
 }) {
-  const inputClass =
-    "rounded-lg border border-border bg-white px-2.5 py-1.5 text-sm text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15";
   return (
     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div role="group" aria-label="Date range" className="flex flex-wrap gap-1.5">
@@ -471,8 +481,8 @@ function Filters({
             onClick={() => onPreset(p.value)}
             className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
               preset === p.value
-                ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white"
-                : "border border-border bg-white text-dash-ink hover:border-brand-purple hover:text-brand-purple"
+                ? "bg-primary text-primary-foreground"
+                : "border border-surface-border bg-card text-foreground hover:border-primary hover:text-foreground"
             }`}
           >
             {p.label}
@@ -483,39 +493,36 @@ function Filters({
       <div className="flex flex-wrap items-center gap-2">
         {preset === "custom" && (
           <>
-            <input
-              type="date"
+            <DatePicker
               aria-label="From"
               value={custom.from}
-              max={today}
-              onChange={(e) => onCustom({ ...custom, from: e.target.value })}
-              className={inputClass}
+              max={custom.to || today}
+              onChange={(from) => onCustom({ ...custom, from })}
+              className="h-9"
             />
-            <span className="text-sm text-muted">to</span>
-            <input
-              type="date"
+            <span className="text-sm text-muted-foreground">to</span>
+            <DatePicker
               aria-label="To"
               value={custom.to}
+              min={custom.from}
               max={today}
-              onChange={(e) => onCustom({ ...custom, to: e.target.value })}
-              className={inputClass}
+              onChange={(to) => onCustom({ ...custom, to })}
+              className="h-9"
             />
           </>
         )}
         {(projectOptions.length > 1 || project) && (
-          <select
+          <SimpleSelect
+            size="sm"
             aria-label="Project"
             value={project ?? ""}
-            onChange={(e) => onProject(e.target.value || null)}
-            className={inputClass}
-          >
-            <option value="">All projects</option>
-            {[...new Set([...(project ? [project] : []), ...projectOptions])].map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => onProject(v || null)}
+            options={[
+              { value: "", label: "All projects" },
+              ...[...new Set([...(project ? [project] : []), ...projectOptions])].map((name) => ({ value: name, label: name })),
+            ]}
+            className="w-auto min-w-40"
+          />
         )}
       </div>
     </div>
@@ -524,9 +531,9 @@ function Filters({
 
 function Metric({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
   return (
-    <div className={`rounded-xl border px-4 py-3.5 ${emphasis ? "border-brand-purple/20 bg-brand-purple/5" : "border-border bg-[#f8fafc]"}`}>
-      <p className="text-xs font-medium text-muted">{label}</p>
-      <p className="mt-1.5 text-2xl font-bold text-dash-ink">{value}</p>
+    <div className={`rounded-xl border px-4 py-3.5 ${emphasis ? "border-surface-border bg-secondary" : "border-surface-border bg-[#f8fafc]"}`}>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1.5 text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -535,8 +542,8 @@ function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: s
   return (
     <div className="flex items-baseline justify-between gap-3">
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wide text-muted">{title}</h3>
-        {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+        <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -561,21 +568,21 @@ function ProjectRow({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${active ? "bg-brand-blue/5" : "hover:bg-[#f8fafc]"}`}
+      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${active ? "bg-primary/5" : "hover:bg-[#f8fafc]"}`}
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-dash-ink">{project.name}</p>
-        <p className="mt-0.5 text-xs text-muted">
+        <p className="truncate text-sm font-semibold text-foreground">{project.name}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {plural(project.requestCount, "request", "requests")} · {formatTokens(project.totalTokens)} tokens ·{" "}
           {formatDuration(project.activeSeconds)} active
         </p>
       </div>
-      <p className="hidden shrink-0 text-right text-xs text-muted sm:block">
+      <p className="hidden shrink-0 text-right text-xs text-muted-foreground sm:block">
         First used {span(project.firstAt)}
         <br />
         Last used {span(project.lastAt)}
       </p>
-      <ChevronRightIcon className={`h-4 w-4 shrink-0 ${active ? "text-brand-blue" : "text-muted"}`} />
+      <ChevronRightIcon className={`h-4 w-4 shrink-0 ${active ? "text-foreground" : "text-muted-foreground"}`} />
     </button>
   );
 }
@@ -587,12 +594,12 @@ function SessionList({ sessions, showDate }: { sessions: ClaudeUsageActivitySess
       items={sessions}
       renderItem={(s) => (
         <li key={s.startedAt} className="flex items-center gap-4 px-4 py-2.5 text-sm">
-          <span className="w-32 shrink-0 font-medium tabular-nums text-dash-ink">
-            {showDate && <span className="mr-1.5 text-muted">{formatDate(s.date)}</span>}
+          <span className="w-32 shrink-0 font-medium tabular-nums text-foreground">
+            {showDate && <span className="mr-1.5 text-muted-foreground">{formatDate(s.date)}</span>}
             {formatTime(s.startedAt)} – {formatTime(s.endedAt)}
           </span>
-          <span className="w-16 shrink-0 font-semibold tabular-nums text-dash-ink">{formatDuration(s.durationSeconds)}</span>
-          <span className="min-w-0 flex-1 truncate text-xs text-muted">
+          <span className="w-16 shrink-0 font-semibold tabular-nums text-foreground">{formatDuration(s.durationSeconds)}</span>
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
             {s.projects.join(", ")} · {plural(s.requestCount, "request", "requests")}
           </span>
         </li>
@@ -624,8 +631,8 @@ function PagedList<T>({
   const visible = items.slice((current - 1) * pageSize, current * pageSize);
 
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-border">
-      <ul aria-label={label} className="divide-y divide-border">
+    <div className="mt-3 overflow-hidden rounded-xl border border-surface-border">
+      <ul aria-label={label} className="divide-y divide-surface-border">
         {visible.map(renderItem)}
       </ul>
       {items.length > LIST_PAGE_SIZE && (
@@ -648,14 +655,14 @@ function ProjectTokenBars({ projects }: { projects: ClaudeUsageActivityProject[]
     <ul className="mt-3 flex flex-col gap-2.5">
       {rows.map((row) => (
         <li key={row.name} className="flex items-center gap-3 text-sm">
-          <span className={`w-40 shrink-0 truncate ${row.rest ? "text-muted" : "text-dash-ink"}`}>{row.name}</span>
-          <span className="h-2 flex-1 overflow-hidden rounded-full bg-page">
+          <span className={`w-40 shrink-0 truncate ${row.rest ? "text-muted-foreground" : "text-foreground"}`}>{row.name}</span>
+          <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted-surface">
             <span
-              className={`block h-full rounded-full ${row.rest ? "bg-[#c4c4d0]" : "bg-brand-blue"}`}
+              className={`block h-full rounded-full ${row.rest ? "bg-[#c4c4d0]" : "bg-primary"}`}
               style={{ width: `${max > 0 ? Math.max(2, (row.totalTokens / max) * 100) : 0}%` }}
             />
           </span>
-          <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-dash-ink">{formatTokens(row.totalTokens)}</span>
+          <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-foreground">{formatTokens(row.totalTokens)}</span>
         </li>
       ))}
     </ul>
@@ -667,23 +674,23 @@ function DayRow({ day, onClick }: { day: ClaudeUsageActivityDay; onClick: () => 
   return (
     <button type="button" onClick={onClick} className="flex w-full items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-[#f8fafc]">
       <div className="w-14 shrink-0">
-        <p className="text-sm font-semibold text-dash-ink">{formatDate(day.date)}</p>
-        <p className="text-xs text-muted">{formatDate(day.date, { weekday: "short" })}</p>
+        <p className="text-sm font-semibold text-foreground">{formatDate(day.date)}</p>
+        <p className="text-xs text-muted-foreground">{formatDate(day.date, { weekday: "short" })}</p>
       </div>
-      <p className="min-w-0 flex-1 truncate text-sm text-dash-ink">
+      <p className="min-w-0 flex-1 truncate text-sm text-foreground">
         {reported ? (
           <>
             {plural(day.requestCount, "request", "requests")} · {plural(day.sessionCount, "session", "sessions")} ·{" "}
             {formatDuration(day.activeSeconds)}
           </>
         ) : (
-          <span className="text-muted">Activity not reported</span>
+          <span className="text-muted-foreground">Activity not reported</span>
         )}
       </p>
-      <p className="shrink-0 text-xs font-medium text-muted">
-        <span className="text-sm font-semibold text-dash-ink">{formatTokens(day.totalTokens)}</span> tokens
+      <p className="shrink-0 text-xs font-medium text-muted-foreground">
+        <span className="text-sm font-semibold text-foreground">{formatTokens(day.totalTokens)}</span> tokens
       </p>
-      <ChevronRightIcon className="h-4 w-4 shrink-0 text-muted" />
+      <ChevronRightIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
   );
 }
@@ -711,98 +718,96 @@ function DayDetail({ day, onBack }: { day: ClaudeUsageActivityDay; onBack: () =>
         : reported.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: REPORT_TZ }),
     ],
   ];
-  const tableClass = "w-full min-w-[560px] text-left text-sm";
-  const headClass = "border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted";
 
   return (
     <div className="mt-6">
-      <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-blue hover:underline">
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-sm font-semibold text-foreground hover:underline">
         <ChevronLeftIcon className="h-4 w-4" />
         Back to activity
       </button>
 
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-border bg-[#f8fafc] p-5 sm:grid-cols-4">
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-surface-border bg-[#f8fafc] p-5 sm:grid-cols-4">
         {fields.map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <dt className="text-xs font-medium text-muted">{label}</dt>
-            <dd className="mt-0.5 break-words text-sm font-semibold text-dash-ink">{value}</dd>
+            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 break-words text-sm font-semibold text-foreground">{value}</dd>
           </div>
         ))}
       </dl>
 
       {day.sessions && day.sessions.length > 0 && (
         <>
-          <h3 className="mt-6 text-sm font-bold text-dash-ink">Sessions</h3>
+          <h3 className="mt-6 text-sm font-bold text-foreground">Sessions</h3>
           <SessionList sessions={day.sessions} showDate={false} />
         </>
       )}
 
       {day.projects && day.projects.length > 0 && (
         <>
-          <h3 className="mt-6 text-sm font-bold text-dash-ink">By project</h3>
-          <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-            <table aria-label="By project" className={tableClass}>
-              <thead>
-                <tr className={headClass}>
-                  <th className="px-4 py-2.5">Project</th>
-                  <th className="px-4 py-2.5 text-right">Requests</th>
-                  <th className="px-4 py-2.5 text-right">Active</th>
-                  <th className="px-4 py-2.5 text-right">Input</th>
-                  <th className="px-4 py-2.5 text-right">Output</th>
-                  <th className="px-4 py-2.5 text-right">Total</th>
-                  <th className="px-4 py-2.5 text-right">First – last</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+          <h3 className="mt-6 text-sm font-bold text-foreground">By project</h3>
+          <div className="mt-3 overflow-hidden rounded-xl border border-surface-border">
+            <Table aria-label="By project" className="min-w-[560px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Project</TableHead>
+                  <TableHead className="text-right">Requests</TableHead>
+                  <TableHead className="text-right">Active</TableHead>
+                  <TableHead className="text-right">Input</TableHead>
+                  <TableHead className="text-right">Output</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">First – last</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {day.projects.map((p) => (
-                  <tr key={p.name}>
-                    <td className="px-4 py-3 font-medium text-dash-ink">{p.name}</td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatCount(p.requestCount)}</td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatDuration(p.activeSeconds)}</td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatTokens(p.inputTokens)}</td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatTokens(p.outputTokens)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-dash-ink">{formatTokens(p.totalTokens)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-muted">
+                  <TableRow key={p.name}>
+                    <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                    <TableCell className="text-right text-foreground">{formatCount(p.requestCount)}</TableCell>
+                    <TableCell className="text-right text-foreground">{formatDuration(p.activeSeconds)}</TableCell>
+                    <TableCell className="text-right text-foreground">{formatTokens(p.inputTokens)}</TableCell>
+                    <TableCell className="text-right text-foreground">{formatTokens(p.outputTokens)}</TableCell>
+                    <TableCell className="text-right font-semibold text-foreground">{formatTokens(p.totalTokens)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
                       {formatTime(p.firstAt)} – {formatTime(p.lastAt)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </>
       )}
 
       {day.models.length > 0 && (
         <>
-          <h3 className="mt-6 text-sm font-bold text-dash-ink">By model</h3>
-          <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-            <table aria-label="By model" className={tableClass}>
-              <thead>
-                <tr className={headClass}>
-                  <th className="px-4 py-2.5">Model</th>
-                  <th className="px-4 py-2.5 text-right">Input</th>
-                  <th className="px-4 py-2.5 text-right">Output</th>
-                  <th className="px-4 py-2.5 text-right">Total</th>
-                  <th className="px-4 py-2.5 text-right">Cache read / write</th>
-                  <th className="px-4 py-2.5 text-right">Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+          <h3 className="mt-6 text-sm font-bold text-foreground">By model</h3>
+          <div className="mt-3 overflow-hidden rounded-xl border border-surface-border">
+            <Table aria-label="By model" className="min-w-[560px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Model</TableHead>
+                  <TableHead className="text-right">Input</TableHead>
+                  <TableHead className="text-right">Output</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Cache read / write</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {day.models.map((m) => (
-                  <tr key={m.model}>
-                    <td className="px-4 py-3 font-medium text-dash-ink">{modelDisplayName(m.model)}</td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatTokens(m.inputTokens)}</td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatTokens(m.outputTokens)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-dash-ink">{formatTokens(m.totalTokens)}</td>
-                    <td className="px-4 py-3 text-right text-muted">
+                  <TableRow key={m.model}>
+                    <TableCell className="font-medium text-foreground">{modelDisplayName(m.model)}</TableCell>
+                    <TableCell className="text-right text-foreground">{formatTokens(m.inputTokens)}</TableCell>
+                    <TableCell className="text-right text-foreground">{formatTokens(m.outputTokens)}</TableCell>
+                    <TableCell className="text-right font-semibold text-foreground">{formatTokens(m.totalTokens)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">
                       {formatTokens(m.cacheReadTokens)} / {formatTokens(m.cacheWriteTokens)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-dash-ink">{formatCost(m.costUsd)}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-right text-foreground">{formatCost(m.costUsd)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </>
       )}

@@ -1,0 +1,2532 @@
+---
+name: coc-docs-components-button-group
+description: Design system skill for coc-docs. Activate when building UI components, pages, or any visual elements. Provides exact color tokens, typography scale, spacing grid, component patterns, and craft rules. Read references/DESIGN.md before writing any CSS or JSX. For motion and layout details, read references/ANIMATIONS.md, references/LAYOUT.md, references/COMPONENTS.md, and references/INTERACTIONS.md for full motion and layout details.
+---
+
+# coc-docs Design System
+
+You are building UI for **coc-docs**. Light-themed, cool palette, sans-serif typography (calSansHeading), compact density on a 4px grid, expressive motion.
+
+## Reference Files
+
+This package includes extended documentation. **Read these files before implementing:**
+
+| File | Contents |
+|------|----------|
+| `references/DESIGN.md` | Full design system tokens, colors, typography, spacing |
+| `references/ANIMATIONS.md` | CSS keyframes, scroll triggers, motion library stack, video specs |
+| `references/LAYOUT.md` | Flex/grid containers, page structure, spacing relationships |
+| `references/COMPONENTS.md` | DOM component patterns, HTML structure, class fingerprints |
+| `references/INTERACTIONS.md` | Hover/focus states with before/after style diffs |
+
+### Animation Stack Detected
+
+- **Web Animations API (2 active)** — animation
+
+## Design Philosophy
+
+- **Layered depth** — use shadow tokens to create a sense of physical layering. Each elevation level has a specific shadow.
+- **Gradient accents** — gradients are used thoughtfully for emphasis, not decoration.
+- **Type pairing** — calSansHeading for body/UI text, Inter for headings/display. Never introduce a third typeface.
+- **compact density** — 4px base grid. Every dimension is a multiple of 4.
+- **cool palette** — the color temperature runs cool, matching the sans-serif typography.
+- **Restrained accent** — `#00a544` is the only pop of color. Used exclusively for CTAs, links, focus rings, and active states.
+- **Expressive motion** — animations are an integral part of the experience. Use spring physics and layout animations.
+
+## Color System
+
+### Core Palette
+
+| Role | Token | Hex | Use |
+|------|-------|-----|-----|
+| Background | `--background` | `#ffffff` | Page/app background |
+| Surface | `--surface` | `#fef2f2` | Cards, panels, modals |
+| Text Primary | `--text-primary` | `#000000` | Headings, body text |
+| Text Muted | `--text-muted` | `#3f3f46` | Captions, placeholders |
+| Accent | `--accent` | `#00a544` | CTAs, links, focus rings |
+| Border | `--border` | `#27272a` | Dividers, card borders |
+
+### Status Colors
+
+| Status | Hex | Use |
+|--------|-----|-----|
+| Success | `#f0fdf4` | Confirmations, positive trends |
+| Danger | `#ff667f` | Errors, destructive actions |
+
+### Extended Palette
+
+- **color-zinc-900:** `#18181b` — Deep background layer or shadow color
+- **color-slate-200:** `#e2e8f0` — Light surface or highlight color
+- **color-gray-300:** `#d1d5dc`
+- **color-zinc-950:** `#09090b` — Deep background layer or shadow color
+- **color-red-950:** `#460809`
+- **color-sky-400:** `#00bcfe`
+- **color-sky-600:** `#0084cc`
+- **color-zinc-500:** `#71717b`
+
+### CSS Variable Tokens
+
+```css
+--color-background: var(--background);
+--color-muted: var(--muted);
+--color-border: var(--border);
+--card-spacing: calc(var(--spacing)*6);
+--primary: var(--color-emerald-500);
+--primary: var(--color-indigo-500);
+--primary: var(--color-indigo-500);
+--card-spacing: calc(var(--spacing)*4);
+--card: #fff;
+--card-foreground: #0a0a0a;
+--popover: #fff;
+--popover-foreground: #0a0a0a;
+--primary: #171717;
+--primary-foreground: #fafafa;
+--secondary: #f5f5f5;
+--secondary-foreground: #171717;
+--muted: #f5f5f5;
+--muted-foreground: #737373;
+--accent: #f5f5f5;
+--accent-foreground: #171717;
+```
+
+## Typography
+
+### Font Stack
+
+- **calSansHeading** — Heading 1, Heading 2
+- **Inter** — Body, Caption
+- **SFMono-Regular** — Code
+
+### Font Sources
+
+```css
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Bold.ttf") format("truetype");
+  font-weight: 700;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "calSansHeading";
+  src: url("fonts/calSansHeading-600.woff2") format("woff2");
+  font-weight: 600;
+}
+@font-face {
+  font-family: "Mynerve";
+  src: url("fonts/Mynerve-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+```
+
+### Type Scale
+
+| Role | Family | Size | Weight |
+|------|--------|------|--------|
+| Heading 1 | calSansHeading | clamp(3rem,15vw,15rem) | 700 |
+| Heading 2 | calSansHeading | 2.75rem | 700 |
+| Body | Inter | 13px | 400 |
+| Caption | Inter | 10px | 400 |
+| Code | SFMono-Regular | 14px | 400 |
+
+### Typography Rules
+
+- Body/UI: **calSansHeading**, Headings: **Inter** — these are the only display fonts
+- Max 3-4 font sizes per screen
+- Headings: weight 600-700, body: weight 400
+- Use color and opacity for text hierarchy, not additional font sizes
+- Line height: 1.5 for body, 1.2 for headings
+
+## Spacing & Layout
+
+### Base Grid: 4px
+
+Every dimension (margin, padding, gap, width, height) must be a multiple of **4px**.
+
+### Spacing Scale
+
+`2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 26` px
+
+### Spacing as Meaning
+
+| Spacing | Use |
+|---------|-----|
+| 4-8px | Tight: related items (icon + label, avatar + name) |
+| 12-16px | Medium: between groups within a section |
+| 24-32px | Wide: between distinct sections |
+| 48px+ | Vast: major page section breaks |
+
+### Border Radius
+
+Scale: `0px 23.2px 23.2px 0px, 0px 0px 23.2px 23.2px, .25rem, .3125rem, .375rem, 2px, 3px, 4px, 5px, 6px, 7.2px, 12px, 15.2px, 19.2px, 19.2px 0px 0px 19.2px, 22%, 23.2px, 23.2px 0px 0px 23.2px, 23.2px 23.2px 0px 0px, 24%, 24px, 26%, 60px, inherit, 100%`
+Default: `15.2px`
+
+### Container
+
+Max-width: `1350px`, centered with auto margins.
+
+### Breakpoints
+
+| Name | Value |
+|------|-------|
+| sm | 40rem |
+| md | 48rem |
+| lg | 64rem |
+| xl | 80rem |
+| 2xl | 96rem |
+| xs | 400px |
+| 2xl | 1500px |
+
+Mobile-first: design for small screens, layer on responsive overrides.
+
+## Component Patterns
+
+### Card
+
+```css
+.card {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 16px;
+  box-shadow: 0 0 0 1px var(--tw-prose-kbd-shadows),0 3px 0 var(--tw-prose-kbd-shadows);
+}
+```
+
+```html
+<div class="card">
+  <h3>Card Title</h3>
+  <p>Card content goes here.</p>
+</div>
+```
+
+### Button
+
+```css
+/* Primary */
+.btn-primary {
+  background: #00a544;
+  color: #000000;
+  border-radius: 15.2px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: opacity 150ms ease;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #27272a;
+  color: #000000;
+  border-radius: 15.2px;
+  padding: 8px 16px;
+}
+```
+
+```html
+<button class="btn-primary">Get Started</button>
+<button class="btn-ghost">Learn More</button>
+```
+
+### Input
+
+```css
+.input {
+  background: #ffffff;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px 12px;
+  color: #000000;
+  font-size: 14px;
+}
+.input:focus { border-color: #00a544; outline: none; }
+```
+
+```html
+<input class="input" type="text" placeholder="Search..." />
+```
+
+### Badge / Chip
+
+```css
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #fef2f2;
+  color: #3f3f46;
+}
+```
+
+```html
+<span class="badge">New</span>
+<span class="badge">Beta</span>
+```
+
+### Modal / Dialog
+
+```css
+.modal-backdrop { background: rgba(0, 0, 0, 0.6); }
+.modal {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 100%;
+  padding: 24px;
+  max-width: 480px;
+  width: 90vw;
+  box-shadow: 0 0 10px var(--color-blue-500),0 0 5px var(--color-blue-500);
+}
+```
+
+```html
+<div class="modal-backdrop">
+  <div class="modal">
+    <h2>Dialog Title</h2>
+    <p>Dialog content.</p>
+    <button class="btn-primary">Confirm</button>
+    <button class="btn-ghost">Cancel</button>
+  </div>
+</div>
+```
+
+### Table
+
+```css
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 12px;
+  color: #3f3f46;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #27272a;
+}
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid #27272a;
+}
+```
+
+```html
+<table class="table">
+  <thead><tr><th>Name</th><th>Status</th><th>Date</th></tr></thead>
+  <tbody>
+    <tr><td>Item One</td><td>Active</td><td>Jan 1</td></tr>
+    <tr><td>Item Two</td><td>Pending</td><td>Jan 2</td></tr>
+  </tbody>
+</table>
+```
+
+### Navigation
+
+```css
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #27272a;
+}
+.nav-link {
+  color: #3f3f46;
+  padding: 8px 12px;
+  border-radius: 15.2px;
+  transition: color 150ms;
+}
+.nav-link:hover { color: #000000; }
+.nav-link.active { color: #00a544; }
+```
+
+```html
+<nav class="nav">
+  <a href="/" class="nav-link active">Home</a>
+  <a href="/about" class="nav-link">About</a>
+  <a href="/pricing" class="nav-link">Pricing</a>
+  <button class="btn-primary" style="margin-left: auto">Get Started</button>
+</nav>
+```
+
+### Components
+
+These components were found in the codebase:
+
+**Button** (`html`)
+
+**Input** (`html`)
+
+**Card** (`html`)
+- Variants: `spacing)`, `foreground`, `header`
+
+**Navigation** (`html`)
+
+**List** (`html`)
+
+## Page Structure
+
+The following page sections were detected:
+
+- **Navigation** — Top navigation bar (4 items)
+- **Hero** — Hero section (detected from heading structure)
+- **Faq** — FAQ/accordion section
+- **Footer** — Page footer with links and info (165 items)
+- **Cards** — Grid of 23 card elements (23 items)
+
+When building pages, follow this section order and structure.
+
+## Animation & Motion
+
+This project uses **expressive motion**. Animations are part of the design language.
+
+### CSS Animations
+
+- `embla-progress`
+- `spin`
+- `ping`
+- `pulse`
+- `bounce`
+
+### Motion Tokens
+
+- **Duration scale:** `.1s`, `.15s`, `.2s`, `.3s`, `.4s`, `.5s`, `.7s`, `1s`, `2.5s`, `50ms`, `75ms`, `200ms`, `1000ms`
+- **Easing functions:** `cubic-bezier(.16,1,.3,1)`, `cubic-bezier(.22,1,.36,1)`, `linear`, `cubic-bezier(.7,0,.84,0)`, `cubic-bezier(.23,1,.32,1)`, `cubic-bezier(.8,0,1,1)`, `cubic-bezier(0,0,.2,1)`
+- **Animated properties:** `opacity`
+
+### Motion Guidelines
+
+- **Duration:** Use values from the duration scale above. Short (.1s) for micro-interactions, long (1000ms) for page transitions
+- **Easing:** Use `cubic-bezier(.16,1,.3,1)` as the default easing curve
+- **Direction:** Elements enter from bottom/right, exit to top/left
+- **Reduced motion:** Always respect `prefers-reduced-motion` — disable animations when set
+
+## Dark Mode
+
+This project supports **light and dark mode** via CSS variables.
+
+### Token Mapping
+
+| Variable | Light | Dark |
+|----------|-------|------|
+| `--card` | `lab(100% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--card-foreground` | `lab(2.75381% 0 0)` | `lab(98.26% 0 0)` |
+| `--popover` | `lab(100% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--popover-foreground` | `lab(2.75381% 0 0)` | `lab(98.26% 0 0)` |
+| `--primary` | `lab(7.78201% -.0000149012 0)` | `lab(90.952% 0 -.0000119209)` |
+| `--primary-foreground` | `lab(98.26% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--secondary` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+| `--secondary-foreground` | `lab(7.78201% -.0000149012 0)` | `lab(98.26% 0 0)` |
+| `--muted` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+| `--muted-foreground` | `lab(48.496% 0 0)` | `lab(66.128% -.0000298023 .0000119209)` |
+| `--accent` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+| `--accent-foreground` | `lab(7.78201% -.0000149012 0)` | `lab(98.26% 0 0)` |
+| `--destructive` | `lab(48.4493% 77.4328 61.5452)` | `lab(63.7053% 60.745 31.3109)` |
+| `--border` | `lab(90.952% 0 -.0000119209)` | `lab(100% 0 0/.1)` |
+| `--input` | `lab(90.952% 0 -.0000119209)` | `lab(100% 0 0/.15)` |
+
+### Implementation
+
+- Toggle via `.dark` class on `<html>` or `[data-theme="dark"]`
+- Always use CSS variables for colors — never hardcode hex values
+- Test both modes for contrast and readability
+
+## Depth & Elevation
+
+### Shadow Tokens
+
+- Subtle: `0 0 0 2px #0000001a`
+- Subtle: `0 0 0 2px buttontext`
+- Subtle: `0 0 2px 2px #0096ff`
+- Subtle: `0 1px 2px #0000001a`
+- Subtle: `rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px`
+- Raised (cards, buttons): `0 0 0 1px var(--tw-prose-kbd-shadows),0 3px 0 var(--tw-prose-kbd-shadows)`
+
+### Z-Index Scale
+
+`0, 1, 2, 3, 10, 20, 30, 40, 50, 999, 1600, 99999, 9999999`
+
+Use these exact values — never invent z-index values.
+
+## Anti-Patterns (Never Do)
+
+- **No zebra striping** — tables and lists use borders for separation
+- **No invented colors** — every hex value must come from the palette above
+- **No arbitrary spacing** — every dimension is a multiple of 4px
+- **No extra fonts** — only calSansHeading and Inter and SFMono-Regular are allowed
+- **No arbitrary border-radius** — use the scale: .25rem, .3125rem, .375rem, 2px, 3px, 4px, 5px, 6px, 7.2px, 12px
+- **No opacity for disabled states** — use muted colors instead
+
+## Workflow
+
+1. **Read** `references/DESIGN.md` before writing any UI code
+2. **Pick colors** from the Color System section — never invent new ones
+3. **Set typography** — calSansHeading, Inter, SFMono-Regular only, using the type scale
+4. **Build layout** on the 4px grid — check every margin, padding, gap
+5. **Match components** to patterns above before creating new ones
+6. **Apply elevation** — use shadow tokens
+7. **Validate** — every value traces back to a design token. No magic numbers.
+
+## Brand Spec
+
+- **Favicon:** `/favicon.ico`
+- **Brand color:** `#00a544`
+- **Brand typeface:** calSansHeading
+
+## Quick Reference
+
+```
+Background:     #ffffff
+Surface:        #fef2f2
+Text:           #000000 / #3f3f46
+Accent:         #00a544
+Border:         #27272a
+Font:           calSansHeading
+Spacing:        4px grid
+Radius:         15.2px
+Components:     11 detected
+```
+
+## When to Trigger
+
+Activate this skill when:
+- Creating new components, pages, or visual elements for coc-docs
+- Writing CSS, Tailwind classes, styled-components, or inline styles
+- Building page layouts, templates, or responsive designs
+- Reviewing UI code for design consistency
+- The user mentions "coc-docs" design, style, UI, or theme
+- Generating mockups, wireframes, or visual prototypes
+
+---
+
+# Full Reference Files
+
+> Every output file is embedded below. Claude has full design system context from /skills alone.
+
+## Design System Tokens (DESIGN.md)
+
+# coc-docs DESIGN.md
+
+> Auto-generated design system.
+> Frameworks: None detected
+> Colors: 20 · Fonts: 3 · Components: 11
+> Icon library: not detected · State: not detected
+> Primary theme: light · Dark mode toggle: yes · Motion: expressive
+
+---
+
+## 1. Visual Theme & Atmosphere
+
+This is a **light-themed** interface with a cool, approachable feel. The light background emphasizes content clarity. Typography pairs **Inter** for display/headings with **calSansHeading** for body text, creating clear visual hierarchy through type contrast. Spacing follows a **4px base grid** (compact density), with scale: 2, 4, 6, 8, 10, 12, 14, 16px. The accent color **#00a544** anchors interactive elements (buttons, links, focus rings). Motion is expressive — spring physics, layout animations, and staggered reveals are part of the visual language.
+
+---
+
+## 2. Color Palette & Roles
+
+| Token | Hex | Role | Use |
+|---|---|---|---|
+| tw-ring-offset-color | `#ffffff` | background | Page background, darkest surface |
+| color-red-50 | `#fef2f2` | surface | Card and panel backgrounds |
+| color-black | `#000000` | text-primary | Headings and body text |
+| color-zinc-700 | `#3f3f46` | text-muted | Captions, placeholders, secondary info |
+| color-zinc-800 | `#27272a` | border | Dividers, card borders, outlines |
+| color-green-600 | `#00a544` | accent | CTAs, links, focus rings, active states |
+| color-rose-400 | `#ff667f` | danger | Error states, destructive actions |
+| color-green-50 | `#f0fdf4` | success | Success states, positive indicators |
+| color-slate-200 | `#e2e8f0` | info | Informational highlights |
+| color-zinc-900 | `#18181b` | unknown | Palette color |
+| color-gray-300 | `#d1d5dc` | unknown | Palette color |
+| color-zinc-950 | `#09090b` | unknown | Palette color |
+| color-red-950 | `#460809` | unknown | Palette color |
+| color-sky-400 | `#00bcfe` | unknown | Palette color |
+| color-sky-600 | `#0084cc` | unknown | Palette color |
+| color-zinc-500 | `#71717b` | unknown | Palette color |
+| color-rose-600 | `#e70044` | unknown | Palette color |
+| color-gray-900 | `#101828` | unknown | Palette color |
+| color-zinc-400 | `#9f9fa9` | unknown | Palette color |
+| color-orange-900 | `#7e2a0c` | unknown | Palette color |
+
+### Dark Mode Token Mapping
+
+| Variable | Light | Dark |
+|---|---|---|
+| `--card` | `lab(100% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--card-foreground` | `lab(2.75381% 0 0)` | `lab(98.26% 0 0)` |
+| `--popover` | `lab(100% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--popover-foreground` | `lab(2.75381% 0 0)` | `lab(98.26% 0 0)` |
+| `--primary` | `lab(7.78201% -.0000149012 0)` | `lab(90.952% 0 -.0000119209)` |
+| `--primary-foreground` | `lab(98.26% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--secondary` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+| `--secondary-foreground` | `lab(7.78201% -.0000149012 0)` | `lab(98.26% 0 0)` |
+| `--muted` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+| `--muted-foreground` | `lab(48.496% 0 0)` | `lab(66.128% -.0000298023 .0000119209)` |
+| `--accent` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+| `--accent-foreground` | `lab(7.78201% -.0000149012 0)` | `lab(98.26% 0 0)` |
+| `--destructive` | `lab(48.4493% 77.4328 61.5452)` | `lab(63.7053% 60.745 31.3109)` |
+| `--border` | `lab(90.952% 0 -.0000119209)` | `lab(100% 0 0/.1)` |
+| `--input` | `lab(90.952% 0 -.0000119209)` | `lab(100% 0 0/.15)` |
+| `--ring` | `lab(66.128% -.0000298023 .0000119209)` | `lab(48.496% 0 0)` |
+| `--sidebar` | `lab(98.26% 0 0)` | `lab(7.78201% -.0000149012 0)` |
+| `--sidebar-foreground` | `lab(2.75381% 0 0)` | `lab(98.26% 0 0)` |
+| `--sidebar-primary` | `lab(7.78201% -.0000149012 0)` | `lab(36.9089% 35.0961 -85.6872)` |
+| `--sidebar-accent` | `lab(96.52% -.0000298023 .0000119209)` | `lab(15.204% 0 -.00000596046)` |
+
+### CSS Variable Tokens
+
+```css
+--tw-border-spacing-x: 0;
+--tw-border-spacing-y: 0;
+--tw-border-style: solid;
+--color-background: var(--background);
+--color-muted: var(--muted);
+--color-border: var(--border);
+--tw-prose-quote-borders: #e5e7eb;
+--tw-prose-th-borders: #d1d5dc;
+--tw-prose-td-borders: #e5e7eb;
+--tw-prose-invert-quote-borders: #364153;
+--tw-prose-invert-th-borders: #4a5565;
+--tw-prose-invert-td-borders: #364153;
+--tw-prose-quote-borders: lab(91.6229% -.159115-2.26791);
+--tw-prose-th-borders: lab(85.1236% -.612259-3.7138);
+--tw-prose-td-borders: lab(91.6229% -.159115-2.26791);
+--tw-prose-invert-quote-borders: lab(27.1134% -.956401-12.3224);
+--tw-prose-invert-th-borders: lab(35.6337% -1.58697-10.8425);
+--tw-prose-invert-td-borders: lab(27.1134% -.956401-12.3224);
+--tw-border-spacing-x: 0px;
+--tw-border-spacing-y: 0px;
+```
+
+---
+
+## 3. Typography Rules
+
+**Font Stack:**
+- **calSansHeading** — Heading 1, Heading 2
+- **Inter** — Body, Caption
+- **SFMono-Regular** — Code
+
+**Font Sources:**
+
+```css
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Bold.ttf") format("truetype");
+  font-weight: 700;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "calSansHeading";
+  src: url("fonts/calSansHeading-600.woff2") format("woff2");
+  font-weight: 600;
+}
+@font-face {
+  font-family: "Mynerve";
+  src: url("fonts/Mynerve-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+```
+
+| Role | Font | Size | Weight |
+|---|---|---|---|
+| Heading 1 | calSansHeading | clamp(3rem,15vw,15rem) | 700 |
+| Heading 2 | calSansHeading | 2.75rem | 700 |
+| Body | Inter | 13px | 400 |
+| Caption | Inter | 10px | 400 |
+| Code | SFMono-Regular | 14px | 400 |
+
+**Typographic Rules:**
+- Limit to 3 font families max per screen
+- Use **calSansHeading** for body/UI text, **Inter** for display/headings
+- Maintain consistent hierarchy: no more than 3-4 font sizes per screen
+- Headings use bold (600-700), body uses regular (400)
+- Line height: 1.5 for body text, 1.2 for headings
+- Use color and opacity for secondary hierarchy, not additional font sizes
+
+---
+
+## 4. Component Stylings
+
+### Layout (1)
+
+**Footer** — `html`
+
+### Navigation (1)
+
+**Navigation** — `html`
+
+### Data Display (3)
+
+**Card** — `html`
+- Variants: `spacing)`, `foreground`, `header`
+
+**Badge** — `html`
+
+**List** — `html`
+
+### Data Input (2)
+
+**Button** — `html`
+- Animation: 
+
+**Input** — `html`
+- State: :focus, :placeholder
+
+### Overlay (1)
+
+**Modal** — `html`
+
+### Media (3)
+
+**Image** — `html`
+
+**Icon** — `html`
+
+**Map/Canvas** — `html`
+
+---
+
+## 5. Layout Principles
+
+- **Base spacing unit:** 4px
+- **Spacing scale:** 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 26
+- **Border radius:** 0px 23.2px 23.2px 0px, 0px 0px 23.2px 23.2px, .25rem, .3125rem, .375rem, 2px, 3px, 4px, 5px, 6px, 7.2px, 12px, 15.2px, 19.2px, 19.2px 0px 0px 19.2px, 22%, 23.2px, 23.2px 0px 0px 23.2px, 23.2px 23.2px 0px 0px, 24%, 24px, 26%, 60px, inherit, 100%
+- **Max content width:** 1350px
+
+**Spacing as Meaning:**
+| Spacing | Use |
+|---|---|
+| 4-8px | Tight: related items within a group |
+| 12-16px | Medium: between groups |
+| 24-32px | Wide: between sections |
+| 48px+ | Vast: major section breaks |
+
+---
+
+## 6. Depth & Elevation
+
+### Flat — subtle depth hints
+
+- `0 0 0 2px #0000001a`
+- `0 0 0 2px buttontext`
+- `0 0 2px 2px #0096ff`
+
+### Raised — cards, buttons, interactive elements
+
+- `0 0 0 1px var(--tw-prose-kbd-shadows),0 3px 0 var(--tw-prose-kbd-shadows)`
+- `0 0 3px #00000059`
+
+### Floating — dropdowns, popovers, modals
+
+- `0 0 10px var(--color-blue-500),0 0 5px var(--color-blue-500)`
+
+### Z-Index Scale
+
+`0, 1, 2, 3, 10, 20, 30, 40, 50, 999, 1600, 99999, 9999999`
+
+---
+
+## 7. Animation & Motion
+
+This project uses **expressive motion**. Animations are an integral part of the experience.
+
+### CSS Animations
+
+- `@keyframes embla-progress`
+- `@keyframes spin`
+- `@keyframes ping`
+- `@keyframes pulse`
+- `@keyframes bounce`
+- `@keyframes enter`
+- `@keyframes exit`
+- `@keyframes accordion-down`
+
+### Animated Components
+
+- **Button**: 
+
+### Motion Guidelines
+
+- Duration: 150-300ms for micro-interactions, 300-500ms for page transitions
+- Easing: `ease-out` for enters, `ease-in` for exits
+- Always respect `prefers-reduced-motion`
+
+---
+
+## 8. Do's and Don'ts
+
+### Do's
+
+- Use `#00a544` for interactive elements (buttons, links, focus rings)
+- Use `#ffffff` as the primary page background
+- Pair **calSansHeading** (body) with **Inter** (display) — these are the only allowed fonts
+- Follow the **4px** spacing grid for all margins, padding, and gaps
+- Use the defined shadow tokens for elevation — see Section 6
+- Use border-radius from the scale: 0px 23.2px 23.2px 0px, 0px 0px 23.2px 23.2px, .25rem, .3125rem, .375rem
+- Reuse existing components from Section 4 before creating new ones
+- Always use CSS variables for colors — never hardcode hex
+- Test both light and dark modes for contrast
+
+### Don'ts
+
+- Don't introduce colors outside this palette — extend the design tokens first
+- Don't introduce additional font families beyond calSansHeading and Inter and SFMono-Regular
+- Don't use arbitrary spacing values — stick to multiples of 4px
+- Don't create custom box-shadow values outside the system tokens
+- Don't use arbitrary border-radius values — pick from the defined scale
+- Don't duplicate component patterns — check Section 4 first
+
+---
+
+## 9. Responsive Behavior
+
+| Name | Value | Source |
+|---|---|---|
+| sm | 40rem | css |
+| md | 48rem | css |
+| lg | 64rem | css |
+| xl | 80rem | css |
+| 2xl | 96rem | css |
+| xs | 400px | css |
+| 2xl | 1500px | css |
+
+**Approach:** Use `@media (min-width: ...)` queries matching the breakpoints above.
+
+---
+
+## 10. Agent Prompt Guide
+
+Use these as starting points when building new UI:
+
+### Build a Card
+
+```
+Background: #fef2f2
+Border: 1px solid #27272a
+Radius: 15.2px
+Padding: 16px
+Font: calSansHeading
+Use shadow tokens from Section 6.
+```
+
+### Build a Button
+
+```
+Primary: bg #00a544, text white
+Ghost: bg transparent, border #27272a
+Padding: 8px 16px
+Radius: 15.2px
+Hover: opacity 0.9 or lighter shade
+Focus: ring with #00a544
+```
+
+### Build a Page Layout
+
+```
+Background: #ffffff
+Max-width: 1350px, centered
+Grid: 4px base
+Responsive: mobile-first, breakpoints from Section 9
+```
+
+### Build a Stats Card
+
+```
+Surface: #fef2f2
+Label: #3f3f46 (muted, 12px, uppercase)
+Value: #000000 (primary, 24-32px, bold)
+Status: use success/warning/danger from Section 2
+```
+
+### Build a Form
+
+```
+Input bg: #ffffff
+Input border: 1px solid #27272a
+Focus: border-color #00a544
+Label: #3f3f46 12px
+Spacing: 16px between fields
+Radius: 15.2px
+```
+
+### General Component
+
+```
+1. Read DESIGN.md Sections 2-6 for tokens
+2. Colors: only from palette
+3. Font: calSansHeading, type scale from Section 3
+4. Spacing: 4px grid
+5. Components: match patterns from Section 4
+6. Elevation: shadow tokens
+```
+
+# Animation Reference
+
+> Follow these specs exactly to recreate the experience.
+
+## Motion Technology Stack
+
+| Library | Type | Notes |
+|---------|------|-------|
+| **Web Animations API (2 active)** | animation |  |
+
+## Scroll Animation Patterns
+
+| Pattern | Library | Element Count | Duration | Delay | Easing |
+|---------|---------|---------------|----------|-------|--------|
+| parallax / sticky scroll | CSS | 3 | — | — | — |
+
+### CSS Implementation
+
+## CSS Keyframes (27)
+
+### `@keyframes embla-progress`
+
+Duration: `auto` · Easing: `linear` · Delay: `0s` · Iteration: `1` · Fill: `forwards`
+
+Used by: `.embla__progress__bar`
+
+```css
+@keyframes embla-progress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+```
+
+> Transform/motion animation
+
+### `@keyframes maplibregl-spin`
+
+Duration: `2s` · Easing: `linear` · Delay: `0s` · Iteration: `infinite` · Fill: `none`
+
+Used by: `.maplibregl-ctrl button.maplibregl-ctrl-geolocate.maplibregl-ctrl-geolocate-wait`
+
+```css
+@keyframes maplibregl-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(1turn);
+  }
+}
+```
+
+> Transform/motion animation
+
+### `@keyframes maplibregl-user-location-dot-pulse`
+
+Duration: `2s` · Easing: `ease` · Delay: `0s` · Iteration: `infinite` · Fill: `none`
+
+Used by: `.maplibregl-user-location-dot::before`
+
+```css
+@keyframes maplibregl-user-location-dot-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes swipe-out-left`
+
+Used by: `[data-sonner-toast][data-swipe-out="true"][data-swipe-direction="left"]`
+
+```css
+@keyframes swipe-out-left {
+  0% {
+    transform: var(--y) translateX(var(--swipe-amount-x));
+    opacity: 1;
+  }
+  100% {
+    transform: var(--y) translateX(calc(var(--swipe-amount-x) - 100%));
+    opacity: 0;
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes swipe-out-right`
+
+Used by: `[data-sonner-toast][data-swipe-out="true"][data-swipe-direction="right"]`
+
+```css
+@keyframes swipe-out-right {
+  0% {
+    transform: var(--y) translateX(var(--swipe-amount-x));
+    opacity: 1;
+  }
+  100% {
+    transform: var(--y) translateX(calc(var(--swipe-amount-x) + 100%));
+    opacity: 0;
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes swipe-out-up`
+
+Used by: `[data-sonner-toast][data-swipe-out="true"][data-swipe-direction="up"]`
+
+```css
+@keyframes swipe-out-up {
+  0% {
+    transform: var(--y) translateY(var(--swipe-amount-y));
+    opacity: 1;
+  }
+  100% {
+    transform: var(--y) translateY(calc(var(--swipe-amount-y) - 100%));
+    opacity: 0;
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes swipe-out-down`
+
+Used by: `[data-sonner-toast][data-swipe-out="true"][data-swipe-direction="down"]`
+
+```css
+@keyframes swipe-out-down {
+  0% {
+    transform: var(--y) translateY(var(--swipe-amount-y));
+    opacity: 1;
+  }
+  100% {
+    transform: var(--y) translateY(calc(var(--swipe-amount-y) + 100%));
+    opacity: 0;
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes sonner-fade-in`
+
+Duration: `0.3s` · Easing: `ease` · Delay: `0s` · Iteration: `1` · Fill: `forwards`
+
+Used by: `[data-sonner-toast][data-promise="true"] [data-icon] > svg`
+
+```css
+@keyframes sonner-fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes sonner-fade-out`
+
+Duration: `0.2s` · Easing: `ease` · Delay: `0s` · Iteration: `1` · Fill: `forwards`
+
+Used by: `.sonner-loading-wrapper[data-visible="false"]`
+
+```css
+@keyframes sonner-fade-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes sonner-spin`
+
+Duration: `1.2s` · Easing: `linear` · Delay: `0s` · Iteration: `infinite` · Fill: `none`
+
+Used by: `.sonner-loading-bar`
+
+```css
+@keyframes sonner-spin {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+```
+
+> Opacity fade
+
+### `@keyframes nprogress-spinner`
+
+Duration: `400ms` · Easing: `linear` · Delay: `0s` · Iteration: `infinite` · Fill: `none`
+
+Used by: `#nprogress .spinner-icon`
+
+```css
+@keyframes nprogress-spinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+```
+
+> Transform/motion animation
+
+### `@keyframes nprogress-spinner`
+
+Duration: `400ms` · Easing: `linear` · Delay: `0s` · Iteration: `infinite` · Fill: `none`
+
+Used by: `#nprogress .spinner-icon`
+
+```css
+@keyframes nprogress-spinner {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+```
+
+> Transform/motion animation
+
+### `@keyframes spin`
+
+```css
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+```
+
+> Transform/motion animation
+
+### `@keyframes ping`
+
+```css
+@keyframes ping {
+  75%, 100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+```
+
+> Fade + motion enter animation
+
+### `@keyframes pulse`
+
+```css
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+```
+
+> Opacity fade
+
+### `@keyframes bounce`
+
+```css
+@keyframes bounce {
+  0%, 100% {
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    transform: translateY(-25%);
+  }
+  50% {
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transform: none;
+  }
+}
+```
+
+> Transform/motion animation
+
+### `@keyframes enter`
+
+```css
+@keyframes enter {
+  0% {
+    opacity: var(--tw-enter-opacity,1);
+    transform: translate3d(var(--tw-enter-translate-x,0),var(--tw-enter-translate-y,0),0)scale3d(var(--tw-enter-scale,1),var(--tw-enter-scale,1),var(--tw-enter-scale,1))rotate(var(--tw-enter-rotate,0));
+    filter: blur(var(--tw-enter-blur,0));
+  }
+}
+```
+
+> Fade + motion enter animation · Filter effect (blur/brightness)
+
+### `@keyframes exit`
+
+```css
+@keyframes exit {
+  100% {
+    opacity: var(--tw-exit-opacity,1);
+    transform: translate3d(var(--tw-exit-translate-x,0),var(--tw-exit-translate-y,0),0)scale3d(var(--tw-exit-scale,1),var(--tw-exit-scale,1),var(--tw-exit-scale,1))rotate(var(--tw-exit-rotate,0));
+    filter: blur(var(--tw-exit-blur,0));
+  }
+}
+```
+
+> Fade + motion enter animation · Filter effect (blur/brightness)
+
+### `@keyframes accordion-down`
+
+```css
+@keyframes accordion-down {
+  0% {
+    height: 0px;
+  }
+  100% {
+    height: var(--radix-accordion-content-height,var(--accordion-panel-height,auto));
+  }
+}
+```
+
+> Dimension expand/collapse
+
+### `@keyframes accordion-up`
+
+```css
+@keyframes accordion-up {
+  0% {
+    height: var(--radix-accordion-content-height,var(--accordion-panel-height,auto));
+  }
+  100% {
+    height: 0px;
+  }
+}
+```
+
+> Dimension expand/collapse
+
+### `@keyframes collapsible-down`
+
+```css
+@keyframes collapsible-down {
+  0% {
+    height: 0px;
+  }
+  100% {
+    height: var(--radix-collapsible-content-height,var(--bits-collapsible-content-height,var(--reka-collapsible-content-height,var(--kb-collapsible-content-height,auto))));
+  }
+}
+```
+
+> Dimension expand/collapse
+
+### `@keyframes collapsible-up`
+
+```css
+@keyframes collapsible-up {
+  0% {
+    height: var(--radix-collapsible-content-height,var(--bits-collapsible-content-height,var(--reka-collapsible-content-height,var(--kb-collapsible-content-height,auto))));
+  }
+  100% {
+    height: 0px;
+  }
+}
+```
+
+> Dimension expand/collapse
+
+### `@keyframes caret-blink`
+
+```css
+@keyframes caret-blink {
+  0%, 70%, 100% {
+    opacity: 1;
+  }
+  20%, 50% {
+    opacity: 0;
+  }
+}
+```
+
+> Opacity fade
+
+### `@keyframes scroll-fade-reveal-b`
+
+```css
+@keyframes scroll-fade-reveal-b {
+  0% {
+    --scroll-fade-b: var(--_scroll-fade-size-b,var(--scroll-fade-size,min(12%, calc(var(--spacing) * 10))));
+  }
+  100% {
+    --scroll-fade-b: 0px;
+  }
+}
+```
+
+### `@keyframes scroll-fade-reveal-s`
+
+```css
+@keyframes scroll-fade-reveal-s {
+  0% {
+    --scroll-fade-s: 0px;
+  }
+  100% {
+    --scroll-fade-s: var(--_scroll-fade-size-s,var(--scroll-fade-size,min(12%, calc(var(--spacing) * 10))));
+  }
+}
+```
+
+### `@keyframes scroll-fade-reveal-e`
+
+```css
+@keyframes scroll-fade-reveal-e {
+  0% {
+    --scroll-fade-e: var(--_scroll-fade-size-e,var(--scroll-fade-size,min(12%, calc(var(--spacing) * 10))));
+  }
+  100% {
+    --scroll-fade-e: 0px;
+  }
+}
+```
+
+### `@keyframes tw-shimmer`
+
+```css
+@keyframes tw-shimmer {
+  0% {
+    background-position-x: 100%;
+    background-position-y: 0px;
+  }
+  100% {
+    background-position-x: 0px;
+    background-position-y: 0px;
+  }
+}
+```
+
+> Background color/gradient shift · Background position (shimmer/scroll)
+
+## Motion Tokens (CSS Variables)
+
+### Duration Tokens
+
+```css
+--default-transition-duration: .15s;
+```
+
+### Easing Tokens
+
+```css
+--default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+--ease-out: cubic-bezier(0, 0, .2, 1);
+--ease-in-out: cubic-bezier(.4, 0, .2, 1);
+```
+
+### Delay Tokens
+
+```css
+--tw-animation-delay: 0s;
+```
+
+### Animation Tokens
+
+```css
+--tw-animation-iteration-count: 1;
+--tw-animation-direction: normal;
+--tw-animation-fill-mode: none;
+```
+
+### Other Tokens
+
+```css
+--animate-bounce: bounce 1s infinite;
+```
+
+## Global Transition Declarations
+
+These `transition` values are used across the system:
+
+```css
+transition: opacity 0.2s;
+transition: opacity 1s 1s;
+transition: opacity 50ms;
+transition: transform 0.4s;
+transition: transform 0.4s, opacity 0.4s, height 0.4s, box-shadow 0.2s;
+transition: opacity 0.4s, box-shadow 0.2s;
+transition: opacity 0.1s, background 0.2s, border-color 0.2s;
+transition: opacity 0.4s;
+transition: transform 0.5s, opacity 0.2s;
+transition: opacity 0.2s, transform 0.2s;
+```
+
+## How to Recreate This Motion Design
+
+### Step 1 — Install Dependencies
+
+```bash
+```
+
+### Step 2 — Scroll-Reveal Pattern
+
+Elements that animate into view follow this pattern:
+
+```css
+/* Initial hidden state */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity .15s cubic-bezier(.4, 0, .2, 1),
+              transform .15s cubic-bezier(.4, 0, .2, 1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+```
+
+### Step 3 — Key Motion Principles
+
+- **Duration scale:** `.15s` · `0.2s` · `1s` · `50ms` · `0.4s` — use these values, never invent new durations
+- **Always add** `@media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }`
+
+## Layout & Grid (LAYOUT.md)
+
+# Layout Reference
+
+> Use this to understand how the site is structured spatially.
+
+## Spacing System
+
+**Base grid:** 4px
+
+**Scale:** `2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 26, 28, 32, 40` px
+
+| Spacing | Semantic Use |
+|---------|-------------|
+| 4px | Tight — within a component |
+| 8px | Medium — between sibling items |
+| 16px | Wide — between sections |
+| 32px | Vast — major section breaks |
+
+## Flex Layouts
+
+| Element | Direction | Justify | Align | Gap | Children |
+|---------|-----------|---------|-------|-----|----------|
+| `div.relative.container` | row | space-between | center | 8px | 2 |
+| `div.group/sidebar-wrapper.flex` | row | — | start | — | 1 |
+| `a.z-10.flex` | row | center | center | 6px 12px | 3 |
+| `div.flex.items-center` | row | — | center | 20px | 1 |
+| `div.flex.items-center` | row | — | center | 12px | 1 |
+| `div.flex.w-full` | row | — | start | — | 2 |
+| `div.container.flex` | row | space-between | center | — | 2 |
+| `div.flex.items-center` | row | — | center | 48px | 2 |
+| `div.flex.items-center` | row | — | center | 8px | 3 |
+| `a.flex.items-center` | row | — | center | 10px | 1 |
+| `div.text-muted-foreground.hidden` | row | — | center | 0px | 1 |
+| `div.hidden.gap-1` | row | — | — | 4px | 4 |
+| `div.ms-2.flex` | row | — | center | 8px | 2 |
+| `ul.[&_a]:text-muted-foreground.[&_a]:hover:text-foreground` | column | — | — | 16px | 30 |
+| `ul.[&_a]:text-muted-foreground.[&_a]:hover:text-foreground` | column | — | — | 16px | 49 |
+
+## Grid Layouts
+
+| Element | Template Columns | Gap | Children |
+|---------|-----------------|-----|----------|
+| `div.container.grid` | `352px 352px 352px 352px` | — | 4 |
+| `div.grid.gap-4` | `262.391px 262.391px 262.391px 262.406px 262.391px` | 24px | 4 |
+| `div.grid.divide-y` | `389px 389px 389px` | — | 20 |
+| `div.grid.grid-cols-1` | `553.5px 553.5px` | 12px | 2 |
+
+## Structural Containers
+
+### `<nav>` (`nav.bg-background/40.sticky`)
+
+```
+display:          block
+children:         2
+```
+
+### `<main>` (`main.divide-y`)
+
+```
+display:          block
+children:         2
+```
+
+### `<footer>` 
+
+```
+display:          block
+children:         3
+```
+
+### `<nav>` (`nav.group/navigation-menu.relative`)
+
+```
+display:          flex
+flex-direction:   row
+justify-content:  center
+align-items:      center
+max-width:        max-content
+children:         1
+```
+
+## Layout Rules
+
+- **Container max-width:** `100%` — always center with `margin: auto`
+- Primary layout system: **Flexbox**
+- Secondary layout system: **CSS Grid** (used for card grids and multi-column layouts)
+- Every spacing value must be a multiple of **4px**
+- Never use arbitrary margin/padding values outside the spacing scale
+
+## Component Patterns (COMPONENTS.md)
+
+# Component Reference
+
+> Repeated DOM patterns detected by structural analysis. Each component appeared 3+ times.
+
+## Detected Components
+
+| Component | Category | Instances | Key Classes |
+|-----------|----------|-----------|-------------|
+| **Group/Menu Sub Item** | card | 49× | `.group/menu-sub-item`, `.relative` |
+| **Translate X Px** | unknown | 49× | `.-translate-x-px`, `.[&>span:last-child]:truncate`, `.[&>svg]:shrink-0` |
+| **Flex** | card | 20× | `.flex`, `.flex-col`, `.group` |
+| **Absolute** | card | 20× | `.absolute`, `.flex`, `.inset-x-0` |
+| **Group Hover:Opacity 100** | unknown | 20× | `.group-hover:opacity-100`, `.opacity-0`, `.transition-opacity` |
+| **Flex** | card | 20× | `.flex`, `.gap-2`, `.items-center` |
+| **Flex** | card | 20× | `.flex`, `.items-center`, `.justify-center` |
+| **[& Svg:Not([Class*='Size '])]:Size 4** | button | 9× | `.[&_svg:not([class*='size-'])]:size-4`, `.[&_svg]:pointer-events-none`, `.[&_svg]:shrink-0` |
+| ***:Focus Visible:Relative** | unknown | 7× | `.*:focus-visible:relative`, `.*:focus-visible:z-10`, `.[&>*:not(:first-child)]:border-l-0` |
+| **[&>Svg]:Pointer Events None** | unknown | 7× | `.[&>svg]:pointer-events-none`, `.[&>svg]:size-3!`, `.[a]:hover:bg-muted` |
+| **Aria Invalid:Border Destructive** | form-field | 5× | `.aria-invalid:border-destructive`, `.aria-invalid:ring-3`, `.aria-invalid:ring-destructive/20` |
+| **Flex** | unknown | 5× | `.flex`, `.flex-col`, `.min-w-0` |
+| **[&>Svg]:Shrink 0** | unknown | 5× | `.[&>svg]:shrink-0`, `.[&>svg]:size-4`, `.duration-200` |
+| **Text Sm** | unknown | 5× | `.text-sm`, `.w-full` |
+| **Border L 0** | unknown | 5× | `.border-l-0`, `.border-sidebar-border`, `.flex` |
+| **[& Svg:Not([Class*='Size '])]:Size 4** | button | 4× | `.[&_svg:not([class*='size-'])]:size-4`, `.[&_svg]:pointer-events-none`, `.[&_svg]:shrink-0` |
+| **Relative** | list-item | 3× | `.relative` |
+| **Bg Transparent** | button | 3× | `.bg-transparent`, `.data-[state=open]:bg-transparent`, `.data-open:bg-muted/50` |
+| **Aria Invalid:Border Destructive** | unknown | 3× | `.aria-invalid:border-destructive`, `.aria-invalid:ring-0`, `.aria-invalid:ring-destructive/20` |
+| ***:Data [Slot=Select Value]:Flex** | card | 3× | `.*:data-[slot=select-value]:flex`, `.*:data-[slot=select-value]:gap-1.5`, `.*:data-[slot=select-value]:items-center` |
+
+## Cards
+
+### Group/Menu Sub Item
+
+**Instances found:** 49
+
+**CSS classes:** `.group/menu-sub-item` `.relative`
+
+**HTML structure:**
+
+```html
+<li data-slot="sidebar-menu-sub-item" data-sidebar="menu-sub-item" class="group/menu-sub-item relative"><a class="flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-xl px-3 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[size=md]:text-sm data-[size=sm]:text-xs data-acti
+```
+
+**Base styles (from design tokens):**
+
+```css
+.group/menu-sub-item {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px;
+}```
+
+### Flex
+
+**Instances found:** 20
+
+**CSS classes:** `.flex` `.flex-col` `.group` `.items-center` `.justify-center` `.p-4`
+
+**HTML structure:**
+
+```html
+<div class="group relative flex flex-col items-center justify-center p-4 lg:min-h-56 lg:p-8"><div class="absolute inset-x-0 top-0 mb-4 flex items-start justify-between p-3 transition-opacity"><div class="opacity-0 transition-opacity group-hover:opacity-100"><div class="flex items-center gap-2"><button data-slot="button" data-variant="outline" data-size="icon" class="group/button inline-flex shrink-0 items-center justify-center rounded-4xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-vis
+```
+
+**Base styles (from design tokens):**
+
+```css
+.flex {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px;
+}```
+
+### Absolute
+
+**Instances found:** 20
+
+**CSS classes:** `.absolute` `.flex` `.inset-x-0` `.items-start` `.justify-between` `.mb-4`
+
+**HTML structure:**
+
+```html
+<div class="absolute inset-x-0 top-0 mb-4 flex items-start justify-between p-3 transition-opacity"><div class="opacity-0 transition-opacity group-hover:opacity-100"><div class="flex items-center gap-2"><button data-slot="button" data-variant="outline" data-size="icon" class="group/button inline-flex shrink-0 items-center justify-center rounded-4xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disa
+```
+
+**Base styles (from design tokens):**
+
+```css
+.absolute {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px;
+}```
+
+### Flex
+
+**Instances found:** 20
+
+**CSS classes:** `.flex` `.gap-2` `.items-center`
+
+**HTML structure:**
+
+```html
+<div class="flex items-center gap-2"><button data-slot="button" data-variant="outline" data-size="icon" class="group/button inline-flex shrink-0 items-center justify-center rounded-4xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-d
+```
+
+**Base styles (from design tokens):**
+
+```css
+.flex {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px;
+}```
+
+### Flex
+
+**Instances found:** 20
+
+**CSS classes:** `.flex` `.items-center` `.justify-center` `.py-8` `.w-full`
+
+**HTML structure:**
+
+```html
+<div class="flex w-full items-center justify-center py-8"><div role="group" data-slot="button-group" class="group/button-group flex w-fit items-stretch *:focus-visible:relative *:focus-visible:z-10 has-[&gt;[data-slot=button-group]]:gap-2 has-[&gt;[data-variant=outline]]:*:data-[slot=input-group]:border-border has-[&gt;[data-variant=outline]]:*:data-[slot=select-trigger]:border-border has-[&gt;[data-variant=outline]]:[&amp;&gt;[data-slot=input-group]:has(:focus-visible)]:border-ring has-[&gt;[data-variant=outline]]:[&amp;&gt;[data-slot=select-trigger]:focus-visible]:border-ring has-[select[ari
+```
+
+**Base styles (from design tokens):**
+
+```css
+.flex {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px;
+}```
+
+### *:Data [Slot=Select Value]:Flex
+
+**Instances found:** 3
+
+**CSS classes:** `.*:data-[slot=select-value]:flex` `.*:data-[slot=select-value]:gap-1.5` `.*:data-[slot=select-value]:items-center` `.*:data-[slot=select-value]:line-clamp-1` `.[&_svg:not([class*='size-'])]:size-4` `.[&_svg]:pointer-events-none`
+
+**HTML structure:**
+
+```html
+<button type="button" role="combobox" aria-expanded="false" aria-autocomplete="none" dir="ltr" data-state="closed" data-slot="select-trigger" data-size="default" class="flex w-fit items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-fo
+```
+
+**Base styles (from design tokens):**
+
+```css
+.*:data-[slot=select-value]:flex {
+  background: #fef2f2;
+  border: 1px solid #27272a;
+  border-radius: 15.2px;
+  padding: 8px;
+}```
+
+## List Items
+
+### Relative
+
+**Instances found:** 3
+
+**CSS classes:** `.relative`
+
+**HTML structure:**
+
+```html
+<li data-slot="navigation-menu-item" class="relative"><button id="radix-_R_16aiv5b_-trigger-radix-_R_176aiv5b_" data-state="closed" aria-expanded="false" data-slot="navigation-menu-trigger" class="group/navigation-menu-trigger inline-flex w-max items-center justify-center rounded-3xl transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-popup-open:bg-muted/50 data-popup-open:hover:bg-muted data-open:bg-muted/50 data-open:hover:bg-muted data-open:focus:bg-muted group h-auto bg-transparent px-2.5 
+```
+
+**Base styles (from design tokens):**
+
+```css
+.relative {
+  padding: 4px 0;
+  border-bottom: 1px solid #27272a;
+}```
+
+## Buttons
+
+### [& Svg:Not([Class*='Size '])]:Size 4
+
+**Instances found:** 9
+
+**CSS classes:** `.[&_svg:not([class*='size-'])]:size-4` `.[&_svg]:pointer-events-none` `.[&_svg]:shrink-0` `.active:not-aria-[haspopup]:translate-y-px` `.aria-expanded:bg-muted` `.aria-expanded:text-foreground`
+
+**HTML structure:**
+
+```html
+<button data-slot="button" data-variant="outline" data-size="default" class="group/button inline-flex shrink-0 items-center justify-center rounded-4xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-
+```
+
+**Base styles (from design tokens):**
+
+```css
+.[&_svg:not([class*='size-'])]:size-4 {
+  background: #00a544;
+  color: #000000;
+  border-radius: 15.2px;
+  padding: 4px 8px;
+  cursor: pointer;
+}```
+
+### [& Svg:Not([Class*='Size '])]:Size 4
+
+**Instances found:** 4
+
+**CSS classes:** `.[&_svg:not([class*='size-'])]:size-4` `.[&_svg]:pointer-events-none` `.[&_svg]:shrink-0` `.active:not-aria-[haspopup]:translate-y-px` `.aria-expanded:bg-muted` `.aria-expanded:text-foreground`
+
+**HTML structure:**
+
+```html
+<button data-slot="button" data-variant="outline" data-size="default" class="group/button inline-flex shrink-0 items-center justify-center rounded-4xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-
+```
+
+**Base styles (from design tokens):**
+
+```css
+.[&_svg:not([class*='size-'])]:size-4 {
+  background: #00a544;
+  color: #000000;
+  border-radius: 15.2px;
+  padding: 4px 8px;
+  cursor: pointer;
+}```
+
+### Bg Transparent
+
+**Instances found:** 3
+
+**CSS classes:** `.bg-transparent` `.data-[state=open]:bg-transparent` `.data-open:bg-muted/50` `.data-open:focus:bg-muted` `.data-open:hover:bg-muted` `.data-popup-open:bg-muted/50`
+
+**HTML structure:**
+
+```html
+<button id="radix-_R_16aiv5b_-trigger-radix-_R_176aiv5b_" data-state="closed" aria-expanded="false" data-slot="navigation-menu-trigger" class="group/navigation-menu-trigger inline-flex w-max items-center justify-center rounded-3xl transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-popup-open:bg-muted/50 data-popup-open:hover:bg-muted data-open:bg-muted/50 data-open:hover:bg-muted data-open:focus:bg-muted group h-auto bg-transparent px-2.5 py-2 text-sm shadow-none hover:bg-transparent focus:bg
+```
+
+**Base styles (from design tokens):**
+
+```css
+.bg-transparent {
+  background: #00a544;
+  color: #000000;
+  border-radius: 15.2px;
+  padding: 4px 8px;
+  cursor: pointer;
+}```
+
+## Form Fields
+
+### Aria Invalid:Border Destructive
+
+**Instances found:** 5
+
+**CSS classes:** `.aria-invalid:border-destructive` `.aria-invalid:ring-3` `.aria-invalid:ring-destructive/20` `.bg-input/50` `.border` `.border-transparent`
+
+**HTML structure:**
+
+```html
+<input data-slot="sidebar-input" class="min-w-0 rounded-3xl border border-transparent px-3 py-1 text-base transition-[color,box-shadow,background-color] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:aria-invalid:border-destructive/50 da
+```
+
+**Base styles (from design tokens):**
+
+```css
+.aria-invalid:border-destructive {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+## Other Components
+
+### Translate X Px
+
+**Instances found:** 49
+
+**CSS classes:** `.-translate-x-px` `.[&>span:last-child]:truncate` `.[&>svg]:shrink-0` `.[&>svg]:size-4` `.[&>svg]:text-sidebar-accent-foreground` `.active:bg-sidebar-accent`
+
+**HTML structure:**
+
+```html
+<a class="flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-xl px-3 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[size=md]:text-sm data-[size=sm]:text-xs data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground [&amp;&gt;span:last-child]:truncate [&am
+```
+
+**Base styles (from design tokens):**
+
+```css
+.-translate-x-px {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### Group Hover:Opacity 100
+
+**Instances found:** 20
+
+**CSS classes:** `.group-hover:opacity-100` `.opacity-0` `.transition-opacity`
+
+**HTML structure:**
+
+```html
+<div class="opacity-0 transition-opacity group-hover:opacity-100"><div class="flex items-center gap-2"><button data-slot="button" data-variant="outline" data-size="icon" class="group/button inline-flex shrink-0 items-center justify-center rounded-4xl border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/2
+```
+
+**Base styles (from design tokens):**
+
+```css
+.group-hover:opacity-100 {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### *:Focus Visible:Relative
+
+**Instances found:** 7
+
+**CSS classes:** `.*:focus-visible:relative` `.*:focus-visible:z-10` `.[&>*:not(:first-child)]:border-l-0` `.[&>*:not(:first-child)]:rounded-l-none` `.[&>*:not(:last-child)]:rounded-r-none` `.[&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit`
+
+**HTML structure:**
+
+```html
+<div role="group" data-slot="button-group" class="group/button-group flex w-fit items-stretch *:focus-visible:relative *:focus-visible:z-10 has-[&gt;[data-slot=button-group]]:gap-2 has-[&gt;[data-variant=outline]]:*:data-[slot=input-group]:border-border has-[&gt;[data-variant=outline]]:*:data-[slot=select-trigger]:border-border has-[&gt;[data-variant=outline]]:[&amp;&gt;[data-slot=input-group]:has(:focus-visible)]:border-ring has-[&gt;[data-variant=outline]]:[&amp;&gt;[data-slot=select-trigger]:focus-visible]:border-ring has-[select[aria-hidden=true]:last-child]:[&amp;&gt;[data-slot=select-tri
+```
+
+**Base styles (from design tokens):**
+
+```css
+.*:focus-visible:relative {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### [&>Svg]:Pointer Events None
+
+**Instances found:** 7
+
+**CSS classes:** `.[&>svg]:pointer-events-none` `.[&>svg]:size-3!` `.[a]:hover:bg-muted` `.[a]:hover:text-muted-foreground` `.aria-invalid:border-destructive` `.aria-invalid:ring-destructive/20`
+
+**HTML structure:**
+
+```html
+<span data-slot="badge" data-variant="outline" class="group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-3xl border px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&amp;&gt;svg]:pointer-events-none [&amp;&gt;svg]:size-3! border-border text-foreground [a]:hover:bg-muted [a]:hover:t
+```
+
+**Base styles (from design tokens):**
+
+```css
+.[&>svg]:pointer-events-none {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### Flex
+
+**Instances found:** 5
+
+**CSS classes:** `.flex` `.flex-col` `.min-w-0` `.p-2` `.px-4` `.relative`
+
+**HTML structure:**
+
+```html
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2 px-4 lg:px-0"><div data-slot="sidebar-group-label" data-sidebar="group-label" class="flex h-8 shrink-0 items-center rounded-xl px-3 font-medium ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 text-foreground text-sm">Base</div><div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+```
+
+**Base styles (from design tokens):**
+
+```css
+.flex {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### [&>Svg]:Shrink 0
+
+**Instances found:** 5
+
+**CSS classes:** `.[&>svg]:shrink-0` `.[&>svg]:size-4` `.duration-200` `.ease-linear` `.flex` `.focus-visible:ring-2`
+
+**HTML structure:**
+
+```html
+<div data-slot="sidebar-group-label" data-sidebar="group-label" class="flex h-8 shrink-0 items-center rounded-xl px-3 font-medium ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 text-foreground text-sm">Base</div>
+```
+
+**Base styles (from design tokens):**
+
+```css
+.[&>svg]:shrink-0 {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### Text Sm
+
+**Instances found:** 5
+
+**CSS classes:** `.text-sm` `.w-full`
+
+**HTML structure:**
+
+```html
+<div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm"><ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub" class="mx-3.5 flex min-w-0 translate-x-px flex-col border-sidebar-border px-2.5 py-0.5 group-data-[collapsible=icon]:hidden ms-0 gap-0 border-l-0 ps-0"><li data-slot="sidebar-menu-sub-item" data-sidebar="menu-sub-item" class="group/menu-sub-item relative"><a class="flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-xl px-3 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg
+```
+
+**Base styles (from design tokens):**
+
+```css
+.text-sm {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### Border L 0
+
+**Instances found:** 5
+
+**CSS classes:** `.border-l-0` `.border-sidebar-border` `.flex` `.flex-col` `.gap-0` `.group-data-[collapsible=icon]:hidden`
+
+**HTML structure:**
+
+```html
+<ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub" class="mx-3.5 flex min-w-0 translate-x-px flex-col border-sidebar-border px-2.5 py-0.5 group-data-[collapsible=icon]:hidden ms-0 gap-0 border-l-0 ps-0"><li data-slot="sidebar-menu-sub-item" data-sidebar="menu-sub-item" class="group/menu-sub-item relative"><a class="flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-xl px-3 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar
+```
+
+**Base styles (from design tokens):**
+
+```css
+.border-l-0 {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+### Aria Invalid:Border Destructive
+
+**Instances found:** 3
+
+**CSS classes:** `.aria-invalid:border-destructive` `.aria-invalid:ring-0` `.aria-invalid:ring-destructive/20` `.bg-transparent` `.border-0` `.border-transparent`
+
+**HTML structure:**
+
+```html
+<input data-slot="input-group-control" class="h-9 w-full min-w-0 border-transparent px-3 py-1 text-base transition-[color,box-shadow,background-color] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 flex-1 
+```
+
+**Base styles (from design tokens):**
+
+```css
+.aria-invalid:border-destructive {
+  background: #fef2f2;
+  padding: 4px;
+}```
+
+## Component Rules
+
+- Match class names exactly from the patterns above
+- Each component instance must be visually identical to others of its type
+- Do not add extra wrappers or change the DOM structure
+- Use `#27272a` for all dividers within components
+- Use `#00a544` for all interactive/active states
+
+## Interactions & States (INTERACTIONS.md)
+
+# Interaction Reference
+
+> Micro-interactions. Recreate these exactly for authentic feel.
+
+## Coverage
+
+| Component Type | Count | States Captured |
+|----------------|-------|----------------|
+| Button | 3 | default, hover, focus |
+| Link | 3 | default, hover, focus |
+| Input | 3 | default, hover, focus |
+
+## Transition System
+
+These transition declarations are used on interactive elements:
+
+```css
+transition: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+transition: all;
+transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), text-decoration-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), fill 0.15s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-from 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-via 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-to 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+```
+
+Apply these to all interactive elements. Never invent new durations or easings.
+
+## Button Interactions
+
+### Button 1 — `Components & Blocks`
+
+**On hover:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: oklab(0.969998 -0.00000959635 0.0000227094 / 0.837065);
+```
+
+**On focus:**
+
+```css
+/* box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+### Button 2 — `Tools`
+
+**On hover:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: oklab(0.969998 -0.00000959635 0.0000227094 / 0.837607);
+```
+
+**On focus:**
+
+```css
+/* box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+### Button 3 — `Resources`
+
+**On hover:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: oklab(0.969998 -0.00000959635 0.0000227094 / 0.837065);
+```
+
+**On focus:**
+
+```css
+/* box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+## Link Interactions
+
+### Link 1 — `a`
+
+**On focus:**
+
+```css
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) auto 1px;
+```
+
+**Transition:** `all`
+
+### Link 2 — `Admin Dashboards`
+
+**On hover:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: lab(96.52 -0.0000298023 0.0000119209);
+/* color: lab(48.496 0 0) → */ color: lab(2.75381 0 0);
+```
+
+**On focus:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: lab(96.52 -0.0000298023 0.0000119209);
+/* box-shadow: none → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `color 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), text-decoration-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), fill 0.15s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-from 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-via 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-to 0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+### Link 3 — `Templates`
+
+**On hover:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: lab(96.52 -0.0000298023 0.0000119209);
+/* color: lab(48.496 0 0) → */ color: lab(2.75381 0 0);
+```
+
+**On focus:**
+
+```css
+/* background-color: rgba(0, 0, 0, 0) → */ background-color: lab(96.52 -0.0000298023 0.0000119209);
+/* box-shadow: none → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `color 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), outline-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), text-decoration-color 0.15s cubic-bezier(0.4, 0, 0.2, 1), fill 0.15s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-from 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-via 0.15s cubic-bezier(0.4, 0, 0.2, 1), --tw-gradient-to 0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+## Input Interactions
+
+### Input 1 — `Search components...`
+
+**On focus:**
+
+```css
+/* border-color: rgba(0, 0, 0, 0) → */ border-color: lab(66.128 -0.0000298023 0.0000119209);
+/* box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+### Input 2 — `Search...`
+
+**On focus:**
+
+```css
+/* border-color: lab(90.952 0 -0.0000119209) → */ border-color: lab(66.128 -0.0000298023 0.0000119209);
+/* box-shadow: none → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 3px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+### Input 3 — `Email address`
+
+**On focus:**
+
+```css
+/* border-color: rgba(0, 0, 0, 0) → */ border-color: lab(66.128 -0.0000298023 0.0000119209);
+/* box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, lab(2.75381 0 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px → */ box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.707999 -0.00000712276 0.0000166297 / 0.3) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px;
+/* outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 3px → */ outline: oklab(0.707999 -0.00000712276 0.0000166297 / 0.5) none 1px;
+```
+
+**Transition:** `color 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1)`
+
+## Interaction Rules
+
+- Accent color `#00a544` is used for focus rings, active states, and hover highlights
+- Hover effects include **color transitions** — use these exact values, not approximations
+- Focus states use **outline** (not box-shadow) — always match this focus ring
+- Transition durations in use: `0.15s`
+- Always respect `prefers-reduced-motion` — set all transitions to `0s` when enabled
+
+## Design Tokens — JSON Files
+
+### tokens/colors.json
+```json
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "core": {
+    "background": {
+      "value": "#ffffff",
+      "role": "background",
+      "name": "tw-ring-offset-color"
+    },
+    "text-primary": {
+      "value": "#000000",
+      "role": "text-primary",
+      "name": "color-black"
+    },
+    "surface": {
+      "value": "#fef2f2",
+      "role": "surface",
+      "name": "color-red-50"
+    },
+    "border": {
+      "value": "#27272a",
+      "role": "border",
+      "name": "color-zinc-800"
+    },
+    "text-muted": {
+      "value": "#3f3f46",
+      "role": "text-muted",
+      "name": "color-zinc-700"
+    },
+    "accent": {
+      "value": "#00a544",
+      "role": "accent",
+      "name": "color-green-600"
+    }
+  },
+  "status": {
+    "danger": {
+      "value": "#ff667f",
+      "role": "danger",
+      "name": "color-rose-400"
+    },
+    "success": {
+      "value": "#f0fdf4",
+      "role": "success",
+      "name": "color-green-50"
+    }
+  },
+  "extended": {
+    "color-zinc-900": {
+      "value": "#18181b",
+      "role": "unknown",
+      "name": "color-zinc-900"
+    },
+    "color-slate-200": {
+      "value": "#e2e8f0",
+      "role": "info",
+      "name": "color-slate-200"
+    },
+    "color-gray-300": {
+      "value": "#d1d5dc",
+      "role": "unknown",
+      "name": "color-gray-300"
+    },
+    "color-zinc-950": {
+      "value": "#09090b",
+      "role": "unknown",
+      "name": "color-zinc-950"
+    },
+    "color-red-950": {
+      "value": "#460809",
+      "role": "unknown",
+      "name": "color-red-950"
+    },
+    "color-sky-400": {
+      "value": "#00bcfe",
+      "role": "unknown",
+      "name": "color-sky-400"
+    },
+    "color-sky-600": {
+      "value": "#0084cc",
+      "role": "unknown",
+      "name": "color-sky-600"
+    },
+    "color-zinc-500": {
+      "value": "#71717b",
+      "role": "unknown",
+      "name": "color-zinc-500"
+    },
+    "color-rose-600": {
+      "value": "#e70044",
+      "role": "unknown",
+      "name": "color-rose-600"
+    },
+    "color-gray-900": {
+      "value": "#101828",
+      "role": "unknown",
+      "name": "color-gray-900"
+    },
+    "color-zinc-400": {
+      "value": "#9f9fa9",
+      "role": "unknown",
+      "name": "color-zinc-400"
+    },
+    "color-orange-900": {
+      "value": "#7e2a0c",
+      "role": "unknown",
+      "name": "color-orange-900"
+    }
+  },
+  "meta": {
+    "theme": "light",
+    "updated": "2026-10-06"
+  }
+}
+```
+
+### tokens/spacing.json
+```json
+{
+  "base": {
+    "value": "4px",
+    "description": "Grid unit — all spacing must be multiples of this"
+  },
+  "unit": "px",
+  "scale": {
+    "xs": {
+      "value": "2px",
+      "px": 2
+    },
+    "sm": {
+      "value": "4px",
+      "px": 4
+    },
+    "md": {
+      "value": "6px",
+      "px": 6
+    },
+    "lg": {
+      "value": "8px",
+      "px": 8
+    },
+    "xl": {
+      "value": "10px",
+      "px": 10
+    },
+    "2xl": {
+      "value": "12px",
+      "px": 12
+    },
+    "3xl": {
+      "value": "14px",
+      "px": 14
+    },
+    "4xl": {
+      "value": "16px",
+      "px": 16
+    },
+    "5xl": {
+      "value": "18px",
+      "px": 18
+    },
+    "6xl": {
+      "value": "20px",
+      "px": 20
+    }
+  },
+  "multipliers": {
+    "1x": {
+      "value": "4px",
+      "raw": 4
+    },
+    "2x": {
+      "value": "8px",
+      "raw": 8
+    },
+    "3x": {
+      "value": "12px",
+      "raw": 12
+    },
+    "4x": {
+      "value": "16px",
+      "raw": 16
+    },
+    "5x": {
+      "value": "20px",
+      "raw": 20
+    },
+    "6x": {
+      "value": "24px",
+      "raw": 24
+    },
+    "7x": {
+      "value": "28px",
+      "raw": 28
+    },
+    "8x": {
+      "value": "32px",
+      "raw": 32
+    },
+    "9x": {
+      "value": "36px",
+      "raw": 36
+    },
+    "10x": {
+      "value": "40px",
+      "raw": 40
+    },
+    "11x": {
+      "value": "44px",
+      "raw": 44
+    },
+    "12x": {
+      "value": "48px",
+      "raw": 48
+    },
+    "13x": {
+      "value": "52px",
+      "raw": 52
+    },
+    "14x": {
+      "value": "56px",
+      "raw": 56
+    },
+    "15x": {
+      "value": "60px",
+      "raw": 60
+    },
+    "16x": {
+      "value": "64px",
+      "raw": 64
+    }
+  },
+  "meta": {
+    "totalValues": 15,
+    "min": 2,
+    "max": 40
+  }
+}
+```
+
+### tokens/typography.json
+```json
+{
+  "families": [
+    "calSansHeading",
+    "Inter",
+    "SFMono-Regular"
+  ],
+  "scale": {
+    "heading-1": {
+      "fontFamily": "calSansHeading",
+      "fontSize": "clamp(3rem,15vw,15rem)",
+      "fontWeight": "700",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "heading-2": {
+      "fontFamily": "calSansHeading",
+      "fontSize": "2.75rem",
+      "fontWeight": "700",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "body": {
+      "fontFamily": "Inter",
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "caption": {
+      "fontFamily": "Inter",
+      "fontSize": "10px",
+      "fontWeight": "400",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "code": {
+      "fontFamily": "SFMono-Regular",
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "lineHeight": null,
+      "source": "css"
+    }
+  },
+  "fontFaces": [
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/2c55a0e60120577a-s.0bjc5tiuqdqro.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/9c72aa0f40e4eef8-s.0m6w47a4e5dy9.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/ad66f9afd8947f86-s.11u06r12fd6v_.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/5476f68d60460930-s.0wxq9webf.ew4.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/2bbe8d2671613f1f-s.067x_6k0k23tk.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/1bffadaabf893a1e-s.16ipb6fqu393i.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "calSansHeading",
+      "src": "/_next/static/media/CalSans_SemiBold-s.p.0_1kxnktzihme.woff2",
+      "format": "woff2",
+      "weight": "600"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/5e538eebf9acc4c2-s.0y2..~~2d1_g0.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/64f2913d21bf1e57-s.0iaoindtgqbux.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/0fea445e7d7518dc-s.08jxavmc75le5.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/50b0ede820165bbf-s.p.0a5m6rcj.nkdi.woff2",
+      "format": "woff2",
+      "weight": "400"
+    }
+  ],
+  "rules": {
+    "maxSizesPerScreen": 4,
+    "headingWeightRange": "600-700",
+    "bodyWeight": 400,
+    "lineHeightBody": 1.5,
+    "lineHeightHeading": 1.2
+  }
+}
+```

@@ -31,17 +31,17 @@ export function AttendanceRangeToggle({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="inline-flex items-center gap-1 rounded-[10px] border border-border bg-white p-1 shadow-sm">
+      <div className="inline-flex h-9 items-center gap-0.5 rounded-lg border border-surface-border bg-card p-0.5">
         {RANGES.map((range) => (
           <button
             key={range.value}
             type="button"
             aria-pressed={value === range.value}
             onClick={() => onChange(range.value)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+            className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
               value === range.value
-                ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow"
-                : "text-muted hover:text-dash-ink"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {range.label}
@@ -50,7 +50,7 @@ export function AttendanceRangeToggle({
       </div>
 
       {value !== "day" && (
-        <span className="rounded-[10px] border border-border bg-white px-3 py-2 text-sm font-semibold text-dash-ink shadow-sm">
+        <span className="inline-flex h-9 items-center rounded-lg border border-surface-border bg-card px-3 text-sm font-medium text-foreground">
           {RANGE_LABEL[value]}
         </span>
       )}

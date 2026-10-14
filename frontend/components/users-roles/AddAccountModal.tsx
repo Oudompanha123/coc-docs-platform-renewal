@@ -6,6 +6,8 @@ import { ShieldIcon } from "@/components/auth/icons";
 import { MailIcon, UserPlusIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { Spinner } from "@/components/layout/Spinner";
 import { Modal } from "./Modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RoleMultiSelect } from "./RoleMultiSelect";
 import { highestEnforcedRole, type AccountRole } from "@/lib/mock/users-roles";
 
@@ -68,46 +70,47 @@ export function AddAccountModal({
   return (
     <Modal
       onClose={onClose}
-      className="flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-2xl"
+      className="flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-surface-border bg-card shadow-xl"
       bodyClassName="flex min-h-0 flex-1 flex-col"
     >
       <form onSubmit={(e) => void submit(e)} noValidate className="flex min-h-0 flex-1 flex-col">
         {/* Header — what this does. */}
-        <div className="shrink-0 border-b border-border">
-          <div aria-hidden="true" className="h-1.5 bg-gradient-to-r from-brand-purple to-brand-blue" />
-          <div className="flex items-start gap-4 px-6 pb-5 pt-5">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md">
-              <UserPlusIcon className="h-6 w-6" />
+        <div className="shrink-0 border-b border-surface-border">
+          <div className="flex items-start gap-3 px-5 py-4">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+              <UserPlusIcon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-dash-ink">Add User</h2>
-              <p className="mt-0.5 text-sm text-muted">
+              <h2 className="text-base font-semibold text-foreground">Add User</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 Creates the account right away and emails them a temporary password to sign in with.
               </p>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onClose}
               disabled={isSubmitting}
               aria-label="Close add user"
-              className="-mr-1.5 -mt-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-[#f8fafc] hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-50"
+              className="-mr-1.5 -mt-1 size-8 text-muted-foreground"
             >
-              <XIcon className="h-4 w-4" />
-            </button>
+              <XIcon className="size-4" />
+            </Button>
           </div>
         </div>
 
         {/* Body — scrolls on its own. */}
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
           <div>
-            <label htmlFor="add-account-email" className="mb-1.5 block text-sm font-semibold text-dash-ink">
+            <label htmlFor="add-account-email" className="mb-1.5 block text-sm font-medium text-foreground">
               Email
             </label>
             <div className="relative">
               <MailIcon
-                className={`pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 ${error ? "text-danger" : "text-muted"}`}
+                className={`pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 ${error ? "text-danger" : "text-muted-foreground"}`}
               />
-              <input
+              <Input
                 id="add-account-email"
                 type="email"
                 value={email}
@@ -120,11 +123,7 @@ export function AddAccountModal({
                 autoFocus
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? "add-account-email-error" : "add-account-email-hint"}
-                className={`w-full rounded-xl border bg-white py-2.5 pl-10 pr-3.5 text-sm text-dash-ink shadow-sm transition-colors placeholder:text-muted focus:outline-none focus-visible:ring-4 ${
-                  error
-                    ? "border-danger/60 focus-visible:border-danger focus-visible:ring-danger/15"
-                    : "border-border focus-visible:border-brand-purple focus-visible:ring-brand-purple/15"
-                }`}
+                className="pl-9"
               />
             </div>
             {error ? (
@@ -133,23 +132,23 @@ export function AddAccountModal({
                 role="alert"
                 className="mt-2 flex items-start gap-1.5 text-xs font-medium text-danger"
               >
-                <WarningIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+                <WarningIcon className="mt-px size-3.5 shrink-0" />
                 <span>{error}</span>
               </p>
             ) : (
-              <p id="add-account-email-hint" className="mt-1.5 text-xs text-muted">
+              <p id="add-account-email-hint" className="mt-1.5 text-xs text-muted-foreground">
                 Their sign-in address — the temporary password is sent here.
               </p>
             )}
           </div>
 
           <div>
-            <span className="mb-1.5 block text-sm font-semibold text-dash-ink">Roles</span>
+            <span className="mb-1.5 block text-sm font-medium text-foreground">Roles</span>
             <RoleMultiSelect idPrefix="add-account-role" selected={roles} onChange={setRoles} collapseToHighest />
           </div>
 
-          <p className="flex items-start gap-2.5 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3.5 py-3 text-xs leading-relaxed text-dash-ink">
-            <ShieldIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
+          <p className="flex items-start gap-2 rounded-lg border border-surface-border bg-muted-surface/50 px-3 py-2.5 text-xs leading-relaxed text-foreground">
+            <ShieldIcon className="mt-px size-3.5 shrink-0 text-muted-foreground" />
             <span>
               The password is generated for them and never shown here. They&apos;ll be asked to set
               their own the first time they sign in.
@@ -158,24 +157,14 @@ export function AddAccountModal({
         </div>
 
         {/* Footer — always in view. */}
-        <div className="flex shrink-0 justify-end gap-2 border-t border-border bg-[#f8fafc] px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
-          >
+        <div className="flex shrink-0 justify-end gap-2 border-t border-surface-border bg-muted-surface/50 px-5 py-3">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting && <Spinner className="h-3.5 w-3.5 border-2" />}
+          </Button>
+          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+            {isSubmitting && <Spinner className="size-3.5 border-2" />}
             {isSubmitting ? "Adding…" : "Add Account"}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

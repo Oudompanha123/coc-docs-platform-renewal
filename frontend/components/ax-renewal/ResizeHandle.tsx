@@ -32,8 +32,8 @@ export function ResizeHandle({ edge, onPointerDown, isDragging, label }: ResizeH
     >
       <div className="ax-resize-bar h-full w-[3px] rounded-full transition-colors" />
       <span className="ax-resize-chevrons pointer-events-none absolute flex items-center opacity-0 transition-opacity">
-        <ChevronLeftIcon className="h-3 w-3 text-brand-purple" />
-        <ChevronRightIcon className="-ml-1 h-3 w-3 text-brand-purple" />
+        <ChevronLeftIcon className="h-3 w-3 text-foreground" />
+        <ChevronRightIcon className="-ml-1 h-3 w-3 text-foreground" />
       </span>
     </div>
   );

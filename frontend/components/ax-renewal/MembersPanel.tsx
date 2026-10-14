@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { TrashIcon, UserPlusIcon } from "@/components/layout/icons";
 import { addMember, removeMember, type AxRenewalMember } from "@/lib/ax-renewal/api";
+import { Button } from "@/components/ui/button";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Who is on this project (ADR-069, ADR-070). Only members and super admins
@@ -73,43 +75,45 @@ export function MembersPanel({
   }
 
   return (
-    <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-      <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
-        <h3 className="text-sm font-bold text-dash-ink">Members</h3>
-        <span className="text-xs text-muted">{members.length === 1 ? "1 member" : `${members.length} members`}</span>
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+      <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-foreground">Members</h3>
+        <span className="text-xs text-muted-foreground">{members.length === 1 ? "1 member" : `${members.length} members`}</span>
       </div>
-      <div className="p-5">
-        <p className="text-xs leading-relaxed text-muted">
+      <div className="p-4">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           Only this project&rsquo;s members can see it, and each can do what their role allows. Anyone not listed
           here can&rsquo;t open it at all.
         </p>
 
         {members.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">Nobody is on this project yet.</p>
+          <p className="mt-4 text-sm text-muted-foreground">Nobody is on this project yet.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-border rounded-[5px] border border-border" aria-label="Project members">
+          <ul className="mt-4 divide-y divide-surface-border rounded-lg border border-surface-border" aria-label="Project members">
             {members.map((m) => {
               const isYou = currentUserId != null && m.accountId === currentUserId;
               return (
                 <li key={m.accountId} className="flex items-center justify-between gap-3 px-3 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-dash-ink">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {m.displayName}
-                      {isYou && <span className="ml-2 text-xs font-semibold text-brand-purple">you</span>}
+                      {isYou && <span className="ml-2 text-xs font-semibold text-foreground">you</span>}
                     </p>
-                    <p className="text-xs text-muted">Added {new Date(m.addedAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">Added {new Date(m.addedAt).toLocaleDateString()}</p>
                   </div>
                   {canManage && !isLastMember && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => void handleRemove(m.accountId)}
                       disabled={removing != null}
                       aria-label={confirming === m.accountId ? `Confirm removing ${m.displayName}` : `Remove ${m.displayName}`}
-                      className="flex shrink-0 items-center gap-1.5 rounded-[10px] border border-transparent px-2.5 py-1 text-xs font-semibold text-muted transition-colors hover:border-danger/30 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                      className="shrink-0 text-muted-foreground hover:bg-danger/10 hover:text-danger"
                     >
                       <TrashIcon className="h-3.5 w-3.5" />
                       {removing === m.accountId ? "Removing…" : confirming === m.accountId ? "Press again to remove" : "Remove"}
-                    </button>
+                    </Button>
                   )}
                 </li>
               );
@@ -118,7 +122,7 @@ export function MembersPanel({
         )}
 
         {canManage && members.length === 1 && (
-          <p className="mt-2 text-xs text-muted">A project needs at least one member — add someone before removing the last one.</p>
+          <p className="mt-2 text-xs text-muted-foreground">A project needs at least one member — add someone before removing the last one.</p>
         )}
 
         {canManage && (
@@ -133,20 +137,16 @@ export function MembersPanel({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="teammate@example.com"
               required
-              className="min-w-[220px] flex-1 rounded-xl border border-border px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20"
+              className={`${inputBaseClass} min-w-[220px] flex-1`}
             />
-            <button
-              type="submit"
-              disabled={adding}
-              className="flex items-center gap-1.5 rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            <Button type="submit" disabled={adding}>
               <UserPlusIcon className="h-3.5 w-3.5" />
               {adding ? "Adding…" : "Add member"}
-            </button>
+            </Button>
           </form>
         )}
 
-        {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
       </div>
     </div>
   );

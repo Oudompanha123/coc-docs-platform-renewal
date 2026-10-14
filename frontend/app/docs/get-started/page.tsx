@@ -5,9 +5,9 @@ import { DocsCallout } from "@/components/docs/DocsCallout";
 export default function GetStartedPage() {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-purple">Get started</p>
-      <h1 className="mt-1 text-3xl font-bold text-ink">Up and running in four steps.</h1>
-      <p className="mt-3 text-base text-muted">
+      <p className="text-sm font-semibold text-foreground">Get started</p>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">Up and running in four steps.</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         No install, no setup script — <strong>Coc Docs Platform</strong> runs entirely in your browser.
       </p>
 
@@ -15,7 +15,7 @@ export default function GetStartedPage() {
         <DocStep number={1} title="Create your account">
           <p>
             Go to{" "}
-            <Link href="/register" className="font-semibold text-brand-purple hover:underline">
+            <Link href="/register" className="font-semibold text-foreground hover:underline">
               Sign up
             </Link>{" "}
             and create an account with your email, or continue with Google.
@@ -25,7 +25,7 @@ export default function GetStartedPage() {
         <DocStep number={2} title="Sign in">
           <p>
             Use{" "}
-            <Link href="/login" className="font-semibold text-brand-purple hover:underline">
+            <Link href="/login" className="font-semibold text-foreground hover:underline">
               Log in
             </Link>{" "}
             with the same email/password or Google account you signed up with.

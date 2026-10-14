@@ -16,6 +16,8 @@ import {
 } from "@/lib/docs/content-types";
 import type { DocContent, DownloadLink } from "@/lib/docs/content-types";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { createUsageToken } from "@/lib/auth/api";
 import {
   autoLabel,
@@ -94,15 +96,15 @@ function DownloadLinks({ downloads }: { downloads: DownloadLink[] }) {
                   }
                 : undefined
             }
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow aria-busy:cursor-wait aria-busy:opacity-60"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0 aria-busy:cursor-wait aria-busy:opacity-60")}
           >
-            <DownloadIcon className="h-3.5 w-3.5" />
+            <DownloadIcon className="size-3.5" />
             {busyHref === d.href ? "Preparing…" : d.label}
           </a>
         );
       })}
       {errorHref && (
-        <p role="alert" className="w-full text-xs text-danger">
+        <p role="alert" className="w-full text-xs text-destructive">
           Couldn&apos;t personalize that download — try again, or use the plain file below and configure it by hand.
         </p>
       )}
@@ -117,7 +119,7 @@ function renderInline(text: string): React.ReactNode {
     <>
       {parts.map((part, i) =>
         part.startsWith("**") && part.endsWith("**") ? (
-          <strong key={i} className="font-semibold text-ink">
+          <strong key={i} className="font-semibold text-foreground">
             {part.slice(2, -2)}
           </strong>
         ) : (
@@ -128,16 +130,16 @@ function renderInline(text: string): React.ReactNode {
   );
 }
 
-/** `admin` = inside AppShell (Jex3.0's current location, text-dash-ink);
- *  `docs` = inside the standalone /docs layout (text-ink). Same content
- *  shapes render in either shell — only the heading token differs, since
- *  that's the one class the admin dark-mode override actually needs. */
-/** The hero's second button: the same pill as the primary, outlined rather than filled. */
-const HERO_SECONDARY_CTA_CLASS =
-  "inline-flex items-center justify-center rounded-full border border-brand-purple/40 bg-white px-6 py-3 text-sm font-semibold text-brand-purple shadow-sm transition-colors hover:border-brand-purple hover:bg-brand-purple/5";
+/** The hero's second button: the same shape as the primary, outlined rather than filled. */
+const HERO_SECONDARY_CTA_CLASS = buttonVariants({ variant: "outline", size: "lg" });
 
-export function ContentRenderer({ content, variant }: { content: DocContent; variant: "admin" | "docs" }) {
-  const heading = variant === "admin" ? "text-dash-ink" : "text-ink";
+/** Headings use the theme foreground in both shells. `variant` (`admin` = inside
+ *  AppShell, `docs` = the standalone /docs layout) used to pick between two
+ *  legacy ink tokens; both now resolve to `text-foreground`, which follows
+ *  the dark theme on its own, so the prop no longer changes any class. */
+const heading = "text-foreground";
+
+export function ContentRenderer({ content }: { content: DocContent; variant: "admin" | "docs" }) {
 
   if (content.kind === "hero") {
     const isSplit = content.layout === "split";
@@ -153,17 +155,17 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
     })).filter((button) => button.show && isValidHeroDownloadUrl(button.url) && button.url !== "");
     const heroText = (
       <>
-        <h1 className={`text-3xl font-extrabold ${heading}`}>{content.heading}</h1>
-        <p className={`mt-3 text-lg font-medium ${heading}`}>{content.tagline}</p>
-        <p className="mt-1 text-sm text-muted">{content.subline}</p>
+        <h1 className={`text-2xl font-semibold tracking-tight sm:text-3xl ${heading}`}>{content.heading}</h1>
+        <p className={`mt-2 text-base font-medium ${heading}`}>{content.tagline}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{content.subline}</p>
         {/* Row 1 — Get started alone, unchanged from before this field
             existed. Row 2 (16px below) is the download buttons, which no
             longer share this row — four buttons crowded into one flex-wrap
             line used to leave Linux stranded alone on a second line. */}
-        <div className={`mt-7 flex flex-wrap gap-3 ${isSplit ? "justify-center sm:justify-start" : "justify-center"}`}>
+        <div className={`mt-6 flex flex-wrap gap-2 ${isSplit ? "justify-center sm:justify-start" : "justify-center"}`}>
           <Link
             href={content.ctaHref}
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-6 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
+            className={buttonVariants({ size: "lg" })}
           >
             {content.ctaLabel}
           </Link>
@@ -188,7 +190,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
         </div>
         {downloadButtons.length > 0 && (
           <div
-            className={`mt-4 flex flex-col items-stretch gap-3 sm:flex-row ${
+            className={`mt-4 flex flex-col items-stretch gap-2 sm:flex-row ${
               isSplit ? "sm:justify-start" : "sm:justify-center"
             }`}
           >
@@ -205,14 +207,14 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
                   key={os}
                   href={url}
                   {...(external ? { rel: "noopener noreferrer" } : {})}
-                  className="flex w-full min-w-[200px] items-center gap-3 rounded-xl border border-border bg-white py-2.5 pl-2.5 pr-4 shadow-sm transition-all duration-150 hover:-translate-y-px hover:border-indigo-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:w-auto"
+                  className="flex w-full min-w-[200px] items-center gap-3 rounded-xl border border-surface-border bg-card py-2 pl-2 pr-4 transition-colors duration-150 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:w-auto"
                 >
-                  <span className={`hero-download-tile hero-download-tile--${os} flex h-11 w-11 shrink-0 items-center justify-center rounded-xl`}>
-                    <Icon className="h-6 w-6" aria-hidden="true" />
+                  <span className={`hero-download-tile hero-download-tile--${os} flex size-10 shrink-0 items-center justify-center rounded-lg`}>
+                    <Icon className="size-5" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 text-left">
-                    <span className="block truncate text-sm font-semibold text-dash-ink">{label}</span>
-                    {meta !== "" && <span className="block truncate text-xs text-muted">{meta}</span>}
+                    <span className="block truncate text-sm font-semibold text-foreground">{label}</span>
+                    {meta !== "" && <span className="block truncate text-xs text-muted-foreground">{meta}</span>}
                   </span>
                 </a>
               );
@@ -225,26 +227,26 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
     return (
       <div className="break-words">
         <div
-          className={`rounded-[10px] border border-border bg-white p-8 shadow-sm sm:p-12 ${
-            isSplit ? "text-center sm:flex sm:items-center sm:gap-10 sm:text-left" : "text-center"
+          className={`rounded-xl border border-surface-border bg-card p-6 sm:p-10 ${
+            isSplit ? "text-center sm:flex sm:items-center sm:gap-8 sm:text-left" : "text-center"
           }`}
         >
           <div className={isSplit ? "sm:flex-1" : ""}>{heroText}</div>
 
           {isSplit && content.features.length > 0 && (
-            <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-0 sm:w-48 sm:shrink-0">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-0 sm:w-40 sm:shrink-0">
               {content.features.slice(0, 4).map((feature, i) => {
                 const Icon = ICON_MAP[feature.icon];
                 return (
                   <div
                     key={i}
-                    className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue text-white"
+                    className="mx-auto flex size-14 items-center justify-center overflow-hidden rounded-xl bg-primary text-primary-foreground"
                   >
                     {feature.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={feature.imageUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <Icon className="h-7 w-7" />
+                      <Icon className="size-6" />
                     )}
                   </div>
                 );
@@ -255,39 +257,39 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
 
         <div className="mt-6">
           <p className="text-center">
-            <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+            <span className="inline-flex items-center rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-foreground">
               {content.eyebrow}
             </span>
           </p>
-          <h2 className={`mt-1 text-center text-2xl font-bold ${heading}`}>{content.sectionHeading}</h2>
+          <h2 className={`mt-2 text-center text-xl font-semibold ${heading}`}>{content.sectionHeading}</h2>
           {content.sectionIntro.includes("\n") ? (
-            <ul className="mt-3 space-y-2 text-left text-base text-muted">
+            <ul className="mt-3 space-y-1.5 text-left text-sm leading-relaxed text-muted-foreground">
               {content.sectionIntro.split("\n").filter(Boolean).map((line, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-purple" />
+                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                   <span>{renderInline(line.startsWith("• ") ? line.slice(2) : line)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-left text-base text-muted">{renderInline(content.sectionIntro)}</p>
+            <p className="mt-3 text-left text-sm leading-relaxed text-muted-foreground">{renderInline(content.sectionIntro)}</p>
           )}
 
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {content.features.map((feature) => {
               const Icon = ICON_MAP[feature.icon];
               return (
-                <div key={feature.title} className="rounded-[10px] border border-border bg-white p-5 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <div key={feature.title} className="rounded-xl border border-surface-border bg-card p-4">
+                  <div className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-primary text-primary-foreground">
                     {feature.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={feature.imageUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <Icon className="h-5 w-5" />
+                      <Icon className="size-4" />
                     )}
                   </div>
-                  <h3 className={`mt-3 text-base font-semibold ${heading}`}>{feature.title}</h3>
-                  <p className="mt-1 text-sm text-muted">{renderInline(feature.description)}</p>
+                  <h3 className={`mt-3 text-sm font-semibold ${heading}`}>{feature.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{renderInline(feature.description)}</p>
                 </div>
               );
             })}
@@ -295,12 +297,12 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
 
           {content.closingNote && (
             content.closingNote.includes("\n") ? (
-              <div className="mt-6 space-y-2 rounded-[10px] border border-border bg-page p-4">
+              <div className="mt-6 space-y-2 rounded-xl border border-surface-border bg-muted-surface p-4">
                 {content.closingNote.split("\n").filter(Boolean).map((line, i) =>
                   line.startsWith("• ") ? (
                     <div key={i} className="flex items-start gap-2">
-                      <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-purple" />
-                      <span className="text-sm text-muted">{renderInline(line.slice(2))}</span>
+                      <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span className="text-sm text-muted-foreground">{renderInline(line.slice(2))}</span>
                     </div>
                   ) : (
                     <p key={i} className={`text-sm font-semibold ${heading}`}>{renderInline(line)}</p>
@@ -308,7 +310,7 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
                 )}
               </div>
             ) : (
-              <p className="mt-6 text-sm text-muted">{content.closingNote}</p>
+              <p className="mt-6 text-sm text-muted-foreground">{content.closingNote}</p>
             )
           )}
         </div>
@@ -318,12 +320,12 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
 
   if (content.kind === "steps") {
     return (
-      <div className="break-words rounded-[10px] border border-border bg-white p-6 shadow-sm sm:p-8">
-        <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+      <div className="break-words rounded-xl border border-surface-border bg-card p-5 sm:p-6">
+        <span className="inline-flex items-center rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-foreground">
           {content.eyebrow}
         </span>
-        <h1 className={`mt-1 text-3xl font-bold ${heading}`}>{content.heading}</h1>
-        <p className="mt-3 text-base text-muted">{renderInline(content.intro)}</p>
+        <h1 className={`mt-2 text-2xl font-semibold tracking-tight ${heading}`}>{content.heading}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{renderInline(content.intro)}</p>
 
         {content.calloutText && (
           <div className="mt-6">
@@ -363,12 +365,12 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
 
   // sections
   return (
-    <div className="break-words rounded-[10px] border border-border bg-white p-6 shadow-sm sm:p-8">
-      <span className="inline-flex items-center rounded-full bg-brand-purple/10 px-3 py-1 text-xs font-semibold text-brand-purple">
+    <div className="break-words rounded-xl border border-surface-border bg-card p-5 sm:p-6">
+      <span className="inline-flex items-center rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-foreground">
         {content.eyebrow}
       </span>
-      <h1 className={`mt-1 text-3xl font-bold ${heading}`}>{content.heading}</h1>
-      <p className="mt-3 text-base text-muted">{renderInline(content.intro)}</p>
+      <h1 className={`mt-2 text-2xl font-semibold tracking-tight ${heading}`}>{content.heading}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{renderInline(content.intro)}</p>
 
       {content.calloutText && (
         <div className="mt-6">
@@ -376,14 +378,14 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
         </div>
       )}
 
-      <div className="mt-8 space-y-8">
+      <div className="mt-6 space-y-6">
         {content.sections.map((section, i) => (
           <div
             key={`${section.title}-${i}`}
-            className={i < content.sections.length - 1 ? "border-b border-border pb-8" : ""}
+            className={i < content.sections.length - 1 ? "border-b border-surface-border pb-6" : ""}
           >
-            <h2 className={`text-lg font-bold ${heading}`}>{section.title}</h2>
-            {section.note && <p className="mt-2 text-sm text-muted">{renderInline(section.note)}</p>}
+            <h2 className={`text-base font-semibold ${heading}`}>{section.title}</h2>
+            {section.note && <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{renderInline(section.note)}</p>}
             {section.downloads && section.downloads.length > 0 && (
               <div className="mt-3">
                 <DownloadLinks downloads={section.downloads} />
@@ -395,9 +397,9 @@ export function ContentRenderer({ content, variant }: { content: DocContent; var
               </div>
             )}
             {section.exampleCommand && (
-              <details className="group mt-2 rounded-[10px] border border-border p-4">
+              <details className="group mt-2 rounded-xl border border-surface-border px-4 py-3">
                 <summary className={`flex cursor-pointer list-none items-center gap-2 text-sm font-semibold ${heading}`}>
-                  <span className="text-muted transition-transform group-open:rotate-45">+</span>
+                  <span className="text-muted-foreground transition-transform group-open:rotate-45">+</span>
                   {section.exampleLabel ?? "Show example"}
                 </summary>
                 <div className="mt-3">

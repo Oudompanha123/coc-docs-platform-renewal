@@ -41,19 +41,19 @@ export function formatStepDuration(secs: number): string {
 function kindTone(kind: string): string {
   if (kind === "error") return "text-danger";
   if (kind === "done") return "text-emerald-700";
-  if (kind === "edit" || kind === "write") return "text-brand-purple";
-  return "text-muted";
+  if (kind === "edit" || kind === "write") return "text-foreground";
+  return "text-muted-foreground";
 }
 
 function ActivityRow({ item }: { item: AxRenewalGenerationActivity }) {
   const when = new Date(item.at);
   return (
     <li className="flex gap-2 py-0.5 text-xs">
-      <span className="w-16 shrink-0 tabular-nums text-muted">
+      <span className="w-16 shrink-0 tabular-nums text-muted-foreground">
         {Number.isNaN(when.getTime()) ? "" : when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </span>
       <span className={`w-12 shrink-0 font-semibold ${kindTone(item.kind)}`}>{KIND_LABEL[item.kind] ?? "Step"}</span>
-      <span className={`min-w-0 break-words ${item.kind === "note" ? "italic text-dash-ink/80" : "text-dash-ink"}`}>
+      <span className={`min-w-0 break-words ${item.kind === "note" ? "italic text-foreground/80" : "text-foreground"}`}>
         {item.text}
       </span>
     </li>
@@ -113,7 +113,7 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
 
   if (progress === null) {
     return (
-      <p className="mt-3 text-xs text-muted" role="status">
+      <p className="mt-3 text-xs text-muted-foreground" role="status">
         {failed ? "Couldn't reach the build's progress yet — retrying…" : "Connecting to the build…"}
       </p>
     );
@@ -121,7 +121,7 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
 
   if (!progress.available) {
     return (
-      <p className="mt-3 rounded-xl border border-border bg-white px-3 py-2 text-xs text-muted" role="status">
+      <p className="mt-3 rounded-xl border border-surface-border bg-card px-3 py-2 text-xs text-muted-foreground" role="status">
         Live activity is shown on the computer running this build. It is still generating — this panel updates when it
         finishes.
       </p>
@@ -147,7 +147,7 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
           <span
             key={s.key}
             className={`h-1.5 flex-1 rounded-full ${
-              i < stepIndex ? "bg-brand-purple" : i === stepIndex ? "animate-pulse bg-brand-purple/60" : "bg-border"
+              i < stepIndex ? "bg-primary" : i === stepIndex ? "animate-pulse bg-primary/60" : "bg-surface-border"
             }`}
           />
         ))}
@@ -162,10 +162,10 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
                 aria-hidden="true"
                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                   state === "done"
-                    ? "bg-brand-purple text-white"
+                    ? "bg-primary text-primary-foreground"
                     : state === "current"
-                      ? "animate-spin border-2 border-brand-purple/30 border-t-brand-purple"
-                      : "border border-border"
+                      ? "animate-spin border-2 border-primary/30 border-t-primary"
+                      : "border border-surface-border"
                 }`}
               >
                 {state === "done" ? "✓" : ""}
@@ -173,41 +173,41 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
               <span className="min-w-0">
                 <span
                   className={`block text-sm ${
-                    state === "pending" ? "text-muted" : "font-semibold text-dash-ink"
+                    state === "pending" ? "text-muted-foreground" : "font-semibold text-foreground"
                   }`}
                 >
                   {s.label}
                   {state === "current" && stepSecs !== null && (
-                    <span className="ml-2 text-xs font-normal text-muted">for {formatStepDuration(stepSecs)}</span>
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">for {formatStepDuration(stepSecs)}</span>
                   )}
                   <span className="sr-only">{state === "done" ? " (done)" : state === "current" ? " (in progress)" : ""}</span>
                 </span>
-                {state === "current" && <span className="block text-xs text-muted">{s.detail}</span>}
+                {state === "current" && <span className="block text-xs text-muted-foreground">{s.detail}</span>}
               </span>
             </li>
           );
         })}
       </ol>
 
-      <p className="text-xs text-muted" aria-label="Counts">
-        <span className="font-semibold text-dash-ink">{progress.actions}</span> {progress.actions === 1 ? "action" : "actions"}
+      <p className="text-xs text-muted-foreground" aria-label="Counts">
+        <span className="font-semibold text-foreground">{progress.actions}</span> {progress.actions === 1 ? "action" : "actions"}
         {" · "}
-        <span className="font-semibold text-dash-ink">{progress.filesRead}</span> {progress.filesRead === 1 ? "file" : "files"} read
+        <span className="font-semibold text-foreground">{progress.filesRead}</span> {progress.filesRead === 1 ? "file" : "files"} read
         {" · "}
-        <span className="font-semibold text-dash-ink">{progress.filesChanged}</span>{" "}
+        <span className="font-semibold text-foreground">{progress.filesChanged}</span>{" "}
         {progress.filesChanged === 1 ? "file" : "files"} changed so far
       </p>
 
-      <div className="rounded-xl border border-border bg-white">
-        <p className="border-b border-border px-3 py-1.5 text-xs font-semibold text-dash-ink">What the AI is doing</p>
+      <div className="rounded-xl border border-surface-border bg-card">
+        <p className="border-b border-surface-border px-3 py-1.5 text-xs font-semibold text-foreground">What the AI is doing</p>
         {progress.activity.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted">
+          <p className="px-3 py-2 text-xs text-muted-foreground">
             {progress.step === "preparing" ? "Copying the source — the AI starts once the copy is ready." : "Waiting for the AI's first step…"}
           </p>
         ) : (
           <ol ref={feedRef} aria-label="Live activity" aria-live="polite" className="max-h-60 overflow-y-auto px-3 py-1.5">
             {progress.earlierActivityDropped && (
-              <li className="py-0.5 text-xs text-muted">Earlier activity not shown — only the most recent is kept.</li>
+              <li className="py-0.5 text-xs text-muted-foreground">Earlier activity not shown — only the most recent is kept.</li>
             )}
             {progress.activity.map((item, i) => (
               <ActivityRow key={`${item.at}-${i}`} item={item} />
@@ -217,7 +217,7 @@ export function GenerationProgress({ projectId, runId }: { projectId: string; ru
       </div>
 
       {failed && (
-        <p role="status" className="text-xs text-muted">
+        <p role="status" className="text-xs text-muted-foreground">
           Lost touch with the build for a moment — showing the last update, retrying…
         </p>
       )}

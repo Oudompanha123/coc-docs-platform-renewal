@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField } from "@/components/auth/FormField";
-import { LockIcon, MailIcon } from "@/components/auth/icons";
+import { LockIcon } from "@/components/auth/icons";
+import { Button } from "@/components/ui/button";
 import { AuthApiError, forgotPassword } from "@/lib/auth/api";
 import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
 
@@ -71,51 +72,47 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      icon={<LockIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+      icon={<LockIcon className="size-5" />}
       heading="Forgot Password?"
       subheading="No worries. Enter the email you signed up with and we'll send you a link to reset your password."
     >
-      <h1 className="text-3xl font-extrabold text-ink">Forgot Password</h1>
-      <p className="mt-2 text-sm text-muted">We&apos;ll email you a link to reset it</p>
-
       {feedback && (
         <div
           role="alert"
-          className={`mt-4 rounded-[10px] border px-4 py-3 text-sm ${
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-700"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
           }`}
         >
           {feedback.message}
         </div>
       )}
 
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+      <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         <FormField
           label="Email"
           type="email"
           value={email}
           onChange={setEmail}
           placeholder="Enter your email"
-          icon={<MailIcon className="h-4 w-4" />}
           autoComplete="email"
           error={error}
         />
 
-        <button
+        <Button shape="pill"
           type="submit"
           disabled={isSubmitting || feedback?.type === "success"}
           aria-busy={isSubmitting}
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full"
         >
           {isSubmitting ? "Sending…" : "Send Reset Link"}
-        </button>
+        </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="text-muted-foreground mt-6 text-center text-sm">
         Remember your password?{" "}
-        <Link href="/login" className="font-semibold text-brand-purple hover:underline">
+        <Link href="/login" className="text-foreground font-medium underline underline-offset-4">
           Login
         </Link>
       </p>

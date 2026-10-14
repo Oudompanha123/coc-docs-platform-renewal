@@ -5,7 +5,7 @@ export default function IdeaPage() {
   return (
     <ComingSoonPage
       pageTitle="IDEA"
-      titleIcon={<SparklesIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<SparklesIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
       icon={<SparklesIcon className="h-7 w-7" />}
     />
   );

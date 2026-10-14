@@ -1,10 +1,11 @@
-import { parseMarkdown, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
+import { markdownOutline, parseMarkdown, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
 
 type Variant = "inline" | "document" | "document-note";
 
 type VariantStyle = {
   text: string;
   link: string;
+  heading2: string;
   heading3: string;
   heading4: string;
   marker: string;
@@ -18,37 +19,40 @@ type VariantStyle = {
  *  them. */
 const STYLES: Record<Variant, VariantStyle> = {
   inline: {
-    text: "text-sm leading-relaxed text-dash-ink",
-    link: "font-semibold text-brand-purple hover:underline",
-    heading3: "text-base font-bold text-ink",
-    heading4: "text-sm font-bold text-ink",
-    marker: "bg-gradient-to-r from-brand-purple to-brand-blue",
-    quote: "border-l-2 border-brand-purple/40 pl-3 text-sm italic text-muted",
-    rule: "border-border",
-    listMarkerNumeric: "text-brand-purple",
+    text: "text-sm leading-relaxed text-foreground",
+    link: "font-semibold text-foreground hover:underline",
+    heading2: "text-lg font-bold text-foreground",
+    heading3: "text-base font-bold text-foreground",
+    heading4: "text-sm font-bold text-foreground",
+    marker: "bg-primary",
+    quote: "border-l-2 border-foreground/30 pl-3 text-sm italic text-muted-foreground",
+    rule: "border-surface-border",
+    listMarkerNumeric: "text-foreground",
   },
   document: {
-    text: "text-[14.5px] leading-[1.62] text-[#333336]",
-    link: "text-[#0066cc] hover:underline",
-    heading3: "text-lg font-semibold text-[#1d1d1f]",
-    heading4: "text-base font-semibold text-[#1d1d1f]",
-    marker: "bg-[#333336]",
-    quote: "border-l-2 border-[#d2d2d7] pl-3 text-[14.5px] italic text-[#6e6e73]",
-    rule: "border-[#d2d2d7]",
-    listMarkerNumeric: "text-[#333336]",
+    text: "text-[14.5px] leading-[1.62] text-foreground",
+    link: "text-foreground underline underline-offset-4 hover:text-muted-foreground",
+    heading2: "scroll-mt-24 pt-6 text-[21px] font-semibold text-foreground first:pt-0",
+    heading3: "text-lg font-semibold text-foreground",
+    heading4: "text-base font-semibold text-foreground",
+    marker: "bg-foreground",
+    quote: "border-l-2 border-surface-border pl-3 text-[14.5px] italic text-muted-foreground",
+    rule: "border-surface-border",
+    listMarkerNumeric: "text-foreground",
   },
   /** The document's italic end note — same document palette, smaller and
    *  muted (`legal-document-content-mockup.png`'s copyright/disclaimer
    *  lines), always italic regardless of `*markers*` in the source. */
   "document-note": {
-    text: "text-[13px] italic leading-relaxed text-[#6e6e73]",
-    link: "text-[#0066cc] hover:underline",
-    heading3: "text-base font-semibold italic text-[#6e6e73]",
-    heading4: "text-sm font-semibold italic text-[#6e6e73]",
-    marker: "bg-[#6e6e73]",
-    quote: "border-l-2 border-[#d2d2d7] pl-3 text-[13px] italic text-[#6e6e73]",
-    rule: "border-[#d2d2d7]",
-    listMarkerNumeric: "text-[#6e6e73]",
+    text: "text-[13px] italic leading-relaxed text-muted-foreground",
+    link: "text-foreground underline underline-offset-4 hover:text-muted-foreground",
+    heading2: "text-lg font-semibold italic text-muted-foreground",
+    heading3: "text-base font-semibold italic text-muted-foreground",
+    heading4: "text-sm font-semibold italic text-muted-foreground",
+    marker: "bg-muted-foreground",
+    quote: "border-l-2 border-surface-border pl-3 text-[13px] italic text-muted-foreground",
+    rule: "border-surface-border",
+    listMarkerNumeric: "text-muted-foreground",
   },
 };
 
@@ -74,16 +78,25 @@ export function MarkdownView({
 }) {
   const blocks = parseMarkdown(source);
   const style = STYLES[variant];
+  // Each `##` gets the anchor `markdownOutline` gives it, in the same order.
+  const anchors = markdownOutline(source).map((e) => e.id);
+  let h2 = 0;
   return (
     <div className={className}>
       {blocks.map((block, i) => (
-        <Block key={i} node={block} bulletStyle={bulletStyle} style={style} />
+        <Block
+          key={i}
+          node={block}
+          bulletStyle={bulletStyle}
+          style={style}
+          anchor={block.kind === "heading" && block.level === 2 ? anchors[h2++] : undefined}
+        />
       ))}
     </div>
   );
 }
 
-function Block({ node, bulletStyle, style }: { node: MdBlock; bulletStyle: "circle" | "check"; style: VariantStyle }) {
+function Block({ node, bulletStyle, style, anchor }: { node: MdBlock; bulletStyle: "circle" | "check"; style: VariantStyle; anchor?: string }) {
   switch (node.kind) {
     case "paragraph":
       return (
@@ -92,9 +105,10 @@ function Block({ node, bulletStyle, style }: { node: MdBlock; bulletStyle: "circ
         </p>
       );
     case "heading": {
-      const Tag = node.level === 3 ? "h3" : "h4";
+      const Tag = node.level === 2 ? "h2" : node.level === 3 ? "h3" : "h4";
+      const cls = node.level === 2 ? style.heading2 : node.level === 3 ? style.heading3 : style.heading4;
       return (
-        <Tag className={node.level === 3 ? style.heading3 : style.heading4}>
+        <Tag id={anchor} className={cls}>
           <Spans spans={node.spans} style={style} />
         </Tag>
       );

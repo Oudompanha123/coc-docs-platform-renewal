@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { listUsageTokens, revokeUsageToken, type UsageToken } from "@/lib/auth/api";
 
 /**
@@ -38,14 +39,14 @@ export function ConnectCliPanel() {
     }
   }
 
-  const code = "rounded bg-page px-1.5 py-0.5 font-mono text-xs";
+  const code = "rounded bg-muted-surface px-1.5 py-0.5 font-mono text-xs";
 
   return (
-    <section aria-labelledby="connect-cli-heading" className="mt-8 rounded-[10px] border border-border bg-white p-6 shadow-sm">
-      <h2 id="connect-cli-heading" className="text-base font-semibold text-dash-ink">
+    <section aria-labelledby="connect-cli-heading" className="mt-6 rounded-xl border border-surface-border bg-card p-5">
+      <h2 id="connect-cli-heading" className="text-base font-semibold text-foreground">
         Report from the command line
       </h2>
-      <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-dash-ink">
+      <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-foreground">
         <li>
           Install: <code className={code}>npm install -g claude-team-usage</code>
         </li>
@@ -56,31 +57,32 @@ export function ConnectCliPanel() {
       </ol>
 
       {error && (
-        <p role="alert" className="mt-3 text-xs text-danger">
+        <p role="alert" className="mt-3 text-xs text-destructive">
           {error}
         </p>
       )}
 
       {tokens && tokens.length > 0 && (
-        <div className="mt-5">
-          <h3 className="text-sm font-semibold text-dash-ink">Connected machines</h3>
-          <ul className="mt-2 divide-y divide-border text-sm">
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-foreground">Connected machines</h3>
+          <ul className="mt-2 divide-y divide-surface-border text-sm">
             {tokens.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-3 py-2">
                 <span>
                   {t.label}
-                  <span className="ml-2 text-xs text-muted">
+                  <span className="ml-2 text-xs text-muted-foreground">
                     {t.lastUsedAt ? `last used ${new Date(t.lastUsedAt).toLocaleString()}` : "never used"}
                   </span>
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => void revoke(t.id)}
                   aria-label={`Revoke ${t.label}`}
-                  className="rounded-full border border-border bg-white px-3.5 py-1.5 text-xs font-semibold text-dash-ink shadow-sm hover:shadow"
                 >
                   Revoke
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

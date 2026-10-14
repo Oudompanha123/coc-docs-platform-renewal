@@ -1,10 +1,12 @@
 "use client";
 
+import { SkeletonTable } from "@/components/ui/skeleton";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { RequireSession } from "@/components/layout/RequireSession";
-import { UsersIcon } from "@/components/layout/icons";
+import { Shield } from "lucide-react";
+import { ClockIcon, PersonIcon, PlusIcon, DownloadIcon, UsersIcon } from "@/components/layout/icons";
 import { AccountsTable } from "@/components/users-roles/AccountsTable";
 import { AddAccountModal } from "@/components/users-roles/AddAccountModal";
 import { DeactivateModal } from "@/components/users-roles/DeactivateModal";
@@ -15,6 +17,7 @@ import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal"
 import { PendingTab } from "@/components/users-roles/PendingTab";
 import { RolesTab } from "@/components/users-roles/RolesTab";
 import { UsersEmptyState } from "@/components/users-roles/UsersEmptyState";
+import { Button } from "@/components/ui/button";
 import {
   createAccount,
   listAccounts,
@@ -402,29 +405,26 @@ function UsersRolesPageInner() {
     <AppShell
       pageTitle="Users & Roles"
       pageSubtitle="Manage who has access to Coc Docs Platform and what they can do"
-      titleIcon={<UsersIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />}
+      titleIcon={<UsersIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
     >
       {/* No overflow-hidden: it cut off any dropdown that reaches past the
           card's bottom edge — with one applicant, "Approve as" showed only
           User of its six roles. Nothing in here paints to the corners. */}
-      <div className="rounded-[10px] border border-border bg-white shadow-sm">
-        <div role="tablist" className="flex gap-6 border-b border-border px-6 pt-5">
+      <div className="rounded-xl border border-surface-border bg-card">
+        <div role="tablist" className="flex gap-5 border-b border-surface-border px-5 pt-4">
           <button
             type="button"
             role="tab"
             aria-selected={tab === "users"}
             onClick={() => setTab("users")}
-            className={`relative flex items-center gap-2 pb-3 text-sm transition-colors focus-visible:outline-none ${
-              tab === "users" ? "font-bold text-dash-ink" : "font-medium text-muted hover:text-dash-ink"
+            className={`relative flex items-center gap-2 pb-2.5 text-sm font-medium transition-colors focus-visible:outline-none ${
+              tab === "users" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.5" />
-              <path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5" strokeLinecap="round" />
-            </svg>
+            <PersonIcon className="size-4" />
             Users
             {tab === "users" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
           <button
@@ -432,26 +432,23 @@ function UsersRolesPageInner() {
             role="tab"
             aria-selected={tab === "pending"}
             onClick={() => setTab("pending")}
-            className={`relative flex items-center gap-2 pb-3 text-sm transition-colors focus-visible:outline-none ${
-              tab === "pending" ? "font-bold text-dash-ink" : "font-medium text-muted hover:text-dash-ink"
+            className={`relative flex items-center gap-2 pb-2.5 text-sm font-medium transition-colors focus-visible:outline-none ${
+              tab === "pending" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <circle cx="12" cy="12" r="8.5" />
-              <path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <ClockIcon className="size-4" />
             Pending
             {/* The badge is how a super admin finds out at all: there is no
                 email or notification anywhere in the backend. It only reaches
                 someone already signed in, which is the trade-off that was
                 chosen deliberately over adding a mail dependency. */}
             {pending.length > 0 && (
-              <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-brand-purple px-1.5 py-0.5 text-[11px] font-bold text-white">
+              <span className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
                 {pending.length}
               </span>
             )}
             {tab === "pending" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
           <button
@@ -459,23 +456,21 @@ function UsersRolesPageInner() {
             role="tab"
             aria-selected={tab === "roles"}
             onClick={() => setTab("roles")}
-            className={`relative flex items-center gap-2 pb-3 text-sm transition-colors focus-visible:outline-none ${
-              tab === "roles" ? "font-bold text-dash-ink" : "font-medium text-muted hover:text-dash-ink"
+            className={`relative flex items-center gap-2 pb-2.5 text-sm font-medium transition-colors focus-visible:outline-none ${
+              tab === "roles" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <path d="M12 3.5 5 6v6c0 4.5 3 7.5 7 8.5 4-1 7-4 7-8.5V6l-7-2.5Z" strokeLinejoin="round" />
-            </svg>
+            <Shield className="size-4" aria-hidden="true" />
             Roles
             {tab === "roles" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
         </div>
 
         {tab === "users" ? (
           <>
-            <div className="flex flex-col gap-3 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0 flex-1">
                 <FilterBar
                   search={search}
@@ -487,9 +482,10 @@ function UsersRolesPageInner() {
                 />
               </div>
 
-              <div className="flex shrink-0 gap-3">
-                <button
+              <div className="flex shrink-0 gap-2">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => downloadUsersXlsx(exportable)}
                   disabled={exportable.length === 0}
                   title={
@@ -497,43 +493,37 @@ function UsersRolesPageInner() {
                       ? "Nothing to export — no accounts match the current filters"
                       : `Download ${exportable.length} account${exportable.length === 1 ? "" : "s"} as an Excel file`
                   }
-                  className="flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                 >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path d="M12 15V3M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <DownloadIcon className="size-4" />
                   Export
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => {
                     setAddedMessage(null);
                     setAddOpen(true);
                   }}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                  </svg>
+                  <PlusIcon className="size-4" />
                   Add user
-                </button>
+                </Button>
               </div>
             </div>
 
             {addedMessage && (
-              <div className="mx-6 mb-4 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="mx-5 mb-4 rounded-lg border border-green-600/30 bg-green-600/10 px-3 py-2.5 text-sm text-green-700 dark:text-green-400">
                 {addedMessage}
               </div>
             )}
 
             {error && (
-              <div className="mx-6 mb-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              <div className="mx-5 mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">
                 {error}
               </div>
             )}
 
-            <div className="px-6 pb-6">
+            <div className="px-5 pb-5">
+              {loading && <SkeletonTable rows={8} columns={5} />}
               {!loading && (
                 <div className="animate-entrance">
                   {filtered.length === 0 ? (

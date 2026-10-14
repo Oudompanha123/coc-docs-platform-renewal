@@ -9,7 +9,7 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/docs/nav-api";
 import { applyProductRename, refreshNavStructure, useNavStructure } from "@/lib/docs/useNavStructure";
 import { openInNewTabWithLoadingDim } from "./LoadingDim";
-import { SidebarDeleteProductDialog } from "./SidebarDeleteProductDialog";
+import { SidebarDeleteGroupDialog, SidebarDeleteProductDialog } from "./SidebarDeleteProductDialog";
 import { SidebarGroupMenu } from "./SidebarGroupMenu";
 import { SidebarItemMenu } from "./SidebarItemMenu";
 import { SidebarRenameRow } from "./SidebarRenameRow";
@@ -17,6 +17,9 @@ import { UserAvatar } from "./UserAvatar";
 import { useSidebarNavConfig } from "./useSidebarNavConfig";
 import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
 import { MonitorIcon, PlusIcon, XIcon } from "./icons";
+import { PanelLeft } from "lucide-react";
+import { SIDEBAR_DEFAULT_WIDTH } from "@/lib/layout/ShellContext";
+import { SidebarResizeHandle } from "./SidebarResizeHandle";
 
 function slugify(label: string): string {
   return label
@@ -30,6 +33,16 @@ type SidebarProps = {
   /** Mobile/tablet off-canvas drawer state — always visible at lg+ regardless of this. */
   isOpen: boolean;
   onClose: () => void;
+  /** Desktop only: fold to the icon rail (ADR-104 r2.9). The mobile drawer
+   *  always renders in full. */
+  collapsed?: boolean;
+  /** Desktop only: the expanded width in px, and the drag that sets it
+   *  (ADR-104 r2.12). Without `onResize` there is no handle. */
+  width?: number;
+  onResize?: (width: number) => void;
+  /** Desktop only: folds to the rail. The button for it sits in the
+   *  sidebar's own header while expanded; folded, the Topbar carries it. */
+  onCollapse?: () => void;
 };
 
 function NavLink({
@@ -37,8 +50,11 @@ function NavLink({
   active,
   onClick,
   trailingAction,
+  rail = false,
 }: {
   item: NavItem;
+  /** Icon-only: the label stays for screen readers and becomes a tooltip. */
+  rail?: boolean;
   active: boolean;
   onClick?: () => void;
   /**
@@ -59,21 +75,23 @@ function NavLink({
         target={item.newTab ? "_blank" : undefined}
         rel={item.newTab ? "noopener noreferrer" : undefined}
         aria-current={active ? "page" : undefined}
-        className={`flex h-[42px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue ${
+        title={rail ? item.label : undefined}
+        className={`flex h-10 items-center gap-2.5 rounded-full text-sm transition-colors ${rail ? "mx-auto w-10 justify-center px-0" : "px-3"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
           active
-            ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow"
-            : "text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+            ? "bg-nav-accent font-medium text-nav-foreground"
+            : "text-nav-muted hover:bg-nav-accent hover:text-nav-foreground"
         }`}
       >
-        <Icon className="h-[18px] w-[18px] shrink-0" />
-        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        <Icon className="size-4 shrink-0" />
+        <span className={rail ? "sr-only" : "min-w-0 flex-1 truncate"}>{item.label}</span>
       </Link>
-      {trailingAction}
+      {!rail && trailingAction}
     </div>
   );
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, collapsed = false, width = SIDEBAR_DEFAULT_WIDTH, onResize, onCollapse }: SidebarProps) {
+  const [resizing, setResizing] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   // Same session-backed name/role as the Topbar (GET /api/v1/auth/me) — the
@@ -203,8 +221,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   }
 
+  const [deletingGroup, setDeletingGroup] = useState<{ id: string; name: string } | null>(null);
+
   async function handleDeleteGroup(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}"? This only works while it has no items left.`)) return;
+    setDeletingGroup(null);
     try {
       await deleteGroup(id);
       setNotice({ kind: "success", message: `${name} deleted` });
@@ -249,7 +269,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           kind="product"
           groups={[]}
           canDelete={canDelete}
-          deleteDisabledReason="Only Super Admins can delete"
+          deleteDisabledReason="Only Super Admins can delete products"
           onRename={() => setRenamingKey(item.href)}
           onDeleteProduct={() => setDeletingProduct({ key: productKey, label: item.label })}
         />
@@ -270,34 +290,65 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     );
   }
 
-  const content = (
-    <div className="admin-sidebar flex h-full flex-col bg-sidebar px-0 py-5">
-      <div className="flex items-center justify-between px-4">
-        <div className="flex items-center gap-2.5">
+  // A function of `rail` rather than one tree, so the desktop sidebar can fold
+  // while the mobile drawer — the same markup — always renders in full.
+  const renderContent = (rail: boolean, desktop: boolean) => (
+    <div className="admin-sidebar flex h-full flex-col border-r border-nav-border bg-nav py-3">
+      <div className={`flex h-10 items-center ${rail ? "justify-center px-2" : "justify-between px-4"}`}>
+        {/* Collapsed to the icon rail, the wordmark has no room — the "C"
+            mark alone keeps the brand at the top of the rail instead of an
+            empty gap. Same artwork as the app icon; it reads on both themes. */}
+        {rail && (
+          // eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content
+          <img src="/logo-coc-docs-platform-mark.png" alt="Coc Docs Platform" className="size-8 object-contain" />
+        )}
+        <div className={rail ? "hidden" : "flex items-center gap-2.5"}>
+          {/* Two logos, one per theme: the admin artwork's lettering is white and
+              would vanish on the light sidebar. `dark:` is the shell-scoped
+              variant from globals.css. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="h-8 w-auto rounded-lg" />
+          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-9 w-auto dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="hidden h-9 w-auto dark:block" />
         </div>
+        {/* Desktop, expanded: the fold button lives beside the logo, where
+            the eye already is when deciding the menu is in the way. Folded,
+            this header has no room, so the Topbar shows it instead. */}
+        {desktop && !rail && onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Collapse sidebar"
+            aria-expanded={true}
+            aria-controls="admin-sidebar"
+            className="-mr-1.5 hidden size-8 items-center justify-center rounded-full text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+          >
+            <PanelLeft className="size-4" aria-hidden="true" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
+          className="rounded-full p-1.5 text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
-          <XIcon className="h-5 w-5" />
+          <XIcon className="size-5" />
         </button>
       </div>
 
-      <nav className="mt-6 flex-1 space-y-6 overflow-y-auto px-4 py-5">
-        <div className="space-y-1">
-          <NavLink item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
+      <nav className="mt-4 flex-1 space-y-5 overflow-y-auto px-2">
+        <div className="space-y-0.5">
+          <NavLink rail={rail} item={NAV_TOP} active={isNavItemActive(pathname, NAV_TOP.href)} onClick={onClose} />
         </div>
 
         {navSections.map((section) => {
           const group = groups.find((g) => g.name === section.label);
           const isCustomGroup = group != null && !group.builtin;
           return (
-          <div key={section.label} className="space-y-1">
-            {isCustomGroup && renamingGroupId === group!.id ? (
+          <div key={section.label} className="space-y-0.5">
+            {rail ? (
+              <div aria-hidden="true" className="mx-2 my-2 h-px bg-nav-border" />
+            ) : isCustomGroup && renamingGroupId === group!.id ? (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -318,28 +369,28 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }}
                   maxLength={24}
                   aria-label={`Rename group ${section.label}`}
-                  className="w-full rounded-md border border-white/15 bg-transparent px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-white outline-none"
+                  className="w-full rounded-md border border-nav-border bg-background px-2 py-1 text-xs font-medium text-nav-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </form>
             ) : (
-              <div className="group flex items-center justify-between gap-2 px-3">
-                <p className="text-[11px] font-semibold tracking-wider text-sidebar-muted/70">{section.label}</p>
+              <div className="group flex h-8 items-center justify-between gap-2 px-2">
+                <p className="text-xs font-medium text-nav-muted">{section.label}</p>
                 {isCustomGroup && canManage && (
                   <SidebarGroupMenu
                     groupName={section.label}
                     canDelete={canDelete && section.items.length === 0}
-                    deleteDisabledReason={canDelete ? "Move items out first" : "Only Super Admins can delete"}
+                    deleteDisabledReason={canDelete ? "Move its items out first" : "Only Super Admins can delete groups"}
                     onRename={() => {
                       setNewGroupName(section.label);
                       setRenamingGroupId(group!.id);
                     }}
-                    onDelete={() => handleDeleteGroup(group!.id, section.label)}
+                    onDelete={() => setDeletingGroup({ id: group!.id, name: section.label })}
                   />
                 )}
               </div>
             )}
             {section.items.map((item) => {
-              if (renamingKey === item.href) {
+              if (!rail && renamingKey === item.href) {
                 const siblingLabels = section.items.filter((i) => i.href !== item.href).map((i) => i.label);
                 return (
                   <SidebarRenameRow
@@ -359,6 +410,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
               return (
                 <NavLink
+                  rail={rail}
                   key={item.href}
                   item={item}
                   active={isNavItemActive(pathname, item.href)}
@@ -368,36 +420,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               );
             })}
 
-            {section.label === "PRODUCTS" && canManage && (
+            {section.label === "PRODUCTS" && canManage && !rail && (
               <>
-                {productsError && <p className="px-3 text-xs text-[#ff9b9b]">{productsError}</p>}
+                {productsError && <p className="px-2 text-xs text-destructive">{productsError}</p>}
 
                 {!addingProduct && (
                   <button
                     type="button"
                     onClick={() => setAddingProduct(true)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:border-white/30 hover:bg-sidebar-hover hover:text-white"
+                    className="flex h-10 w-full items-center gap-2.5 rounded-full border border-dashed border-nav-border px-3 text-sm text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground"
                   >
-                    <PlusIcon className="h-[18px] w-[18px] shrink-0" />
+                    <PlusIcon className="size-4 shrink-0" />
                     Add product
                   </button>
                 )}
 
                 {addingProduct && (
-                  <form onSubmit={handleAddProduct} className="rounded-xl border border-white/15 bg-white/5 p-2.5">
+                  <form onSubmit={handleAddProduct} className="rounded-lg border border-nav-border bg-background p-2">
                     <input
                       autoFocus
                       value={newProductLabel}
                       onChange={(e) => setNewProductLabel(e.target.value)}
                       placeholder="Product name"
                       required
-                      className="w-full rounded-lg border border-white/15 bg-transparent px-2.5 py-1.5 text-sm text-white placeholder:text-sidebar-muted focus:outline-none"
+                      className="h-9 w-full rounded-full border border-transparent bg-muted-surface px-3.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:border-surface-border focus-visible:bg-background"
                     />
                     <div className="mt-2 flex gap-2">
                       <button
                         type="submit"
                         disabled={addProductBusy}
-                        className="flex-1 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="flex-1 rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {addProductBusy ? "Adding…" : "Add"}
                       </button>
@@ -408,7 +460,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                           setNewProductLabel("");
                           setProductsError(null);
                         }}
-                        className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-sidebar-muted transition-colors hover:text-white"
+                        className="rounded-control border border-surface-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                       >
                         Cancel
                       </button>
@@ -421,12 +473,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           );
         })}
 
-        {notice && (
-          <p className={`px-3 text-xs ${notice.kind === "error" ? "text-[#ff9b9b]" : "text-[#86efac]"}`}>{notice.message}</p>
+        {notice && !rail && (
+          <p className={`px-2 text-xs ${notice.kind === "error" ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>{notice.message}</p>
         )}
       </nav>
 
-      <div className="space-y-3 border-t border-white/10 px-4 pt-4">
+      <div className="space-y-0.5 border-t border-nav-border px-2 pt-2">
         {/* Opens in a new tab rather than navigating away: this is the same
             admin session previewing the Member landing page (ADR-033), not
             leaving the admin app. /home admits admin/super_admin as a
@@ -446,23 +498,24 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             e.preventDefault();
             openInNewTabWithLoadingDim("/home");
           }}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-white"
+          title={rail ? "View site" : undefined}
+          className={`flex h-10 items-center gap-2.5 rounded-full text-sm text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground ${rail ? "mx-auto w-10 justify-center px-0" : "px-3"}`}
         >
-          <MonitorIcon className="h-[18px] w-[18px] shrink-0" />
-          View site
+          <MonitorIcon className="size-4 shrink-0" />
+          <span className={rail ? "sr-only" : undefined}>View site</span>
         </Link>
-        <NavLink item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
+        <NavLink rail={rail} item={NAV_BOTTOM} active={isNavItemActive(pathname, NAV_BOTTOM.href)} onClick={onClose} />
 
-        <div className="flex items-center gap-2.5 rounded-xl px-3 py-2">
+        <div className={`mt-1.5 flex items-center gap-2 rounded-full py-1.5 ${rail ? "justify-center px-0" : "px-2"}`}>
           <UserAvatar
             avatarUrl={user?.avatarUrl ?? null}
             initials={user?.initials ?? "?"}
             name={user?.name ?? "Guest"}
             className={`h-8 w-8 ${userAvatar}`}
           />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{user?.name ?? "Guest"}</p>
-            <p className="truncate text-xs text-sidebar-muted">{user?.role ?? ""}</p>
+          <div className={rail ? "sr-only" : "min-w-0"}>
+            <p className="truncate text-sm font-medium text-nav-foreground">{user?.name ?? "Guest"}</p>
+            <p className="truncate text-xs text-nav-muted">{user?.role ?? ""}</p>
           </div>
         </div>
       </div>
@@ -476,8 +529,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           viewport while scrolling like `fixed` would, but unlike `fixed` it
           fully renders in full-page screenshot/print tools instead of being
           clipped to one viewport height when the page is taller than 100vh. */}
-      <aside className="hidden lg:block lg:w-64 lg:shrink-0">
-        <div className="sticky top-0 h-screen w-64">{content}</div>
+      {/* Width is inline, not a class: dragging the edge sets any value in
+          between. The transition is off while dragging so the edge tracks
+          the pointer instead of chasing it. */}
+      <aside
+        id="admin-sidebar"
+        data-collapsed={collapsed}
+        style={{ width: collapsed ? 56 : width }}
+        className={`relative hidden lg:block lg:shrink-0 ${resizing ? "" : "transition-[width] duration-200 ease-out"}`}
+      >
+        <div className="sticky top-0 h-screen w-full overflow-hidden">
+          {renderContent(collapsed, true)}
+        </div>
+        {!collapsed && onResize && onCollapse && (
+          <SidebarResizeHandle width={width} onResize={onResize} onCollapse={onCollapse} onDraggingChange={setResizing} />
+        )}
       </aside>
 
       {/* Mobile/tablet: off-canvas drawer */}
@@ -491,8 +557,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {content}
+        {renderContent(false, false)}
       </aside>
+
+      {deletingGroup && (
+        <SidebarDeleteGroupDialog
+          groupName={deletingGroup.name}
+          onConfirm={() => void handleDeleteGroup(deletingGroup.id, deletingGroup.name)}
+          onCancel={() => setDeletingGroup(null)}
+        />
+      )}
 
       {deletingProduct && (
         <SidebarDeleteProductDialog

@@ -30,7 +30,7 @@ export function LegalFieldGroup({
 }) {
   const labelBlock = (
     <div>
-      <span className="text-xs font-semibold uppercase tracking-wide text-legal-label">
+      <span className="text-xs font-medium text-legal-label">
         {label}
         {required && <span className="text-danger"> *</span>}
       </span>
@@ -60,7 +60,7 @@ export function LegalFieldGroup({
  *  always "English (US)", not a live locale. */
 export function LegalFieldCounter({ charsLeft }: { charsLeft: number }) {
   return (
-    <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-muted">
+    <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-muted-foreground">
       <span className={charsLeft <= 0 ? "font-semibold text-danger" : undefined}>
         {charsLeft.toLocaleString()} characters left
       </span>
@@ -70,6 +70,6 @@ export function LegalFieldCounter({ charsLeft }: { charsLeft: number }) {
 }
 
 export const legalFieldInputClass =
-  "w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink outline-none transition-shadow focus:border-[#a5b4fc] focus:ring-[3px] focus:ring-[#eef0ff]";
+  "w-full rounded-xl border border-surface-border bg-card px-3 py-2 text-sm text-foreground outline-none transition-shadow focus:border-foreground/30 focus:ring-[3px] focus:ring-ring/50";
 
 export const legalFieldTextareaClass = `${legalFieldInputClass} resize-none`;

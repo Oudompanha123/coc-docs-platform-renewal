@@ -15,8 +15,8 @@ import { productHref } from "@/lib/home/product-links";
 export function ProductsStrip({ products, stats }: { products: NavProduct[]; stats: StatCardData[] }) {
   const { t } = useLanguage();
   return (
-    <section id="products" className="animate-entrance border-y border-border bg-white px-6 py-10">
-      <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted">{t.productsStrip.label}</p>
+    <section id="products" className="animate-entrance border-y border-surface-border bg-background px-6 py-8">
+      <p className="text-center text-xs font-medium text-muted-foreground">{t.productsStrip.label}</p>
       <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-3">
         {products.map((product) => {
           const stat = stats.find((s) => s.id === product.key);
@@ -26,14 +26,14 @@ export function ProductsStrip({ products, stats }: { products: NavProduct[]; sta
             <Link
               key={product.key}
               href={productHref(product.key)}
-              className="flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition-shadow hover:shadow-md"
+              className="flex h-9 items-center gap-2 rounded-full border border-surface-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
               <span className={`flex h-5 w-5 items-center justify-center rounded-full text-white ${AVATAR_GRADIENTS[stat?.tone ?? "purple"]}`}>
                 <Icon className="h-3 w-3" />
               </span>
               {product.label}
               <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                   allWritten ? "bg-[#e1f5ec] text-[#1f9d6b]" : "bg-[#fdf1de] text-[#c98a2c]"
                 }`}
               >

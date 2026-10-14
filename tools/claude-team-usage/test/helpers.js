@@ -86,19 +86,30 @@ export function startCli(args, { env } = {}) {
  * A stand-in for POST /api/ingest. `respond(req, body)` returns { status, body };
  * every request is recorded in `requests`.
  */
-export async function fakeBackend(respond, { scanLog = () => ({ status: 200, body: { action: 'recorded' } }) } = {}) {
+export async function fakeBackend(
+  respond,
+  {
+    scanLog = () => ({ status: 200, body: { action: 'recorded' } }),
+    scanStart = () => ({ status: 200, body: { action: 'started' } }),
+  } = {},
+) {
   const requests = [];
-  // Scan-log records (ADR-099) are kept apart, answered by `scanLog`, so a
-  // test about uploads and check-ins counts only those.
+  // Scan-log records (ADR-099) and scan starts (ADR-107) are kept apart,
+  // answered by `scanLog` / `scanStart`, so a test about uploads and
+  // check-ins counts only those.
   const scanLogs = [];
+  const scanStarts = [];
   const server = http.createServer((req, res) => {
     let raw = '';
     req.on('data', (c) => (raw += c));
     req.on('end', () => {
       const body = raw ? JSON.parse(raw) : null;
       let out;
-      if (req.url.endsWith('/scan-log')) {
-        scanLogs.push({ method: req.method, url: req.url, headers: req.headers, body });
+      if (req.url.endsWith('/scan-log/start')) {
+        scanStarts.push({ method: req.method, url: req.url, headers: req.headers, body, at: Date.now() });
+        out = scanStart(req, body) ?? { status: 404, body: {} };
+      } else if (req.url.endsWith('/scan-log')) {
+        scanLogs.push({ method: req.method, url: req.url, headers: req.headers, body, at: Date.now() });
         out = scanLog(req, body) ?? { status: 404, body: {} };
       } else {
         requests.push({ method: req.method, url: req.url, headers: req.headers, body });
@@ -115,6 +126,7 @@ export async function fakeBackend(respond, { scanLog = () => ({ status: 200, bod
     url: `http://127.0.0.1:${port}/api/ingest`,
     requests,
     scanLogs,
+    scanStarts,
     close: () => new Promise((resolve) => server.close(resolve)),
   };
 }

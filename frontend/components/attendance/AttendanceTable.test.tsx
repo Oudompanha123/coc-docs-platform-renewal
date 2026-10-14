@@ -1,4 +1,6 @@
+import userEvent from "@testing-library/user-event";
 import { render, screen } from "@testing-library/react";
+import { openSelect } from "@/components/ui/select.test-utils";
 import { describe, expect, it } from "vitest";
 import type { HrmsAttendanceReport } from "@/lib/notify/activity";
 import { AttendanceTable } from "./AttendanceTable";
@@ -28,30 +30,33 @@ function report(): HrmsAttendanceReport {
 }
 
 describe("AttendanceTable", () => {
-  it("matches the Users & Roles table's exact header/row/hover/padding classes", () => {
+  it("is built from the shared compact table parts (ADR-104 r2.9)", () => {
     render(<AttendanceTable report={report()} search="" onSearchChange={() => {}} status={{}} onStatusChange={() => {}} />);
 
-    const headerRow = screen.getByText("Name").closest("tr")!;
-    expect(headerRow.className).toContain("border-b border-border bg-[#f8fafc]");
-    expect(headerRow.className).toContain("text-xs font-semibold uppercase tracking-wide text-muted");
-    expect(screen.getByText("Name").className).toContain("px-4 py-3");
+    const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+    expect(nameHeader).toHaveAttribute("data-slot", "table-head");
+    // Sentence-case muted header, not the old uppercase tinted band.
+    expect(nameHeader.className).not.toContain("uppercase");
+    expect(nameHeader.closest("tr")!.className).not.toContain("bg-[#f8fafc]");
 
     const bodyRow = screen.getByText("Svay Kong").closest("tr")!;
-    expect(bodyRow.className).toContain("transition-colors hover:bg-[#f8fafc]");
-    const nameCell = screen.getByText("Svay Kong").closest("td")!;
-    expect(nameCell.className).toContain("px-4 py-4");
-
-    const tbody = bodyRow.parentElement!;
-    expect(tbody.className).toContain("divide-y divide-border");
+    expect(bodyRow).toHaveAttribute("data-slot", "table-row");
+    expect(screen.getByText("Svay Kong").closest("td")).toHaveAttribute("data-slot", "table-cell");
   });
 
-  it("has a footer with exactly the required classes", () => {
+  it("has a compact footer on the theme's border and muted tokens", () => {
     render(<AttendanceTable report={report()} search="" onSearchChange={() => {}} status={{}} onStatusChange={() => {}} />);
 
     const footer = screen.getByText(/Scheduled:/).closest("div")!;
-    expect(footer.className).toBe(
-      "flex flex-col gap-3 border-t border-border px-6 py-4 text-sm text-muted sm:flex-row sm:items-center sm:justify-between",
-    );
+    expect(footer.className).toContain("border-t border-surface-border");
+    expect(footer.className).toContain("text-muted-foreground");
+    expect(footer.className).toContain("px-4 py-3");
+  });
+
+  it("uses the shared search field", () => {
+    render(<AttendanceTable report={report()} search="" onSearchChange={() => {}} status={{}} onStatusChange={() => {}} />);
+
+    expect(screen.getByRole("searchbox", { name: "Search name" })).toHaveAttribute("placeholder", "Search name...");
   });
 
   it("keeps every column, the schedule chips, --:-- for a missing time, and status pills", () => {
@@ -151,13 +156,11 @@ describe("AttendanceTable status filters", () => {
     expect(screen.getByText("No one matches these statuses.")).toBeInTheDocument();
   });
 
-  it("offers only the statuses present in the report", () => {
+  it("offers only the statuses present in the report", async () => {
     render(<AttendanceTable report={report()} search="" onSearchChange={noop} status={{}} onStatusChange={noop} />);
 
-    const out = screen.getByLabelText("Out status") as HTMLSelectElement;
-    const values = Array.from(out.options).map((o) => o.value);
     // Normal and Missed appear in the out column; Late and Other do not.
-    expect(values).toEqual(["", "normal", "missed"]);
+    expect(await openSelect(userEvent.setup(), "Out status")).toEqual(["Out status: all", "Normal", "Missed"]);
   });
 
   it("shows Clear only once something is filtered", () => {

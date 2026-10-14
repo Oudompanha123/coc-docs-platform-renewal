@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LegalHistoryPanel } from "./LegalHistoryPanel";
-import type { LegalContent } from "@/lib/legal/content-types";
+import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 import type { LegalVersionMeta, LegalVersionSummary } from "@/lib/legal/legal-api";
 
 const { fetchLegalVersion, fetchLegalVersions } = vi.hoisted(() => ({
@@ -14,22 +14,13 @@ vi.mock("@/lib/legal/legal-api", async () => {
   return { ...actual, fetchLegalVersion, fetchLegalVersions };
 });
 
-function content(overrides: Partial<LegalContent> = {}): LegalContent {
+function content(overrides: Partial<LegalDocumentContent> = {}): LegalDocumentContent {
   return {
     title: "Terms of Service",
-    lead: "",
-    eyebrow: "",
+    subtitle: "",
     lastUpdated: "2026-10-01",
-    status: "draft",
-    bulletStyle: "circle",
-    highlights: [
-      { icon: "person", title: "A", text: "a" },
-      { icon: "document", title: "B", text: "b" },
-      { icon: "ban", title: "C", text: "c" },
-    ],
-    plainLanguage: "Summary.",
-    sections: [{ id: "s1", title: "Section One", icon: "document", body: "Some text." }],
-    cta: { title: "Have a question?", text: "We can help." },
+    updatedBy: "the Platform Team",
+    body: "## Section One\n\nSome text.",
     ...overrides,
   };
 }
@@ -84,7 +75,7 @@ describe("LegalHistoryPanel", () => {
   it("shows a loading state before the versions arrive", () => {
     fetchLegalVersions.mockReturnValue(new Promise(() => {}));
     renderPanel();
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading history" })).toBeInTheDocument();
   });
 
   it("shows an empty state when nothing has been published", async () => {

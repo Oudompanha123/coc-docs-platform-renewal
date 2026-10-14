@@ -55,6 +55,26 @@ Validation is two-tier (ADR-012 Decision 3):
 
 Google OIDC only — there is no password column/flow anywhere. The backend verifies Google ID tokens (signature, audience, issuer, nonce) and issues its own session credential; the frontend never asserts identity. Role is always read server-side from the `account` table per request, never trusted from a client header/claim (this predates and survives the two-service split — see ADR-011, being revised for the new frontend↔backend trust boundary per ADR-012 Decision 4).
 
+### UI design system (`.claude/skills/coc-docs/`)
+
+The product's visual language is the **coc-docs** design system, installed as a project skill. Load it (`coc-docs`) before writing or restyling any frontend UI, and read `patterns/INDEX.md` → `patterns/<slug>/SKILL.md` when building something that matches a pattern (dashboard shell, form layout, modal, auth page, pricing, etc.). It is an export from the product owner — **re-import it whole rather than editing it**, so the next export doesn't conflict; project-specific rules go here instead.
+
+It agrees with what ADR-104 r2.x already built (neutral shadcn palette, no brand hue, `--primary` as the strongest neutral, colour reserved for status). Where it disagrees with a recorded project decision, **the project wins** until the PM says otherwise:
+
+| Skill says | This project does | Why |
+|---|---|---|
+| Dark mode = `.dark` class on `<html>` | `data-theme="dark"` on `<html>`, applied only inside `[data-shell]`, plus `.landing-dark` on /welcome; the `dark:` variant is defined to match | ADR-104 decision 3 — /login and /register must stay light |
+| `--muted` is a surface, `--border` the border colour | Surface is `bg-muted-surface`, muted text is `text-muted-foreground`, border is `border-surface-border` | `text-muted`/`border-border` are legacy tokens used across the app with other meanings (ADR-104 decision 2) |
+| Text on primary = `--primary-foreground` | Same — never `text-white` on `bg-primary`; dark `--primary` is near-white | ADR-104 r2.5 |
+| Icons: Lucide | Lucide, via the names in `components/layout/icons.tsx` (or `lucide-react` directly) | ADR-104 decision 4 as amended |
+| Buttons/inputs `7.2px` radius | **Not adopted — pills.** Every button reads `rounded-control`, and `--radius-control` is `9999px` (one line in globals.css if this changes again); `<Button shape="pill">` on sign-in pages says the same explicitly. **No shadow on any button.** Sizes: `Button` h-10 (sm h-9, lg h-11, icon size-10), `Input` h-10 — one step above shadcn, at the product owner's request. **Single-line fields are pills** (`rounded-full`, `inputBaseClass`); **multi-line fields** use `Textarea` / `textareaBaseClass` (`rounded-xl`) — never put `inputBaseClass` on a `<textarea>`. Badges, chips and avatars stay `rounded-full` | Product owner's decisions, 2026-10-09 (r2.6 → r2.9) |
+| Search, tables, menus, dropdowns | **Always** `SearchInput` (never a hand-drawn search icon), `Table` parts (never a hand-written `<table>`), `NavMenu`/`NavMenuItem` for header dropdowns, `SimpleSelect` (never a native `<select>` — the OS draws its open list), and `RowActions` + `DropdownMenuItem` for a row's actions (one "⋯" per row, destructive items last with `variant="destructive"`), and `Tooltip` for a short explanation instead of a line of small print (keep the text in the control's `aria-describedby` too) | ADR-104 r2.9–r2.10 — "make them the same everywhere" |
+| Headings in Cal Sans (`calSansHeading`) | **Adopted (r2.6)** for `h1`/`h2` via `--font-heading` (Cal Sans → Inter → Pretendard, so Korean/Khmer still render); body stays Inter | Product owner's decision, 2026-10-09 |
+| Dashboard = shadcn sidebar layout (`patterns/dashboard-default`, `blocks-dashboard-ui-*`) | Admin shell follows it: light `bg-nav` sidebar (`--nav-*` tokens), 64px header, flat `bg-card` cards with `border-surface-border`. Take **structure** from dashboard patterns, not their scraped palettes/fonts (coral accent, Geist, etc.) — the root system's neutral tokens apply | ADR-104 r2.7 |
+| Build from raw CSS classes (`.btn-primary`, `.card`) | Build from the primitives in `components/ui/` | ADR-104 decision 7 — the shared primitive is the one definition |
+
+Patterns that pull in new runtime libraries (e.g. `matter-js` in `illustrations`) are references, not install instructions — a new dependency still needs its own decision.
+
 ## Commands
 
 ### Backend (`backend/`, Maven)

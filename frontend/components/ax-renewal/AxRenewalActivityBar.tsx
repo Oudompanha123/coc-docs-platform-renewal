@@ -64,7 +64,7 @@ export function AxRenewalActivityBar({
           this one, instead of running only under the main content — so
           this stops short of the full viewport by exactly that height
           rather than overlapping it. */}
-      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[52px] flex-col items-center gap-[20px] bg-sidebar py-3">
+      <div className="sticky top-0 flex h-[calc(100vh-32px)] w-[52px] flex-col items-center gap-2 bg-sidebar py-3">
         {/* Purely decorative app mark — the avatar (the one real, functional
             user element) now lives in the wide Explorer panel's own footer
             instead, alongside the name/role/settings row the reference
@@ -72,7 +72,7 @@ export function AxRenewalActivityBar({
             real duplicate, not a style choice. */}
         <span
           aria-hidden="true"
-          className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white shadow-md"
+          className="mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"
         >
           <RenewIcon className="h-5 w-5" />
         </span>
@@ -90,18 +90,18 @@ export function AxRenewalActivityBar({
               aria-label={group.label}
               aria-current={isActive}
               aria-disabled={locked}
-              className={`relative flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors ${
+              className={`relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
                 locked
                   ? "cursor-not-allowed text-sidebar-muted opacity-30"
                   : isActive
-                    ? "bg-sidebar-hover text-brand-purple"
-                    : "text-sidebar-muted hover:bg-sidebar-hover hover:text-dash-ink"
+                    ? "bg-sidebar-hover text-foreground"
+                    : "text-sidebar-muted hover:bg-sidebar-hover hover:text-foreground"
               }`}
             >
               {isActive && !locked && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-brand-purple" aria-hidden="true" />
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" aria-hidden="true" />
               )}
-              <group.icon className="h-[30px] w-[30px]" />
+              <group.icon className="h-5 w-5" />
             </button>
           );
         })}
@@ -112,7 +112,7 @@ export function AxRenewalActivityBar({
           title={sidebarCollapsed ? "Show Explorer" : "Hide Explorer"}
           aria-label={sidebarCollapsed ? "Show Explorer panel" : "Hide Explorer panel"}
           aria-pressed={sidebarCollapsed}
-          className="mt-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-purple/10 text-brand-purple transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
+          className="mt-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-foreground"
         >
           {sidebarCollapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
         </button>

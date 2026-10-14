@@ -1,6 +1,6 @@
 import type { ScanLogSummary, ScanStepKey } from "@/lib/admin/claudeUsage";
 
-// req: FR-USAGE-002, ADR-099 — the Scan Logs page's own logic, kept out of the components.
+// req: FR-USAGE-002, ADR-099, ADR-107 — the Scan Logs page's own logic, kept out of the components.
 
 export const STEP_LABELS: Record<ScanStepKey, string> = {
   start: "Start Scan",
@@ -19,20 +19,29 @@ export const STEP_LABELS: Record<ScanStepKey, string> = {
  * counted usage but the upload didn't land" (retried by the next scan) from
  * "nothing works until someone signs in again"; this does.
  *
- * - success  — scanned and uploaded new usage
- * - no-usage — scanned fine, nothing new to upload
- * - partial  — finished with a warning, or counted usage it couldn't upload
- *              for a passing reason (network, server); the next scan retries
- * - failed   — stopped, and stays stopped until someone fixes the cause
+ * - in-progress — the reporter said it started; no result yet (ADR-107). Never
+ *                 shown as success until the server has the result.
+ * - success     — scanned and uploaded new usage
+ * - no-usage    — scanned fine, nothing new to upload
+ * - partial     — finished with a warning, or counted usage it couldn't upload
+ *                 for a passing reason (network, server); the next scan retries
+ * - failed      — stopped, and stays stopped until someone fixes the cause; or
+ *                 started and never sent a result (`incomplete`)
  */
-export type ScanOutcome = "success" | "partial" | "failed" | "no-usage";
+export type ScanOutcome = "in-progress" | "success" | "partial" | "failed" | "no-usage";
 
 export const OUTCOME_LABELS: Record<ScanOutcome, string> = {
+  "in-progress": "In Progress",
   success: "Success",
-  partial: "Partial",
+  partial: "Partial Success",
   failed: "Failed",
-  "no-usage": "No Usage",
+  "no-usage": "No New Usage",
 };
+
+/** What a status badge can show: a scan's outcome, or — for a person or range with no scan — that there is none. */
+export type ScanIndicator = ScanOutcome | "no-recent";
+
+export const INDICATOR_LABELS: Record<ScanIndicator, string> = { ...OUTCOME_LABELS, "no-recent": "No Recent Scan" };
 
 export type StatusFilter = ScanOutcome | "all";
 
@@ -59,9 +68,9 @@ export interface ScanSummary extends Record<ScanOutcome, number> {
 export const personKey = (log: ScanLogSummary): string => log.memberId ?? log.email;
 export const personName = (log: ScanLogSummary): string => log.displayName?.trim() || log.email;
 
-/** "0.4s", "8s", "1m 05s". */
-export function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "—";
+/** "0.4s", "8s", "1m 05s"; "—" for a scan with no result yet. */
+export function formatDuration(ms: number | null): string {
+  if (ms == null || !Number.isFinite(ms) || ms < 0) return "—";
   if (ms < 1000) return `${(ms / 1000).toFixed(1)}s`;
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -118,7 +127,15 @@ export function peopleIn(logs: ScanLogSummary[]): ScanPerson[] {
 }
 
 export function summarize(logs: ScanLogSummary[]): ScanSummary {
-  const summary: ScanSummary = { total: logs.length, success: 0, partial: 0, failed: 0, "no-usage": 0, last: null };
+  const summary: ScanSummary = {
+    total: logs.length,
+    "in-progress": 0,
+    success: 0,
+    partial: 0,
+    failed: 0,
+    "no-usage": 0,
+    last: null,
+  };
   for (const log of logs) {
     summary[scanOutcome(log)]++;
     if (!summary.last || Date.parse(log.startedAt) > Date.parse(summary.last.startedAt)) summary.last = log;
@@ -145,6 +162,8 @@ export function filterLogs(logs: ScanLogSummary[], filters: ScanLogFilters): Sca
 }
 
 export function scanOutcome(log: ScanLogSummary): ScanOutcome {
+  if (log.status === "running") return "in-progress";
+  if (log.status === "incomplete") return "failed";
   if (log.status === "failed") return diagnoseScan(log)?.retriedNextScan ? "partial" : "failed";
   if (log.status === "warning") return "partial";
   return log.uploadStatus === "not-needed" ? "no-usage" : "success";
@@ -152,6 +171,7 @@ export function scanOutcome(log: ScanLogSummary): ScanOutcome {
 
 /** The table's Result cell: short enough to scan down a long list. */
 export function resultText(log: ScanLogSummary): string {
+  if (log.status === "running") return "Scan in progress";
   const diagnosis = diagnoseScan(log);
   if (diagnosis) return diagnosis.problem;
   if (log.uploadStatus === "not-needed") return "No usage found";
@@ -299,6 +319,16 @@ const KNOWN_FAILURES: { pattern: RegExp; diagnosis: Omit<ScanDiagnosis, "retried
  * belongs in Technical details, which is where a stack trace would land too.
  */
 export function diagnoseScan(log: ScanLogSummary): ScanDiagnosis | null {
+  if (log.status === "incomplete") {
+    return {
+      code: "NO_RESULT",
+      problem: "No result received",
+      description:
+        "The scan reported that it started, but its result never reached Coc Docs. The PC may have gone to sleep, lost its connection, or the scan was stopped. If the result was saved on the PC, the next scan sends it and this row updates.",
+      fix: [{ text: "Run the scan again.", command: "claude-team-usage scan" }, SCAN_VERBOSE],
+      retriedNextScan: false,
+    };
+  }
   if (log.status === "warning") {
     return {
       code: "COMPLETED_WITH_WARNINGS",
@@ -374,4 +404,150 @@ export function presetRange(preset: RangePreset, now: Date = new Date()): { from
   const from = new Date(now);
   from.setDate(now.getDate() - (preset === "today" ? 0 : preset === "7d" ? 6 : 29));
   return { from: isoDate(from), to: isoDate(now) };
+}
+
+/** The table's Records cell: what the scan read, when it got that far. */
+export function recordsText(log: ScanLogSummary): string {
+  if (log.transcriptFiles == null && log.responses == null) return "—";
+  const parts: string[] = [];
+  if (log.transcriptFiles != null) parts.push(`${formatCount(log.transcriptFiles)} file${log.transcriptFiles === 1 ? "" : "s"}`);
+  if (log.responses != null) parts.push(`${formatCount(log.responses)} response${log.responses === 1 ? "" : "s"}`);
+  return parts.join(" · ");
+}
+
+/** One stage of a scan, as the status panel and the drawer show it. */
+export type StageState = "done" | "failed" | "skipped" | "waiting" | "unknown";
+
+export interface ScanStage {
+  key: "scan" | "upload" | "log";
+  label: string;
+  state: StageState;
+  detail: string;
+}
+
+const SCAN_STEPS: ReadonlySet<string> = new Set([
+  "start",
+  "find-transcripts",
+  "parse-usage",
+  "deduplicate",
+  "calculate-usage",
+  "check-new-usage",
+]);
+
+/**
+ * The three things that have to work for a scan to count — reading the usage
+ * on the PC, uploading it, and the scan's own record reaching Coc Docs — each
+ * judged only from what the server holds. A stage the server can't vouch for
+ * is `waiting` or `unknown`, never `done`.
+ */
+export function scanStages(log: ScanLogSummary): ScanStage[] {
+  if (log.status === "running") {
+    return [
+      { key: "scan", label: "Scan", state: "waiting", detail: "Reading usage on the PC" },
+      { key: "upload", label: "Upload", state: "waiting", detail: "Not yet" },
+      { key: "log", label: "Scan record", state: "waiting", detail: "Waiting for the result" },
+    ];
+  }
+  if (log.status === "incomplete") {
+    return [
+      { key: "scan", label: "Scan", state: "unknown", detail: "No result to confirm it" },
+      { key: "upload", label: "Upload", state: "unknown", detail: "No result to confirm it" },
+      { key: "log", label: "Scan record", state: "failed", detail: "Never received" },
+    ];
+  }
+  const records = recordsText(log);
+  const scan: ScanStage =
+    log.errorStep != null && SCAN_STEPS.has(log.errorStep)
+      ? { key: "scan", label: "Scan", state: "failed", detail: "Stopped before it finished reading usage" }
+      : { key: "scan", label: "Scan", state: "done", detail: records === "—" ? "Completed" : records };
+  const upload: ScanStage =
+    log.uploadStatus === "uploaded"
+      ? { key: "upload", label: "Upload", state: "done", detail: `${formatCount(log.newTokens)} new tokens uploaded` }
+      : log.uploadStatus === "not-needed"
+        ? { key: "upload", label: "Upload", state: "done", detail: "Nothing new to upload" }
+        : log.uploadStatus === "failed"
+          ? { key: "upload", label: "Upload", state: "failed", detail: "The upload didn't land" }
+          : { key: "upload", label: "Upload", state: "skipped", detail: "Not attempted" };
+  return [scan, upload, { key: "log", label: "Scan record", state: "done", detail: "Received by Coc Docs" }];
+}
+
+/** The status panel's headline for the newest scan — or for no scan at all. */
+export function statusMessage(log: ScanLogSummary | null): { indicator: ScanIndicator; title: string; message: string } {
+  if (!log) {
+    return { indicator: "no-recent", title: "No recent scan", message: "No scan has been recorded in this date range yet." };
+  }
+  const outcome = scanOutcome(log);
+  const diagnosis = diagnoseScan(log);
+  switch (outcome) {
+    case "in-progress":
+      return { indicator: outcome, title: "Scan in progress", message: "Waiting for the reporter to send its result." };
+    case "success":
+      return {
+        indicator: outcome,
+        title: "Scan completed successfully",
+        message: `Usage scanned and ${formatCount(log.newTokens)} new tokens uploaded.`,
+      };
+    case "no-usage":
+      return { indicator: outcome, title: "Scan completed successfully", message: "Usage scanned — nothing new to upload." };
+    case "partial":
+      return { indicator: outcome, title: diagnosis?.problem ?? "Completed with problems", message: diagnosis?.description ?? "" };
+    case "failed":
+      return { indicator: outcome, title: diagnosis?.problem ?? "Scan failed", message: diagnosis?.description ?? "" };
+  }
+}
+
+/** One status change worth telling the viewer about, once. */
+export interface ScanNotice {
+  /** `${id}:${outcome}` — the same scan reaching the same outcome is never announced twice. */
+  key: string;
+  log: ScanLogSummary;
+  outcome: ScanOutcome;
+  message: string;
+}
+
+/**
+ * What changed between two reads of the same range: a scan that appeared, or
+ * one whose outcome moved (in progress → finished). `seen` holds every key
+ * already announced; the caller adds the returned keys to it, which is what
+ * keeps a later poll from announcing the same change twice.
+ */
+export function scanNotices(prev: ScanLogSummary[], next: ScanLogSummary[], seen: ReadonlySet<string>): ScanNotice[] {
+  const before = new Map(prev.map((l) => [l.id, scanOutcome(l)]));
+  const notices: ScanNotice[] = [];
+  for (const log of next) {
+    const outcome = scanOutcome(log);
+    const key = `${log.id}:${outcome}`;
+    if (seen.has(key) || before.get(log.id) === outcome) continue;
+    notices.push({ key, log, outcome, message: noticeMessage(log, outcome) });
+  }
+  return notices;
+}
+
+function noticeMessage(log: ScanLogSummary, outcome: ScanOutcome): string {
+  const who = personName(log);
+  switch (outcome) {
+    case "in-progress":
+      return `Scan started — ${who}`;
+    case "success":
+      return `Scan succeeded — ${who}: ${formatCount(log.newTokens)} new tokens uploaded`;
+    case "no-usage":
+      return `Scan succeeded — ${who}: no new usage`;
+    case "partial":
+      return `Scan partly succeeded — ${who}: ${diagnoseScan(log)?.problem ?? "completed with warnings"}`;
+    case "failed":
+      return `Scan failed — ${who}: ${diagnoseScan(log)?.problem ?? "scan stopped"}`;
+  }
+}
+
+/** How often an open, visible Scan Logs page re-reads the range. */
+export const SCAN_LOG_POLL_INTERVAL_MS = 15_000;
+/** Faster while a scan in view is in progress — a scan takes seconds, so its result is worth seeing promptly (ADR-107). */
+export const SCAN_LOG_ACTIVE_POLL_INTERVAL_MS = 5_000;
+/** After failed refreshes the interval doubles from SCAN_LOG_POLL_INTERVAL_MS, up to this. */
+export const SCAN_LOG_MAX_POLL_INTERVAL_MS = 60_000;
+
+/** The next poll's delay: back off after failures, speed up while a scan runs, otherwise the normal pace. */
+export function pollInterval(failures: number, anyRunning: boolean): number {
+  if (failures > 0) return Math.min(SCAN_LOG_POLL_INTERVAL_MS * 2 ** failures, SCAN_LOG_MAX_POLL_INTERVAL_MS);
+  return anyRunning ? SCAN_LOG_ACTIVE_POLL_INTERVAL_MS : SCAN_LOG_POLL_INTERVAL_MS;
 }

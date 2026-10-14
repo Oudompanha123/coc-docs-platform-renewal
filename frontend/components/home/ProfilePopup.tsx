@@ -3,6 +3,7 @@
 import { avatarSrc } from "@/lib/account/avatarSrc";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { removeAvatar, uploadAvatar } from "@/lib/auth/api";
 import { fetchMyAttendance } from "@/lib/me/attendance";
@@ -232,18 +233,17 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
     >
       <div
         ref={dialogRef}
-        className="relative w-[350px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[20px] bg-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]"
+        className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-surface-border bg-popover text-popover-foreground shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* A large photo block, not a small circle over a cover band — the
-            upload/remove behavior is unchanged, only its presentation. No
-            `UserAvatar` reuse here: that component hardcodes `rounded-full`
-            for every other (circular) caller, which this rectangular block
-            can't share. `overflow-hidden` clips a non-square upload to the
-            box; the outer card's own rounding already clips this block's
-            top corners to match. */}
+        {/* A profile card in the design system's shape (ADR-104 r2.9): a
+            centred round avatar on a faint band, not the 320px full-bleed
+            photo it replaced, which turned a details card into a poster and
+            cropped most uploads badly. Clicking the avatar still uploads —
+            the camera shows on hover — and upload/remove are unchanged. */}
+        <div aria-hidden="true" className="h-16 bg-muted-surface" />
         <label
-          className={`group relative block h-[320px] w-full overflow-hidden ${avatarBusy ? "cursor-wait" : "cursor-pointer"}`}
+          className={`group relative mx-auto -mt-10 block size-20 overflow-hidden rounded-full ring-4 ring-popover ${avatarBusy ? "cursor-wait" : "cursor-pointer"}`}
         >
           {user?.avatarUrl && !avatarLoadFailed ? (
             // eslint-disable-next-line @next/next/no-img-element -- the host is whichever the identity provider or S3AvatarStorage chose, same reasoning as UserAvatar's own <img>.
@@ -256,7 +256,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
             />
           ) : (
             <div
-              className={`flex h-full w-full items-center justify-center text-5xl font-semibold text-white ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
+              className={`flex h-full w-full items-center justify-center text-2xl font-semibold text-white ${AVATAR_GRADIENTS.purple} ${avatarBusy ? "opacity-60" : ""}`}
               aria-hidden="true"
             >
               {initials}
@@ -267,7 +267,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
               avatarBusy ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             }`}
           >
-            <CameraIcon className="h-7 w-7 text-white" />
+            <CameraIcon className="size-5 text-white" />
           </span>
           <input
             type="file"
@@ -283,7 +283,7 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-[14px] top-[14px] flex h-8 w-8 items-center justify-center rounded-full bg-white/70 text-[#24216b] backdrop-blur-sm transition-colors hover:bg-white"
+          className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <XIcon className="h-4 w-4" />
         </button>
@@ -294,63 +294,63 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
               type="button"
               onClick={() => void handleRemoveAvatar()}
               disabled={avatarBusy}
-              className="mt-2 text-xs text-muted underline-offset-2 hover:text-danger hover:underline disabled:cursor-not-allowed"
+              className="mt-2 text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline disabled:cursor-not-allowed"
             >
               Remove photo
             </button>
           )}
           {avatarError && <p className="mt-1 text-xs text-danger">{avatarError}</p>}
 
-          <h2 id="profile-popup-name" className="mt-3 text-[19px] font-bold text-[#24216b]">
+          <h2 id="profile-popup-name" className="mt-3 text-lg font-semibold text-foreground">
             {name}
           </h2>
           {roleChip && (
             <span
-              className={`mt-2 inline-flex items-center rounded-full px-[11px] py-[3px] text-[11.5px] font-semibold ${roleChip.className}`}
+              className={`mt-1.5 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${roleChip.className}`}
             >
               {roleChip.label}
             </span>
           )}
 
-          <dl className="mt-5 w-full rounded-[14px] border border-border px-3.5 py-1 text-[13px]">
-            <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-0">
-              <dt className="flex items-center gap-2.5 text-muted">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-page">
+          <dl className="mt-4 w-full rounded-xl border border-surface-border px-3 py-1 text-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-surface-border py-2.5 last:border-0">
+              <dt className="flex items-center gap-2.5 text-muted-foreground">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted-surface">
                   <MailIcon className="h-3.5 w-3.5" />
                 </span>
                 Email
               </dt>
-              <dd className="min-w-0 truncate text-right font-medium text-dash-ink" title={user?.email ?? undefined}>
+              <dd className="min-w-0 truncate text-right font-medium text-foreground" title={user?.email ?? undefined}>
                 {user?.email ?? "—"}
               </dd>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-0">
-              <dt className="flex items-center gap-2.5 text-muted">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-page">
+            <div className="flex items-center justify-between gap-3 border-b border-surface-border py-2.5 last:border-0">
+              <dt className="flex items-center gap-2.5 text-muted-foreground">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted-surface">
                   <HomeIcon className="h-3.5 w-3.5" />
                 </span>
                 Department
               </dt>
-              <dd className="min-w-0 truncate text-right font-medium text-dash-ink">{department ?? "—"}</dd>
+              <dd className="min-w-0 truncate text-right font-medium text-foreground">{department ?? "—"}</dd>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-0">
-              <dt className="flex items-center gap-2.5 text-muted">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-page">
+            <div className="flex items-center justify-between gap-3 border-b border-surface-border py-2.5 last:border-0">
+              <dt className="flex items-center gap-2.5 text-muted-foreground">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted-surface">
                   <LinkIcon className="h-3.5 w-3.5" />
                 </span>
                 HRMS KOSIGN
               </dt>
               <dd>
                 {hrmsLink.kind === "linked" ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-1 text-xs font-semibold text-[#1f9d6b]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
                     Linked
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5d896]/60 px-2.5 py-1 text-xs font-semibold text-[#b45309]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#b45309]" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <span className="size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
                     Not linked
                   </span>
                 )}
@@ -359,43 +359,39 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
 
             {lastSignIn && (
               <div className="flex items-center justify-between gap-3 py-2.5 last:border-0">
-                <dt className="flex items-center gap-2.5 text-muted">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-page">
+                <dt className="flex items-center gap-2.5 text-muted-foreground">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted-surface">
                     <ClockIcon className="h-3.5 w-3.5" />
                   </span>
                   Last sign-in
                 </dt>
-                <dd className="font-medium text-dash-ink">{lastSignIn}</dd>
+                <dd className="font-medium text-foreground">{lastSignIn}</dd>
               </div>
             )}
           </dl>
 
-          <div className="mt-5 flex w-full flex-col gap-2.5">
+          <div className="mt-4 flex w-full flex-col gap-2">
             {hrmsLink.kind === "not-linked" && (
-              <p className="rounded-[10px] border border-[#f5d896] bg-[#fffbeb] px-3 py-2.5 text-xs text-[#b45309]">
+              <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300">
                 Ask an admin to link your HRMS account to see attendance.
               </p>
             )}
 
-            <Link
-              href="/account/settings#account"
-              onClick={onClose}
-              className="flex h-[46px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              <GearIcon className="h-4 w-4" />
-              Open settings
-            </Link>
+            <Button asChild size="lg" className="w-full">
+              <Link href="/account/settings#account" onClick={onClose}>
+                <GearIcon className="size-4" />
+                Open settings
+              </Link>
+            </Button>
 
             {canOpenDashboard(user?.role) && (
-              <Link
-                href="/overview"
-                onClick={onClose}
-                className="flex h-[46px] items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
-              >
-                <ReturnIcon className="h-4 w-4" />
-                Open Dashboard
-                <ExternalLinkIcon className="h-3.5 w-3.5 text-muted" />
-              </Link>
+              <Button asChild size="lg" variant="outline" className="w-full">
+                <Link href="/overview" onClick={onClose}>
+                  <ReturnIcon className="size-4" />
+                  Open Dashboard
+                  <ExternalLinkIcon className="size-3.5 text-muted-foreground" />
+                </Link>
+              </Button>
             )}
           </div>
         </div>

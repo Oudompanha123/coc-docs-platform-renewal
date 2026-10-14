@@ -128,8 +128,8 @@ const PREVIEW_ACTIVITY: {
 ];
 
 const ACTIVITY_STATUS_STYLE: Record<PreviewActivityStatus, { icon: typeof CheckCircleIcon; className: string }> = {
-  signIn: { icon: CheckCircleIcon, className: "text-[#1f9d6b]" },
-  signOut: { icon: RingIcon, className: "text-[#e0873c]" },
+  signIn: { icon: CheckCircleIcon, className: "text-emerald-600" },
+  signOut: { icon: RingIcon, className: "text-amber-600" },
 };
 
 /** Illustrative accounts for the "Users & Roles" step's own content layout
@@ -234,16 +234,16 @@ function highlightStatKeyForNavIndex(index: number): string {
  * pages render, so this hero visual updates itself instead of going stale
  * next to the real app.
  *
- * The sidebar column stays dark regardless of `theme`, matching the real
- * app (its sidebar is always dark navy, in both admin light and dark mode).
- * Only the browser-frame chrome and main content panel switch — using
- * literal hex rather than the admin's data-theme tokens, since this public
- * page sits outside [data-shell="admin"], the only scope those target; the
- * dark values reuse the exact hex the admin toggle already defines.
+ * The sidebar column stays dark in both themes, matching the real app (its
+ * sidebar is always dark, in both admin light and dark mode) — which is why
+ * its active pill is `bg-sidebar-hover`, a fixed sidebar colour, and not
+ * `bg-primary`: primary flips to near-white under `.landing-dark`, and would
+ * put a white pill under the sidebar's white label. Everything else (the
+ * browser-frame chrome and the main content panel) uses the shadcn token
+ * utilities, so it follows the `.landing-dark` class the welcome page puts
+ * on its root with no theme prop of its own (ADR-104).
  */
-export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
-  const isDark = theme === "dark";
-
+export function DashboardPreview() {
   const navColumnRef = useRef<HTMLDivElement>(null);
   // Keyed by each item's index in SIDEBAR_ITEMS rather than one named ref
   // per item — the list is built dynamically from real nav data, so its
@@ -312,14 +312,10 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
 
   return (
     <div
-      className={`overflow-hidden rounded-[10px] border shadow-2xl ${
-        isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
-      }`}
+      className="overflow-hidden rounded-xl border shadow-2xl border-surface-border bg-card"
     >
       <div
-        className={`flex items-center gap-1.5 border-b px-4 py-2.5 ${
-          isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
-        }`}
+        className="flex items-center gap-1.5 border-b px-4 py-2.5 border-surface-border bg-card"
       >
         <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
@@ -329,7 +325,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
       <div className="flex">
         <div className="hidden w-40 shrink-0 flex-col bg-sidebar px-3 py-4 sm:flex">
           <div className="flex items-center gap-2 px-1">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-brand-purple to-brand-blue text-[9px] font-bold text-white">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[9px] font-bold text-primary-foreground">
               CD
             </div>
             <span className="truncate text-[11px] font-semibold text-white">Coc Docs Platform</span>
@@ -339,7 +335,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
             {navPositions[activeNavIndex] && (
               <span
                 aria-hidden="true"
-                className="absolute right-0 left-0 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue transition-[top,height] duration-500 ease-in-out"
+                className="absolute right-0 left-0 rounded-lg bg-sidebar-hover transition-[top,height] duration-500 ease-in-out"
                 style={{ top: navPositions[activeNavIndex].top, height: navPositions[activeNavIndex].height }}
               />
             )}
@@ -432,34 +428,37 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
           </div>
         </div>
 
-        <div className={`flex min-w-0 flex-1 flex-col ${isDark ? "bg-[#161226]" : "bg-page"}`}>
-          <div key={activeNavIndex} className="animate-entrance flex flex-1 flex-col">
-          {/* Distinct white header bar with a bottom border, matching the
+        <div className="flex min-w-0 flex-1 flex-col bg-muted-surface/60">
+          {/* Re-keyed on every auto-cycle step, so whatever animation is on it
+              replays every 2.6s. `animate-tab-content` (180ms, 6px) rather than the
+              page-entrance `animate-entrance` (380ms, 12px): at the longer one the
+              pane spent a visible share of each dwell half-transparent, which on
+              the dark theme read as a ghosted, low-contrast panel. */}
+          <div key={activeNavIndex} className="animate-tab-content flex flex-1 flex-col">
+          {/* Distinct card-coloured header bar with a bottom border, matching the
               real admin shell's own Topbar (components/layout/Topbar.tsx:
-              "flex items-center justify-between border-b border-border
-              bg-white px-4 py-4 ...") — previously this row just floated on
+              "flex items-center justify-between border-b border-surface-border
+              bg-card px-4 py-4 ...") — previously this row just floated on
               the same gray body background as the content below it. */}
           <div
-            className={`flex items-center justify-between gap-2 border-b px-4 py-2.5 sm:px-5 ${
-              isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
-            }`}
+            className="flex items-center justify-between gap-2 border-b px-4 py-2.5 sm:px-5 border-surface-border bg-card"
           >
             <div className="flex min-w-0 items-center gap-2">
-              <FrameIcon className="h-4 w-4 shrink-0 text-brand-purple" />
+              <FrameIcon className="h-4 w-4 shrink-0 text-foreground" />
               <div className="min-w-0">
-                <h3 className={`text-sm font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{frameTitle}</h3>
-                <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{frameSubtitle}</p>
+                <h3 className="text-sm font-bold text-foreground">{frameTitle}</h3>
+                <p className="truncate text-[9px] text-muted-foreground">{frameSubtitle}</p>
               </div>
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
               <div
-                className={`flex h-5 w-5 items-center justify-center rounded-md ${isDark ? "bg-white/10 text-[#a79fc9]" : "bg-gray-100 text-dash-ink/70"}`}
+                className="flex h-5 w-5 items-center justify-center rounded-md bg-muted-surface text-muted-foreground"
               >
                 <MoonIcon className="h-3 w-3" />
               </div>
               <div
-                className={`relative flex h-5 w-5 items-center justify-center rounded-md ${isDark ? "bg-white/10 text-[#a79fc9]" : "bg-gray-100 text-dash-ink/70"}`}
+                className="relative flex h-5 w-5 items-center justify-center rounded-md bg-muted-surface text-muted-foreground"
               >
                 <BellIcon className="h-3 w-3" />
                 <span className="absolute -right-0.5 -top-0.5 flex h-[10px] min-w-[10px] items-center justify-center rounded-full bg-danger text-[6px] font-bold text-white">
@@ -467,23 +466,23 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                 </span>
               </div>
               <div
-                className={`flex h-5 w-5 items-center justify-center rounded-md ${isDark ? "bg-white/10 text-[#a79fc9]" : "bg-gray-100 text-dash-ink/70"}`}
+                className="flex h-5 w-5 items-center justify-center rounded-md bg-muted-surface text-muted-foreground"
               >
                 <MailIcon className="h-3 w-3" />
               </div>
-              <div className={`ml-1 flex items-center gap-1 rounded-md px-1 py-0.5 ${isDark ? "bg-white/10" : "bg-gray-100"}`}>
+              <div className="ml-1 flex items-center gap-1 rounded-md px-1 py-0.5 bg-muted-surface">
                 <div
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[7px] font-semibold text-white ${AVATAR_GRADIENTS[PREVIEW_ACCOUNT.tone]}`}
                 >
                   {PREVIEW_ACCOUNT.initials}
                 </div>
                 <div className="hidden min-w-0 sm:block">
-                  <p className={`truncate text-[8px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                  <p className="truncate text-[8px] font-semibold text-foreground">
                     {PREVIEW_ACCOUNT.name}
                   </p>
-                  <p className={`truncate text-[7px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{PREVIEW_ACCOUNT.role}</p>
+                  <p className="truncate text-[7px] text-muted-foreground">{PREVIEW_ACCOUNT.role}</p>
                 </div>
-                <ChevronDownIcon className={`hidden h-2.5 w-2.5 shrink-0 sm:block ${isDark ? "text-[#a79fc9]" : "text-muted"}`} />
+                <ChevronDownIcon className="hidden h-2.5 w-2.5 shrink-0 sm:block text-muted-foreground" />
               </div>
             </div>
           </div>
@@ -499,9 +498,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               return (
                 <div
                   key={stat.key}
-                  className={`rounded-[10px] border p-2.5 transition-all duration-300 ${
-                    isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
-                  } ${isHighlighted ? "scale-[1.04] ring-2 ring-brand-purple shadow-md" : ""}`}
+                  className={`rounded-xl border p-2.5 transition-all duration-300 border-surface-border bg-card ${isHighlighted ? "scale-[1.04] ring-2 ring-ring shadow-md" : ""}`}
                 >
                   <div className="flex items-center gap-1.5">
                     <div
@@ -510,17 +507,15 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                       <Icon className="h-3 w-3" />
                     </div>
                     <p
-                      className={`truncate text-[8px] font-semibold uppercase tracking-wide ${
-                        isDark ? "text-[#a79fc9]" : "text-muted"
-                      }`}
+                      className="truncate text-[8px] font-medium text-muted-foreground"
                     >
                       {stat.label}
                     </p>
                   </div>
-                  <p className={`mt-1.5 truncate text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                  <p className="mt-1.5 truncate text-xs font-bold text-foreground">
                     {stat.value}
                   </p>
-                  <p className={`truncate text-[8px] font-semibold ${isDark ? "text-[#3ddb9c]" : "text-[#1f9d6b]"}`}>
+                  <p className="truncate text-[8px] font-semibold text-emerald-600">
                     {stat.trend}
                   </p>
                 </div>
@@ -535,14 +530,12 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               return (
                 <div
                   key={action.id}
-                  className={`flex items-center gap-1.5 rounded-[10px] border p-2 ${
-                    isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"
-                  }`}
+                  className="flex items-center gap-1.5 rounded-xl border p-2 border-surface-border bg-card"
                 >
                   <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${tone.bg} ${tone.fg}`}>
                     <Icon className="h-3 w-3" />
                   </div>
-                  <p className={`truncate text-[9px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                  <p className="truncate text-[9px] font-semibold text-foreground">
                     {action.title}
                   </p>
                 </div>
@@ -551,12 +544,12 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
           </div>
 
           <div className="mt-3 grid grid-cols-[65fr_35fr] gap-2.5">
-            <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+            <div className="rounded-xl border p-3 border-surface-border bg-card">
               <div className="flex items-center justify-between">
-                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Recent Documents</p>
-                <span className="text-[9px] font-semibold text-brand-purple">View all</span>
+                <p className="text-xs font-bold text-foreground">Recent Documents</p>
+                <span className="text-[9px] font-semibold text-foreground">View all</span>
               </div>
-              <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+              <div className="mt-2 divide-y divide-surface-border">
                 {PREVIEW_DOCS.map((doc) => (
                   <div key={doc.title} className="flex items-center gap-2 py-1.5">
                     <div
@@ -565,15 +558,13 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                       {doc.initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-[11px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                      <p className="truncate text-[11px] font-semibold text-foreground">
                         {doc.title}
                       </p>
-                      <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Jex3.0</p>
+                      <p className="truncate text-[9px] text-muted-foreground">Jex3.0</p>
                     </div>
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                        isDark ? "bg-[#1f9d6b]/20 text-[#3ddb9c]" : "bg-[#e1f5ec] text-[#1f9d6b]"
-                      }`}
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold bg-emerald-600/15 text-emerald-600"
                     >
                       Has content
                     </span>
@@ -582,9 +573,9 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               </div>
             </div>
 
-            <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
-              <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Recent Activity</p>
-              <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+            <div className="rounded-xl border p-3 border-surface-border bg-card">
+              <p className="text-xs font-bold text-foreground">Recent Activity</p>
+              <div className="mt-2 divide-y divide-surface-border">
                 {PREVIEW_ACTIVITY.map((activity, i) => {
                   const StatusIcon = ACTIVITY_STATUS_STYLE[activity.status].icon;
                   return (
@@ -595,11 +586,11 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                         {activity.initials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                        <p className="truncate text-[10px] font-semibold text-foreground">
                           {activity.email}
                         </p>
-                        <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{activity.description}</p>
-                        <p className="mt-0.5 flex items-center gap-1 text-[8px] text-muted">
+                        <p className="truncate text-[9px] text-muted-foreground">{activity.description}</p>
+                        <p className="mt-0.5 flex items-center gap-1 text-[8px] text-muted-foreground">
                           <StatusIcon className={`h-2.5 w-2.5 shrink-0 ${ACTIVITY_STATUS_STYLE[activity.status].className}`} />
                           {activity.timeAgo}
                         </p>
@@ -614,10 +605,10 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
           )}
 
           {activeProduct && (
-            <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+            <div className="rounded-xl border p-3 border-surface-border bg-card">
               <div className="flex items-center justify-between">
-                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{activeProduct.label} items</p>
-                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[9px] font-semibold text-white">
+                <p className="text-xs font-bold text-foreground">{activeProduct.label} items</p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[9px] font-semibold text-primary-foreground">
                   <PlusIcon className="h-2.5 w-2.5" />
                   Add Item
                 </span>
@@ -629,40 +620,32 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               {activeProduct.items.length === 0 && (
                 <div className="scale-[0.55] py-1 text-center [transform-origin:top]">
                   <EmptyContentIllustration />
-                  <h4 className={`mt-3 text-sm font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>No content found</h4>
-                  <p className={`mx-auto mt-1 max-w-[220px] text-xs ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                  <h4 className="mt-3 text-sm font-bold text-foreground">No content found</h4>
+                  <p className="mx-auto mt-1 max-w-[220px] text-xs text-muted-foreground">
                     Start building &quot;{activeProduct.label}&quot;&apos;s knowledge base by adding your first content
                     item. You can create a new page, upload a document, or embed a resource.
                   </p>
                 </div>
               )}
 
-              <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+              <div className="mt-2 divide-y divide-surface-border">
                 {activeProduct.items.slice(0, EXPANDED_ITEM_COUNT).map((item, i, arr) => {
                   const hasContent = i < arr.length - 1;
                   return (
                     <div key={item.slug || "index"} className="flex items-center justify-between gap-2 py-1.5">
-                      <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                      <p className="truncate text-[10px] font-semibold text-foreground">
                         {item.label}
                       </p>
                       <div className="flex shrink-0 items-center gap-1.5">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                            hasContent
-                              ? isDark
-                                ? "bg-[#1f9d6b]/20 text-[#3ddb9c]"
-                                : "bg-[#e1f5ec] text-[#1f9d6b]"
-                              : isDark
-                                ? "bg-white/10 text-[#a79fc9]"
-                                : "bg-page text-muted"
+                            hasContent ? "bg-emerald-600/15 text-emerald-600" : "bg-muted-surface text-muted-foreground"
                           }`}
                         >
                           {hasContent ? "Has content" : "Not written"}
                         </span>
                         <span
-                          className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${
-                            isDark ? "border-[#332e4d] text-[#f2effa]" : "border-border text-dash-ink"
-                          }`}
+                          className="rounded-full border px-2 py-0.5 text-[9px] font-semibold border-surface-border text-foreground"
                         >
                           {hasContent ? "Edit" : "+ Write"}
                         </span>
@@ -675,32 +658,30 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
           )}
 
           {activeAdminItem && activeAdminItem.label === "Users & Roles" && (
-            <div className={`rounded-[10px] border ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
+            <div className="rounded-xl border border-surface-border bg-card">
               {/* Tab row — Users active, matching the real page's tab bar */}
-              <div className={`flex items-center gap-4 border-b px-3 pt-2.5 ${isDark ? "border-[#332e4d]" : "border-border"}`}>
-                <span className="relative pb-2 text-[10px] font-bold text-brand-purple">
+              <div className="flex items-center gap-4 border-b px-3 pt-2.5 border-surface-border">
+                <span className="relative pb-2 text-[10px] font-bold text-foreground">
                   Users
-                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
                 </span>
-                <span className={`pb-2 text-[10px] font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Pending</span>
-                <span className={`pb-2 text-[10px] font-medium ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>Roles</span>
+                <span className="pb-2 text-[10px] font-medium text-muted-foreground">Pending</span>
+                <span className="pb-2 text-[10px] font-medium text-muted-foreground">Roles</span>
               </div>
 
               {/* Search + Add user row */}
               <div className="flex items-center justify-between gap-2 px-3 py-2">
                 <span
-                  className={`flex-1 truncate rounded-lg border px-2 py-1 text-[8px] ${
-                    isDark ? "border-[#332e4d] text-[#a79fc9]" : "border-border text-muted"
-                  }`}
+                  className="flex-1 truncate rounded-lg border px-2 py-1 text-[8px] border-surface-border text-muted-foreground"
                 >
                   Search by name, email, or role…
                 </span>
-                <span className="shrink-0 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[8px] font-semibold text-white">
+                <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[8px] font-semibold text-primary-foreground">
                   + Add user
                 </span>
               </div>
 
-              <div className={`divide-y px-3 pb-2 ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+              <div className="divide-y px-3 pb-2 divide-surface-border">
                 {PREVIEW_ACCOUNTS.map((account) => (
                   <div key={account.email} className="flex items-center gap-2 py-1.5">
                     <div
@@ -712,28 +693,20 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                         .join("")}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                      <p className="truncate text-[10px] font-semibold text-foreground">
                         {account.name}
                       </p>
-                      <p className={`truncate text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{account.email}</p>
+                      <p className="truncate text-[9px] text-muted-foreground">{account.email}</p>
                     </div>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                        account.status === "Active"
-                          ? isDark
-                            ? "bg-[#1f9d6b]/20 text-[#3ddb9c]"
-                            : "bg-[#e1f5ec] text-[#1f9d6b]"
-                          : isDark
-                            ? "bg-[#e0873c]/20 text-[#e0873c]"
-                            : "bg-[#fdf1de] text-[#c98a2c]"
+                        account.status === "Active" ? "bg-emerald-600/15 text-emerald-600" : "bg-amber-600/15 text-amber-600"
                       }`}
                     >
                       {account.status}
                     </span>
                     <span
-                      className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:inline-block ${
-                        isDark ? "bg-brand-purple/20 text-[#c4b5fd]" : "bg-brand-purple/10 text-brand-purple"
-                      }`}
+                      className="hidden shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:inline-block bg-secondary text-secondary-foreground"
                     >
                       {account.role}
                     </span>
@@ -748,24 +721,22 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               {/* Period control row */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                  <span className="rounded-full px-2 py-1 text-[9px] font-semibold text-muted-foreground">
                     Day
                   </span>
-                  <span className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-2 py-1 text-[9px] font-semibold text-white">
+                  <span className="rounded-full bg-primary px-2 py-1 text-[9px] font-semibold text-primary-foreground">
                     Week
                   </span>
-                  <span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+                  <span className="rounded-full px-2 py-1 text-[9px] font-semibold text-muted-foreground">
                     Month
                   </span>
                 </div>
-                <span className={`text-[9px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>This week</span>
+                <span className="text-[9px] text-muted-foreground">This week</span>
               </div>
 
               {/* Disclaimer — real wording, not paraphrased */}
               <div
-                className={`rounded-lg border px-2.5 py-1.5 text-[8px] leading-relaxed ${
-                  isDark ? "border-brand-purple/30 bg-brand-purple/10 text-[#c4b5fd]" : "border-brand-purple/20 bg-brand-purple/5 text-brand-purple"
-                }`}
+                className="rounded-lg border px-2.5 py-1.5 text-[8px] leading-relaxed border-surface-border bg-secondary text-secondary-foreground"
               >
                 Token counts and API-equivalent cost below are <strong>soft-budget estimates</strong>, not a real invoice
                 or a hard usage limit — actual billing depends on the plan and models each person uses.
@@ -776,31 +747,29 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                 {CLAUDE_USAGE_STATS.map((stat) => (
                   <div
                     key={stat.label}
-                    className={`rounded-[10px] border p-2 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}
+                    className="rounded-xl border p-2 border-surface-border bg-card"
                   >
                     <p
-                      className={`truncate text-[7px] font-semibold uppercase tracking-wide ${
-                        isDark ? "text-[#a79fc9]" : "text-muted"
-                      }`}
+                      className="truncate text-[7px] font-medium text-muted-foreground"
                     >
                       {stat.label}
                     </p>
-                    <p className={`mt-1 truncate text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>{stat.value}</p>
+                    <p className="mt-1 truncate text-xs font-bold text-foreground">{stat.value}</p>
                   </div>
                 ))}
               </div>
 
               {/* Daily tokens by user — mini bar chart, div-based (no charting library) */}
-              <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
-                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Daily tokens by user</p>
+              <div className="rounded-xl border p-3 border-surface-border bg-card">
+                <p className="text-xs font-bold text-foreground">Daily tokens by user</p>
                 <div className="mt-3 flex h-16 items-end gap-2">
                   {CLAUDE_USAGE_CHART_DAYS.map((d) => (
                     <div key={d.day} className="flex flex-1 flex-col items-center gap-1">
                       <div
-                        className="w-full rounded-t bg-gradient-to-t from-brand-purple to-brand-blue"
+                        className="w-full rounded-t bg-gradient-to-t bg-primary"
                         style={{ height: `${d.pct}%` }}
                       />
-                      <span className={`text-[7px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{d.day}</span>
+                      <span className="text-[7px] text-muted-foreground">{d.day}</span>
                     </div>
                   ))}
                 </div>
@@ -808,7 +777,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                   {CLAUDE_USAGE_LEGEND.map((legendItem) => (
                     <span
                       key={legendItem.name}
-                      className={`flex items-center gap-1 text-[8px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}
+                      className="flex items-center gap-1 text-[8px] text-muted-foreground"
                     >
                       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${AVATAR_GRADIENTS[legendItem.tone]}`} />
                       {legendItem.name}
@@ -818,9 +787,9 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               </div>
 
               {/* Per-user usage — condensed to name/tokens/status, not every real column */}
-              <div className={`rounded-[10px] border p-3 ${isDark ? "border-[#332e4d] bg-[#1e1a30]" : "border-border bg-white"}`}>
-                <p className={`text-xs font-bold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>Per-user usage</p>
-                <div className={`mt-2 divide-y ${isDark ? "divide-[#332e4d]" : "divide-border"}`}>
+              <div className="rounded-xl border p-3 border-surface-border bg-card">
+                <p className="text-xs font-bold text-foreground">Per-user usage</p>
+                <div className="mt-2 divide-y divide-surface-border">
                   {PREVIEW_USAGE_ROWS.map((row) => (
                     <div key={row.email} className="flex items-center gap-2 py-1.5">
                       <div
@@ -832,15 +801,13 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
                           .join("")}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className={`truncate text-[10px] font-semibold ${isDark ? "text-[#f2effa]" : "text-dash-ink"}`}>
+                        <p className="truncate text-[10px] font-semibold text-foreground">
                           {row.name}
                         </p>
-                        <p className={`truncate text-[8px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>{row.tokens} tokens · Member</p>
+                        <p className="truncate text-[8px] text-muted-foreground">{row.tokens} tokens · Member</p>
                       </div>
                       <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                          isDark ? "bg-[#1f9d6b]/20 text-[#3ddb9c]" : "bg-[#e1f5ec] text-[#1f9d6b]"
-                        }`}
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold bg-emerald-600/15 text-emerald-600"
                       >
                         Active
                       </span>
@@ -852,7 +819,7 @@ export function DashboardPreview({ theme }: { theme: "light" | "dark" }) {
               {/* Soft budget overrides — summarized in one line rather than a
                   full editable-per-person section, per this task's own
                   "may be summarized in one line" allowance. */}
-              <p className={`text-[8px] ${isDark ? "text-[#a79fc9]" : "text-muted"}`}>
+              <p className="text-[8px] text-muted-foreground">
                 Soft budget overrides available per person — defaults to 1.2M tokens/week, takes effect immediately.
               </p>
             </div>

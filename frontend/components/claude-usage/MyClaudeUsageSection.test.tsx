@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { pickOption } from "@/components/ui/select.test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MyClaudeUsageDashboard } from "@/lib/claudeUsage/myUsage";
@@ -8,6 +9,7 @@ import { MyClaudeUsageSection } from "./MyClaudeUsageSection";
 const { fetchMyUsage } = vi.hoisted(() => ({ fetchMyUsage: vi.fn() }));
 vi.mock("@/lib/claudeUsage/myUsage", () => ({ fetchMyUsage }));
 vi.mock("@/components/claude-usage/MyUsageHistoryChart", () => ({ MyUsageHistoryChart: () => null }));
+vi.mock("@/components/claude-usage/MyScanStatusSection", () => ({ MyScanStatusSection: () => null }));
 
 // Claude Code's usage page for one real session: Haiku 1.9k/16/0/0 $0.0020, Opus 5.5 1.4k/38.3k/5.5m/107.9k $2.73.
 const DASHBOARD: MyClaudeUsageDashboard = {
@@ -122,7 +124,7 @@ describe("MyClaudeUsageSection (ADR-058, ADR-065)", () => {
     await screen.findByTestId("my-usage-total-cost");
     expect(fetchMyUsage).toHaveBeenLastCalledWith(7);
 
-    await userEvent.selectOptions(screen.getByLabelText("Period"), "30");
+    await pickOption(userEvent.setup(), "Period", "Last 30 days");
 
     expect(fetchMyUsage).toHaveBeenLastCalledWith(30);
   });

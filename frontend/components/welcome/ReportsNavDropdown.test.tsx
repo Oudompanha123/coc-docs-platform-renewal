@@ -7,7 +7,7 @@ describe("ReportsNavDropdown (public /welcome page)", () => {
   it("opens a locked Attendance preview on click", async () => {
     const user = userEvent.setup();
     const onRequireAuth = vi.fn();
-    render(<ReportsNavDropdown isDark={false} onRequireAuth={onRequireAuth} />);
+    render(<ReportsNavDropdown onRequireAuth={onRequireAuth} />);
 
     await user.click(screen.getByRole("button", { name: /reports.*records/i }));
 
@@ -19,7 +19,7 @@ describe("ReportsNavDropdown (public /welcome page)", () => {
   it("clicking Attendance closes the menu and prompts sign-in", async () => {
     const user = userEvent.setup();
     const onRequireAuth = vi.fn();
-    render(<ReportsNavDropdown isDark={false} onRequireAuth={onRequireAuth} />);
+    render(<ReportsNavDropdown onRequireAuth={onRequireAuth} />);
 
     await user.click(screen.getByRole("button", { name: /reports.*records/i }));
     await user.click(screen.getByRole("menuitem", { name: /attendance/i }));

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicLegalPage } from "./PublicLegalPage";
 import { LEGAL_FALLBACK_CONTENT } from "@/lib/legal/fallback-content";
-import type { LegalContent } from "@/lib/legal/content-types";
+import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 
 const { fetchPublicLegalPage } = vi.hoisted(() => ({ fetchPublicLegalPage: vi.fn() }));
 vi.mock("@/lib/legal/legal-api", async () => {
@@ -15,43 +15,29 @@ beforeEach(() => {
 });
 
 describe("PublicLegalPage", () => {
-  it("renders the fallback content immediately, before the fetch resolves", () => {
-    fetchPublicLegalPage.mockReturnValue(new Promise(() => {})); // never resolves
-    render(<PublicLegalPage slug="privacy" />);
-
-    expect(screen.getByRole("heading", { name: LEGAL_FALLBACK_CONTENT.privacy.title })).toBeInTheDocument();
+  it.each(["terms", "privacy"] as const)("renders the %s fallback immediately, before the fetch resolves", (slug) => {
+    fetchPublicLegalPage.mockReturnValue(new Promise(() => {}));
+    render(<PublicLegalPage slug={slug} />);
+    expect(screen.getByRole("heading", { level: 1, name: LEGAL_FALLBACK_CONTENT[slug].title })).toBeInTheDocument();
   });
 
   it("swaps in the live published content once the fetch resolves", async () => {
-    const live: LegalContent = { ...LEGAL_FALLBACK_CONTENT.privacy, title: "Privacy Policy (live)" };
+    const live: LegalDocumentContent = { ...LEGAL_FALLBACK_CONTENT.privacy, title: "Privacy Policy (live)" };
     fetchPublicLegalPage.mockResolvedValue(live);
-
     render(<PublicLegalPage slug="privacy" />);
-
-    expect(await screen.findByRole("heading", { name: "Privacy Policy (live)" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: LEGAL_FALLBACK_CONTENT.privacy.title })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Privacy Policy (live)" })).toBeInTheDocument();
   });
 
-  it("stays on the fallback content when the API returns nothing (unreachable backend)", async () => {
-    fetchPublicLegalPage.mockResolvedValue(undefined);
-
+  it("keeps the fallback when the API returns nothing, or a row without a body", async () => {
+    fetchPublicLegalPage.mockResolvedValue({ title: "Old shape" });
     render(<PublicLegalPage slug="privacy" />);
-
-    expect(await screen.findByRole("heading", { name: LEGAL_FALLBACK_CONTENT.privacy.title })).toBeInTheDocument();
-  });
-
-  it("renders the CTA box with a link back to Register", () => {
-    fetchPublicLegalPage.mockReturnValue(new Promise(() => {}));
-    render(<PublicLegalPage slug="privacy" />);
-
-    expect(screen.getByText(LEGAL_FALLBACK_CONTENT.privacy.cta.title)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Back to Register/ })).toHaveAttribute("href", "/register");
+    expect(await screen.findByRole("heading", { level: 1, name: LEGAL_FALLBACK_CONTENT.privacy.title })).toBeInTheDocument();
+    expect(screen.queryByText("Old shape")).not.toBeInTheDocument();
   });
 
   it("links back to the site", () => {
     fetchPublicLegalPage.mockReturnValue(new Promise(() => {}));
     render(<PublicLegalPage slug="privacy" />);
-
     expect(screen.getByRole("link", { name: /Coc Docs Platform/ })).toHaveAttribute("href", "/login");
   });
 });

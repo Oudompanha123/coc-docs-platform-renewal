@@ -55,8 +55,16 @@ export function RequireSession({
   children,
   allowRoles = ADMIN_APP_ROLES,
   deniedPath = "/welcome",
+  fallback = null,
 }: {
   children: ReactNode;
+  /**
+   * What to show while the session is still being checked — the shell's
+   * skeleton (`ShellSkeleton`) for the admin app, so the first frame is the
+   * page's outline rather than a blank screen. Never shown once the answer
+   * is a redirect: those still render nothing.
+   */
+  fallback?: ReactNode;
   /**
    * Who this part of the app admits — the admin app's own two roles unless a
    * layout says otherwise. AX Renewal widens it (`AX_RENEWAL_ROLES`,
@@ -89,6 +97,7 @@ export function RequireSession({
     }
   }, [status, user, canAccessAdmin, router, deniedPath]);
 
+  if (status === "loading") return <>{fallback}</>;
   if (status !== "authenticated" || user?.mustChangePassword || !canAccessAdmin) {
     return null;
   }

@@ -11,8 +11,19 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: IconComponent }[] = [
   { value: "system", label: "System", Icon: MonitorIcon },
 ];
 
-const CUSTOM_KEY = "coc-docs-accent-custom";
-const DEFAULT_HEX = "#6d3ce0";
+/**
+ * A new key, not the old `coc-docs-accent-custom` (ADR-104 r2.0).
+ *
+ * This card writes `--color-brand-purple` onto <html> at runtime from
+ * whatever is stored, which means a browser holding the old default would
+ * paint the retired purple straight back over the neutral palette on every
+ * load — the repaint would appear not to have happened, and only for people
+ * who had used the app before. Changing the key retires those stored values
+ * with the palette they belonged to. Anyone who had deliberately chosen an
+ * accent picks it again once.
+ */
+const CUSTOM_KEY = "coc-docs-accent-v2";
+const DEFAULT_HEX = "#171717";
 
 /** Derive a complementary tone by shifting hue +30°. */
 function deriveBlue(hex: string): string {
@@ -82,21 +93,25 @@ export function AppearanceCard() {
     <div className="flex flex-col gap-6">
       {/* Theme */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Theme</p>
+        <p className="text-xs font-medium text-muted-foreground">Theme</p>
         <div className="mt-2 flex gap-2">
           {THEME_OPTIONS.map(({ value, label, Icon }) => (
+            // A single-choice chip group, styled from the selection rather
+            // than a variant — ToggleGroup, with the other form controls
+            // (ADR-104 §4.3).
+            // eslint-disable-next-line react/forbid-elements
             <button
               key={value}
               type="button"
               onClick={() => selectTheme(value)}
               aria-pressed={theme === value}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
+              className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-control border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 theme === value
-                  ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
-                  : "border-border text-dash-ink hover:bg-page"
+                  ? "border-foreground/40 bg-muted-surface/60 text-foreground"
+                  : "border-surface-border text-muted-foreground hover:border-foreground/20 hover:bg-accent/50 hover:text-foreground"
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="size-4 shrink-0" />
               {label}
             </button>
           ))}
@@ -105,20 +120,30 @@ export function AppearanceCard() {
 
       {/* Accent color */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Accent color</p>
+        <p className="text-xs font-medium text-muted-foreground">Accent color</p>
         <div className="mt-2 flex flex-wrap gap-2">
+          {/* Left alone on purpose, and worth a second look when someone
+              touches this card: a <button> wrapping an <input type="color">
+              is interactive content nested inside interactive content, which
+              the HTML spec does not allow. Browsers tolerate it, assistive
+              technology is less predictable. Fixing it means deciding how the
+              swatch should open its picker, which is a design change, not a
+              primitive swap — so it is reported rather than quietly altered
+              here (ADR-104 §4.3). */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             type="button"
             onClick={() => colorInputRef.current?.click()}
-            className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-page focus-visible:outline-none"
+            className="flex h-9 items-center gap-2 rounded-control border border-surface-border px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none"
             style={{ outline: `2px solid ${customHex}`, outlineOffset: "2px", color: customHex }}
           >
             <span
-              className="h-4 w-4 rounded-full shadow-sm"
+              className="size-4 rounded-full ring-1 ring-black/10"
               style={{ background: customHex }}
               aria-hidden="true"
             />
             Choose color
+            {/* eslint-disable-next-line react/forbid-elements */}
             <input
               ref={colorInputRef}
               type="color"

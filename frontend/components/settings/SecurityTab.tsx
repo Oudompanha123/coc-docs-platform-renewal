@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { ChevronDownIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { TotpDisableForm, TotpSetupWizard } from "@/components/settings/TotpSetupForm";
 import { ActiveSessions } from "@/components/settings/ActiveSessions";
 import { getMfaStatus } from "@/lib/auth/api";
@@ -69,18 +70,18 @@ export function SecurityTab() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-surface-border">
         {/* Password (ADR-022) — "Set a password" instead for a Google-only
             account, which has none to change yet (ADR-030). */}
         <div className="py-4 first:pt-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-                <LockIcon className="h-5 w-5" />
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <LockIcon className="size-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-dash-ink">Password</p>
-                <p className="text-xs text-muted">
+                <p className="text-sm font-medium text-foreground">Password</p>
+                <p className="text-xs text-muted-foreground">
                   {passwordNotice ??
                     (user?.hasPassword
                       ? <>Keep your account secure with a <strong>strong password</strong>.</>
@@ -89,16 +90,18 @@ export function SecurityTab() {
               </div>
             </div>
             {!changingPassword && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="default"
                 onClick={() => {
                   setChangingPassword(true);
                   setPasswordNotice(null);
                 }}
-                className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
+                className="shrink-0 text-foreground"
               >
                 {user?.hasPassword ? "Change password" : "Set password"}
-              </button>
+              </Button>
             )}
           </div>
           {changingPassword && (
@@ -120,15 +123,15 @@ export function SecurityTab() {
             GitHub/Flow Team here — those aren't real for this product. */}
         <div className="flex items-center justify-between gap-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-              <GoogleIcon className="h-5 w-5" />
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+              <GoogleIcon className="size-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-dash-ink">Authentication</p>
-              <p className="text-xs text-muted">Google</p>
+              <p className="text-sm font-medium text-foreground">Authentication</p>
+              <p className="text-xs text-muted-foreground">Google</p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-1 text-xs font-semibold text-[#1f9d6b]">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-0.5 text-xs font-medium text-[#1f9d6b]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
             Connected
           </span>
@@ -140,6 +143,10 @@ export function SecurityTab() {
             offering the toggle would turn "on" a control that does nothing
             until they also set a password (ADR-030/ADR-029). */}
         <div className="py-4">
+          {/* A disclosure header spanning the whole row, with no button
+              styling of its own — same shape as AccordionSection. Phase 3's
+              Collapsible (ADR-104 §2.5). */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             type="button"
             aria-expanded={mfaMode !== "idle"}
@@ -152,12 +159,12 @@ export function SecurityTab() {
             className="flex w-full items-center justify-between gap-4 text-left disabled:cursor-not-allowed disabled:opacity-60"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
-                <ShieldIcon className="h-5 w-5" />
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <ShieldIcon className="size-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-dash-ink">Two-factor authentication</p>
-                <p className="text-xs text-muted">
+                <p className="text-sm font-medium text-foreground">Two-factor authentication</p>
+                <p className="text-xs text-muted-foreground">
                   {mfaNotice ??
                     (user?.hasPassword
                       ? "Add an extra step when signing in."
@@ -171,13 +178,13 @@ export function SecurityTab() {
                   disclosure rather than a switch whose thumb position used
                   to carry that meaning. */}
               {mfaEnabled && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-1 text-xs font-semibold text-[#1f9d6b]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-0.5 text-xs font-medium text-[#1f9d6b]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
                   On
                 </span>
               )}
               <ChevronDownIcon
-                className={`h-5 w-5 text-muted transition-transform ${mfaMode !== "idle" ? "rotate-180" : ""}`}
+                className={`size-4 text-muted-foreground transition-transform ${mfaMode !== "idle" ? "rotate-180" : ""}`}
               />
             </div>
           </button>

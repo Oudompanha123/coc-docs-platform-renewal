@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type SVGProps } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { List, ListOrdered, TextQuote } from "lucide-react";
 import { CodeBracketsIcon, LinkIcon } from "@/components/layout/icons";
 import { applyMarkdownAction, applyTextColor, type EditState, type MarkdownAction } from "@/lib/markdown/editing";
 import { TEXT_COLORS, type TextColor } from "@/lib/markdown/parse";
@@ -8,34 +9,11 @@ import { MarkdownContent, TEXT_COLOR_CLASSES } from "./MarkdownContent";
 
 type Tool = { action: MarkdownAction; label: string; shortcut?: string; icon: ReactNode };
 
-function svg(props: SVGProps<SVGSVGElement>) {
-  return { viewBox: "0 0 24 24", fill: "none" as const, "aria-hidden": true as const, className: "h-4 w-4", ...props };
-}
+const BulletListIcon = <List className="h-4 w-4" aria-hidden="true" />;
 
-const STROKE = { stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const };
+const NumberedListIcon = <ListOrdered className="h-4 w-4" aria-hidden="true" />;
 
-const BulletListIcon = (
-  <svg {...svg({})}>
-    <path d="M9 6.5h11M9 12h11M9 17.5h11" {...STROKE} />
-    <circle cx="4.5" cy="6.5" r="1.2" fill="currentColor" />
-    <circle cx="4.5" cy="12" r="1.2" fill="currentColor" />
-    <circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" />
-  </svg>
-);
-
-const NumberedListIcon = (
-  <svg {...svg({})}>
-    <path d="M10 6.5h10M10 12h10M10 17.5h10" {...STROKE} />
-    <path d="M4 5l1.5-1v5M3.5 14.5c.3-.9 2.6-1 2.6.3 0 1-2.6 2-2.6 3.2h2.8" {...STROKE} strokeWidth={1.4} />
-  </svg>
-);
-
-const QuoteIcon = (
-  <svg {...svg({})}>
-    <path d="M5 5v14" {...STROKE} strokeWidth={2.4} />
-    <path d="M10 8h10M10 12h10M10 16h6" {...STROKE} />
-  </svg>
-);
+const QuoteIcon = <TextQuote className="h-4 w-4" aria-hidden="true" />;
 
 const Glyph = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
   <span aria-hidden="true" className={`text-xs leading-none ${className}`}>
@@ -152,12 +130,12 @@ export function MarkdownEditor({
     // No overflow-hidden: the colour menu has to drop out below the toolbar.
     // The toolbar rounds its own top corners and the text area is transparent,
     // so nothing pokes past the frame's rounded edge without it.
-    <div className="mt-1.5 rounded-lg border border-border bg-white transition-colors focus-within:border-[#1c70e2]">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-lg border-b border-border bg-page/50 px-1.5 py-1">
+    <div className="mt-1.5 rounded-lg border border-surface-border bg-card transition-colors focus-within:border-[#1c70e2]">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-lg border-b border-surface-border bg-muted-surface/50 px-1.5 py-1">
         <div role="toolbar" aria-label="Formatting" aria-controls={id} className="flex flex-wrap items-center gap-0.5">
           {TOOL_GROUPS.map((group, g) => (
             <div key={g} className="flex items-center gap-0.5">
-              {g > 0 && <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />}
+              {g > 0 && <span aria-hidden="true" className="mx-1 h-4 w-px bg-surface-border" />}
               {group.map((tool) => {
                 const title = tool.shortcut ? `${tool.label} (${mod}${tool.shortcut})` : tool.label;
                 return (
@@ -171,7 +149,7 @@ export function MarkdownEditor({
                     disabled={disabled || mode === "preview"}
                     aria-label={tool.label}
                     title={title}
-                    className="flex h-7 min-w-7 items-center justify-center rounded-md px-1 text-dash-ink/70 transition-colors hover:bg-brand-purple/10 hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-dash-ink/70"
+                    className="flex h-7 min-w-7 items-center justify-center rounded-md px-1 text-foreground/70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-foreground/70"
                   >
                     {tool.icon}
                   </button>
@@ -189,7 +167,7 @@ export function MarkdownEditor({
           ))}
         </div>
 
-        <div role="tablist" aria-label="Editor mode" className="flex items-center gap-0.5 rounded-md border border-border bg-white p-0.5">
+        <div role="tablist" aria-label="Editor mode" className="flex items-center gap-0.5 rounded-md border border-surface-border bg-card p-0.5">
           {(["write", "preview"] as const).map((key) => (
             <button
               key={key}
@@ -198,7 +176,7 @@ export function MarkdownEditor({
               aria-selected={mode === key}
               onClick={() => setMode(key)}
               className={`rounded px-2.5 py-0.5 text-xs font-semibold transition-colors ${
-                mode === key ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:text-dash-ink"
+                mode === key ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {key === "write" ? "Write" : "Preview"}
@@ -222,22 +200,24 @@ export function MarkdownEditor({
         required={required}
         aria-describedby={describedBy}
         hidden={mode === "preview"}
-        // markdown-editor-input: exempts it from the global textarea focus
-        // border and radius in globals.css — the frame around the toolbar and
-        // the text is the one border this editor has.
-        className="markdown-editor-input block w-full resize-y border-0 bg-transparent px-3 py-2 font-mono text-[13px] leading-6 text-dash-ink outline-none placeholder:font-sans placeholder:text-muted"
+        // Deliberately not `textareaBaseClass`: the frame around the toolbar
+        // and the text is the one border this editor has, so the textarea
+        // itself is borderless and transparent. (`markdown-editor-input` once
+        // exempted it from a global textarea rule in globals.css; that rule
+        // went in ADR-104 r2.1 and the class is now only a hook.)
+        className="markdown-editor-input block w-full resize-y border-0 bg-transparent px-3 py-2 font-mono text-[13px] leading-6 text-foreground outline-none placeholder:font-sans placeholder:text-muted-foreground"
       />
 
       {mode === "preview" && (
         <div
           role="tabpanel"
           aria-label="Preview"
-          className="max-h-80 min-h-[9rem] overflow-y-auto px-3 py-2 text-sm leading-6 text-dash-ink/70"
+          className="max-h-80 min-h-[9rem] overflow-y-auto px-3 py-2 text-sm leading-6 text-foreground/70"
         >
           {value.trim() ? (
             <MarkdownContent source={value} />
           ) : (
-            <p className="text-sm text-muted">Nothing to preview yet.</p>
+            <p className="text-sm text-muted-foreground">Nothing to preview yet.</p>
           )}
         </div>
       )}
@@ -245,12 +225,18 @@ export function MarkdownEditor({
   );
 }
 
+/** The colours the picker offers — every renderable colour except blue, which
+ *  the product owner dropped from the editor: in body text it reads as a link
+ *  that goes nowhere. `TEXT_COLORS` still includes it, so announcements
+ *  already written in blue keep rendering. */
+const PICKER_COLORS = TEXT_COLORS.filter((color) => color !== "blue");
+
 const SWATCH_CLASSES: Record<TextColor, string> = {
   red: "bg-red-600",
   orange: "bg-orange-600",
   green: "bg-green-600",
   blue: "bg-blue-600",
-  purple: "bg-brand-purple",
+  purple: "bg-primary",
   gray: "bg-gray-500",
 };
 
@@ -314,7 +300,7 @@ function TextColorPicker({ disabled, onPick }: { disabled?: boolean; onPick: (co
         aria-haspopup="menu"
         aria-expanded={open}
         title="Text color"
-        className="flex h-7 min-w-7 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-dash-ink/70 transition-colors hover:bg-brand-purple/10 hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-dash-ink/70"
+        className="flex h-7 min-w-7 flex-col items-center justify-center gap-0.5 rounded-md px-1 text-foreground/70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-foreground/70"
       >
         <span aria-hidden="true" className="text-xs font-bold leading-none">
           A
@@ -326,10 +312,10 @@ function TextColorPicker({ disabled, onPick }: { disabled?: boolean; onPick: (co
         <div
           role="menu"
           aria-label="Text color"
-          className="absolute left-0 top-full z-30 mt-1 w-48 rounded-lg border border-border bg-white p-1.5 shadow-lg"
+          className="absolute left-0 top-full z-30 mt-1 w-48 rounded-lg border border-surface-border bg-card p-1.5 shadow-lg"
         >
-          <div className="grid grid-cols-6 gap-1">
-            {TEXT_COLORS.map((color) => (
+          <div className="grid grid-cols-5 gap-1">
+            {PICKER_COLORS.map((color) => (
               <button
                 key={color}
                 type="button"
@@ -338,8 +324,8 @@ function TextColorPicker({ disabled, onPick }: { disabled?: boolean; onPick: (co
                 onClick={() => pick(color)}
                 aria-label={COLOR_LABELS[color]}
                 title={COLOR_LABELS[color]}
-                className={`flex h-7 items-center justify-center rounded-md text-sm font-bold transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${TEXT_COLOR_CLASSES[color]} ${
-                  color === last ? "bg-page" : ""
+                className={`flex h-7 items-center justify-center rounded-md text-sm font-bold transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${TEXT_COLOR_CLASSES[color]} ${
+                  color === last ? "bg-muted-surface" : ""
                 }`}
               >
                 <span aria-hidden="true">A</span>
@@ -351,7 +337,7 @@ function TextColorPicker({ disabled, onPick }: { disabled?: boolean; onPick: (co
             role="menuitem"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => pick(null)}
-            className="mt-1 w-full rounded-md px-2 py-1 text-left text-xs font-medium text-dash-ink transition-colors hover:bg-page"
+            className="mt-1 w-full rounded-md px-2 py-1 text-left text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
             Default color
           </button>

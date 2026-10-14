@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { openSelect, pickOption } from "@/components/ui/select.test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ShellProvider } from "@/lib/layout/ShellContext";
@@ -135,17 +136,16 @@ describe("AttendancePage", () => {
     renderPage();
     await screen.findByRole("heading", { name: "COOCON Department" });
 
-    const select = screen.getByRole("combobox", { name: "Department" }) as HTMLSelectElement;
+    const select = screen.getByRole("combobox", { name: "Department" });
     expect(select).not.toBeDisabled();
-    expect(select.value).toBe("COOCON Department");
+    expect(select).toHaveTextContent("COOCON Department");
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Next day" }));
 
     await waitFor(() => expect(screen.getByText("No attendance records for this date.")).toBeInTheDocument());
     expect(select).not.toBeDisabled();
-    expect(select.value).toBe("COOCON Department");
-    expect(screen.getByRole("option", { name: "COOCON Department" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Engineering" })).toBeInTheDocument();
+    expect(select).toHaveTextContent("COOCON Department");
+    expect(await openSelect(userEvent.setup(), "Department")).toEqual(["COOCON Department", "Engineering"]);
   });
 
   it("shows the dropdown disabled with 'No departments' on a fresh load with no data yet", async () => {
@@ -154,9 +154,9 @@ describe("AttendancePage", () => {
     renderPage();
 
     await screen.findByText("No attendance records for this date.");
-    const select = screen.getByRole("combobox", { name: "Department" }) as HTMLSelectElement;
+    const select = screen.getByRole("combobox", { name: "Department" });
     expect(select).toBeDisabled();
-    expect(screen.getByRole("option", { name: "No departments" })).toBeInTheDocument();
+    expect(select).toHaveTextContent("No departments");
   });
 
   it("keeps the selected department when a new date has data but not for it, and shows the specific empty state", async () => {
@@ -168,7 +168,7 @@ describe("AttendancePage", () => {
     await screen.findByRole("heading", { name: "COOCON Department" });
 
     const select = screen.getByRole("combobox", { name: "Department" });
-    await userEvent.setup().selectOptions(select, "Engineering");
+    await pickOption(userEvent.setup(), "Department", "Engineering");
 
     // Engineering should stay selected, and the page must say so
     // specifically rather than falling back to some other department's
@@ -176,6 +176,6 @@ describe("AttendancePage", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Next day" }));
 
     expect(await screen.findByText("No records for Engineering on this date.")).toBeInTheDocument();
-    expect((select as HTMLSelectElement).value).toBe("Engineering");
+    expect(select).toHaveTextContent("Engineering");
   });
 });

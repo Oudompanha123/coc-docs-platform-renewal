@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { textareaBaseClass } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 /** Label + input wrapper, matching the field styling already used in
  *  components/users-roles/AddAccountModal.tsx — reused here rather than
@@ -15,16 +17,17 @@ export function FormField({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-muted">
+      <span className="text-sm font-medium">
         {label}
-        {required && <span className="text-danger"> *</span>}
+        {required && <span className="text-destructive"> *</span>}
       </span>
       <div className="mt-1.5">{children}</div>
     </label>
   );
 }
 
-export const fieldInputClass =
-  "w-full rounded-xl border border-border px-3 py-2 text-sm text-dash-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple";
-
-export const fieldTextareaClass = `${fieldInputClass} h-[120px] resize-none`;
+/** Multi-line: the textarea surface (soft corners, not a pill) at the
+ *  editor's fixed 120px. Merged through `cn` so the height replaces the
+ *  base rather than sitting beside it. The editor's `<Textarea>`s pass the
+ *  same `h-[120px] resize-none` directly. */
+export const fieldTextareaClass = cn(textareaBaseClass, "h-[120px] resize-none");
