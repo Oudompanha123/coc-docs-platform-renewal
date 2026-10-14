@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { configDir } from './config.js';
-import { send } from './upload.js';
+import { send, TRACKING_DISABLED } from './upload.js';
 
 /** The fixed step catalogue, in order. The backend accepts exactly these keys. */
 export const STEPS = [
@@ -86,6 +86,17 @@ export class ScanRecorder {
     Object.assign(this.counts, counts);
   }
 
+  /** The start announcement (ADR-107): just enough for the server to show this scan "In progress". */
+  toStart(email) {
+    return {
+      scanId: this.scanId,
+      email,
+      trigger: this.trigger,
+      cliVersion: this.cliVersion,
+      startedAt: this.startedAt.toISOString(),
+    };
+  }
+
   /** The wire record. Steps never reached are `skipped`, so the timeline still lists all of them. */
   toRecord(email) {
     const finishedAt = this.clock();
@@ -111,6 +122,34 @@ export class ScanRecorder {
 
 /** `POST /api/ingest/scan-log` — the scan-log sibling of the ingest URL the login saved. */
 export const scanLogUrl = (ingestUrl) => `${String(ingestUrl).replace(/\/+$/, '')}/scan-log`;
+
+/** `POST /api/ingest/scan-log/start` — where a scan says it has begun (ADR-107). */
+export const scanStartUrl = (ingestUrl) => `${scanLogUrl(ingestUrl)}/start`;
+
+/**
+ * Tells Coc Docs this scan has started, so its Scan Logs page can show it "In
+ * progress" until the record from {@link deliverScanLogs} completes it
+ * (ADR-107). One attempt, no retry, never queued: a "started" that arrives
+ * late says nothing the finished record does not. Meant to run alongside the
+ * scan — the caller awaits it only before delivering the record — so it never
+ * makes a scan slower.
+ *
+ * Never throws and never changes the scan's result. A server older than
+ * ADR-107 answers 404, which is fine: the record still arrives at the end.
+ */
+export async function announceScanStart({ creds, recorder, io, fetchImpl, verbose = false, env = process.env }) {
+  try {
+    await send(scanStartUrl(creds.ingestUrl), creds.token, recorder.toStart(creds.email), {
+      bypassToken: String(env.VERCEL_AUTOMATION_BYPASS_SECRET ?? '').trim() || undefined,
+      fetchImpl,
+      retry: false,
+    });
+    return true;
+  } catch (error) {
+    if (verbose) io.err(`[debug] scan start not recorded: ${error.message}`);
+    return false;
+  }
+}
 
 export function pendingPath(env = process.env) {
   return path.join(configDir(env), PENDING_FILE);
@@ -142,7 +181,9 @@ function savePending(records, env = process.env) {
  * oldest first. Stops at the first transient failure (network, timeout, 5xx)
  * and keeps the rest for the next scan. A definite refusal (400, or 404 from a
  * server older than ADR-099) drops that record — resending it cannot succeed —
- * except 401/403, which a fresh `login` fixes, so those are kept.
+ * except a credential 401/403, which a fresh `login` fixes, so those are kept.
+ * A 403 `tracking-disabled` or 409 `disabled-period` (ADR-105) is dropped:
+ * the server will never accept a scan from a time tracking was disabled.
  *
  * Never throws and never changes the scan's own result: the log is about the
  * scan, not part of it.
@@ -181,7 +222,10 @@ export async function deliverScanLogs({ creds, record, io, fetchImpl, verbose = 
       if (error?.transient) {
         stopped = true;
         keep.push(entry);
-      } else if (error?.status === 401 || error?.status === 403) {
+      } else if ((error?.status === 401 || error?.status === 403) && error?.code !== TRACKING_DISABLED) {
+        // A credential problem: a fresh `login` fixes it, so keep the record.
+        // Not "tracking disabled" (ADR-105) — the server will never accept a
+        // scan from that time, so that one is dropped like any other refusal.
         keep.push(entry);
       } else if (verbose) {
         io.err(`[debug] scan log ${entry.scanId} not accepted: ${error.message}`);

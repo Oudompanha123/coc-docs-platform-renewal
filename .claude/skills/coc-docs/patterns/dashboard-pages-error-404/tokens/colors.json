@@ -1,0 +1,108 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "core": {
+    "text-primary": {
+      "value": "#ffffff",
+      "role": "text-primary",
+      "name": "tw-ring-offset-color"
+    },
+    "background": {
+      "value": "#0a1510",
+      "role": "background",
+      "name": "primary-1000"
+    },
+    "surface": {
+      "value": "#000000",
+      "role": "surface",
+      "name": "color-black"
+    },
+    "border": {
+      "value": "#262626",
+      "role": "border",
+      "name": "chart-5"
+    },
+    "accent": {
+      "value": "#ff667f",
+      "role": "accent",
+      "name": "color-rose-400"
+    },
+    "text-muted": {
+      "value": "#737373",
+      "role": "text-muted",
+      "name": "muted-foreground"
+    }
+  },
+  "status": {
+    "danger": {
+      "value": "#fef2f2",
+      "role": "danger",
+      "name": "color-red-50"
+    },
+    "success": {
+      "value": "#f0fdf4",
+      "role": "success",
+      "name": "color-green-50"
+    }
+  },
+  "extended": {
+    "color-slate-200": {
+      "value": "#e2e8f0",
+      "role": "info",
+      "name": "color-slate-200"
+    },
+    "color-red-950": {
+      "value": "#460809",
+      "role": "unknown",
+      "name": "color-red-950"
+    },
+    "color-sky-400": {
+      "value": "#00bcfe",
+      "role": "unknown",
+      "name": "color-sky-400"
+    },
+    "ring": {
+      "value": "#a1a1a1",
+      "role": "unknown",
+      "name": "ring"
+    },
+    "color-green-600": {
+      "value": "#00a544",
+      "role": "unknown",
+      "name": "color-green-600"
+    },
+    "color-sky-600": {
+      "value": "#0084cc",
+      "role": "unknown",
+      "name": "color-sky-600"
+    },
+    "color-green-500": {
+      "value": "#00c758",
+      "role": "unknown",
+      "name": "color-green-500"
+    },
+    "color-green-950": {
+      "value": "#032e15",
+      "role": "unknown",
+      "name": "color-green-950"
+    },
+    "color-rose-600": {
+      "value": "#e70044",
+      "role": "unknown",
+      "name": "color-rose-600"
+    },
+    "color-red-600": {
+      "value": "#e40014",
+      "role": "unknown",
+      "name": "color-red-600"
+    },
+    "color-orange-900": {
+      "value": "#7e2a0c",
+      "role": "unknown",
+      "name": "color-orange-900"
+    }
+  },
+  "meta": {
+    "theme": "dark",
+    "updated": "2026-10-05"
+  }
+}

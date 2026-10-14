@@ -1,10 +1,12 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalAnalysis, AxRenewalConfirmation, AxRenewalPageMapping } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 type Row = { oldPath: string; newPath: string; notes: string };
 
@@ -132,18 +134,18 @@ export function PagesSection({
   }
 
   return (
-    <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-      <div className="border-b border-border bg-page px-5 py-3">
-        <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+      <div className="border-b border-surface-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-foreground">Pages</h3>
       </div>
-      <div className="p-5">
-      <p className="text-xs text-muted">
+      <div className="p-4">
+      <p className="text-xs text-muted-foreground">
         Map each old page to its new route. Leave the old side blank for a page that never existed before; leave
         the new side blank for one being retired.
       </p>
 
       {isSuggestion && (
-        <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+        <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
           Old routes and notes below are pages <strong>Run analysis</strong> actually detected — nothing is saved
           yet. Fill in a new route for each, remove any that don&apos;t belong, then <strong>Save pages</strong>.
         </p>
@@ -151,54 +153,58 @@ export function PagesSection({
 
       <div className="mt-4 space-y-2">
         {rows.map((row, i) => (
-          <div key={i} className="grid grid-cols-1 gap-2 rounded-xl border border-border p-3 sm:grid-cols-[1fr_1fr_1.4fr_auto]">
+          <div key={i} className="grid grid-cols-1 gap-2 rounded-xl border border-surface-border p-3 sm:grid-cols-[1fr_1fr_1.4fr_auto]">
             <input
               value={row.oldPath}
               disabled={!canEdit}
               onChange={(e) => updateRow(i, "oldPath", e.target.value)}
               placeholder="Old route (e.g. /products)"
-              className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+              className={inputBaseClass}
             />
             <input
               value={row.newPath}
               disabled={!canEdit}
               onChange={(e) => updateRow(i, "newPath", e.target.value)}
               placeholder="New route"
-              className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+              className={inputBaseClass}
             />
             <input
               value={row.notes}
               disabled={!canEdit}
               onChange={(e) => updateRow(i, "notes", e.target.value)}
               placeholder="Notes"
-              className="rounded-lg border border-border px-2 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+              className={inputBaseClass}
             />
             {canEdit && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="icon"
                 onClick={() => removeRow(i)}
                 aria-label="Remove page"
-                className="flex items-center justify-center rounded-[5px] border border-border p-2 text-muted transition-colors hover:bg-page hover:text-danger"
+                className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
               >
                 <TrashIcon className="h-4 w-4" />
-              </button>
+              </Button>
             )}
           </div>
         ))}
       </div>
 
       {canEdit && (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={addRow}
-          className="mt-3 flex items-center gap-1.5 rounded-[5px] border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+          className="mt-3 border-dashed text-muted-foreground hover:text-foreground"
         >
           <PlusIcon className="h-3.5 w-3.5" />
           Add page
-        </button>
+        </Button>
       )}
 
-      {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
       {canEdit && (
         <div className="mt-3 flex items-center justify-between gap-3">
@@ -207,14 +213,14 @@ export function PagesSection({
           ) : (
             <span />
           )}
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save pages"}
-          </button>
+          </Button>
         </div>
       )}
 

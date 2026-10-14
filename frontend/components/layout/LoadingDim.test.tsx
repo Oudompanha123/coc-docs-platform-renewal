@@ -4,15 +4,18 @@ import { LoadingDim, loadingDimStandaloneHtml } from "./LoadingDim";
 
 /** The full-screen sign-in/sign-out loading overlay. */
 describe("LoadingDim", () => {
-  it("announces its label and shows it under the brand ring", () => {
+  it("announces its label and shows it under shadcn's spinner", () => {
     render(<LoadingDim label="Signing in…" />);
 
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("Signing in…");
     expect(status).toHaveClass("loading-dim");
-    expect(status.querySelector(".cdp-spinner .cdp-spinner-arc")).not.toBeNull();
-    // No longer the twelve-blade port of the old reference.
-    expect(status.querySelector(".lds-spinner")).toBeNull();
+    const spinner = status.querySelector("svg.lucide-loader-circle");
+    expect(spinner).not.toBeNull();
+    expect(spinner).toHaveClass("animate-spin");
+    expect(spinner).toHaveAttribute("aria-hidden", "true");
+    // No longer the brand-gradient ring it replaced.
+    expect(status.querySelector(".cdp-spinner")).toBeNull();
   });
 
   it("says Loading… when no label is given", () => {
@@ -21,11 +24,11 @@ describe("LoadingDim", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Loading…");
   });
 
-  it("writes the same ring into a new tab's standalone page, escaping the label", () => {
+  it("writes the same spinner into a new tab's standalone page, escaping the label", () => {
     const html = loadingDimStandaloneHtml("<b>Opening</b>");
 
-    expect(html).toContain('class="ring"');
-    expect(html).toContain("conic-gradient");
+    expect(html).toContain('class="spinner"');
+    expect(html).not.toContain("conic-gradient");
     expect(html).toContain("&lt;b&gt;Opening&lt;/b&gt;");
     expect(html).not.toContain("<b>Opening</b>");
   });

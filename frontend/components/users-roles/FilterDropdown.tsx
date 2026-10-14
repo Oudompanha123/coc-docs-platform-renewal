@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Check } from "lucide-react";
 import { ChevronDownIcon } from "@/components/layout/icons";
 
 export type FilterOption<T extends string> = {
@@ -11,14 +12,6 @@ export type FilterOption<T extends string> = {
   /** A second, quieter line under the label in the list — e.g. what a role may do. */
   hint?: string;
 };
-
-function CheckGlyph({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-      <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 /**
  * A single-select filter: a trigger button and a listbox panel, in the same
@@ -143,19 +136,19 @@ export function FilterDropdown<T extends string>({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-label={`${label}: ${selected?.label ?? ""}`}
-        className={`flex w-full items-center gap-2 rounded-xl border py-2.5 pl-3 pr-2.5 text-sm shadow-sm transition-colors focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`flex h-9 w-full items-center gap-2 rounded-full border pl-3 pr-2.5 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 ${
           filtering
-            ? "border-brand-purple/40 bg-brand-purple/5 font-semibold text-brand-purple"
-            : "border-border bg-white text-dash-ink hover:bg-[#f8fafc]"
-        } ${open ? "border-brand-purple ring-4 ring-brand-purple/15" : ""}`}
+            ? "border-surface-border bg-secondary font-medium text-foreground"
+            : "border-transparent bg-muted-surface hover:bg-accent"
+        } ${open ? "border-surface-border" : ""}`}
       >
-        <span className={`shrink-0 ${filtering ? "text-brand-purple" : "text-muted"}`}>{icon}</span>
+        <span className={`shrink-0 [&_svg]:size-4 ${filtering ? "text-foreground" : "text-muted-foreground"}`}>{icon}</span>
         {selected?.dotClassName && filtering && (
-          <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${selected.dotClassName}`} />
+          <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${selected.dotClassName}`} />
         )}
         <span className="min-w-0 flex-1 truncate text-left">{selected?.label}</span>
         <ChevronDownIcon
-          className={`h-4 w-4 shrink-0 transition-transform ${filtering ? "text-brand-purple" : "text-muted"} ${open ? "rotate-180" : ""}`}
+          className={`size-4 shrink-0 transition-transform ${filtering ? "text-foreground" : "text-muted-foreground"} ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -165,12 +158,12 @@ export function FilterDropdown<T extends string>({
           role="listbox"
           aria-label={label}
           onKeyDown={onListKeyDown}
-          className={`absolute top-full z-20 mt-2 w-full rounded-xl border border-border bg-white p-1.5 shadow-xl ${
+          className={`absolute top-full z-20 mt-1.5 w-full rounded-xl border border-surface-border bg-popover p-1 text-popover-foreground shadow-lg ${
             align === "right" ? "right-0" : "left-0"
           } ${options.some((o) => o.hint) ? "min-w-[18rem]" : "min-w-[13rem]"}`}
         >
           {variant === "filter" && (
-            <p className="px-2.5 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</p>
+            <p className="px-2 pb-1 pt-1.5 text-xs font-medium text-muted-foreground">{label}</p>
           )}
           {options.map((option, index) => {
             const isSelected = index === selectedIndex;
@@ -184,26 +177,26 @@ export function FilterDropdown<T extends string>({
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => pick(option.value)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/40 ${
+                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${
                   isSelected
-                    ? "bg-brand-purple/10 font-semibold text-brand-purple"
-                    : "text-dash-ink hover:bg-[#f8fafc] focus-visible:bg-[#f8fafc]"
+                    ? "bg-accent font-medium text-foreground"
+                    : "text-foreground hover:bg-accent focus-visible:bg-accent"
                 }`}
               >
                 {option.dotClassName ? (
-                  <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${option.dotClassName}`} />
+                  <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${option.dotClassName}`} />
                 ) : null}
                 {option.hint ? (
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{option.label}</span>
-                    <span className={`block text-xs font-normal ${isSelected ? "text-brand-purple/80" : "text-muted"}`}>
+                    <span className="block text-xs font-normal text-muted-foreground">
                       {option.hint}
                     </span>
                   </span>
                 ) : (
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 )}
-                {isSelected && <CheckGlyph className="h-4 w-4 shrink-0" />}
+                {isSelected && <Check className="size-4 shrink-0" aria-hidden="true" />}
               </button>
             );
           })}

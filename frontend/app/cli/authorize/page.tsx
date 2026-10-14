@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { SessionProvider, useSession } from "@/lib/auth/SessionProvider";
 import { BACKEND_URL, createCliAuthorization } from "@/lib/auth/api";
 import { loopbackCallbackUrl, parseCliAuthorizeRequest } from "@/lib/auth/cliAuthorize";
@@ -71,60 +72,54 @@ function CliAuthorize() {
   let body: React.ReactNode;
   if (!request) {
     body = (
-      <p role="alert" className="text-sm text-danger">
+      <p role="alert" className="text-destructive text-sm">
         This link isn&apos;t a valid sign-in request from claude-team-usage. Run <code>claude-team-usage scan</code> again
         in your terminal.
       </p>
     );
   } else if (status !== "authenticated" || !user) {
-    body = <p className="text-sm text-muted">Checking your sign-in…</p>;
+    body = <p className="text-muted-foreground text-sm">Checking your sign-in…</p>;
   } else if (phase === "done") {
-    body = <p className="text-sm text-dash-ink">Done — return to your terminal. You can close this tab.</p>;
+    body = <p className="text-foreground text-sm">Done — return to your terminal. You can close this tab.</p>;
   } else if (phase === "cancelled") {
-    body = <p className="text-sm text-dash-ink">Cancelled. Nothing was authorized. You can close this tab.</p>;
+    body = <p className="text-foreground text-sm">Cancelled. Nothing was authorized. You can close this tab.</p>;
   } else {
     body = (
       <>
-        <p className="text-sm text-dash-ink">
+        <p className="text-foreground text-sm">
           Allow <strong>claude-team-usage</strong> on <strong>{request.device}</strong> to report your Claude Code usage as{" "}
           <strong>{user.email}</strong>?
         </p>
-        <p className="mt-2 text-xs text-muted">
+        <p className="text-muted-foreground mt-2 text-xs">
           Only approve this if you just ran <code>claude-team-usage</code> yourself. It can report usage for your account
           only, and you can revoke it any time under My Claude Usage → Connected machines. The machine name above was sent
           by the CLI.
         </p>
         {error && (
-          <p role="alert" className="mt-3 text-xs text-danger">
+          <p role="alert" className="text-destructive mt-3 text-xs">
             {error}
           </p>
         )}
-        <div className="mt-5 flex gap-2">
-          <button
+        <div className="mt-6 flex gap-2">
+          <Button
             type="button"
             onClick={() => void authorize()}
             disabled={phase === "working"}
-            className="rounded-full bg-dash-ink px-4 py-2 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60"
           >
             {phase === "working" ? "Authorizing…" : "Authorize"}
-          </button>
-          <button
-            type="button"
-            onClick={cancel}
-            disabled={phase === "working"}
-            className="rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-dash-ink"
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={cancel} disabled={phase === "working"}>
             Cancel
-          </button>
+          </Button>
         </div>
       </>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-page px-4">
-      <main className="w-full max-w-md rounded-[10px] bg-white p-8 shadow-xl">
-        <h1 className="mb-4 text-lg font-bold text-ink">Connect claude-team-usage</h1>
+    <div className="bg-muted-surface flex min-h-screen items-center justify-center px-4">
+      <main className="bg-card text-card-foreground border-surface-border w-full max-w-md rounded-xl border p-6 sm:p-8">
+        <h1 className="mb-4 text-xl font-semibold tracking-tight">Connect claude-team-usage</h1>
         {body}
       </main>
     </div>

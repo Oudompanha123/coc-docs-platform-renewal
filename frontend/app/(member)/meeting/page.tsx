@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 /**
  * The AX team share-out, as a slide deck rather than a scrolling page.
@@ -57,7 +58,7 @@ export default function MeetingDeck() {
   const Slide = SLIDES[index] ?? TitleSlide;
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-background">
       <main className="flex flex-1 items-center justify-center overflow-y-auto px-6 py-12 sm:px-10">
         <div className="w-full max-w-4xl">
           <Slide />
@@ -65,40 +66,44 @@ export default function MeetingDeck() {
       </main>
 
       {/* --- Controls, kept quiet at the bottom -------------------------- */}
-      <footer className="flex items-center justify-between border-t border-border px-6 py-3 sm:px-10">
+      <footer className="flex items-center justify-between border-t border-surface-border px-6 py-3 sm:px-10">
         <div className="flex items-center gap-1.5" aria-hidden="true">
           {SLIDES.map((_, i) => (
             <span
               key={i}
               className={`h-1.5 rounded-full transition-all duration-200 ${
-                i === index ? "w-6 bg-brand-purple" : "w-1.5 bg-border"
+                i === index ? "w-6 bg-primary" : "w-1.5 bg-border"
               }`}
             />
           ))}
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs tabular-nums text-muted">
+          <span className="text-xs tabular-nums text-muted-foreground">
             {index + 1} / {total}
           </span>
-          <button
+          <Button
             type="button"
             onClick={() => go(-1)}
             disabled={index === 0}
             aria-label="Previous slide"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:text-muted/50"
+            variant="outline"
+            size="icon"
+            shape="pill"
           >
             ←
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => go(1)}
             disabled={index === total - 1}
             aria-label="Next slide"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:text-muted/50"
+            variant="outline"
+            size="icon"
+            shape="pill"
           >
             →
-          </button>
+          </Button>
         </div>
       </footer>
     </div>
@@ -111,13 +116,13 @@ export default function MeetingDeck() {
 
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-purple">{children}</p>
+    <p className="text-xs font-bold uppercase tracking-[0.2em] text-foreground">{children}</p>
   );
 }
 
 function Title({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mt-3 text-3xl font-extrabold leading-tight text-dash-ink sm:text-4xl">
+    <h2 className="mt-3 text-3xl font-extrabold leading-tight text-foreground sm:text-4xl">
       {children}
     </h2>
   );
@@ -126,9 +131,9 @@ function Title({ children }: { children: ReactNode }) {
 /** A box in a diagram. `tone` marks who owns that step. */
 function Node({ label, tone = "ai" }: { label: string; tone?: "ai" | "human" | "plain" }) {
   const styles = {
-    ai: "border-brand-purple/30 bg-brand-purple/5 text-brand-purple",
-    human: "border-brand-blue/40 bg-brand-blue/10 text-brand-blue",
-    plain: "border-border bg-white text-dash-ink",
+    ai: "border-primary/30 bg-secondary text-foreground",
+    human: "border-primary/40 bg-secondary text-foreground",
+    plain: "border-surface-border bg-card text-foreground",
   }[tone];
   return (
     <span
@@ -142,7 +147,7 @@ function Node({ label, tone = "ai" }: { label: string; tone?: "ai" | "human" | "
 /** Connector between diagram nodes. Rotates to vertical when the row stacks. */
 function Arrow() {
   return (
-    <span aria-hidden="true" className="text-lg text-muted/60 sm:text-xl">
+    <span aria-hidden="true" className="text-lg text-muted-foreground/60 sm:text-xl">
       <span className="hidden sm:inline">→</span>
       <span className="sm:hidden">↓</span>
     </span>
@@ -157,13 +162,13 @@ function TitleSlide() {
   return (
     <div className="text-center">
       <Eyebrow>[AX] Flow Parallel</Eyebrow>
-      <h1 className="mt-5 text-4xl font-extrabold leading-tight text-dash-ink sm:text-6xl">
+      <h1 className="mt-5 text-4xl font-extrabold leading-tight text-foreground sm:text-6xl">
         How we work with AI
       </h1>
-      <p className="mx-auto mt-6 max-w-xl text-lg text-muted">
+      <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
         What we learned, what we tried, and what we do next.
       </p>
-      <p className="mt-10 text-sm text-muted">Wednesday, 23 September 2026</p>
+      <p className="mt-10 text-sm text-muted-foreground">Wednesday, 23 September 2026</p>
     </div>
   );
 }
@@ -183,10 +188,10 @@ function AgendaSlide() {
       <ol className="mt-10 space-y-5">
         {AGENDA.map((item, i) => (
           <li key={item} className="flex items-start gap-5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-base font-bold text-brand-purple">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-base font-bold text-foreground">
               {i + 1}
             </span>
-            <p className="pt-1 text-lg text-dash-ink sm:text-xl">{item}</p>
+            <p className="pt-1 text-lg text-foreground sm:text-xl">{item}</p>
           </li>
         ))}
       </ol>
@@ -207,14 +212,14 @@ function HarnessSlide() {
       <Title>What the harness is</Title>
       <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3">
         {HARNESS_FACTS.map((fact) => (
-          <div key={fact.label} className="rounded-xl border border-border p-6">
-            <p className="text-5xl font-extrabold text-brand-purple">{fact.value}</p>
-            <p className="mt-2 text-base font-bold text-dash-ink">{fact.label}</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{fact.detail}</p>
+          <div key={fact.label} className="rounded-xl border border-surface-border bg-card p-5">
+            <p className="text-5xl font-extrabold text-foreground">{fact.value}</p>
+            <p className="mt-2 text-base font-bold text-foreground">{fact.label}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{fact.detail}</p>
           </div>
         ))}
       </div>
-      <p className="mt-8 border-l-[3px] border-brand-blue pl-5 text-lg leading-relaxed text-dash-ink">
+      <p className="mt-8 border-l-[3px] border-primary pl-5 text-lg leading-relaxed text-foreground">
         The harness is not about the AI writing more code. It is about the work leaving a trail —
         a decision becomes a document, a requirement gets an ID, and a person signs off.
       </p>
@@ -239,7 +244,7 @@ function WorkflowSlide() {
             <div className="flex flex-col items-center gap-2">
               <Node label={step} />
               {GATES[i] ? (
-                <span className="rounded-full bg-brand-blue/10 px-2.5 py-1 text-[11px] font-bold text-brand-blue">
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-foreground">
                   {GATES[i]} · human
                 </span>
               ) : (
@@ -254,17 +259,17 @@ function WorkflowSlide() {
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="rounded-xl border border-brand-purple/30 bg-brand-purple/5 p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-brand-purple">The AI does</p>
-          <ul className="mt-3 space-y-2 text-base text-dash-ink">
+        <div className="rounded-xl border border-primary/30 bg-secondary p-6">
+          <p className="text-sm font-medium text-foreground">The AI does</p>
+          <ul className="mt-3 space-y-2 text-base text-foreground">
             <li>Drafts the plan, the code, the tests</li>
             <li>Writes down why, as an ADR</li>
             <li>Reviews its own work first</li>
           </ul>
         </div>
-        <div className="rounded-xl border border-brand-blue/40 bg-brand-blue/10 p-6">
-          <p className="text-sm font-bold uppercase tracking-wide text-brand-blue">We decide</p>
-          <ul className="mt-3 space-y-2 text-base text-dash-ink">
+        <div className="rounded-xl border border-primary/40 bg-primary/10 p-6">
+          <p className="text-sm font-medium text-foreground">We decide</p>
+          <ul className="mt-3 space-y-2 text-base text-foreground">
             <li>Is this the right problem?</li>
             <li>Is this design the one we want?</li>
             <li>Approve the gate — or send it back</li>
@@ -285,7 +290,7 @@ function A2ASlide() {
 
       <div className="mt-10 flex flex-col items-center gap-3">
         <Node label="One request from us" tone="human" />
-        <span aria-hidden="true" className="text-xl text-muted/60">
+        <span aria-hidden="true" className="text-xl text-muted-foreground/60">
           ↓
         </span>
         <Node label="Team Leader" tone="plain" />
@@ -293,7 +298,7 @@ function A2ASlide() {
         {/* The fan-out. A plain wrapping row rather than drawn connectors:
             five labelled boxes side by side read as "at the same time"
             without needing lines, and it survives a narrow screen. */}
-        <span aria-hidden="true" className="text-xl text-muted/60">
+        <span aria-hidden="true" className="text-xl text-muted-foreground/60">
           ↓
         </span>
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -301,19 +306,19 @@ function A2ASlide() {
             <Node key={agent} label={agent} />
           ))}
         </div>
-        <p className="text-sm font-medium text-muted">…all working at the same time</p>
+        <p className="text-sm font-medium text-muted-foreground">…all working at the same time</p>
 
-        <span aria-hidden="true" className="text-xl text-muted/60">
+        <span aria-hidden="true" className="text-xl text-muted-foreground/60">
           ↓
         </span>
         <Node label="One report back" tone="plain" />
-        <span aria-hidden="true" className="text-xl text-muted/60">
+        <span aria-hidden="true" className="text-xl text-muted-foreground/60">
           ↓
         </span>
         <Node label="We read it and decide" tone="human" />
       </div>
 
-      <p className="mt-10 text-center text-lg text-muted">
+      <p className="mt-10 text-center text-lg text-muted-foreground">
         Five specialists, one conversation to follow — not five.
       </p>
     </div>
@@ -338,7 +343,7 @@ function PresentersSlide() {
     <div>
       <Eyebrow>Over to you</Eyebrow>
       <Title>Who shares what</Title>
-      <p className="mt-3 text-lg text-muted">
+      <p className="mt-3 text-lg text-muted-foreground">
         A few minutes each — what you tried, what worked, what you would use again.
       </p>
 
@@ -346,16 +351,16 @@ function PresentersSlide() {
         {PRESENTERS.map((person, i) => (
           <div
             key={person.english}
-            className="flex items-center gap-4 rounded-xl border border-border p-5"
+            className="flex items-center gap-4 rounded-xl border border-surface-border bg-card p-4"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-base font-bold text-white">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
               {i + 1}
             </span>
             <div>
               {/* Pretendard, not Inter: Inter carries no Hangul and the
                   browser would silently fall back to whatever it has. */}
-              <p className="font-pretendard text-lg font-bold text-dash-ink">{person.korean}</p>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              <p className="font-pretendard text-lg font-semibold text-foreground">{person.korean}</p>
+              <p className="text-xs font-medium text-muted-foreground">
                 {person.english}
               </p>
             </div>

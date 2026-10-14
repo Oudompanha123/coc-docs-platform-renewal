@@ -4,7 +4,7 @@
 export function EmptyContentIllustration() {
   return (
     <div className="relative mx-auto h-40 w-48" aria-hidden="true">
-      <div className="absolute inset-0 rounded-full bg-brand-purple/15 blur-3xl" />
+      <div className="absolute inset-0 rounded-full bg-primary/15 blur-3xl" />
 
       <svg viewBox="0 0 160 150" className="absolute inset-x-0 bottom-0 mx-auto h-32 w-40">
         <defs>
@@ -37,9 +37,9 @@ export function EmptyContentIllustration() {
         <rect x="48" y="34" width="86" height="86" rx="20" fill="#1a1030" fillOpacity="0.08" />
       </svg>
 
-      <span className="absolute left-6 top-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-purple bg-white text-base font-bold text-brand-purple shadow-md">
+      <span className="absolute left-6 top-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary bg-card text-base font-bold text-foreground shadow-md">
         ?
-        <span className="absolute -bottom-1 left-2 h-2.5 w-2.5 rotate-45 border-b-2 border-r-2 border-brand-purple bg-white" />
+        <span className="absolute -bottom-1 left-2 h-2.5 w-2.5 rotate-45 border-b-2 border-r-2 border-primary bg-card" />
       </span>
     </div>
   );

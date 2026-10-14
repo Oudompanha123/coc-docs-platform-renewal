@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Colophon family mark: recto / verso. One rule crosses the fold and flips polarity.
+       Text colour = left leaf, outline, right half of the rule; contrast colour = the reverse. -->
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="var(--brand-mark-contrast, #fff)"/>
+  <path d="M32 3H18A15 15 0 0 0 3 18v28a15 15 0 0 0 15 15h14z" fill="currentColor"/>
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="none" stroke="currentColor" stroke-width="4.5"/>
+  <path d="M32 28H18a4 4 0 0 0 0 8h14z" fill="var(--brand-mark-contrast, #fff)"/>
+  <path d="M32 28h14a4 4 0 0 1 0 8H32z" fill="currentColor"/>
+</svg>

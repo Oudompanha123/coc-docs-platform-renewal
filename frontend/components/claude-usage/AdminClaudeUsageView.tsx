@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonStatCards, SkeletonTable } from "@/components/ui/skeleton";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -10,7 +11,9 @@ import {
   UsersIcon,
   WarningIcon,
 } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
+import { DisabledMembersPanel } from "@/components/claude-usage/DisabledMembersPanel";
 import { RemoveMemberModal } from "@/components/claude-usage/RemoveMemberModal";
 import { UsageChart } from "@/components/claude-usage/UsageChart";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
@@ -75,7 +78,7 @@ function rangeLabel(period: Period, offset: number, from: string, to: string): s
 // Hoisted, not inline: AppShell republishes the page header whenever this
 // element's identity changes, so an inline literal re-rendered the topbar on
 // every render of this page — including opening and closing a user's detail.
-const TITLE_ICON = <BarChartIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
+const TITLE_ICON = <BarChartIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />;
 
 export function AdminClaudeUsageView() {
   const [period, setPeriod] = useState<Period>("week");
@@ -147,6 +150,7 @@ export function AdminClaudeUsageView() {
   }
 
   const members = dashboard?.members ?? [];
+  const disabledMembers = dashboard?.disabledMembers ?? [];
   const totals = dashboard?.totals ?? {
     inputTokens: 0,
     outputTokens: 0,
@@ -165,65 +169,67 @@ export function AdminClaudeUsageView() {
       <ClaudeUsageTabs />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex items-center gap-1 self-start rounded-[10px] border border-border bg-white p-1 shadow-sm">
-          <button
+        <div className="inline-flex h-9 items-center gap-1 self-start rounded-control border border-surface-border bg-card p-1">
+          <Button
             type="button"
+            variant="ghost"
             aria-label="Previous period"
             onClick={() => setOffset((o) => Math.max(-60, o - 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
+            className="size-7 p-0 text-muted-foreground"
           >
-            <ChevronLeftIcon className="h-4 w-4" />
-          </button>
+            <ChevronLeftIcon className="size-4" />
+          </Button>
           {(["day", "week", "month"] as Period[]).map((unit) => (
-            <button
+            <Button
               key={unit}
               type="button"
+              variant={period === unit ? "default" : "ghost"}
               onClick={() => handlePeriodChange(unit)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize transition-colors ${
-                period === unit ? "bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow" : "text-muted hover:text-dash-ink"
-              }`}
+              className={`h-7 px-3 font-medium capitalize ${period === unit ? "" : "text-muted-foreground hover:text-foreground"}`}
             >
               {unit}
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
             type="button"
+            variant="ghost"
             aria-label="Next period"
             disabled={offset >= 0}
             onClick={() => setOffset((o) => Math.min(0, o + 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="size-7 p-0 text-muted-foreground"
           >
-            <ChevronRightIcon className="h-4 w-4" />
-          </button>
-          <span className="ml-2 pr-2 text-sm text-muted">
+            <ChevronRightIcon className="size-4" />
+          </Button>
+          <span className="ml-2 pr-2 text-sm text-muted-foreground">
             {dashboard ? rangeLabel(period, offset, dashboard.from, dashboard.to) : RANGE_LABEL[period]}
           </span>
         </div>
       </div>
 
       {awaitingCliUpload && (
-        <div role="status" className="mt-4 rounded-[10px] border border-border bg-page px-4 py-3 text-sm text-dash-ink">
+        <div role="status" className="mt-4 rounded-xl border border-surface-border bg-muted-surface px-4 py-3 text-sm text-foreground">
           Signed in. Your latest usage will appear here once <code className="font-mono text-xs">claude-team-usage</code>{" "}
           finishes uploading.
         </div>
       )}
 
       {loadError && (
-        <div role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {loadError}
         </div>
       )}
 
       {actionError && (
-        <div role="alert" className="mt-4 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {actionError}
         </div>
       )}
 
       {loading ? (
-        <p className="mt-4 rounded-[10px] border border-border bg-white px-4 py-8 text-center text-sm text-muted">
-          Loading Claude usage…
-        </p>
+        <SkeletonGroup label="Loading Claude usage" className="mt-4">
+          <SkeletonStatCards />
+          <SkeletonTable className="mt-4" rows={8} columns={5} />
+        </SkeletonGroup>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -231,50 +237,58 @@ export function AdminClaudeUsageView() {
               icon={BarChartIcon}
               label="Total Tokens"
               value={formatTokensFull(totals.totalTokens)}
-              tone="purple"
               note={dashboard ? rangeLabel(period, offset, dashboard.from, dashboard.to) : RANGE_LABEL[period]}
             />
             <UsageStatCard
               icon={CoinsIcon}
               label="Cost"
               value={`$${totals.costUsd.toFixed(2)}`}
-              tone="blue"
               note="API-equivalent estimate, not a charge"
             />
             <UsageStatCard
               icon={UsersIcon}
               label="Active Users"
               value={String(dashboard?.activeUsers ?? 0)}
-              tone="green"
               note={`of ${trackedMemberCount(members)} tracked`}
             />
             <UsageStatCard
               icon={WarningIcon}
               label="Near Limit"
               value={String(dashboard?.nearLimit ?? 0)}
-              tone="orange"
               note="≥ 70% of soft budget"
             />
           </div>
 
-          <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-dash-ink">Daily tokens by user</h2>
-            <p className="text-xs text-muted">Stacked by teammate, current active reporters only</p>
-            <div className="mt-5">
+          <section className="mt-4 rounded-xl border border-surface-border bg-card p-4">
+            <h2 className="text-sm font-semibold text-foreground">Daily tokens by user</h2>
+            <p className="text-xs text-muted-foreground">Stacked by teammate, current active reporters only</p>
+            <div className="mt-4">
               <UsageChart data={dashboard?.daily ?? []} members={members} />
             </div>
-          </div>
+          </section>
 
-          <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold text-dash-ink">Per-user usage</h2>
+          <section className="mt-4 overflow-hidden rounded-xl border border-surface-border bg-card">
+            <h2 className="px-4 pb-3 pt-4 text-sm font-semibold text-foreground">Per-user usage</h2>
             <UsageTable members={members} onSelect={(member, avatarColor) => setDetail({ member, avatarColor })} />
-          </div>
+          </section>
+
+          <DisabledMembersPanel
+            members={disabledMembers}
+            onSelect={(member, avatarColor) => setDetail({ member, avatarColor })}
+            onEnable={handleRestore}
+          />
         </>
       )}
 
       {detail && (
         <UserActivityModal
-          member={members.find((m) => m.id === detail.member.id) ?? detail.member}
+          // Looked up in both lists, so the button flips in place after
+          // Enable/Disable moves the member from one to the other.
+          member={
+            members.find((m) => m.id === detail.member.id) ??
+            disabledMembers.find((m) => m.id === detail.member.id) ??
+            detail.member
+          }
           avatarColor={detail.avatarColor}
           onClose={closeDetail}
           onRemove={handleRemove}

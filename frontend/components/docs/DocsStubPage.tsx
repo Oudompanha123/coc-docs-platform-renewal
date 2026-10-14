@@ -10,17 +10,17 @@ import { TagIcon } from "@/components/layout/icons";
 export function DocsStubPage({ header, item }: { header: { label: string }; item: { label: string } }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-purple">{header.label}</p>
-      <h1 className="mt-1 text-3xl font-bold text-ink">{item.label}</h1>
+      <p className="text-sm font-semibold text-foreground">{header.label}</p>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{item.label}</h1>
 
-      <div className="mt-8 flex flex-col items-center justify-center rounded-[10px] border border-border bg-page p-16 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-muted shadow-sm">
-          <TagIcon className="h-6 w-6" />
+      <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-border bg-muted-surface/50 px-6 py-12 text-center">
+        <div className="flex size-10 items-center justify-center rounded-lg border border-surface-border bg-card text-muted-foreground">
+          <TagIcon className="size-5" />
         </div>
-        <h2 className="mt-4 text-lg font-bold text-ink">
+        <h2 className="mt-3 text-base font-semibold text-foreground">
           {header.label} — {item.label} isn&apos;t written yet
         </h2>
-        <p className="mt-1 max-w-sm text-sm text-muted">
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
           This is a <strong>Phase 2</strong> structural stub. Real content gets cloned from the <strong>jexmcp3.0</strong> source in{" "}
           <strong>Phase 3</strong>.
         </p>

@@ -89,7 +89,7 @@ export function ProductTabBar({
       // Measured off the active tab's own box (not `inset-y-0` against the
       // scroller, which also includes its own `pb-1` padding) — otherwise
       // the pill comes out taller than a tab's real box, and than the same
-      // box's own `hover:bg-page` background on an inactive tab.
+      // box's own `hover:bg-accent` background on an inactive tab.
       if (active) {
         setPill({
           left: active.offsetLeft,
@@ -129,7 +129,7 @@ export function ProductTabBar({
 
       <div className={pinned ? "fixed inset-x-0 top-5 z-20" : "relative"}>
         <div className={pinned ? "mx-auto max-w-5xl px-6" : ""}>
-          <div ref={barRef} className="rounded-[10px] bg-white p-2 shadow-md">
+          <div ref={barRef} className="rounded-xl border border-surface-border bg-card p-1">
             <div className="relative">
               {/* Centered by auto margins on the first/last tab, not
                   `justify-center`: auto margins collapse to 0 once the tabs
@@ -137,14 +137,14 @@ export function ProductTabBar({
                   `justify-center` would push out of reach on the left. */}
               <div
                 ref={scrollerRef}
-                className={`no-scrollbar relative flex gap-2 overflow-x-auto ${
+                className={`no-scrollbar relative flex gap-1 overflow-x-auto ${
                   align === "center" ? "[&>a:first-of-type]:ml-auto [&>a:last-of-type]:mr-auto" : ""
                 }`}
               >
                 {pill && (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute rounded-full bg-gradient-to-r from-brand-purple to-brand-blue shadow transition-[left,top,width,height] duration-200 ease-out"
+                    className="pointer-events-none absolute rounded-full bg-primary transition-[left,top,width,height] duration-200 ease-out"
                     style={{ left: pill.left, top: pill.top, width: pill.width, height: pill.height }}
                   />
                 )}
@@ -156,8 +156,8 @@ export function ProductTabBar({
                       key={item.slug || "index"}
                       ref={active ? activeRef : undefined}
                       href={hrefFor(productKey, item.slug)}
-                      className={`relative shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-200 ${
-                        active ? "text-white" : "text-muted hover:bg-page hover:text-ink"
+                      className={`relative flex h-8 shrink-0 items-center whitespace-nowrap rounded-full px-3 text-sm font-medium transition-colors duration-200 ${
+                        active ? "text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       }`}
                     >
                       {item.label}
@@ -169,7 +169,7 @@ export function ProductTabBar({
               {overflowing && (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-white to-transparent"
+                  className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-card to-transparent"
                 />
               )}
             </div>

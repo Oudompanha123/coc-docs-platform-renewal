@@ -1,0 +1,509 @@
+{
+  "families": [
+    "Geist",
+    "Inter",
+    "Overpass Mono"
+  ],
+  "scale": {
+    "heading-1": {
+      "fontFamily": "Geist",
+      "fontSize": "clamp(3rem,15vw,15rem)",
+      "fontWeight": "700",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "heading-2": {
+      "fontFamily": "Geist",
+      "fontSize": "2.75rem",
+      "fontWeight": "700",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "body": {
+      "fontFamily": "Inter",
+      "fontSize": "13px",
+      "fontWeight": "400",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "caption": {
+      "fontFamily": "Inter",
+      "fontSize": "15px",
+      "fontWeight": "400",
+      "lineHeight": null,
+      "source": "css"
+    },
+    "code": {
+      "fontFamily": "Overpass Mono",
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "lineHeight": null,
+      "source": "css"
+    }
+  },
+  "fontFaces": [
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/2c55a0e60120577a-s.03ez25a9g3i0n.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/9c72aa0f40e4eef8-s.3i9rha7jpxn0q.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/ad66f9afd8947f86-s.2o7ko1d-5m1xu.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/5476f68d60460930-s.1ee5w62fj497l.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/2bbe8d2671613f1f-s.1way2z9fj6cig.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/immutable/media/83afe278b6a6bb3c-s.p.45535valc9rzk.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Geist",
+      "src": "/_next/static/immutable/media/fef07dbb0973bf53-s.00az9qtie3ho1.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Geist",
+      "src": "/_next/static/immutable/media/8a480f0b521d4e75-s.3j-a226dh71aj.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Geist",
+      "src": "/_next/static/immutable/media/53b9e256198e5412-s.2gwoz23eiro2t.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Geist",
+      "src": "/_next/static/immutable/media/7178b3e590c64307-s.0i3h3th1vs4m7.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Geist",
+      "src": "/_next/static/immutable/media/caa3a2e1cccd8315-s.p.0zr6hhvz-h9nw.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/572c13468b8cff87-s.1mq5s36pj0pak.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/62d4b50592542c9f-s.1u6j2dgtvkhof.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/38772d1e0cde909c-s.3dbx4-_3lrmrn.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/a0ffaa6a9384d9d3-s.1u_-sc7tcpy__.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/fad568eea626db0e-s.2420v9bshvb4k.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/ccee61546c0358b7-s.3xl3ybfsmj-am.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/8fcf71678f67d0c5-s.01pm4i-1drugi.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/f7d6090e8b3debad-s.1rjy8ctfj1__1.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Roboto",
+      "src": "/_next/static/immutable/media/ce62453a442c7f35-s.p.3l4zvto3p0stf.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Plus Jakarta Sans",
+      "src": "/_next/static/immutable/media/0b1dc8ddaa74ba49-s.1w1m1wqmjasxa.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Plus Jakarta Sans",
+      "src": "/_next/static/immutable/media/e629b5bc06499d58-s.1y3v-klcv8xov.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Plus Jakarta Sans",
+      "src": "/_next/static/immutable/media/1a099d89ee94ee96-s.15dvesjzf7814.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Plus Jakarta Sans",
+      "src": "/_next/static/immutable/media/fba5a26ea33df6a3-s.p.08ssgmy_tb90r.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Montserrat",
+      "src": "/_next/static/immutable/media/8298327da6d5bcce-s.0vdai6er2bzon.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Montserrat",
+      "src": "/_next/static/immutable/media/44fac91e6f2d2b1b-s.3xwp9-ll1pnw_.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Montserrat",
+      "src": "/_next/static/immutable/media/2b402d8aebffd579-s.370ev4_4-yiay.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Montserrat",
+      "src": "/_next/static/immutable/media/a88409fdd7dc121c-s.41r31qmhr7_rd.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Montserrat",
+      "src": "/_next/static/immutable/media/e8f2fbee2754df70-s.p.1gavkj72q9u43.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/41e95f694c5c4549-s.3xzwb88tucl-q.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/6c55a692938ebbbc-s.20csvlgbb63y1.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/a218039a3287bcfd-s.p.17e3l4txdrufi.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/bdc7e24a509eb931-s.0ewdtdf6ai7o-.woff2",
+      "format": "woff2",
+      "weight": "500"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/0da9c7f357bd9d4d-s.03ilua6xb7p2f.woff2",
+      "format": "woff2",
+      "weight": "500"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/8e6fa89aa22d24ec-s.p.1bg6trwi21i5q.woff2",
+      "format": "woff2",
+      "weight": "500"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/0a7740363b4d4863-s.2bakuypqc5dou.woff2",
+      "format": "woff2",
+      "weight": "600"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/5f9d24ebef5d5292-s.0fg7ryy-bp2x_.woff2",
+      "format": "woff2",
+      "weight": "600"
+    },
+    {
+      "family": "Poppins",
+      "src": "/_next/static/immutable/media/e2334d715941921e-s.p.2g9xiodaln20i.woff2",
+      "format": "woff2",
+      "weight": "600"
+    },
+    {
+      "family": "Overpass Mono",
+      "src": "/_next/static/immutable/media/c9ac8022747e5bc6-s.1edcimvavlx1t.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Overpass Mono",
+      "src": "/_next/static/immutable/media/e107f9632452e134-s.076gk9104-itc.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Overpass Mono",
+      "src": "/_next/static/immutable/media/9eb1fa291a52974e-s.32ez4aq0wy5vb.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Overpass Mono",
+      "src": "/_next/static/immutable/media/585ad3fb8bf41c01-s.2opfr29dwkml-.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Overpass Mono",
+      "src": "/_next/static/immutable/media/b0fb7b4004470e87-s.p.0e-3rvg6xaqtn.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/17603af13aa8a542-s.2g4nisyghtt2-.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/207e57240b1809b2-s.2qfbq9_2wyj1k.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/00231884809ac59e-s.07ec9g5v78m7o.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/f05228a5f9ec0eae-s.p.0j0gw2kxf2_9b.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/9dc791b0865fd39f-s.3mw--x2ogezgd.woff2",
+      "format": "woff2",
+      "weight": "700"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/c29509b8a0bee3b9-s.1o0ojhe9yj_cm.woff2",
+      "format": "woff2",
+      "weight": "700"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/261abb472e2873a9-s.17bxyb1sa_tt2.woff2",
+      "format": "woff2",
+      "weight": "700"
+    },
+    {
+      "family": "PT Sans",
+      "src": "/_next/static/immutable/media/536b4d72a397ec90-s.p.13u6rkil_n81y.woff2",
+      "format": "woff2",
+      "weight": "700"
+    },
+    {
+      "family": "Hedvig Letters Serif",
+      "src": "/_next/static/immutable/media/9fe5b2839959846b-s.2usvc71oo-6og.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Hedvig Letters Serif",
+      "src": "/_next/static/immutable/media/388fdbbaaecd531b-s.25y66l2qf_elj.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Hedvig Letters Serif",
+      "src": "/_next/static/immutable/media/04bda4e1ea3bb7b5-s.1s7crk0ksuren.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Hedvig Letters Serif",
+      "src": "/_next/static/immutable/media/387c923d20582ec7-s.p.2m62wczl7f17o.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Kumbh Sans",
+      "src": "/_next/static/immutable/media/832470c8ee2865c1-s.2_zebmi8cwgmq.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Kumbh Sans",
+      "src": "/_next/static/immutable/media/db7561691aaf2e45-s.2k1_-ibgbd24f.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Kumbh Sans",
+      "src": "/_next/static/immutable/media/f068b75845fa2172-s.01fo1kfnnth14.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Kumbh Sans",
+      "src": "/_next/static/immutable/media/5f58f544217b9ef1-s.p.2zgtmnb-_k4qv.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Outfit",
+      "src": "/_next/static/immutable/media/850716c16cd0e201-s.1lt0x_ivq6ud2.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Outfit",
+      "src": "/_next/static/immutable/media/064198ea55a83123-s.p.0qhqspf_sqmmr.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "DM Sans",
+      "src": "/_next/static/immutable/media/c3cb240f9c892514-s.270md_-rr62el.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "DM Sans",
+      "src": "/_next/static/immutable/media/5c285b27cdda1fe8-s.p.0lsanbtneewqp.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/2c55a0e60120577a-s.0bjc5tiuqdqro.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/9c72aa0f40e4eef8-s.0m6w47a4e5dy9.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/ad66f9afd8947f86-s.11u06r12fd6v_.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/5476f68d60460930-s.0wxq9webf.ew4.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/2bbe8d2671613f1f-s.067x_6k0k23tk.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/1bffadaabf893a1e-s.16ipb6fqu393i.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "Inter",
+      "src": "/_next/static/media/83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2",
+      "format": "woff2",
+      "weight": "100"
+    },
+    {
+      "family": "calSansHeading",
+      "src": "/_next/static/media/CalSans_SemiBold-s.p.0_1kxnktzihme.woff2",
+      "format": "woff2",
+      "weight": "600"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/5e538eebf9acc4c2-s.0y2..~~2d1_g0.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/64f2913d21bf1e57-s.0iaoindtgqbux.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/0fea445e7d7518dc-s.08jxavmc75le5.woff2",
+      "format": "woff2",
+      "weight": "400"
+    },
+    {
+      "family": "Mynerve",
+      "src": "/_next/static/media/50b0ede820165bbf-s.p.0a5m6rcj.nkdi.woff2",
+      "format": "woff2",
+      "weight": "400"
+    }
+  ],
+  "rules": {
+    "maxSizesPerScreen": 4,
+    "headingWeightRange": "600-700",
+    "bodyWeight": 400,
+    "lineHeightBody": 1.5,
+    "lineHeightHeading": 1.2
+  }
+}

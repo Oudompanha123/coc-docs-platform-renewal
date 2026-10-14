@@ -3,7 +3,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MeResponse } from "@/lib/auth/api";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-const { params, session } = vi.hoisted(() => ({
+const DEFAULT_NAV: NavProduct[] = [
+  {
+    key: "ax-renewal-docs",
+    label: "AX Renewal",
+    icon: "layers",
+    minRole: "user",
+    items: [{ slug: "", label: "Overview" } as NavProduct["items"][number]],
+  },
+  {
+    key: "jex3-0",
+    label: "JEX 3.0",
+    icon: "document",
+    minRole: "user",
+    items: [{ slug: "", label: "Overview" } as NavProduct["items"][number]],
+  },
+];
+
+const { params, session, navProducts } = vi.hoisted(() => ({
   params: { current: { productKey: "ax-renewal-docs" } as { productKey: string; slug?: string } },
   session: {
     current: { status: "authenticated", user: { role: "user" } } as {
@@ -11,6 +28,7 @@ const { params, session } = vi.hoisted(() => ({
       user: Partial<MeResponse> | null;
     },
   },
+  navProducts: { current: undefined as unknown as NavProduct[] },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -21,16 +39,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/auth/SessionProvider", () => ({ useSession: () => session.current }));
 vi.mock("@/lib/docs/useNavStructure", () => ({
-  useNavStructure: (): NavProduct[] => [
-    {
-      key: "ax-renewal-docs",
-      label: "AX Renewal",
-      icon: "layers",
-      minRole: "user",
-      items: [{ slug: "", label: "Overview" } as NavProduct["items"][number]],
-    },
-    { key: "jex3-0", label: "JEX 3.0", icon: "document", minRole: "user", items: [{ slug: "", label: "Overview" } as NavProduct["items"][number]] },
-  ],
+  useNavStructure: (): NavProduct[] => navProducts.current,
 }));
 // The page chrome around the gate is not what is under test here.
 vi.mock("@/components/home/MemberHeader", () => ({ MemberHeader: () => <header>header</header> }));
@@ -49,6 +58,10 @@ function renderAs(role: MeResponse["role"] | null, status: "loading" | "authenti
     </ProductLayout>,
   );
 }
+
+beforeEach(() => {
+  navProducts.current = DEFAULT_NAV;
+});
 
 /** Products → AX Renewal (ADR-090): a plain user is told no, not shown the docs. */
 describe("product docs layout — AX Renewal", () => {
@@ -91,5 +104,50 @@ describe("product docs layout — AX Renewal", () => {
     renderAs(null, "loading");
 
     expect(screen.getByText("docs content")).toBeInTheDocument();
+  });
+});
+
+/** The tab bar only earns its place once there's something to switch between. */
+describe("product docs layout — tab bar visibility by item count", () => {
+  function withItems(count: number) {
+    const items = Array.from({ length: count }, (_, i) => ({
+      slug: i === 0 ? "" : `item-${i}`,
+      label: `Item ${i}`,
+    })) as NavProduct["items"];
+    navProducts.current = [
+      { key: "jex3-0", label: "JEX 3.0", icon: "document", minRole: "user", items },
+    ];
+    params.current = { productKey: "jex3-0" };
+  }
+
+  it("hides the tab bar for a single item — content still renders", () => {
+    withItems(1);
+    renderAs("user");
+
+    expect(screen.queryByText("tabs")).not.toBeInTheDocument();
+    expect(screen.getByText("docs content")).toBeInTheDocument();
+  });
+
+  it("shows the tab bar for two items", () => {
+    withItems(2);
+    renderAs("user");
+
+    expect(screen.getByText("tabs")).toBeInTheDocument();
+    expect(screen.getByText("docs content")).toBeInTheDocument();
+  });
+
+  it("shows the tab bar for more than two items", () => {
+    withItems(4);
+    renderAs("user");
+
+    expect(screen.getByText("tabs")).toBeInTheDocument();
+  });
+
+  it("renders neither the tab bar nor content for zero items (existing empty state)", () => {
+    withItems(0);
+    renderAs("user");
+
+    expect(screen.queryByText("tabs")).not.toBeInTheDocument();
+    expect(screen.queryByText("docs content")).not.toBeInTheDocument();
   });
 });

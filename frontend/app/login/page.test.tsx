@@ -587,3 +587,4 @@ describe("LoginPage browser autofill", () => {
     expect(store).not.toHaveBeenCalled();
   });
 });
+

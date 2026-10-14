@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 
 describe("SettingsSideMenu", () => {
-  it("renders Account, Appearance, Notifications, Claude Usage, Connected accounts, Security, Sessions, then Log out — no Profile", () => {
+  it("renders Account, Appearance, Notifications, Claude Usage, Attendance, Connected accounts, Security, Sessions, then Log out — no Profile", () => {
     renderMenu();
 
     const items = screen.getAllByRole("tab").map((el) => el.textContent);
@@ -50,11 +50,23 @@ describe("SettingsSideMenu", () => {
     expect(items.some((t) => t === "Appearance")).toBe(true);
     expect(items.some((t) => t === "Notifications")).toBe(true);
     expect(items.some((t) => t === "Claude Usage")).toBe(true);
+    expect(items.some((t) => t === "Attendance")).toBe(true);
     expect(items.some((t) => t === "Connected accounts")).toBe(true);
     expect(items.some((t) => t === "Security")).toBe(true);
     expect(items.some((t) => t === "Sessions")).toBe(true);
     expect(screen.queryByRole("tab", { name: "Profile" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /log out/i }).length).toBe(1);
+  });
+
+  it("puts Password & 2FA directly below Security and above Sessions, with its own icon", () => {
+    renderMenu();
+    const items = screen.getAllByRole("tab").map((el) => el.textContent);
+    const desktop = items.slice(0, items.length / 2);
+    const index = desktop.indexOf("Password & 2FA");
+
+    expect(desktop[index - 1]).toBe("Security");
+    expect(desktop[index + 1]).toBe("Sessions");
+    expect(screen.getAllByRole("tab", { name: "Password & 2FA" })[0]!.querySelector("svg")).not.toBeNull();
   });
 
   it("puts Sessions last among the tabs, after Security", () => {
@@ -75,6 +87,22 @@ describe("SettingsSideMenu", () => {
 
     expect(claudeIndex).toBeGreaterThan(notifIndex);
     expect(claudeIndex).toBeLessThan(connectedIndex);
+  });
+
+  it("puts Attendance right under Claude Usage", () => {
+    renderMenu();
+    const items = screen.getAllByRole("tab").map((el) => el.textContent);
+
+    expect(items.indexOf("Attendance")).toBe(items.indexOf("Claude Usage") + 1);
+  });
+
+  it.each(["developer", "reviewer", "lead"])("still shows Attendance for %s, who has no Claude Usage tab", (role) => {
+    sessionRole.current = role;
+    renderMenu();
+    const items = screen.getAllByRole("tab").map((el) => el.textContent);
+
+    expect(items).toContain("Attendance");
+    expect(items.indexOf("Attendance")).toBe(items.indexOf("Notifications") + 1);
   });
 
   it.each(["user", "admin", "super_admin"])("shows Claude Usage for %s", (role) => {

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { HomeIcon, PlayIcon, QuestionIcon, SparklesIcon, TagIcon } from "@/components/layout/icons";
 import { hrefFor, productForPathname } from "@/lib/docs/nav-routing";
 import { useNavStructure } from "@/lib/docs/useNavStructure";
+import { SimpleSelect } from "@/components/ui/select";
 
 const DOCS_NAV = [
   { label: "Overview", href: "/docs", icon: HomeIcon },
@@ -24,8 +25,8 @@ export function DocsMobileNav() {
   const activeProduct = products ? (productForPathname(products, pathname) ?? products[0]) : undefined;
 
   return (
-    <div className="border-b border-border lg:hidden">
-      <nav className="flex gap-1 overflow-x-auto px-4 py-3">
+    <div className="border-b border-surface-border lg:hidden">
+      <nav className="flex gap-1 overflow-x-auto px-4 py-2">
         {DOCS_NAV.map((item) => {
           const active = pathname === item.href;
           const Icon = item.icon;
@@ -33,11 +34,11 @@ export function DocsMobileNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+              className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors ${
+                active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="size-4" />
               {item.label}
             </Link>
           );
@@ -45,23 +46,18 @@ export function DocsMobileNav() {
       </nav>
 
       {activeProduct && (
-        <div className="flex items-center gap-2 border-t border-border px-4 py-2.5">
-          <select
+        <div className="flex items-center gap-2 border-t border-surface-border px-4 py-2">
+          <SimpleSelect
+            size="sm"
+            aria-label="Knowledge base section"
             value={activeProduct.key}
-            onChange={(e) => {
-              const product = products?.find((p) => p.key === e.target.value);
+            onValueChange={(key) => {
+              const product = products?.find((p) => p.key === key);
               if (product) router.push(hrefFor(product.key, product.items[0]?.slug ?? ""));
             }}
-            aria-label="Knowledge base section"
-            className="shrink-0 rounded-[10px] border border-border bg-page px-2.5 py-1.5 text-sm font-semibold text-ink"
-
-          >
-            {(products ?? []).map((product) => (
-              <option key={product.key} value={product.key}>
-                {product.label}
-              </option>
-            ))}
-          </select>
+            options={(products ?? []).map((product) => ({ value: product.key, label: product.label }))}
+            className="w-auto shrink-0 font-medium"
+          />
 
           <nav className="flex gap-1 overflow-x-auto">
             {activeProduct.items.map((item) => {
@@ -71,8 +67,8 @@ export function DocsMobileNav() {
                 <Link
                   key={href}
                   href={href}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    active ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+                  className={`flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-medium transition-colors ${
+                    active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent"
                   }`}
                 >
                   {item.label}

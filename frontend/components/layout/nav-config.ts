@@ -1,5 +1,5 @@
 import type { Role } from "@/lib/auth/api";
-import type { NavProduct } from "@/lib/docs/nav-api";
+import type { NavGroupConfig, NavItemOverrideConfig, NavProduct } from "@/lib/docs/nav-api";
 import type { IconComponent } from "./icons";
 import {
   BarChartIcon,
@@ -12,6 +12,7 @@ import {
   MegaphoneIcon,
   PersonIcon,
   PulseIcon,
+  ScaleIcon,
   SettingsIcon,
   UsersIcon,
 } from "./icons";
@@ -41,6 +42,15 @@ export type NavItem = {
    * it and the next separate-workspace link will want it.
    */
   newTab?: boolean;
+  /**
+   * Present only for a row the sidebar's "⋮" kebab menu can act on — absent
+   * for `NAV_TOP`/`NAV_BOTTOM` (Overview/Settings), which sit outside the
+   * scroll block this task scopes the feature to. `"product"` gets
+   * Rename + Delete (no "Move to group" — a product keeps its own dedicated
+   * section); `"static"` gets Rename + "Move to group" (Delete always
+   * disabled — "system pages can't be deleted").
+   */
+  kebab?: { kind: "product"; productKey: string } | { kind: "static" };
 };
 
 export type NavSection = {
@@ -78,6 +88,7 @@ function productsSection(products: NavProduct[]): NavSection {
       // Each product's page is content management — admin/super_admin only,
       // in RequireSession and in the /api/v1/admin/** floor behind it.
       roles: ["admin", "super_admin"] as const,
+      kebab: { kind: "product", productKey: product.key } as const,
     })),
   };
 }
@@ -104,6 +115,11 @@ const STATIC_SECTIONS: NavSection[] = [
       // admin and super_admin: writing an announcement is editorial work, the
       // same /api/v1/admin/** admin floor publishing a page sits at (ADR-098).
       { label: "Announcements", href: "/announcements", icon: MegaphoneIcon, roles: ["admin", "super_admin"] },
+      // Both roles see the page — admin is read-only inside it (banner +
+      // disabled controls, LegalPagesAdminPage's own canEditLegalPages check);
+      // only super_admin can actually save/publish/restore, enforced
+      // server-side too (SecurityConfig narrows the write routes further).
+      { label: "Legal pages", href: "/legal-pages", icon: ScaleIcon, roles: ["admin", "super_admin"] },
     ],
   },
   // No DEVELOPER section any more. It existed to hold one item, the AX Renewal
@@ -118,6 +134,60 @@ const STATIC_SECTIONS: NavSection[] = [
 
 /** Standalone item pinned above the user card at the bottom of the sidebar. */
 export const NAV_BOTTOM: NavItem = { label: "Settings", href: "/settings", icon: SettingsIcon };
+
+/**
+ * Merges live {@link NavGroupConfig}/{@link NavItemOverrideConfig} rows onto
+ * the code-defined ADMINISTRATION item list (task: sidebar kebab menu —
+ * Rename/Move to group). PRODUCTS doesn't go through here: products don't
+ * support "move to group" (scope decision), so `productsSection` is the
+ * whole story for that section.
+ *
+ * <p>An item with no override row stays in its code-defined group
+ * (ADMINISTRATION, today) under its code-defined label. `groups` seeds every
+ * section name that should exist even with zero items right now — a
+ * built-in group (DEVELOPER) or a custom one an admin created — so a later
+ * "drop empty sections" pass (in {@link visibleNavSections}) is the only
+ * place emptiness is decided, not this function.
+ */
+function mergedStaticSections(groups: readonly NavGroupConfig[], overrides: readonly NavItemOverrideConfig[]): NavSection[] {
+  const administration = STATIC_SECTIONS.find((s) => s.label === "ADMINISTRATION");
+  const defaultItems = administration?.items ?? [];
+
+  const overrideByKey = new Map(overrides.map((o) => [o.itemKey, o]));
+  const groupNameById = new Map(groups.map((g) => [g.id, g.name]));
+
+  type Placed = { item: NavItem; moved: boolean; sortOrder: number };
+  const sectionsByName = new Map<string, Placed[]>();
+  for (const group of [...groups].sort((a, b) => a.sortOrder - b.sortOrder)) {
+    sectionsByName.set(group.name, []);
+  }
+  if (!sectionsByName.has("ADMINISTRATION")) sectionsByName.set("ADMINISTRATION", []);
+
+  defaultItems.forEach((item, index) => {
+    const override = overrideByKey.get(item.href);
+    const label = override?.customLabel ?? item.label;
+    const targetGroupName = (override?.groupId && groupNameById.get(override.groupId)) || "ADMINISTRATION";
+    const placed = sectionsByName.get(targetGroupName) ?? [];
+    // An item with no override, or one overridden for its label only, never
+    // moved — it keeps its natural code position. A move (groupId present)
+    // always sorts after every natural item, by the position the backend
+    // assigned it ("moved item goes to the end of the target group").
+    const moved = override?.groupId != null;
+    placed.push({
+      item: { ...item, label, kebab: { kind: "static" } },
+      moved,
+      sortOrder: moved ? (override!.sortOrder ?? 0) : index,
+    });
+    sectionsByName.set(targetGroupName, placed);
+  });
+
+  return [...sectionsByName.entries()].map(([label, placedItems]) => ({
+    label,
+    items: placedItems
+      .sort((a, b) => Number(a.moved) - Number(b.moved) || a.sortOrder - b.sortOrder)
+      .map((p) => p.item),
+  }));
+}
 
 /** A nav item is active on an exact match, on any of its sub-routes, or —
  *  for a product item — while editing one of that product's own sub-items.
@@ -163,8 +233,10 @@ export function isNavItemVisible(item: NavItem, roles: readonly Role[] | null | 
 export function visibleNavSections(
   roles: readonly Role[] | null | undefined,
   products: NavProduct[],
+  groups: readonly NavGroupConfig[] = [],
+  itemOverrides: readonly NavItemOverrideConfig[] = [],
 ): NavSection[] {
-  return [productsSection(products), ...STATIC_SECTIONS]
+  return [productsSection(products), ...mergedStaticSections(groups, itemOverrides)]
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => isNavItemVisible(item, roles)),

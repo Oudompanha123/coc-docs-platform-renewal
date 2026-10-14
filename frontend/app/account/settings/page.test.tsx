@@ -30,9 +30,11 @@ vi.mock("@/components/account/NotificationsCard", () => ({ NotificationsCard: ()
 vi.mock("@/components/account/ConnectedAccountsCard", () => ({
   ConnectedAccountsCard: () => <div>Connected accounts content</div>,
 }));
+vi.mock("@/components/account/PasswordSecurityCard", () => ({ PasswordSecurityCard: () => <div>Password and 2FA content</div> }));
 vi.mock("@/components/account/SecurityCard", () => ({ SecurityCard: () => <div>Security content</div> }));
 vi.mock("@/components/account/SessionsCard", () => ({ SessionsCard: () => <div>Sessions content</div> }));
 vi.mock("@/components/account/ClaudeUsageCard", () => ({ ClaudeUsageCard: () => <div>Claude Usage content</div> }));
+vi.mock("@/components/account/AttendanceCard", () => ({ AttendanceCard: () => <div>Attendance content</div> }));
 
 // `hidden`-attribute elements get an empty computed accessible name in
 // jsdom even with the `hidden: true` query option (which only re-admits
@@ -74,6 +76,9 @@ describe("AccountSettingsPage — tab behavior", () => {
     render(<AccountSettingsPage />);
 
     expect(screen.getByRole("tabpanel", { name: "Account" })).toBeVisible();
+    // Password & 2FA is its own tab now, not part of Account.
+    expect(screen.getByRole("tabpanel", { name: "Account" })).not.toHaveTextContent("Password and 2FA content");
+    expect(panelById("password-2fa")).not.toBeVisible();
     expect(panelById("security")).not.toBeVisible();
     expect(panelById("sessions")).not.toBeVisible();
   });
@@ -89,11 +94,38 @@ describe("AccountSettingsPage — tab behavior", () => {
     expect(window.location.hash).toBe("#security");
   });
 
+  it("opens the Attendance section from #attendance (the /reports/attendance redirect)", () => {
+    window.location.hash = "#attendance";
+    render(<AccountSettingsPage />);
+
+    expect(screen.getByRole("tabpanel", { name: "Attendance" })).toBeVisible();
+    expect(screen.getByText("Attendance content")).toBeVisible();
+  });
+
   it("opens directly to the section named in the URL hash (AC3)", () => {
     window.location.hash = "#security";
     render(<AccountSettingsPage />);
 
     expect(screen.getByRole("tabpanel", { name: "Security" })).toBeVisible();
+  });
+
+  it("opens Password & 2FA from #password-2fa — direct URL and refresh land on it", () => {
+    window.location.hash = "#password-2fa";
+    render(<AccountSettingsPage />);
+
+    const panel = screen.getByRole("tabpanel", { name: "Password & 2FA" });
+    expect(panel).toBeVisible();
+    expect(panel).toHaveTextContent("Password and 2FA content");
+    expect(window.location.hash).toBe("#password-2fa");
+    expect(panelById("account")).not.toBeVisible();
+  });
+
+  it("clicking the Password & 2FA tab shows it and updates the hash", async () => {
+    render(<AccountSettingsPage />);
+    await userEvent.click(screen.getAllByRole("tab", { name: "Password & 2FA" })[0]!);
+
+    expect(screen.getByRole("tabpanel", { name: "Password & 2FA" })).toBeVisible();
+    expect(window.location.hash).toBe("#password-2fa");
   });
 
   it("rewrites the legacy #profile hash to Account (AC3)", () => {

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "core": {
+    "text-primary": {
+      "value": "#fafafa",
+      "role": "text-primary",
+      "name": "color-neutral-50"
+    },
+    "background": {
+      "value": "#000000",
+      "role": "background",
+      "name": "color-black"
+    },
+    "surface": {
+      "value": "#18181b",
+      "role": "surface",
+      "name": "color-zinc-900"
+    },
+    "border": {
+      "value": "#27272a",
+      "role": "border",
+      "name": "color-zinc-800"
+    },
+    "text-muted": {
+      "value": "#3f3f46",
+      "role": "text-muted",
+      "name": "color-zinc-700"
+    },
+    "accent": {
+      "value": "#00bcfe",
+      "role": "accent",
+      "name": "color-sky-400"
+    }
+  },
+  "status": {
+    "danger": {
+      "value": "#ff667f",
+      "role": "danger",
+      "name": "color-rose-400"
+    },
+    "success": {
+      "value": "#00a544",
+      "role": "success",
+      "name": "color-green-600"
+    }
+  },
+  "extended": {
+    "color-slate-200": {
+      "value": "#e2e8f0",
+      "role": "info",
+      "name": "color-slate-200"
+    },
+    "color-neutral-950": {
+      "value": "#0a0a0a",
+      "role": "unknown",
+      "name": "color-neutral-950"
+    },
+    "color-gray-300": {
+      "value": "#d1d5dc",
+      "role": "unknown",
+      "name": "color-gray-300"
+    },
+    "color-red-950": {
+      "value": "#460809",
+      "role": "unknown",
+      "name": "color-red-950"
+    },
+    "color-sky-600": {
+      "value": "#0084cc",
+      "role": "unknown",
+      "name": "color-sky-600"
+    },
+    "color-zinc-500": {
+      "value": "#71717b",
+      "role": "unknown",
+      "name": "color-zinc-500"
+    },
+    "color-rose-600": {
+      "value": "#e70044",
+      "role": "unknown",
+      "name": "color-rose-600"
+    },
+    "color-gray-900": {
+      "value": "#101828",
+      "role": "unknown",
+      "name": "color-gray-900"
+    },
+    "color-zinc-400": {
+      "value": "#9f9fa9",
+      "role": "unknown",
+      "name": "color-zinc-400"
+    },
+    "color-orange-900": {
+      "value": "#7e2a0c",
+      "role": "unknown",
+      "name": "color-orange-900"
+    },
+    "color-green-400": {
+      "value": "#05df72",
+      "role": "unknown",
+      "name": "color-green-400"
+    },
+    "color-green-500": {
+      "value": "#00c758",
+      "role": "unknown",
+      "name": "color-green-500"
+    }
+  },
+  "meta": {
+    "theme": "dark",
+    "updated": "2026-10-05"
+  }
+}

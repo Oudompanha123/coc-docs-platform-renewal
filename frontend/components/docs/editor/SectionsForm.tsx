@@ -1,4 +1,7 @@
-import { FormField, fieldInputClass, fieldTextareaClass } from "./FormField";
+import { FormField } from "./FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { moveItem } from "./reorder";
 import type { SectionsContent } from "@/lib/docs/content-types";
 
@@ -48,19 +51,19 @@ export function SectionsForm({
   }
 
   return (
-    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-[30px] py-0">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-5 py-0">
       <FormField label="Eyebrow">
-        <input className={fieldInputClass} value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
+        <Input value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
       </FormField>
       <FormField label="Heading" required>
-        <input className={fieldInputClass} value={value.heading} onChange={(e) => set("heading", e.target.value)} />
+        <Input value={value.heading} onChange={(e) => set("heading", e.target.value)} />
       </FormField>
       <FormField label="Intro">
-        <textarea rows={2} className={fieldTextareaClass} value={value.intro} onChange={(e) => set("intro", e.target.value)} />
+        <Textarea rows={2} className="h-[120px] resize-none" value={value.intro} onChange={(e) => set("intro", e.target.value)} />
       </FormField>
       <FormField label="Callout text (leave blank to hide)">
-        <input
-          className={fieldInputClass}
+        <Input
+          
           value={value.calloutText ?? ""}
           onChange={(e) => set("calloutText", e.target.value)}
         />
@@ -68,18 +71,17 @@ export function SectionsForm({
 
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted">Sections</span>
-          <button
+          <span className="text-xs font-medium text-muted-foreground">Sections</span>
+          <Button
             type="button"
-            onClick={addSection}
-            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-dash-ink hover:bg-page"
+            onClick={addSection} variant="outline" size="sm"
           >
             + Add section
-          </button>
+          </Button>
         </div>
         <div className="mt-2 space-y-3">
           {value.sections.map((section, i) => (
-            <div key={i} className="rounded-[10px] border border-border p-3">
+            <div key={i} className="rounded-xl border border-surface-border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button
@@ -87,7 +89,7 @@ export function SectionsForm({
                     disabled={i === 0}
                     onClick={() => moveSection(i, -1)}
                     aria-label="Move section up"
-                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded px-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ↑
                   </button>
@@ -96,48 +98,47 @@ export function SectionsForm({
                     disabled={i === value.sections.length - 1}
                     onClick={() => moveSection(i, 1)}
                     aria-label="Move section down"
-                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded px-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ↓
                   </button>
                 </div>
-                <input
-                  className={`${fieldInputClass} min-w-0 flex-1`}
+                <Input
+                  className="min-w-0 flex-1"
                   placeholder="Section title"
                   value={section.title}
                   onChange={(e) => updateSection(i, { title: e.target.value })}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => removeSection(i)}
-                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                  onClick={() => removeSection(i)} variant="ghost" size="sm" className="h-7 shrink-0 px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
-              <textarea
+              <Textarea
                 rows={2}
-                className={`${fieldTextareaClass} mt-2`}
+                className="h-[120px] resize-none mt-2"
                 placeholder="Note (optional)"
                 value={section.note ?? ""}
                 onChange={(e) => updateSection(i, { note: e.target.value })}
               />
-              <textarea
+              <Textarea
                 rows={2}
-                className={`${fieldTextareaClass} mt-2 font-mono`}
+                className="h-[120px] resize-none mt-2 font-mono"
                 placeholder="Command (optional)"
                 value={section.command ?? ""}
                 onChange={(e) => updateSection(i, { command: e.target.value })}
               />
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <input
-                  className={fieldInputClass}
+                <Input
+                  
                   placeholder='Example toggle label (e.g. "Show example")'
                   value={section.exampleLabel ?? ""}
                   onChange={(e) => updateSection(i, { exampleLabel: e.target.value })}
                 />
-                <input
-                  className={`${fieldInputClass} font-mono`}
+                <Input
+                  className="font-mono"
                   placeholder="Example command (optional)"
                   value={section.exampleCommand ?? ""}
                   onChange={(e) => updateSection(i, { exampleCommand: e.target.value })}
@@ -146,38 +147,36 @@ export function SectionsForm({
 
               <div className="mt-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted">Downloads (optional)</span>
-                  <button
+                  <span className="text-xs font-medium text-muted-foreground">Downloads (optional)</span>
+                  <Button
                     type="button"
-                    onClick={() => addDownload(i)}
-                    className="rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-dash-ink hover:bg-page"
+                    onClick={() => addDownload(i)} variant="outline" size="sm" className="h-7 px-2.5"
                   >
                     + Add file
-                  </button>
+                  </Button>
                 </div>
                 {(section.downloads ?? []).length > 0 && (
                   <div className="mt-1.5 space-y-1.5">
                     {(section.downloads ?? []).map((d, di) => (
                       <div key={di} className="flex items-center gap-1.5">
-                        <input
-                          className={`${fieldInputClass} min-w-0 flex-1`}
+                        <Input
+                          className="min-w-0 flex-1"
                           placeholder="Button label, e.g. fix-node-ca.ps1"
                           value={d.label}
                           onChange={(e) => updateDownload(i, di, { label: e.target.value })}
                         />
-                        <input
-                          className={`${fieldInputClass} min-w-0 flex-1 font-mono`}
+                        <Input
+                          className="min-w-0 flex-1 font-mono"
                           placeholder="/downloads/fix-node-ca.ps1"
                           value={d.href}
                           onChange={(e) => updateDownload(i, di, { href: e.target.value })}
                         />
-                        <button
+                        <Button
                           type="button"
-                          onClick={() => removeDownload(i, di)}
-                          className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                          onClick={() => removeDownload(i, di)} variant="ghost" size="sm" className="h-7 shrink-0 px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           Remove
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>

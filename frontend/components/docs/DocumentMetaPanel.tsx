@@ -11,24 +11,24 @@ export function DocumentMetaPanel({
   path: string;
 }) {
   return (
-    <div className="mt-8 overflow-hidden rounded-[10px] border border-border bg-white shadow-sm">
-      <div className="border-b border-border px-6 py-4">
-        <h2 className="text-sm font-bold text-ink">About this document</h2>
+    <div className="mt-6 overflow-hidden rounded-xl border border-surface-border bg-card">
+      <div className="border-b border-surface-border px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">About this document</h2>
       </div>
-      <dl className="divide-y divide-border">
-        <div className="flex items-center justify-between px-6 py-3.5 text-sm">
-          <dt className="font-medium text-muted">Status</dt>
-          <dd className={`font-semibold ${hasSavedContent ? "text-[#1f9d6b]" : "text-[#c98a2c]"}`}>
+      <dl className="divide-y divide-surface-border">
+        <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+          <dt className="font-medium text-muted-foreground">Status</dt>
+          <dd className={`font-medium ${hasSavedContent ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
             {hasSavedContent ? "Has content" : "Not written yet"}
           </dd>
         </div>
-        <div className="flex items-center justify-between px-6 py-3.5 text-sm">
-          <dt className="font-medium text-muted">Last updated</dt>
-          <dd className="font-semibold text-ink">{updatedAt ? formatWhen(updatedAt) : "—"}</dd>
+        <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+          <dt className="font-medium text-muted-foreground">Last updated</dt>
+          <dd className="font-medium text-foreground">{updatedAt ? formatWhen(updatedAt) : "—"}</dd>
         </div>
-        <div className="flex items-center justify-between px-6 py-3.5 text-sm">
-          <dt className="font-medium text-muted">Path</dt>
-          <dd className="font-mono text-xs font-semibold text-ink">{path}</dd>
+        <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+          <dt className="font-medium text-muted-foreground">Path</dt>
+          <dd className="font-mono text-xs font-medium text-foreground">{path}</dd>
         </div>
       </dl>
     </div>

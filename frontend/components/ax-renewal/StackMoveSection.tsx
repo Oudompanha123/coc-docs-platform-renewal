@@ -1,8 +1,10 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
+import { inputBaseClass } from "@/components/ui/input";
 import type {
   AxRenewalAnalysis,
   AxRenewalConfirmation,
@@ -212,12 +214,12 @@ export function StackMoveSection({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Stack Move</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Stack Move</h3>
         </div>
-        <div className="p-5">
-        <p className="text-xs text-muted">
+        <div className="p-4">
+        <p className="text-xs text-muted-foreground">
           For each <strong>architectural layer</strong>, record what it runs on today and what it should move to.
           Pick one of the buttons below, type your own, or leave it on &ldquo;stay on current&rdquo;. Where a
           connected local model has a confident recommendation for a layer, it appears as one of those buttons —
@@ -226,7 +228,7 @@ export function StackMoveSection({
         </p>
 
         {isSuggestion && (
-          <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+          <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
             Rows below are a starting point built from what <strong>Run analysis</strong> found on the
             Codebase/Findings tabs — nothing is saved yet. Edit or remove any of them, then{" "}
             <strong>Save stack move</strong>.
@@ -234,13 +236,13 @@ export function StackMoveSection({
         )}
 
         {rows.length === 0 && (
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-4 text-sm text-muted-foreground">
             Nothing detected yet to suggest a starting point — run analysis first, or add a layer by hand once you
             can.
           </p>
         )}
 
-        {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
         {canEdit && (
           <div className="mt-3 flex items-center justify-between gap-3">
@@ -249,14 +251,14 @@ export function StackMoveSection({
             ) : (
               <span />
             )}
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void handleSave()}
               disabled={saving}
-              className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save stack move"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -273,35 +275,35 @@ export function StackMoveSection({
 
       {rows.length > 0 && (
         <>
-          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-            <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
-              <h3 className="text-sm font-bold text-dash-ink">The move</h3>
-              <span className="text-xs text-muted">{movingCount} of {rows.length} layers change</span>
+          <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+            <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">The move</h3>
+              <span className="text-xs text-muted-foreground">{movingCount} of {rows.length} layers change</span>
             </div>
-            <div className="p-5">
-            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-border">
+            <div className="p-4">
+            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-surface-border bg-surface-border">
               {[
                 { label: "layers moving", value: movingCount },
                 { label: "AI recommendations", value: recommendedCount },
                 { label: "still undecided", value: undecidedCount },
               ].map((cell) => (
-                <div key={cell.label} className="bg-white p-3">
-                  <b className="block text-xl font-bold tracking-tight text-dash-ink">{cell.value}</b>
-                  <span className="text-xs text-muted">{cell.label}</span>
+                <div key={cell.label} className="bg-card p-3">
+                  <b className="block text-lg font-semibold tracking-tight text-foreground">{cell.value}</b>
+                  <span className="text-xs text-muted-foreground">{cell.label}</span>
                 </div>
               ))}
             </div>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-            <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
-              <h3 className="text-sm font-bold text-dash-ink">Old → new</h3>
-              <span className="text-xs text-muted">pick a target; everything downstream follows</span>
+          <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+            <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Old → new</h3>
+              <span className="text-xs text-muted-foreground">pick a target; everything downstream follows</span>
             </div>
 
-            <div className="p-5">
-            <div className="divide-y divide-border">
+            <div className="p-4">
+            <div className="divide-y divide-surface-border">
               {rows.map((row, i) => {
                 const status = recommendationStatus(row.layerKey, analysis);
                 const aiOptions =
@@ -313,7 +315,7 @@ export function StackMoveSection({
 
                 return (
                   <div key={row.layerKey} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row">
-                    <div className="w-full shrink-0 pt-1.5 text-sm font-semibold text-dash-ink sm:w-32">
+                    <div className="w-full shrink-0 pt-1.5 text-sm font-semibold text-foreground sm:w-32">
                       {row.layerKey}
                     </div>
 
@@ -324,11 +326,11 @@ export function StackMoveSection({
                           disabled={!canEdit}
                           onChange={(e) => updateRow(i, "oldTarget", e.target.value)}
                           placeholder="e.g. Node 12"
-                          className="w-full rounded-md border border-amber-300 bg-amber-50 px-2 py-1 font-mono text-xs text-amber-900 placeholder:text-amber-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:opacity-70"
+                          className="w-full rounded-md border border-amber-300 bg-amber-50 px-2 py-1 font-mono text-xs text-amber-900 placeholder:text-amber-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-70"
                         />
                       </div>
 
-                      <span className="shrink-0 pt-1 text-muted" aria-hidden="true">
+                      <span className="shrink-0 pt-1 text-muted-foreground" aria-hidden="true">
                         →
                       </span>
 
@@ -343,7 +345,7 @@ export function StackMoveSection({
                               className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed ${
                                 row.newTarget.trim() === opt
                                   ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                  : "border-border text-dash-ink hover:bg-page"
+                                  : "border-surface-border text-foreground hover:bg-accent"
                               }`}
                             >
                               {opt}
@@ -356,7 +358,7 @@ export function StackMoveSection({
                             className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed ${
                               isStaying
                                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                : "border-border text-dash-ink hover:bg-page"
+                                : "border-surface-border text-foreground hover:bg-accent"
                             }`}
                           >
                             {stayLabel}
@@ -368,16 +370,16 @@ export function StackMoveSection({
                           disabled={!canEdit}
                           onChange={(e) => updateRow(i, "newTarget", e.target.value)}
                           placeholder="or type your own target"
-                          className="w-full max-w-xs rounded-lg border border-border px-2 py-1.5 text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+                          className={`${inputBaseClass} w-full max-w-xs`}
                         />
 
                         {status.kind === "recommended" ? (
                           status.recommendation.why && (
-                            <p className="text-xs text-muted">{status.recommendation.why}</p>
+                            <p className="text-xs text-muted-foreground">{status.recommendation.why}</p>
                           )
                         ) : (
-                          <p className="text-xs text-muted">
-                            <span className="font-semibold text-dash-ink">No AI recommendation.</span>{" "}
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-semibold text-foreground">No AI recommendation.</span>{" "}
                             {status.reason}
                           </p>
                         )}

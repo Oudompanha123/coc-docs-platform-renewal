@@ -24,24 +24,24 @@ export function AttendanceDateNav({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="inline-flex items-center rounded-[10px] border border-border bg-white shadow-sm">
+      <div className="inline-flex h-9 items-center overflow-hidden rounded-lg border border-surface-border bg-card">
         <button
           type="button"
           aria-label="Previous day"
           onClick={() => onChange(addDays(date, -1))}
-          className="flex h-9 w-9 items-center justify-center rounded-l-[10px] text-muted transition-colors hover:bg-page hover:text-dash-ink"
+          className="flex h-full w-9 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          <ChevronLeftIcon className="h-4 w-4" />
+          <ChevronLeftIcon className="size-4" />
         </button>
         <button
           type="button"
           onClick={() => onChange(todayIso())}
           aria-pressed={date === todayIso()}
           title="Go to today"
-          className={`min-w-[108px] border-x border-border px-3 py-1.5 text-sm font-semibold transition-colors ${
+          className={`h-full min-w-[108px] border-x border-surface-border px-3 text-sm font-medium transition-colors ${
             date === todayIso()
-              ? "rounded-md bg-brand-purple/10 text-brand-purple"
-              : "text-muted hover:bg-page hover:text-dash-ink"
+              ? "bg-secondary text-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
           }`}
         >
           {date === todayIso() ? "Today" : formatShortDate(date)}
@@ -50,9 +50,9 @@ export function AttendanceDateNav({
           type="button"
           aria-label="Next day"
           onClick={() => onChange(addDays(date, 1))}
-          className="flex h-9 w-9 items-center justify-center rounded-r-[10px] text-muted transition-colors hover:bg-page hover:text-dash-ink"
+          className="flex h-full w-9 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          <ChevronRightIcon className="h-4 w-4" />
+          <ChevronRightIcon className="size-4" />
         </button>
       </div>
 

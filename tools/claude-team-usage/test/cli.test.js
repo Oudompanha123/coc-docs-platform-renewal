@@ -267,6 +267,8 @@ describe('scan', () => {
 
     assert.equal(res.code, 1);
     assert.match(res.stderr, /403.*its own account/);
+    // A genuine credential 403 keeps its login advice (only tracking-disabled drops it, ADR-105).
+    assert.match(res.stderr, /claude-team-usage login/);
   });
 
   it('retries a server error once, then fails with a non-zero exit', async () => {

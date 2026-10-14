@@ -20,8 +20,8 @@ export const CATEGORY_META: Record<
     label: CATEGORY_LABELS.info,
     hint: "General news for the team",
     icon: BellIcon,
-    badge: "bg-brand-purple/10 text-brand-purple",
-    tile: "bg-brand-purple/10 text-brand-purple",
+    badge: "bg-secondary text-foreground",
+    tile: "bg-secondary text-foreground",
   },
   update: {
     label: CATEGORY_LABELS.update,

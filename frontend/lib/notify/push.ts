@@ -371,6 +371,9 @@ async function forgetToken(): Promise<void> {
  */
 export const NOTIFICATION_ICON = "/notification-icon.png";
 
+/** `NotificationOptions` plus `image`, which browsers support and TypeScript's DOM types omit. */
+export type BannerOptions = NotificationOptions & { image?: string };
+
 export async function listenForForegroundPush(): Promise<() => void> {
   if (!isBackgroundPushConfigured() || !isNotificationsEnabled()) {
     return () => {};
@@ -385,10 +388,13 @@ export async function listenForForegroundPush(): Promise<() => void> {
       new Notification(payload.notification?.title ?? "Coc Docs Platform", {
         body: payload.notification?.body ?? "",
         icon: payload.data?.icon || NOTIFICATION_ICON,
+        // A large picture, when a push carries one. None does today: the
+        // announcement logo was dropped in favour of the icon (ADR-103).
+        image: payload.data?.image || undefined,
         // Same tag as the service worker, so a foreground and a background
         // copy of the same event replace one another rather than stacking.
-        tag: payload.data?.type ?? "coc-docs",
-      });
+        tag: payload.data?.tag || payload.data?.type || "coc-docs",
+      } as BannerOptions);
     });
   } catch {
     return () => {};

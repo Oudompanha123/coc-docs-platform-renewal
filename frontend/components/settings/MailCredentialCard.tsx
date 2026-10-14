@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { MailIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SessionExpiredError } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 import {
@@ -151,15 +153,15 @@ export function MailCredentialCard() {
   const canUseOauth = status?.oauthAvailable === true && googleClientId() !== "";
 
   return (
-    <div className="py-3.5 first:pt-0 last:pb-0">
+    <div className="py-3 first:pt-0 last:pb-0">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-purple/10 text-brand-purple">
-            <MailIcon className="h-4 w-4" />
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+            <MailIcon className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-dash-ink">Send attendance mail from your own Gmail</p>
-            <p className="text-xs text-muted">
+            <p className="text-sm font-medium text-foreground">Send attendance mail from your own Gmail</p>
+            <p className="text-xs text-muted-foreground">
               {configured
                 ? `Using ${status?.smtpUsername} — ${
                     viaOauth ? "connected with Google" : "App Password"
@@ -171,17 +173,21 @@ export function MailCredentialCard() {
 
         <div className="flex shrink-0 gap-2">
           {configured && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => void remove()}
               disabled={busy}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-dash-ink disabled:opacity-40"
+              className="text-muted-foreground hover:text-foreground"
             >
               Remove
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => {
               setExpanded((open) => {
                 // Seed on open, not on mount: the address a person is
@@ -194,23 +200,22 @@ export function MailCredentialCard() {
               });
             }}
             disabled={busy}
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-surface-2 disabled:opacity-40"
           >
             {expanded ? "Cancel" : configured ? "Replace" : "Set up"}
-          </button>
+          </Button>
         </div>
       </div>
 
       {saved && !expanded && (
-        <p className="mt-2 pl-12 text-xs font-semibold text-emerald-600">Saved.</p>
+        <p className="mt-2 pl-12 text-xs font-medium text-emerald-600">Saved.</p>
       )}
 
       {expanded && (
         <div className="mt-3 pl-12">
           {/* ADR-077 section 4.3: both halves, before anyone stores one. */}
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-            <p className="text-xs font-semibold text-dash-ink">Before you enter this, know what it allows</p>
-            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs text-muted">
+            <p className="text-xs font-semibold text-foreground">Before you enter this, know what it allows</p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
               <li>This app will send your attendance report as this address.</li>
               <li>
                 It will also <strong>read this mailbox on a schedule</strong>, every 30 minutes, to find your
@@ -226,69 +231,72 @@ export function MailCredentialCard() {
 
           {canUseOauth && (
             <>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => void connectGoogle()}
                 disabled={busy}
-                className="mt-3 w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-surface-2 disabled:opacity-40"
+                className="mt-3 w-full"
               >
                 {busy ? "Connecting…" : "Connect with Google"}
-              </button>
-              <p className="mt-1 text-xs text-muted">
+              </Button>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Recommended. One permission screen, nothing to type, and you can revoke it from your Google
                 account at any time.
               </p>
-              {oauthError && <p className="mt-2 text-xs font-semibold text-rose-600">{oauthError}</p>}
+              {oauthError && <p className="mt-2 text-xs font-medium text-destructive">{oauthError}</p>}
 
-              <p className="mt-4 text-xs font-semibold text-muted">Or use an App Password instead</p>
+              <p className="mt-4 text-xs font-medium text-muted-foreground">Or use an App Password instead</p>
             </>
           )}
 
-          <label className="mt-3 block text-xs font-semibold text-dash-ink" htmlFor="smtp-username">
+          <label className="mt-3 block text-xs font-medium text-foreground" htmlFor="smtp-username">
             Gmail address
           </label>
-          <input
+          <Input
             id="smtp-username"
             type="email"
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="you@gmail.com"
-            className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-dash-ink outline-none focus:border-brand-purple"
+            className="mt-1"
           />
 
-          <label className="mt-3 block text-xs font-semibold text-dash-ink" htmlFor="app-password">
+          <label className="mt-3 block text-xs font-medium text-foreground" htmlFor="app-password">
             App Password
           </label>
-          <input
+          <Input
             id="app-password"
             type="password"
             autoComplete="new-password"
             value={appPassword}
             onChange={(e) => setAppPassword(e.target.value)}
             placeholder="16 characters, spaces are fine"
-            className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-dash-ink outline-none focus:border-brand-purple"
+            className="mt-1"
           />
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             Not your Google password. Create one at myaccount.google.com → Security → App passwords.
           </p>
           {username.trim() !== "" && username.trim() === loginEmail && (
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-muted-foreground">
               Filled in from the account you signed in with. Change it if your HRMS mail arrives somewhere
               else.
             </p>
           )}
 
-          {error && <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p>}
+          {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
 
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={() => void save()}
             disabled={busy || username.trim() === "" || appPassword.trim() === ""}
-            className="mt-3 rounded-lg bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
+            className="mt-3"
           >
             {busy ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

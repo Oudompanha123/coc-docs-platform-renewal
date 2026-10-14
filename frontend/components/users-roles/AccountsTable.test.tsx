@@ -38,7 +38,8 @@ describe("AccountsTable actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Reactivate" }));
+    await user.click(screen.getByRole("button", { name: /^Actions for / }));
+    await user.click(screen.getByRole("menuitem", { name: "Reactivate" }));
 
     expect(onReactivate).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Deactivate" })).not.toBeInTheDocument();
@@ -57,7 +58,8 @@ describe("AccountsTable actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Deactivate" }));
+    await user.click(screen.getByRole("button", { name: /^Actions for / }));
+    await user.click(screen.getByRole("menuitem", { name: "Deactivate" }));
 
     expect(onDeactivate).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Reactivate" })).not.toBeInTheDocument();
@@ -76,7 +78,8 @@ describe("AccountsTable actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Deactivate" }));
+    await user.click(screen.getByRole("button", { name: /^Actions for / }));
+    await user.click(screen.getByRole("menuitem", { name: "Deactivate" }));
 
     expect(onDeactivate).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Reactivate" })).not.toBeInTheDocument();
@@ -95,7 +98,8 @@ describe("AccountsTable actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /delete dana lee/i }));
+    await user.click(screen.getByRole("button", { name: "Actions for Dana Lee" }));
+    await user.click(screen.getByRole("menuitem", { name: "Delete permanently" }));
 
     expect(onDelete).toHaveBeenCalledTimes(1);
   });

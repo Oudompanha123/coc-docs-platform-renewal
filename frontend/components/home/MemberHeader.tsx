@@ -7,17 +7,15 @@ import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { ActivityAvatar } from "@/components/layout/ActivityAvatar";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
-  AuditIcon,
-  BarChartIcon,
   BellIcon,
-  CalendarCheckIcon,
-  ChevronDownIcon,
-  GearIcon,
-  LayersIcon,
   LogOutIcon,
+  MailIcon,
+  MoonIcon,
   PersonIcon,
+  SettingsIcon,
+  SunIcon,
 } from "@/components/layout/icons";
-import { PRODUCT_ICONS } from "@/components/layout/nav-config";
+import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";
 import { Spinner } from "@/components/layout/Spinner";
 import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
 import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
@@ -30,9 +28,10 @@ import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
 import { MemberThemeSync } from "@/components/home/MemberThemeSync";
+import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-type MenuKey = "bell" | "mail" | "user" | "products" | "reports";
+type MenuKey = "bell" | "mail" | "user";
 
 /**
  * Which half of a panel's list is showing. Mirrors the admin Topbar's, and is
@@ -41,7 +40,10 @@ type MenuKey = "bell" | "mail" | "user" | "products" | "reports";
  */
 type PanelFilter = "unread" | "all";
 
-const PANEL_CLASSES = "absolute right-0 z-30 mt-2 w-80 rounded-xl border border-border bg-white shadow-lg";
+// No width here: each panel sets its own. A width in this shared string
+// could not be overridden by appending another — both classes would land on
+// the element and the wider one won on stylesheet order.
+const PANEL_CLASSES = "absolute right-0 z-30 mt-2 overflow-hidden rounded-2xl border border-surface-border bg-popover text-popover-foreground shadow-lg";
 
 function CountIcon({
   count,
@@ -63,11 +65,11 @@ function CountIcon({
       aria-label={`${label}, ${count}`}
       aria-haspopup="menu"
       aria-expanded={active}
-      className="relative rounded-xl bg-gray-100 p-2.5 text-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+      className="relative flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
       {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-background">
           {count}
         </span>
       )}
@@ -76,120 +78,9 @@ function CountIcon({
 }
 
 /** Products mega-dropdown — 2-col grid with large lavender icon tiles. */
-function ProductsDropdown({
-  products,
-  onClose,
-}: {
-  products: NavProduct[];
-  onClose: () => void;
-}) {
-  const pathname = usePathname();
-
-  return (
-    <div
-      role="menu"
-      className="absolute left-0 top-[72px] z-30 w-80 rounded-2xl border border-border bg-white p-4 shadow-xl"
-    >
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted">
-        PRODUCTS
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        {products.map((product) => {
-          const Icon = PRODUCT_ICONS[product.icon] ?? LayersIcon;
-          const href = productHref(product.key);
-          const active = pathname === href || pathname?.startsWith(`${href}/`);
-          return (
-            <Link
-              key={product.key}
-              href={href}
-              role="menuitem"
-              onClick={onClose}
-              className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-brand-purple/10 ${
-                active ? "bg-brand-purple/10" : ""
-              }`}
-            >
-              <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-brand-purple ${
-                  active ? "bg-brand-purple/20" : "bg-brand-purple/10"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <span
-                className={`truncate text-[15px] font-medium ${
-                  active ? "text-brand-purple" : "text-ink"
-                }`}
-              >
-                {product.label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Reports & Records dropdown — a single-column list, deliberately built so
- * more items can be added later rather than hand-coding one link. Styled
- * after {@link ProductsDropdown}'s own active/hover treatment, just a
- * single column instead of a 2-col grid since there is only ever a handful
- * of report kinds, not a whole product catalogue.
- */
-function ReportsDropdown({ onClose }: { onClose: () => void }) {
-  const pathname = usePathname();
-  const attendanceActive = pathname === "/reports/attendance";
-
-  return (
-    <div
-      role="menu"
-      className="absolute left-0 top-[72px] z-30 w-72 rounded-2xl border border-border bg-white p-2 shadow-xl"
-    >
-      <Link
-        href="/reports/attendance"
-        role="menuitem"
-        onClick={onClose}
-        className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-brand-purple/10 ${
-          attendanceActive ? "bg-brand-purple/10" : ""
-        }`}
-      >
-        <span
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-purple ${
-            attendanceActive ? "bg-brand-purple/20" : "bg-brand-purple/10"
-          }`}
-        >
-          <CalendarCheckIcon className="h-[18px] w-[18px]" />
-        </span>
-        <span className="min-w-0">
-          <span className={`block truncate text-sm font-medium ${attendanceActive ? "text-brand-purple" : "text-ink"}`}>
-            Attendance
-          </span>
-          <span className="block truncate text-xs text-muted">Your daily check-in &amp; out</span>
-        </span>
-      </Link>
-
-      {/* Not a link: a placeholder so the menu's "room for more" shape is
-          visible before a second report kind actually exists. */}
-      <div className="flex cursor-not-allowed items-start gap-3 rounded-xl px-3 py-2.5 opacity-60">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-page text-muted">
-          <BarChartIcon className="h-[18px] w-[18px]" />
-        </span>
-        <span className="min-w-0">
-          <span className="flex items-center gap-1.5 truncate text-sm font-medium text-muted">
-            More reports
-            <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-semibold text-muted">Later</span>
-          </span>
-          <span className="block truncate text-xs text-muted">New items can be added here</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
 /**
  * The signed-in Member's header for `/home`.
- * Nav: Home | Products ▾ | Claude Usage | Reports & Records ▾
+ * Nav: Home | Products ▾ (Attendance moved into /account/settings#attendance)
  * Right: Notifications, Activity, User chip.
  */
 // onOpenNotifications is gone from this header on purpose: notification
@@ -210,10 +101,9 @@ export function MemberHeader({
 }) {
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const userChipRef = useRef<HTMLButtonElement>(null);
-  const productsRef = useRef<HTMLDivElement>(null);
-  const reportsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const user = useCurrentUser();
   const { signOut, isSigningOut } = useSession();
@@ -270,36 +160,27 @@ export function MemberHeader({
 
   const isProductsActive =
     pathname?.startsWith("/docs/") || pathname?.startsWith("/admin/products");
-  const isReportsActive = pathname?.startsWith("/reports/") ?? false;
   const isSettingsActive = pathname?.startsWith("/account/settings") ?? false;
+
+  // `MemberThemeSync` (mounted below) already re-applies a previously-chosen
+  // theme to `<html>` on every load of a `data-shell="home"` page — this is
+  // only what makes the button itself reflect that choice, same split
+  // Topbar.tsx uses for the admin shell's own toggle.
+  useEffect(() => {
+    setDarkMode(getResolvedTheme() === "dark");
+  }, []);
+
+  function toggleTheme() {
+    const next = darkMode ? "light" : "dark";
+    applyTheme(next);
+    setDarkMode(!darkMode);
+  }
 
   // Close right-side cluster on outside click
   useEffect(() => {
-    if (!openMenu || openMenu === "products" || openMenu === "reports") return;
+    if (!openMenu) return;
     function onClick(e: MouseEvent) {
       if (clusterRef.current && !clusterRef.current.contains(e.target as Node))
-        setOpenMenu(null);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [openMenu]);
-
-  // Close products dropdown on outside click
-  useEffect(() => {
-    if (openMenu !== "products") return;
-    function onClick(e: MouseEvent) {
-      if (productsRef.current && !productsRef.current.contains(e.target as Node))
-        setOpenMenu(null);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [openMenu]);
-
-  // Close reports dropdown on outside click
-  useEffect(() => {
-    if (openMenu !== "reports") return;
-    function onClick(e: MouseEvent) {
-      if (reportsRef.current && !reportsRef.current.contains(e.target as Node))
         setOpenMenu(null);
     }
     document.addEventListener("mousedown", onClick);
@@ -310,16 +191,13 @@ export function MemberHeader({
     setOpenMenu((current) => (current === key ? null : key));
   }
 
-  const navLinkClass = (active: boolean) =>
-    `header-nav-link flex h-[72px] items-center gap-1.5 border-b-2 text-[16px] font-medium transition-all hover:border-brand-purple hover:font-bold hover:text-ink ${
-      active ? "header-nav-link-active border-brand-purple font-bold text-ink" : "border-transparent text-muted"
-    }`;
-
   return (
     <>
       <MemberThemeSync />
-      <header className="sticky top-0 z-30 border-b border-border bg-white shadow-sm">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
+      {/* Border only, no shadow — matching the admin Topbar and the AX Renewal
+          bar, which were already built that way. */}
+      <header className="sticky top-0 z-40 border-b border-surface-border bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
 
         {/* Logo — two images, dark mode's own CSS (globals.css) shows/hides
             each one; no JS theme read needed, consistent with how every
@@ -329,47 +207,49 @@ export function MemberHeader({
           <img
             src="/logo-coc-docs-platform.png"
             alt="Coc Docs Platform"
-            className="logo-light h-[55px] w-auto rounded-lg"
+            className="logo-light h-8 w-auto rounded-lg"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-coc-docs-platform-dark-mode.png"
             alt="Coc Docs Platform"
-            className="logo-dark hidden h-[55px] w-auto rounded-lg"
+            className="logo-dark hidden h-8 w-auto rounded-lg"
           />
         </Link>
 
         {/* Primary nav */}
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="ml-8 mr-auto hidden items-center gap-1 md:flex">
           {/* Home */}
-          <Link href="/home" className={navLinkClass(pathname === "/home")}>
+          <Link
+            href="/home"
+            aria-current={pathname === "/home" ? "page" : undefined}
+            className={`inline-flex h-9 items-center rounded-3xl px-3.5 text-[15px] transition-colors outline-none hover:bg-muted-surface/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+              pathname === "/home" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
             Home
           </Link>
 
-          {/* Products dropdown */}
-          <div ref={productsRef} className="relative">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={openMenu === "products"}
-              onClick={() => toggleMenu("products")}
-              className={`${navLinkClass(isProductsActive)} gap-1`}
-            >
-              Products
-              <ChevronDownIcon
-                className={`h-4 w-4 transition-transform duration-150 ${
-                  openMenu === "products" ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {openMenu === "products" && (
-              <ProductsDropdown
-                products={products.filter((p) => p.key !== "ax-renewal")}
-                onClose={() => setOpenMenu(null)}
-              />
-            )}
-          </div>
+          {/* Products — the shared NavMenu (ADR-104 r2.9): hover to open, a
+              two-column grid of each product over its first few pages. It
+              keeps its own open state, separate from the right-hand cluster's
+              `openMenu`, since it now opens on hover as well as click. */}
+          <NavMenu label="Products" active={isProductsActive} panelClassName="w-[440px] grid-cols-2">
+            {products
+              .filter((p) => p.key !== "ax-renewal")
+              .map((product) => {
+                const href = productHref(product.key);
+                return (
+                  <NavMenuItem
+                    key={product.key}
+                    href={href}
+                    title={product.label}
+                    description={productPagesBlurb(product.items) ?? "Documentation"}
+                    active={pathname === href || (pathname?.startsWith(`${href}/`) ?? false)}
+                  />
+                );
+              })}
+          </NavMenu>
 
           {/* Claude Usage's own nav link retired: the personal view moved
               into /account/settings's own Claude Usage section instead of
@@ -378,34 +258,24 @@ export function MemberHeader({
               `/claude-usage`, from the admin sidebar's own ADMINISTRATION
               section (nav-config.ts) — unaffected, unchanged. */}
 
-          {/* Reports & Records dropdown — Attendance today, built so a
-              second report kind has somewhere to go without another nav
-              item. Visible to every role that reaches this header at all
-              (RequireMemberSession already gates that), including
-              `user`/`developer`, who have no admin-app equivalent since
-              ADR-086. */}
-          <div ref={reportsRef} className="relative">
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={openMenu === "reports"}
-              onClick={() => toggleMenu("reports")}
-              className={`${navLinkClass(isReportsActive)} gap-1`}
-            >
-              Reports &amp; Records
-              <ChevronDownIcon
-                className={`h-4 w-4 transition-transform duration-150 ${
-                  openMenu === "reports" ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            {openMenu === "reports" && <ReportsDropdown onClose={() => setOpenMenu(null)} />}
-          </div>
+          {/* Reports & Records dropdown retired: its one real item, Attendance,
+              moved into /account/settings#attendance (/reports/attendance
+              redirects there, next.config.ts). */}
         </nav>
 
         {/* Right-side chrome */}
         <div className="flex items-center gap-2" ref={clusterRef}>
+
+          {/* Theme toggle — the same round ghost button as the bell and mail beside it */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            aria-pressed={darkMode}
+            className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {darkMode ? <SunIcon className="size-[18px]" /> : <MoonIcon className="size-[18px]" />}
+          </button>
 
           {/* Notifications */}
           <div className="relative">
@@ -415,13 +285,13 @@ export function MemberHeader({
               active={openMenu === "bell"}
               onClick={() => toggleMenu("bell")}
             >
-              <BellIcon className="h-5 w-5" />
+              <BellIcon className="size-[18px]" />
             </CountIcon>
 
             {openMenu === "bell" && (
-              <div role="menu" className={PANEL_CLASSES}>
+              <div role="menu" className={`${PANEL_CLASSES} w-80`}>
                 <div className="border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">Notifications</p>
+                  <p className="text-sm font-semibold text-foreground">Notifications</p>
                   <div className="mt-2.5 flex items-center gap-1.5">
                     {(["unread", "all"] as const).map((key) => (
                       <button
@@ -430,7 +300,7 @@ export function MemberHeader({
                         onClick={() => setNotificationFilter(key)}
                         className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                           notificationFilter === key
-                            ? "bg-brand-purple/10 text-brand-purple"
+                            ? "bg-secondary text-foreground"
                             : "border border-border text-muted hover:bg-page"
                         }`}
                       >
@@ -441,7 +311,7 @@ export function MemberHeader({
                       type="button"
                       onClick={() => notifications.markAllRead()}
                       disabled={notifications.unreadCount === 0}
-                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                     >
                       Read all
                     </button>
@@ -479,7 +349,7 @@ export function MemberHeader({
                           }
                         }}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                          n.read ? "" : "bg-brand-purple/5"
+                          n.read ? "" : "bg-secondary"
                         }`}
                       >
                         {n.type === "announcement.published" && (
@@ -498,7 +368,7 @@ export function MemberHeader({
                         {!n.read && (
                           <span
                             aria-label="Unread"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                           />
                         )}
                       </button>
@@ -517,14 +387,13 @@ export function MemberHeader({
               active={openMenu === "mail"}
               onClick={() => toggleMenu("mail")}
             >
-              {/* The audit-log icon, same as the admin Topbar's Activity button. */}
-              <AuditIcon className="h-5 w-5" />
+              <MailIcon className="size-[18px]" />
             </CountIcon>
 
             {openMenu === "mail" && (
-              <div role="menu" className={PANEL_CLASSES}>
+              <div role="menu" className={`${PANEL_CLASSES} w-80`}>
                 <div className="border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">Activity</p>
+                  <p className="text-sm font-semibold text-foreground">Activity</p>
                   <div className="mt-2.5 flex items-center gap-1.5">
                     {(["unread", "all"] as const).map((key) => (
                       <button
@@ -533,7 +402,7 @@ export function MemberHeader({
                         onClick={() => setActivityFilter(key)}
                         className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                           activityFilter === key
-                            ? "bg-brand-purple/10 text-brand-purple"
+                            ? "bg-secondary text-foreground"
                             : "border border-border text-muted hover:bg-page"
                         }`}
                       >
@@ -547,7 +416,7 @@ export function MemberHeader({
                       type="button"
                       onClick={() => activity.markAllRead()}
                       disabled={activity.count === 0}
-                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                     >
                       Read all
                     </button>
@@ -574,7 +443,7 @@ export function MemberHeader({
                         }
                       }}
                         className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                          item.read ? "" : "bg-brand-purple/5"
+                          item.read ? "" : "bg-secondary"
                         }`}
                       >
                         <ActivityAvatar item={item} />
@@ -594,7 +463,7 @@ export function MemberHeader({
                         {!item.read && (
                           <span
                             aria-label="Unread"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                           />
                         )}
                       </button>
@@ -613,24 +482,27 @@ export function MemberHeader({
               onClick={() => toggleMenu("user")}
               aria-haspopup="menu"
               aria-expanded={openMenu === "user"}
-              className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              // Avatar only, at the product owner's request: the name and role
+              // are already the first thing in the menu this opens. They stay
+              // in the accessible name, so the button is still "Dana Lee",
+              // not an unlabelled picture.
+              aria-label={`${user?.name ?? "Guest"}${user?.role ? `, ${user.role}` : ""}`}
+              title={user?.name ?? "Guest"}
+              className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-muted-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <UserAvatar
                 avatarUrl={user?.avatarUrl ?? null}
                 initials={user?.initials ?? "?"}
                 name={user?.name ?? "Guest"}
-                className={`h-8 w-8 ${AVATAR_GRADIENTS.purple}`}
+                className={`size-8 ${AVATAR_GRADIENTS.purple}`}
               />
-              <div className="hidden min-w-0 text-left sm:block">
-                <p className="truncate text-sm font-semibold text-ink">{user?.name ?? "Guest"}</p>
-                <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
-              </div>
-              <ChevronDownIcon className="hidden h-4 w-4 text-muted sm:block" />
             </button>
 
             {openMenu === "user" && (
-              <div role="menu" className={`${PANEL_CLASSES} w-[200px]`}>
-                <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+              // shadcn's dropdown-menu shape (ADR-104 r2.9): a padded panel of
+              // rounded rows with a grey hover, rather than full-bleed stripes.
+              <div role="menu" className={`${PANEL_CLASSES} w-48 p-1`}>
+                <div className="flex items-center gap-3 px-2 py-2">
                   <UserAvatar
                     avatarUrl={user?.avatarUrl ?? null}
                     initials={user?.initials ?? "?"}
@@ -638,11 +510,12 @@ export function MemberHeader({
                     className={`h-9 w-9 ${AVATAR_GRADIENTS.purple}`}
                   />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-ink">{user?.name ?? "Guest"}</p>
-                    <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
+                    <p className="truncate text-sm font-medium text-foreground">{user?.name ?? "Guest"}</p>
+                    <p className="truncate text-xs text-muted-foreground">{user?.role ?? ""}</p>
                   </div>
                 </div>
-                <div className="py-1">
+                <div aria-hidden="true" className="-mx-1 my-1 h-px bg-surface-border" />
+                <div>
                   <button
                     type="button"
                     role="menuitem"
@@ -650,33 +523,34 @@ export function MemberHeader({
                       setOpenMenu(null);
                       setShowProfilePopup(true);
                     }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-ink transition-colors hover:bg-page"
+                    className="flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-foreground transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
                   >
-                    <PersonIcon className="h-4 w-4 text-muted" />
+                    <PersonIcon className="size-4 text-muted-foreground" />
                     Profile
                   </button>
                   <Link
                     href="/account/settings"
                     role="menuitem"
                     onClick={() => setOpenMenu(null)}
-                    className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors hover:bg-page ${
-                      isSettingsActive ? "bg-brand-purple/10 text-brand-purple" : "text-ink"
+                    className={`flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-foreground transition-colors outline-none hover:bg-accent focus-visible:bg-accent ${
+                      isSettingsActive ? "bg-accent" : ""
                     }`}
                   >
-                    <GearIcon className={`h-4 w-4 ${isSettingsActive ? "text-brand-purple" : "text-muted"}`} />
+                    <SettingsIcon className="size-4 text-muted-foreground" />
                     Settings
                   </Link>
                 </div>
-                <div className="border-t border-border py-1">
+                <div aria-hidden="true" className="-mx-1 my-1 h-px bg-surface-border" />
+                <div>
                   <button
                     type="button"
                     role="menuitem"
                     disabled={isSigningOut}
                     aria-busy={isSigningOut}
                     onClick={() => void signOut()}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus-visible:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isSigningOut ? <Spinner /> : <LogOutIcon className="h-4 w-4" />}
+                    {isSigningOut ? <Spinner /> : <LogOutIcon className="size-4" />}
                     {isSigningOut ? "Logging out…" : "Log out"}
                   </button>
                 </div>
@@ -685,7 +559,12 @@ export function MemberHeader({
           </div>
         </div>
       </div>
+    </header>
 
+    {/* Outside <header> on purpose: the header is sticky and blurred, and a
+        `backdrop-filter` makes an element the containing block for its
+        `position: fixed` descendants — inside it, these full-screen dialogs
+        were sized to the 60px bar and stuck to the top of the page. */}
     {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
     {openAnnouncement && <AnnouncementModal id={openAnnouncement} onClose={() => setOpenAnnouncement(null)} />}
     {showProfilePopup && (
@@ -696,7 +575,6 @@ export function MemberHeader({
         }}
       />
     )}
-    </header>
     </>
   );
 }

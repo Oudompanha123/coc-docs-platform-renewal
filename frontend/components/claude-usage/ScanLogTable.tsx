@@ -2,14 +2,23 @@
 
 import { memo } from "react";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
+import { ChevronRightIcon } from "@/components/layout/icons";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ScanLogSummary } from "@/lib/admin/claudeUsage";
-import { formatCount, formatDuration, formatScanTime, personName, resultText, scanOutcome } from "@/lib/claudeUsage/scanLogs";
+import { diagnoseScan, formatDuration, formatScanTime, personName, recordsText, scanOutcome } from "@/lib/claudeUsage/scanLogs";
 
 /**
- * The Scan Logs table — one row per scan, newest first. Same shell as
- * UsageTable (tinted header, divide-y, row hover); paging is the caller's,
+ * The Scan Logs table — one row per scan, newest first. Same compact
+ * table parts as UsageTable (ADR-104 r2.9); paging is the caller's,
  * so a filter change can reset it. The whole row opens the detail drawer;
- * the chevron button is the same action for keyboard and screen readers.
+ * the "View details" button is the same action for keyboard and screen
+ * readers.
+ *
+ * `showUser`: off for a member's own scans, where every row is theirs.
+ *
+ * The error summary is the plain-language problem, never the raw error —
+ * that stays in the drawer's Technical details.
  *
  * Memoized: an auto-refresh that brings back the same rows, or typing in a
  * filter that leaves this page of rows unchanged, doesn't redraw it.
@@ -17,71 +26,80 @@ import { formatCount, formatDuration, formatScanTime, personName, resultText, sc
 export const ScanLogTable = memo(function ScanLogTable({
   logs,
   onView,
+  showUser = true,
 }: {
   logs: ScanLogSummary[];
   onView: (log: ScanLogSummary) => void;
+  showUser?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto overflow-y-hidden">
-      <table className="w-full min-w-[680px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted">
-            <th className="px-4 py-3">User</th>
-            <th className="px-4 py-3">Scan Time</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Result</th>
-            <th className="px-4 py-3 text-right">Duration</th>
-            <th className="w-12 px-4 py-3">
-              <span className="sr-only">Details</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {logs.map((log) => {
-            const outcome = scanOutcome(log);
-            const name = personName(log);
-            return (
-              <tr key={log.id} onClick={() => onView(log)} className="cursor-pointer transition-colors hover:bg-page">
-                <td className="px-4 py-3.5">
-                  <span className="font-semibold text-dash-ink">{name}</span>
-                  {log.displayName && <span className="block text-[11px] text-muted">{log.email}</span>}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3.5 text-dash-ink">
-                  {formatScanTime(log.startedAt)}
-                  <span className="block text-[11px] text-muted">{log.trigger === "scheduled" ? "Scheduled" : "Manual"}</span>
-                </td>
-                <td className="px-4 py-3.5">
-                  <ScanStatusBadge outcome={outcome} />
-                </td>
-                <td className="px-4 py-3.5">
-                  <span className={outcome === "failed" ? "text-danger" : outcome === "partial" ? "text-[#b45309]" : "text-dash-ink"}>
-                    {resultText(log)}
-                  </span>
-                  {outcome === "success" && (
-                    <span className="block text-[11px] text-muted">{formatCount(log.newTokens)} tokens</span>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3.5 text-right text-dash-ink">{formatDuration(log.durationMs)}</td>
-                <td className="px-4 py-3.5 text-right">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation(); // the row would open it a second time
-                      onView(log);
-                    }}
-                    aria-label={`View details of the scan by ${name} at ${formatScanTime(log.startedAt)}`}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-white hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                      <path d="m9.5 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table className="min-w-[860px]">
+      <TableHeader>
+        <TableRow className="hover:bg-transparent">
+          {showUser && <TableHead className="pl-4">User</TableHead>}
+          <TableHead className={showUser ? undefined : "pl-4"}>Status</TableHead>
+          <TableHead>Started At</TableHead>
+          <TableHead>Completed At</TableHead>
+          <TableHead className="text-right">Duration</TableHead>
+          <TableHead>Records</TableHead>
+          <TableHead>Error Summary</TableHead>
+          <TableHead className="pr-4">
+            <span className="sr-only">Details</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {logs.map((log) => {
+          const outcome = scanOutcome(log);
+          const name = personName(log);
+          const problem = diagnoseScan(log)?.problem;
+          return (
+            <TableRow key={log.id} onClick={() => onView(log)} className="cursor-pointer">
+              {showUser && (
+                <TableCell className="pl-4">
+                  <span className="font-medium text-foreground">{name}</span>
+                  {log.displayName && <span className="block text-xs text-muted-foreground">{log.email}</span>}
+                </TableCell>
+              )}
+              <TableCell className={showUser ? undefined : "pl-4"}>
+                <ScanStatusBadge outcome={outcome} />
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-foreground">
+                {formatScanTime(log.startedAt)}
+                <span className="block text-xs text-muted-foreground">{log.trigger === "scheduled" ? "Scheduled" : "Manual"}</span>
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-foreground">
+                {log.finishedAt ? formatScanTime(log.finishedAt) : <span className="text-muted-foreground">Not yet</span>}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-right tabular-nums text-foreground">{formatDuration(log.durationMs)}</TableCell>
+              <TableCell className="whitespace-nowrap text-foreground">{recordsText(log)}</TableCell>
+              <TableCell>
+                {problem ? (
+                  <span className={outcome === "failed" ? "text-destructive" : "text-[#b45309]"}>{problem}</span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              <TableCell className="pr-4 text-right">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation(); // the row would open it a second time
+                    onView(log);
+                  }}
+                  aria-label={`View details of the scan ${showUser ? `by ${name} ` : ""}at ${formatScanTime(log.startedAt)}`}
+                  className="whitespace-nowrap text-muted-foreground"
+                >
+                  View details
+                  <ChevronRightIcon className="size-3.5" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 });

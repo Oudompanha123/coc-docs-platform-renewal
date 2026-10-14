@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -21,6 +22,7 @@ import {
 import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
 import { readSourcePathOverride, readUseModel, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
+import { inputBaseClass } from "@/components/ui/input";
 import {
   readDroppedFiles,
   readPickedDirectory,
@@ -405,8 +407,8 @@ export function AttachSourceSection({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-sm font-bold text-dash-ink">Attach source</h2>
-        <p className="mt-1 text-xs text-muted">
+        <h2 className="text-sm font-semibold text-foreground">Attach source</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
           Choose the project&apos;s folder — nothing is uploaded except the one dependency manifest found inside it
           (e.g. <code>package.json</code>), which is what analysis reads. A project with no recognized manifest (a
           static site, say) can still be attached; analysis will note that none was found.
@@ -425,80 +427,81 @@ export function AttachSourceSection({
       )}
 
       {phase === "picking" && (
-        <div className="rounded-[10px] border border-border bg-page p-5">
+        <div className="rounded-xl border border-surface-border bg-card p-4">
           <div className="flex items-center gap-3">
             <span
-              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
               aria-hidden="true"
             />
             <div>
-              <p className="text-sm font-semibold text-dash-ink">Waiting for your folder</p>
-              <p className="text-xs text-muted">
+              <p className="text-sm font-semibold text-foreground">Waiting for your folder</p>
+              <p className="text-xs text-muted-foreground">
                 This part is your browser, not the platform — nothing has been read yet.
               </p>
             </div>
-            <span className="ml-auto font-mono text-xs text-muted">{pickWaitSecs}s</span>
+            <span className="ml-auto font-mono text-xs text-muted-foreground">{pickWaitSecs}s</span>
           </div>
           <div className="mt-4 flex justify-end">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => {
                 stopPickClock();
                 setPhase("empty");
               }}
-              className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
             >
               Back
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {phase === "scanning" && (
-        <div className="rounded-[10px] border border-border bg-page p-5">
+        <div className="rounded-xl border border-surface-border bg-card p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-dash-ink">Attaching</h3>
-            <span className="text-xs text-muted">manifest only — no source is parsed</span>
+            <h3 className="text-sm font-semibold text-foreground">Attaching</h3>
+            <span className="text-xs text-muted-foreground">manifest only — no source is parsed</span>
           </div>
           <div className="mt-3 flex items-baseline gap-3">
-            <span className="text-3xl font-bold tabular-nums tracking-tight text-dash-ink">
+            <span className="text-2xl font-semibold tabular-nums tracking-tight text-foreground">
               {Math.round(((stage.index + 1) / ATTACH_STAGE_LABELS.length) * 100)}%
             </span>
-            <span className="font-mono text-xs text-muted">{ATTACH_STAGE_LABELS[stage.index]}</span>
-            <span className="ml-auto font-mono text-xs text-muted">{stage.detail}</span>
+            <span className="font-mono text-xs text-muted-foreground">{ATTACH_STAGE_LABELS[stage.index]}</span>
+            <span className="ml-auto font-mono text-xs text-muted-foreground">{stage.detail}</span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-page">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted-surface">
             <div
-              className="h-full rounded-full bg-brand-purple transition-[width] duration-300"
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
               style={{ width: `${Math.round(((stage.index + 1) / ATTACH_STAGE_LABELS.length) * 100)}%` }}
             />
           </div>
-          <div className="mt-4 divide-y divide-border">
+          <div className="mt-4 divide-y divide-surface-border">
             {ATTACH_STAGE_LABELS.map((label, i) => {
               const status = i < stage.index ? "done" : i === stage.index ? "run" : "queued";
               return (
                 <div key={label} className="flex items-start gap-3 py-2.5">
                   {status === "run" ? (
                     <span
-                      className="mt-0.5 h-[22px] w-[22px] shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+                      className="mt-0.5 h-[22px] w-[22px] shrink-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
                       aria-hidden="true"
                     />
                   ) : (
                     <span
                       className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md font-mono text-[11px] font-bold ${
-                        status === "done" ? "bg-brand-purple/10 text-brand-purple" : "bg-page text-muted"
+                        status === "done" ? "bg-secondary text-foreground" : "bg-muted-surface text-muted-foreground"
                       }`}
                     >
                       {status === "done" ? "✓" : i + 1}
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-dash-ink">{label}</span>
+                    <span className="block text-sm font-semibold text-foreground">{label}</span>
                     {status === "run" && stage.detail && (
-                      <span className="block font-mono text-xs text-muted">{stage.detail}</span>
+                      <span className="block font-mono text-xs text-muted-foreground">{stage.detail}</span>
                     )}
                   </span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted">
+                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
                     {status === "done" ? "done" : status === "run" ? "reading" : "queued"}
                   </span>
                 </div>
@@ -506,13 +509,15 @@ export function AttachSourceSection({
             })}
           </div>
           <div className="mt-4 flex justify-end">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={cancelScan}
-              className="rounded-[10px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger"
+              className="hover:bg-danger/10 hover:text-danger"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -535,43 +540,42 @@ export function AttachSourceSection({
               }}
               onDrop={handleDrop}
               className={`rounded-[10px] border-2 border-dashed p-12 text-center transition-colors ${
-                dragOver ? "border-brand-purple bg-brand-purple/5" : "border-border bg-page"
+                dragOver ? "border-primary bg-secondary" : "border-surface-border bg-muted-surface"
               }`}
             >
-              <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <PaperclipIcon className="h-4 w-4" />
               </span>
-              <p className="mt-3 text-base font-semibold text-dash-ink">Attach the project you want renewed</p>
-              <p className="mt-1 text-sm text-muted">Drag a folder here, or choose one. It is opened read only.</p>
+              <p className="mt-3 text-base font-semibold text-foreground">Attach the project you want renewed</p>
+              <p className="mt-1 text-sm text-muted-foreground">Drag a folder here, or choose one. It is opened read only.</p>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-                <button
+                <Button
                   type="button"
                   onClick={chooseFolder}
-                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
                 >
                   Choose a folder
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => beginPick(filesInputRef.current)}
-                  className="rounded-[10px] border border-border px-5 py-2.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
                 >
                   Choose files
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
-            <div className="rounded-[10px] border border-border bg-page p-5">
-              <p className="text-sm text-muted">Nothing attached yet.</p>
+            <div className="rounded-xl border border-surface-border bg-card p-4">
+              <p className="text-sm text-muted-foreground">Nothing attached yet.</p>
             </div>
           )}
 
-          <div className="rounded-[10px] border border-border bg-page p-5">
-            <h3 className="text-sm font-bold text-dash-ink">Attaching does not analyse</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          <div className="rounded-xl border border-surface-border bg-card p-4">
+            <h3 className="text-sm font-semibold text-foreground">Attaching does not analyse</h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               Attaching reads the manifest only — the file list, the sizes, the dependency file and a handful of
               config files. It does not parse your source, so it stays fast on a large project.{" "}
-              <span className="font-medium text-dash-ink">Run analysis</span> is the step that reads the code, and
+              <span className="font-medium text-foreground">Run analysis</span> is the step that reads the code, and
               it waits for you.
             </p>
           </div>
@@ -581,10 +585,10 @@ export function AttachSourceSection({
       {(reviewingOnly || (alreadyAttached && phase !== "picking" && phase !== "scanning")) && (
         <>
           {shownStats && (
-            <div className="rounded-[10px] border border-border bg-page p-5">
+            <div className="rounded-xl border border-surface-border bg-card p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-dash-ink">File types found</h3>
-                <span className="text-xs text-muted">
+                <h3 className="text-sm font-semibold text-foreground">File types found</h3>
+                <span className="text-xs text-muted-foreground">
                   {pickedStats ? "scanned just now — not yet attached" : "from the manifest, not from parsing"}
                 </span>
               </div>
@@ -595,15 +599,15 @@ export function AttachSourceSection({
                   .map(([ext, count]) => (
                     <span
                       key={ext}
-                      className="rounded-full border border-border bg-page px-2.5 py-1 font-mono text-xs text-dash-ink"
+                      className="rounded-full border border-surface-border bg-muted-surface px-2.5 py-1 font-mono text-xs text-foreground"
                     >
                       .{ext} <b className="font-bold">{count}</b>
                     </span>
                   ))}
               </div>
               {shownStats.runtime && (
-                <p className="mt-3 text-xs text-muted">
-                  Looks like a <span className="font-medium text-dash-ink">{shownStats.runtime}</span> project from{" "}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Looks like a <span className="font-medium text-foreground">{shownStats.runtime}</span> project from{" "}
                   {shownStats.manifestFilename}. Run analysis confirms or corrects that.
                 </p>
               )}
@@ -611,21 +615,21 @@ export function AttachSourceSection({
           )}
 
           {shownStats && (
-            <div className="overflow-hidden rounded-[10px] border border-border bg-page">
-              <div className="relative flex items-center gap-2 border-b border-border bg-page px-5 py-3">
+            <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+              <div className="relative flex items-center gap-2 border-b border-surface-border px-4 py-3">
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+                  className="pointer-events-none absolute -right-4 -top-6 h-20 w-20 rounded-full bg-gradient-to-br from-secondary to-secondary blur-2xl"
                 />
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   <DocumentIcon className="h-4 w-4" />
                 </span>
-                <h3 className="text-sm font-bold text-dash-ink">{pickedStats ? "Reviewing" : "Attached"}</h3>
-                <span className="ml-auto text-xs text-muted">
+                <h3 className="text-sm font-semibold text-foreground">{pickedStats ? "Reviewing" : "Attached"}</h3>
+                <span className="ml-auto text-xs text-muted-foreground">
                   {pickedStats ? "not yet attached" : "manifest only"}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-px bg-surface-border sm:grid-cols-4">
                 {[
                   { label: "project files", value: shownStats.fileCount.toLocaleString() },
                   { label: "on disk", value: formatBytes(shownStats.totalBytes) },
@@ -640,9 +644,9 @@ export function AttachSourceSection({
                   },
                   { label: "state", value: detail.analysis ? "analysed" : "not analysed" },
                 ].map((cell) => (
-                  <div key={cell.label} className="bg-page p-3.5">
-                    <b className="block text-xl font-bold tracking-tight text-dash-ink">{cell.value}</b>
-                    <span className="text-xs text-muted">{cell.label}</span>
+                  <div key={cell.label} className="bg-muted-surface p-3.5">
+                    <b className="block text-lg font-semibold tracking-tight text-foreground">{cell.value}</b>
+                    <span className="text-xs text-muted-foreground">{cell.label}</span>
                   </div>
                 ))}
               </div>
@@ -650,64 +654,66 @@ export function AttachSourceSection({
                 // Said out loud, because the alternative is somebody seeing
                 // "295 project files" for a folder they know holds forty
                 // thousand and concluding it failed to read their code.
-                <p className="border-t border-border px-5 py-2.5 text-xs text-muted">
+                <p className="border-t border-surface-border px-4 py-2.5 text-xs text-muted-foreground">
                   {shownStats.skippedCount.toLocaleString()} files skipped — dependency trees, build output and
                   version-control folders, which describe nothing a migration plan needs.
                 </p>
               )}
-              <div className="space-y-1.5 px-5 py-3.5 text-sm">
-                <div className="flex items-center justify-between border-b border-border py-1.5">
-                  <span className="text-muted">Name</span>
-                  <b className="font-semibold text-dash-ink">{shownStats.rootFolderName ?? "—"}</b>
+              <div className="space-y-1.5 px-4 py-3.5 text-sm">
+                <div className="flex items-center justify-between border-b border-surface-border py-1.5">
+                  <span className="text-muted-foreground">Name</span>
+                  <b className="font-semibold text-foreground">{shownStats.rootFolderName ?? "—"}</b>
                 </div>
-                <div className="flex items-center justify-between border-b border-border py-1.5">
-                  <span className="text-muted">Manifest</span>
-                  <b className="font-semibold text-dash-ink">{shownStats.manifestFilename ?? "none found"}</b>
+                <div className="flex items-center justify-between border-b border-surface-border py-1.5">
+                  <span className="text-muted-foreground">Manifest</span>
+                  <b className="font-semibold text-foreground">{shownStats.manifestFilename ?? "none found"}</b>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                  <span className="text-muted">Mode</span>
-                  <b className="font-semibold text-dash-ink">read only — never modified</b>
+                  <span className="text-muted-foreground">Mode</span>
+                  <b className="font-semibold text-foreground">read only — never modified</b>
                 </div>
               </div>
               {pendingFile && pickedStats && (
-                <p className="border-t border-border bg-page px-5 py-2.5 text-xs text-muted">
-                  Found <span className="font-medium text-dash-ink">{pendingFile.webkitRelativePath || pendingFile.name}</span>{" "}
+                <p className="border-t border-surface-border bg-muted-surface/50 px-4 py-2.5 text-xs text-muted-foreground">
+                  Found <span className="font-medium text-foreground">{pendingFile.webkitRelativePath || pendingFile.name}</span>{" "}
                   among {scannedCount} files scanned.
                 </p>
               )}
               {!pendingFile && pickedStats && (
-                <p className="border-t border-border bg-page px-5 py-2.5 text-xs text-muted">
+                <p className="border-t border-surface-border bg-muted-surface/50 px-4 py-2.5 text-xs text-muted-foreground">
                   No recognized manifest ({MANIFEST_FILENAMES.join(", ")}) was found among the {scannedCount} files
                   scanned — attaching will record that.
                 </p>
               )}
               {canEdit && !pickedStats && alreadyAttached && (
-                <div className="flex justify-end border-t border-border px-5 py-3.5">
-                  <button
+                <div className="flex justify-end border-t border-surface-border px-4 py-3.5">
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={chooseFolder}
-                    className="rounded-[10px] border border-dashed border-border px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-brand-purple hover:text-brand-purple"
+                    className="border-dashed text-muted-foreground hover:text-foreground"
                   >
                     Replace source
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
           )}
 
           {shownStats && (
-            <div className="rounded-[10px] border border-border bg-page p-5">
+            <div className="rounded-xl border border-surface-border bg-card p-4">
               <div className="flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <CheckCircleIcon className="h-6 w-6 shrink-0 text-emerald-500" />
                   Verification
                 </h3>
-                <span className="text-xs text-muted">
+                <span className="text-xs text-muted-foreground">
                   {buildVerification(shownStats).filter((r) => r.status === "ok").length} passed ·{" "}
                   {buildVerification(shownStats).filter((r) => r.status === "warn").length} to note
                 </span>
               </div>
-              <div className="mt-3 divide-y divide-border">
+              <div className="mt-3 divide-y divide-surface-border">
                 {buildVerification(shownStats).map((row) => (
                   <div key={row.title} className="flex items-start gap-3 py-2.5">
                     {row.status === "ok" ? (
@@ -718,13 +724,13 @@ export function AttachSourceSection({
                       </span>
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-dash-ink">{row.title}</span>
-                      <span className="block text-xs text-muted">{row.detail}</span>
+                      <span className="block text-sm font-semibold text-foreground">{row.title}</span>
+                      <span className="block text-xs text-muted-foreground">{row.detail}</span>
                     </span>
                     {/* Decorative only — every row here already shows everything it
                         has (title + detail), there's no drill-down destination to
                         wire this to yet. */}
-                    <ChevronRightIcon className="mt-1 h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                    <ChevronRightIcon className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   </div>
                 ))}
               </div>
@@ -740,11 +746,11 @@ export function AttachSourceSection({
           (engine-preference.ts); never sent anywhere until Run analysis is
           pressed, and the backend does not persist it either. */}
       {canEdit && engine?.connected && (
-        <div className="rounded-[10px] border border-border bg-page p-4">
-          <label htmlFor="ax-source-path" className="text-xs font-semibold text-muted">
+        <div className="rounded-xl border border-surface-border bg-card p-4">
+          <label htmlFor="ax-source-path" className="text-xs font-semibold text-muted-foreground">
             Your legacy project&apos;s path on this machine (optional)
           </label>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             Choosing or dragging a folder above fills this in with that folder&apos;s name — a browser never
             exposes its full location on disk, so add the rest of the path yourself if it needs to be exact.
             Leave blank to use this deployment&apos;s configured default, if it has one. Typing a path here reads
@@ -758,7 +764,7 @@ export function AttachSourceSection({
             placeholder="e.g. C:\Users\you\projects\legacy-app"
             spellCheck={false}
             autoComplete="off"
-            className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 font-mono text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`${inputBaseClass} mt-2 w-full font-mono`}
           />
         </div>
       )}
@@ -771,64 +777,63 @@ export function AttachSourceSection({
       {analyzing && <AnalysisProgress engineLabel={engineLabel} onStop={stopAnalysis} />}
 
       {detail.analysis ? (
-        <div className="relative overflow-hidden rounded-[10px] border border-border bg-page p-5">
+        <div className="relative overflow-hidden rounded-xl border border-surface-border bg-card p-4">
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 blur-2xl"
+            className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-secondary to-secondary blur-2xl"
           />
-          <h3 className="flex items-center gap-2 text-sm font-bold text-dash-ink">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-purple to-brand-blue text-base font-bold text-white">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
               ✓
             </span>
             Analysis complete
           </h3>
-          <p className="mt-1.5 text-sm text-dash-ink">
+          <p className="mt-1.5 text-sm text-foreground">
             Codebase, architecture, pages and findings are open in the explorer.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             {canEdit && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[10px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis again"}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=understand-architecture`)}
-              className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open architecture
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
-        <div className="rounded-[10px] border border-border bg-page p-5">
+        <div className="rounded-xl border border-surface-border bg-card p-4">
           <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-3 text-sm font-bold text-dash-ink">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+            <h3 className="flex items-center gap-3 text-sm font-semibold text-foreground">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <SparklesIcon className="h-4 w-4" />
               </span>
               Run analysis
             </h3>
             {canEdit && (
-              <button
+              <Button
                 type="button"
+                size="sm"
                 onClick={() => void handleAnalyze()}
                 disabled={analyzing}
-                className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {analyzing ? "Running…" : "Run analysis"}
-              </button>
+              </Button>
             )}
           </div>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted-foreground">
             Unlocks Codebase, Architecture and Findings in the Understand group, and every section of Plan.
           </p>
-          <p className="mt-3 text-sm text-muted">Not analyzed yet.</p>
+          <p className="mt-3 text-sm text-muted-foreground">Not analyzed yet.</p>
         </div>
       )}
 

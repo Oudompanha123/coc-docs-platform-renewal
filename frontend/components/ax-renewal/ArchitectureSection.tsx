@@ -1,9 +1,11 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
 import { useUnsavedChangesGuard } from "@/lib/ax-renewal/unsavedChanges";
 import type { AxRenewalAnalysis, AxRenewalArchitecture, AxRenewalConfirmation, AxRenewalStackLayer } from "@/lib/ax-renewal/api";
+import { textareaBaseClass } from "@/components/ui/textarea";
 
 /**
  * Every Stack move layer that is actually moving — a real `newTarget`
@@ -178,26 +180,26 @@ export function ArchitectureSection({
           seeded into state is also what makes these two cards immune to the
           "still shows the old Stack move" staleness the drafted textarea
           below is otherwise prone to. */}
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Layers after the move</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Layers after the move</h3>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           {moving.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Nothing decided yet — pick a target for at least one layer under <strong>Plan → Stack move</strong>{" "}
               and save it there first.
             </p>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-surface-border">
               {moving.map((l, i) => (
                 <div key={l.layerKey} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-xs font-bold text-brand-purple">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-foreground">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-dash-ink">{l.layerKey}</p>
-                    <p className="font-mono text-xs text-muted">
+                    <p className="text-sm font-semibold text-foreground">{l.layerKey}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
                       {l.oldTarget || "current"} → {l.newTarget}
                     </p>
                   </div>
@@ -208,18 +210,18 @@ export function ArchitectureSection({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">What analysis found that shapes this</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">What analysis found that shapes this</h3>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           {findings.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               Tracing real imports between files needs a connected local model actually reading the source — this
               project hasn&apos;t reported any hubs or cycles yet (Understand → Architecture → Module coupling).
             </p>
           ) : (
-            <ul className="list-disc space-y-2 pl-4 text-sm text-dash-ink">
+            <ul className="list-disc space-y-2 pl-4 text-sm text-foreground">
               {findings.map((f, i) => (
                 <li key={i}>{f.text}</li>
               ))}
@@ -228,35 +230,35 @@ export function ArchitectureSection({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-      <div className="border-b border-border bg-page px-5 py-3">
-        <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+      <div className="border-b border-surface-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-foreground">Architecture</h3>
       </div>
-      <div className="p-5">
-      <p className="text-xs text-muted">
+      <div className="p-4">
+      <p className="text-xs text-muted-foreground">
         Describe the resulting <strong>layered design</strong> once the <strong>stack move</strong> above is decided — what talks to what, and why
         it is shaped this way.
       </p>
 
       {isSuggestion && (
-        <p className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+        <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
           Drafted from Stack move&apos;s recorded decisions and Module coupling&apos;s real findings — nothing is
           saved yet. Edit it into your own words, then <strong>Save architecture</strong>.
         </p>
       )}
 
       {suggestionNotYetIncluded && (
-        <div className="mt-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-3 py-2 text-xs text-dash-ink">
+        <div className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
           <p>
             <strong>Stack move or Module coupling has something new</strong> since this was last saved — not
             reflected below yet:
           </p>
-          <pre className="mt-1.5 whitespace-pre-wrap font-mono text-[11px] text-muted">{liveSuggestion}</pre>
+          <pre className="mt-1.5 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground">{liveSuggestion}</pre>
           {canEdit && (
             <button
               type="button"
               onClick={useLiveSuggestion}
-              className="mt-2 rounded-full border border-brand-purple/30 px-2.5 py-1 text-[11px] font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10"
+              className="mt-2 rounded-full border border-primary/30 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary"
             >
               Add this to my summary
             </button>
@@ -270,10 +272,10 @@ export function ArchitectureSection({
         onChange={(e) => setSummary(e.target.value)}
         rows={8}
         placeholder="e.g. Browser → API layer (controllers only) → Service layer (business rules) → Data access, against the existing schema…"
-        className="mt-4 w-full resize-y rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page"
+        className={`${textareaBaseClass} mt-4 w-full resize-y`}
       />
 
-      {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
       {canEdit && (
         <div className="mt-3 flex items-center justify-between gap-3">
@@ -282,14 +284,14 @@ export function ArchitectureSection({
           ) : (
             <span />
           )}
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save architecture"}
-          </button>
+          </Button>
         </div>
       )}
 

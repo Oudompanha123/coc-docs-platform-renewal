@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { pickOption } from "@/components/ui/select.test-utils";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -52,6 +53,11 @@ describe("AnnouncementCategoryPicker", () => {
     }
     render(<Harness />);
 
+    // Labelled "Announcement Type", with the four types the push banner names.
+    expect(screen.getByRole("group", { name: "Announcement Type" })).toBeInTheDocument();
+    for (const label of ["Information", "Update", "Maintenance", "Important"]) {
+      expect(screen.getByRole("radio", { name: new RegExp(label) })).toBeInTheDocument();
+    }
     expect(screen.getByText("Planned downtime or slowness")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Information/ })).toBeChecked();
 
@@ -79,7 +85,7 @@ describe("AnnouncementExpiryField", () => {
 
     const chosen = onValue.mock.calls.at(-1)?.[0] as string;
     expect(splitExpiry(chosen)).toEqual({ date: "2026-10-14", time: "14:30" });
-    expect(screen.getByLabelText("Expiry time")).toHaveValue("14:30");
+    expect(screen.getByRole("combobox", { name: "Expiry time" })).toHaveTextContent("14:30");
     expect(screen.getByText(/Members stop seeing it on/)).toHaveTextContent("in 7 days");
   });
 
@@ -102,7 +108,7 @@ describe("AnnouncementExpiryField", () => {
     // Today, 18:00 is still ahead; 09:00 is behind.
     render(<ExpiryHarness initial={new Date(2026, 9, 7, 18, 0).toISOString()} />);
 
-    await newUser().selectOptions(screen.getByLabelText("Expiry time"), "09:00");
+    await pickOption(newUser(), "Expiry time", "09:00");
 
     expect(screen.getByRole("alert")).toHaveTextContent("That time has already passed");
   });

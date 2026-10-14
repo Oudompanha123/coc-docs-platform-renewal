@@ -32,6 +32,25 @@ const nextConfig: NextConfig = {
         destination: "/account/settings#claude-usage",
         permanent: true,
       },
+      {
+        // The personal Attendance view moved into /account/settings's own
+        // Attendance section, and the header's Reports & Records menu (which
+        // held only it) went with it. Same permanent 308 as the line above,
+        // so old links and bookmarks still land on it.
+        source: "/reports/attendance",
+        destination: "/account/settings#attendance",
+        permanent: true,
+      },
+      /**
+       * The Scan Logs page moved from `/claude-usage/logs` to
+       * `/claude-usage/monitoring` (ADR-099 amendment). Kept so bookmarks and
+       * links already shared keep landing on the page.
+       */
+      {
+        source: "/claude-usage/logs",
+        destination: "/claude-usage/monitoring",
+        permanent: true,
+      },
     ];
   },
 };

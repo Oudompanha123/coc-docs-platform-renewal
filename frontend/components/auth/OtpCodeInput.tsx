@@ -1,5 +1,6 @@
 "use client";
 
+import { Label } from "@/components/ui/label";
 import { forwardRef, useState } from "react";
 
 const LENGTH = 6;
@@ -50,9 +51,9 @@ export const OtpCodeInput = forwardRef<
 
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-semibold text-ink">
+      <Label htmlFor={id} className="mb-2 block">
         {label}
-      </label>
+      </Label>
       <div className="relative">
         <div aria-hidden="true" className="grid grid-cols-6 gap-2 sm:gap-3">
           {Array.from({ length: LENGTH }, (_, i) => {
@@ -62,21 +63,32 @@ export const OtpCodeInput = forwardRef<
             return (
               <div
                 key={i}
-                className={`flex h-14 items-center justify-center rounded-xl border-2 text-2xl font-bold tabular-nums transition-all duration-150 sm:h-16 ${
+                className={`flex h-11 items-center justify-center rounded-xl border text-lg font-semibold tabular-nums transition-all duration-150 sm:h-12 ${
                   invalid
-                    ? "border-red-300 bg-red-50 text-red-700"
+                    ? "border-destructive/50 bg-destructive/5 text-destructive"
                     : isActive
-                      ? "border-brand-purple bg-white text-ink shadow-[0_0_0_4px_rgba(109,60,224,0.15)]"
+                      ? // The same lift the field primitive uses, rather than a
+                        // ring — six boxes each wearing a halo is a lot of
+                        // noise for one cursor position.
+                        "border-surface-border bg-background text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.12)]"
                       : filled
-                        ? "border-brand-purple/40 bg-brand-purple/5 text-ink"
-                        : "border-border bg-white text-ink"
+                        ? "border-surface-border bg-background text-foreground"
+                        : "border-transparent bg-muted-surface text-foreground"
                 } ${disabled ? "opacity-60" : ""}`}
               >
-                {filled ? digit : isActive ? <span className="h-6 w-0.5 animate-pulse rounded-full bg-brand-purple" /> : null}
+                {filled ? digit : isActive ? <span className="bg-foreground h-5 w-0.5 animate-pulse rounded-full" /> : null}
               </div>
             );
           })}
         </div>
+        {/* Not the Input primitive, and deliberately so: this field is
+            invisible. It spans the six drawn boxes to catch clicks, paste and
+            the caret, and shares none of Input's border, background, padding
+            or placeholder styling — routing it through the primitive would
+            mean overriding every class the primitive sets. ADR-104 decision 7
+            allows the escape hatch where an affordance genuinely is not one
+            of the primitives; this is that case. */}
+        {/* eslint-disable-next-line react/forbid-elements */}
         <input
           ref={ref}
           id={id}

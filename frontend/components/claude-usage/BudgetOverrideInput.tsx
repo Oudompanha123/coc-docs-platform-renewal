@@ -1,6 +1,7 @@
 "use client";
 
 import { DEFAULT_SOFT_BUDGET_TOKENS, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
+import { Input } from "@/components/ui/input";
 
 export function formatDefaultBudget(n: number = DEFAULT_SOFT_BUDGET_TOKENS): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
@@ -32,7 +33,7 @@ export function BudgetOverrideInput({
 
   return (
     <div className="flex items-center gap-2">
-      <input
+      <Input
         type="number"
         min={100_000}
         step={100_000}
@@ -45,9 +46,9 @@ export function BudgetOverrideInput({
           if (e.key === "Enter") e.currentTarget.blur();
         }}
         placeholder={`Default (${formatDefaultBudget()})`}
-        className="w-44 rounded-xl border border-muted/40 bg-white px-3 py-1.5 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple"
+        className="w-44 bg-card"
       />
-      <span className="text-xs text-muted">tokens / week</span>
+      <span className="text-xs text-muted-foreground">tokens / week</span>
     </div>
   );
 }

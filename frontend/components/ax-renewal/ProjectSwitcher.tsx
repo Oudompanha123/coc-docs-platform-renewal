@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@/components/layout/icons";
 import type { AxRenewalProject } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
 
 /**
  * Trigger + dropdown panel, single-select, checkmark on the active project —
@@ -70,11 +71,11 @@ export function ProjectSwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex min-w-[220px] items-center justify-between gap-2 rounded-[10px] border border-border bg-white px-3 py-1.5 text-sm font-medium text-dash-ink transition-colors hover:bg-page focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white"
+        className={`${inputBaseClass} flex min-w-[220px] items-center justify-between gap-2 font-medium hover:bg-accent disabled:hover:bg-muted-surface`}
       >
         <span className="truncate">{active?.name ?? "No projects yet"}</span>
         {list.length > 0 && (
-          <ChevronDownIcon className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDownIcon className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
         )}
       </button>
 
@@ -82,10 +83,10 @@ export function ProjectSwitcher({
         <div
           role="listbox"
           aria-labelledby="ax-project"
-          className="absolute left-0 top-full z-10 mt-1 max-h-72 min-w-[220px] overflow-y-auto rounded-[10px] border border-border bg-white py-1 shadow-lg"
+          className="absolute left-0 top-full z-10 mt-1 max-h-72 min-w-[220px] overflow-y-auto rounded-xl border border-surface-border bg-card py-1 shadow-lg"
         >
           {hasOthers && (
-            <div role="group" aria-label="Which projects to list" className="flex gap-1 border-b border-border px-2 pb-1.5 pt-0.5">
+            <div role="group" aria-label="Which projects to list" className="flex gap-1 border-b border-surface-border px-2 pb-1.5 pt-0.5">
               {(["mine", "all"] as const).map((value) => (
                 <button
                   key={value}
@@ -93,7 +94,7 @@ export function ProjectSwitcher({
                   aria-pressed={scope === value}
                   onClick={() => setChosenScope(value)}
                   className={`rounded-md px-2 py-0.5 text-xs font-semibold transition-colors ${
-                    scope === value ? "bg-brand-purple/10 text-brand-purple" : "text-muted hover:bg-page"
+                    scope === value ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-accent"
                   }`}
                 >
                   {value === "mine" ? "Mine" : "All"}
@@ -102,7 +103,7 @@ export function ProjectSwitcher({
             </div>
           )}
           {shown.length === 0 && (
-            <p className="px-3 py-2 text-xs text-muted">You&rsquo;re not a member of any project yet.</p>
+            <p className="px-3 py-2 text-xs text-muted-foreground">You&rsquo;re not a member of any project yet.</p>
           )}
           {shown.map((p) => {
             const isActive = p.id === projectId;
@@ -114,7 +115,7 @@ export function ProjectSwitcher({
                 aria-selected={isActive}
                 onClick={() => selectProject(p.id)}
                 className={`flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm transition-colors ${
-                  isActive ? "bg-brand-purple/10 font-semibold text-brand-purple" : "text-dash-ink hover:bg-page"
+                  isActive ? "bg-secondary font-semibold text-foreground" : "text-foreground hover:bg-accent"
                 }`}
               >
                 <span className="truncate">{p.name}</span>

@@ -606,6 +606,21 @@ public final class ApiDtos {
 
     public record UpdateNavProductRequest(@NotBlank String label, @NotBlank String icon) {}
 
+    /** A rename's result: {@code previousKey} is what the caller sent in the
+     *  URL, so a client already showing that product can tell whether its own
+     *  URL needs to move — {@code product.key()} only differs from it when
+     *  the new label slugified to a different key. */
+    public record UpdateNavProductResponse(String previousKey, NavProductResponse product) {
+
+        public static UpdateNavProductResponse of(com.coc.docs.nav.NavService.ProductRenameResult result) {
+            return new UpdateNavProductResponse(result.previousKey(), NavProductResponse.of(result.product()));
+        }
+    }
+
+    /** Where an old product slug now lives, for the 308 a caller issues when
+     *  a request names a slug no live product currently has. */
+    public record CurrentSlugResponse(String currentKey) {}
+
     public record ReorderProductsRequest(@NotNull List<String> keys) {}
 
     public record CreateNavItemRequest(@NotNull String slug, @NotBlank String label) {}
@@ -613,6 +628,41 @@ public final class ApiDtos {
     public record UpdateNavItemRequest(@NotBlank String label) {}
 
     public record ReorderItemsRequest(@NotNull List<String> slugs) {}
+
+    /** A sidebar group an ADMINISTRATION-block item can be moved into —
+     *  built-in (ADMINISTRATION, DEVELOPER) or admin-created custom ones. */
+    public record NavGroupResponse(UUID id, String name, boolean builtin, int sortOrder) {
+
+        public static NavGroupResponse of(com.coc.docs.nav.NavGroup group) {
+            return new NavGroupResponse(group.id(), group.name(), group.builtin(), group.sortOrder());
+        }
+    }
+
+    /** One ADMINISTRATION-block item's rename/move override — absent for an
+     *  item nobody has ever overridden, in which case the frontend's own
+     *  code-defined default applies. */
+    public record NavItemOverrideResponse(String itemKey, String customLabel, UUID groupId, Integer sortOrder) {
+
+        public static NavItemOverrideResponse of(com.coc.docs.nav.NavItemOverride override) {
+            return new NavItemOverrideResponse(
+                    override.itemKey(), override.customLabel(), override.groupId(), override.sortOrder());
+        }
+    }
+
+    /** Everything the sidebar needs for one request: live products, every
+     *  group, and every item override — merged client-side with the
+     *  frontend's own code-defined ADMINISTRATION defaults. */
+    public record AdminNavConfigResponse(
+            List<NavProductResponse> products, List<NavGroupResponse> groups, List<NavItemOverrideResponse> itemOverrides) {}
+
+    /** Rename and/or move in one call — both optional, but at least one must
+     *  be present (enforced in {@code NavService}, not by validation
+     *  annotations, since "both blank" is a business rule, not a shape rule). */
+    public record UpdateNavItemOverrideRequest(String label, UUID groupId) {}
+
+    public record CreateNavGroupRequest(@NotBlank String name) {}
+
+    public record UpdateNavGroupRequest(@NotBlank String name) {}
 
     // -----------------------------------------------------------------------
     // Notifications
@@ -893,6 +943,14 @@ public final class ApiDtos {
     public record NotificationInboxResponse(List<NotificationResponse> items, int unreadCount) {}
 
     /**
+     * One page of the bell's expanded "View all" list (ADR-106). {@code hasMore}
+     * says whether to offer "Load more"; {@code unreadCount} is the same
+     * whole-inbox count the bell shows, so the page and the badge agree.
+     */
+    public record NotificationPageResponse(
+            List<NotificationResponse> items, boolean hasMore, int unreadCount) {}
+
+    /**
      * One of the caller's own notification preferences (ADR-042).
      *
      * <p>{@code enabled} always reflects the opt-out-by-absence default — the
@@ -994,7 +1052,9 @@ public final class ApiDtos {
             ClaudeUsageTotalsResponse totals,
             int activeUsers,
             int nearLimit,
-            Instant lastUpdated) {
+            Instant lastUpdated,
+            /** Disabled members, never counted in anything above -- so they can be enabled again. */
+            List<ClaudeUsageMemberResponse> disabledMembers) {
 
         public static ClaudeUsageDashboardResponse of(ClaudeUsageDashboard dashboard) {
             return new ClaudeUsageDashboardResponse(
@@ -1006,7 +1066,8 @@ public final class ApiDtos {
                     ClaudeUsageTotalsResponse.of(dashboard.totals()),
                     dashboard.activeUsers(),
                     dashboard.nearLimit(),
-                    dashboard.lastUpdated());
+                    dashboard.lastUpdated(),
+                    dashboard.disabledMembers().stream().map(ClaudeUsageMemberResponse::of).toList());
         }
     }
 
@@ -1446,7 +1507,24 @@ public final class ApiDtos {
 
     public record ClaudeUsageScanLogStepRequest(String key, String status, Instant at, @Size(max = 2000) String detail) {}
 
-    /** A row of the View Logs table — no steps; {@link ClaudeUsageScanLogDetailResponse} carries those. */
+    /** {@code POST /api/ingest/scan-log/start}: a scan has begun (ADR-107). Its result follows on {@code /scan-log}. */
+    public record ClaudeUsageScanStartRequest(
+            @NotNull UUID scanId,
+            @NotBlank @Email String email,
+            String trigger,
+            @Size(max = 40) String cliVersion,
+            @NotNull Instant startedAt) {
+
+        public ClaudeUsageScanLogService.Start toStart() {
+            return new ClaudeUsageScanLogService.Start(scanId, email, trigger, cliVersion, startedAt);
+        }
+    }
+
+    /**
+     * A row of the View Logs table — no steps; {@link ClaudeUsageScanLogDetailResponse} carries those.
+     * {@code status} is also {@code running} or {@code incomplete} (ADR-107), and then {@code finishedAt}
+     * and {@code durationMs} are null.
+     */
     public record ClaudeUsageScanLogSummaryResponse(
             UUID id,
             String scanRef,
@@ -1458,7 +1536,7 @@ public final class ApiDtos {
             Instant startedAt,
             Instant finishedAt,
             Instant receivedAt,
-            long durationMs,
+            Long durationMs,
             String status,
             String uploadStatus,
             Integer transcriptFiles,
@@ -2100,4 +2178,79 @@ public final class ApiDtos {
             return new com.coc.docs.announcement.AnnouncementService.Draft(title, body, category, expiresAt);
         }
     }
+
+    // -----------------------------------------------------------------------
+    // Legal pages (Terms of Service / Privacy Policy)
+    // -----------------------------------------------------------------------
+
+    /** The public read — {@code GET /api/v1/legal/{slug}} — just the published content. */
+    public record LegalPageResponse(String slug, JsonNode content) {
+
+        public static LegalPageResponse of(com.coc.docs.legal.LegalPageVersion version) {
+            return new LegalPageResponse(version.slug().wire(), version.content());
+        }
+    }
+
+    /**
+     * The editorial view of one version — a draft being edited, the current
+     * published row, or one entry from history. {@code publishedByName} is
+     * resolved from the account row at response time (the version itself
+     * only carries the id) and is null for a draft or a system-seeded
+     * published row with no recorded publisher.
+     */
+    public record LegalPageVersionResponse(
+            UUID id,
+            String slug,
+            String status,
+            JsonNode content,
+            int versionNo,
+            Instant publishedAt,
+            UUID publishedById,
+            String publishedByName,
+            String publishNote,
+            Instant updatedAt) {
+
+        public static LegalPageVersionResponse of(
+                com.coc.docs.legal.LegalPageVersion version, String publishedByName) {
+            return new LegalPageVersionResponse(
+                    version.id(),
+                    version.slug().wire(),
+                    version.status().wire(),
+                    version.content(),
+                    version.versionNo(),
+                    version.publishedAt(),
+                    version.publishedBy(),
+                    publishedByName,
+                    version.publishNote(),
+                    version.updatedAt());
+        }
+    }
+
+    /** One row of the History panel — no content, so the list stays light. */
+    public record LegalVersionSummaryResponse(
+            UUID id, String status, int versionNo, Instant publishedAt, String publishedByName, String publishNote) {
+
+        public static LegalVersionSummaryResponse of(
+                com.coc.docs.legal.LegalPageVersion version, String publishedByName) {
+            return new LegalVersionSummaryResponse(
+                    version.id(),
+                    version.status().wire(),
+                    version.versionNo(),
+                    version.publishedAt(),
+                    publishedByName,
+                    version.publishNote());
+        }
+    }
+
+    /**
+     * A draft save. {@code versionNo} is required with no default — an
+     * editor that omitted it would be asking to overwrite whatever is there,
+     * the exact thing FR-CONT-013's pattern exists to prevent.
+     */
+    public record SaveLegalDraftRequest(@NotNull JsonNode content, @NotNull Integer versionNo) {}
+
+    /** Publish's optional request body — a client posting no body at all
+     *  (every call site before this field existed) is handled by the
+     *  controller treating a missing body as {@code note == null}. */
+    public record PublishLegalPageRequest(String note) {}
 }

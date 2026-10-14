@@ -1,7 +1,8 @@
 "use client";
 
-import { Modal } from "@/components/users-roles/Modal";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 import { Spinner } from "@/components/layout/Spinner";
+import { Button } from "@/components/ui/button";
 
 export type AnnouncementAction = "publish" | "unpublish" | "delete";
 
@@ -50,36 +51,27 @@ export function AnnouncementConfirmModal({
   const copy = COPY[action];
   return (
     <Modal title={copy.title} onClose={busy ? () => {} : onClose}>
-      <p className="rounded-[10px] border border-border bg-page px-3 py-2.5 text-sm font-semibold text-dash-ink">
+      <p className="rounded-xl border border-surface-border bg-muted-surface px-3 py-2.5 text-sm font-semibold text-foreground">
         {title}
       </p>
-      <p className="mt-3 text-sm text-muted">{copy.body}</p>
+      <p className="mt-3 text-sm text-muted-foreground">{copy.body}</p>
       {error && (
-        <p role="alert" className="mt-3 rounded-[10px] border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <p role="alert" className="mt-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
         </p>
       )}
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={busy}
-          className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:opacity-50"
-        >
+      <ModalFooter>
+        <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onConfirm}
-          disabled={busy}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
-            copy.danger ? "bg-danger" : "bg-gradient-to-r from-brand-purple to-brand-blue"
-          }`}
-        >
+        </Button>
+        {/* The Button primitive, not hand-written: its `text-white` on
+            `bg-primary` drew white-on-white in dark mode, where the primary
+            turns near-white. */}
+        <Button type="button" variant={copy.danger ? "destructive" : "default"} onClick={onConfirm} disabled={busy}>
           {busy && <Spinner />}
           {copy.confirm}
-        </button>
-      </div>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }

@@ -1,7 +1,20 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { EyeIcon, EyeOffIcon } from "./icons";
+
+/**
+ * The auth forms' fields, rebuilt on the shadcn primitives (ADR-104 r2.0).
+ *
+ * The `icon` prop is still accepted and still required by twenty call sites,
+ * but it is no longer rendered. shadcn's field is a label above a plain box;
+ * a glyph sitting inside the input is the older design's idiom and it fights
+ * a 36px control. Keeping the prop means no caller had to change — dropping
+ * it is a separate, mechanical sweep.
+ */
 
 type FormFieldProps = {
   label: string;
@@ -9,7 +22,8 @@ type FormFieldProps = {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
-  icon: ReactNode;
+  /** Accepted for call-site compatibility; no longer rendered — see above. */
+  icon?: ReactNode;
   error?: string;
   autoComplete?: string;
   /** The field's form name — what password managers and `FormData` identify it by (e.g. "username", "password"). */
@@ -17,36 +31,27 @@ type FormFieldProps = {
   id?: string;
 };
 
-const fieldClasses =
-  "w-full rounded-xl border border-border py-3 pl-10 pr-4 text-sm text-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 transition-colors";
-
-export function FormField({ label, type = "text", value, onChange, placeholder, icon, error, autoComplete, id, name }: FormFieldProps) {
+export function FormField({ label, type = "text", value, onChange, placeholder, error, autoComplete, id, name }: FormFieldProps) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const errorId = `${fieldId}-error`;
 
   return (
-    <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
-        {label}
-      </label>
-      <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">{icon}</span>
-        <input
-          id={fieldId}
-          name={name}
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          autoComplete={autoComplete}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
-          className={fieldClasses}
-        />
-      </div>
+    <div className="grid gap-2">
+      <Label htmlFor={fieldId}>{label}</Label>
+      <Input
+        id={fieldId}
+        name={name}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+      />
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">
+        <p id={errorId} role="alert" className="text-destructive text-xs">
           {error}
         </p>
       )}
@@ -69,11 +74,9 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
   const errorId = `${fieldId}-error`;
 
   return (
-    <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
-        {label}
-      </label>
-      <input
+    <div className="grid gap-2">
+      <Label htmlFor={fieldId}>{label}</Label>
+      <Input
         id={fieldId}
         type="text"
         inputMode="numeric"
@@ -84,10 +87,10 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
         placeholder="000000"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className="w-full rounded-xl border border-border py-3 px-4 text-center text-2xl font-semibold tracking-[0.5em] text-ink placeholder:text-muted/40 focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15 transition-colors"
+        className="h-10 text-center text-lg font-semibold tracking-[0.4em] md:text-lg"
       />
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">
+        <p id={errorId} role="alert" className="text-destructive text-xs">
           {error}
         </p>
       )}
@@ -95,22 +98,19 @@ export function CodeField({ label, value, onChange, error, id }: CodeFieldProps)
   );
 }
 
-type PasswordFieldProps = Omit<FormFieldProps, "type" | "icon"> & { icon: ReactNode };
+type PasswordFieldProps = Omit<FormFieldProps, "type">;
 
-export function PasswordField({ label, value, onChange, placeholder, icon, error, autoComplete, id, name }: PasswordFieldProps) {
+export function PasswordField({ label, value, onChange, placeholder, error, autoComplete, id, name }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const errorId = `${fieldId}-error`;
 
   return (
-    <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-ink">
-        {label}
-      </label>
+    <div className="grid gap-2">
+      <Label htmlFor={fieldId}>{label}</Label>
       <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted">{icon}</span>
-        <input
+        <Input
           id={fieldId}
           name={name}
           type={visible ? "text" : "password"}
@@ -120,20 +120,22 @@ export function PasswordField({ label, value, onChange, placeholder, icon, error
           autoComplete={autoComplete}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={`${fieldClasses} pr-10`}
+          className="pr-10"
         />
-        <button
+        <Button shape="pill"
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className="text-muted-foreground absolute top-0 right-0 size-10 hover:bg-transparent"
         >
-          {visible ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-        </button>
+          {visible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+        </Button>
       </div>
       {error && (
-        <p id={errorId} role="alert" className="mt-1.5 text-xs text-red-600">
+        <p id={errorId} role="alert" className="text-destructive text-xs">
           {error}
         </p>
       )}
