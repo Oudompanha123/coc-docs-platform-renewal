@@ -3,7 +3,7 @@
 import { ActiveSessions } from "@/components/settings/ActiveSessions";
 
 /**
- * `/account/settings#sessions` — the same Active sessions list as the
+ * `/account/settings#security` (the Sessions part) — the same Active sessions list as the
  * Security section on `/settings`, reused as-is so the two pages can never
  * drift apart: every signed-in device, with a per-device sign-out.
  */

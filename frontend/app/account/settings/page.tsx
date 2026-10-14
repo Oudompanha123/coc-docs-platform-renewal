@@ -153,9 +153,18 @@ export default function AccountSettingsPage() {
                   : []),
                 { id: "attendance", content: <AttendanceCard /> },
                 { id: "connected-accounts", content: <ConnectedAccountsCard state={hrmsLink} /> },
-                { id: "security", content: <SecurityCard /> },
-                { id: "password-2fa", content: <PasswordSecurityCard /> },
-                { id: "sessions", content: <SessionsCard /> },
+                {
+                  id: "security",
+                  // One tab for everything about signing in: the method and
+                  // recent sign-ins, Password & 2FA, then active sessions.
+                  content: (
+                    <div className="space-y-6">
+                      <SecurityCard />
+                      <PasswordSecurityCard />
+                      <SessionsCard />
+                    </div>
+                  ),
+                },
               ]}
             />
           </div>
