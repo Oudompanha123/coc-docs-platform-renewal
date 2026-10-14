@@ -2,8 +2,10 @@
 
 import { Alert } from "@/components/ui/alert";
 import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
+import { FileText, UserX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { XIcon } from "@/components/layout/icons";
+import { avatarSrc } from "@/lib/account/avatarSrc";
 import { fetchLegalVersion, fetchLegalVersions, type LegalSlug, type LegalVersionMeta, type LegalVersionSummary } from "@/lib/legal/legal-api";
 import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 
@@ -11,6 +13,53 @@ function formatWhen(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
+
+/** Who published a version, in words: their name, or why there is none. */
+export function publisherLabel(version: LegalVersionSummary): string {
+  if (version.publishedByName) return version.publishedByName;
+  // Created with the page itself (V68) — nobody published it.
+  if (version.initialVersion) return "Initial version";
+  // A person published it, but their account no longer exists.
+  return "Deleted account";
+}
+
+/**
+ * The publisher's photo: an uploaded one through `avatarSrc` (so it loads
+ * from the backend's avatar route on a private bucket), a Google picture
+ * as-is, else their initial — or, with no person at all, a neutral icon.
+ */
+function PublisherAvatar({ version }: { version: LegalVersionSummary }) {
+  const [failed, setFailed] = useState(false);
+  const src = avatarSrc(version.publishedByAvatarUrl);
+
+  if (version.publishedByName && src && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        onError={() => setFailed(true)}
+        referrerPolicy="no-referrer"
+        className="size-6 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
+  const NoPersonIcon = version.initialVersion ? FileText : UserX;
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted-surface text-[11px] font-semibold text-muted-foreground"
+    >
+      {version.publishedByName ? (
+        version.publishedByName.trim().charAt(0).toUpperCase()
+      ) : (
+        <NoPersonIcon className="size-3.5" />
+      )}
+    </span>
+  );
 }
 
 /**
@@ -108,7 +157,10 @@ export function LegalHistoryPanel<T = LegalDocumentContent>({
                   <span className="text-xs text-muted-foreground">v{version.versionNo}</span>
                 </div>
                 <p className="mt-1.5 text-sm text-foreground">{formatWhen(version.publishedAt)}</p>
-                <p className="text-xs text-muted-foreground">{version.publishedByName ?? "System"}</p>
+                <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                  <PublisherAvatar version={version} />
+                  <span className="truncate">{publisherLabel(version)}</span>
+                </p>
                 {version.publishNote && (
                   <p className="mt-1 text-xs italic text-muted-foreground">
                     &ldquo;{version.publishNote}&rdquo;

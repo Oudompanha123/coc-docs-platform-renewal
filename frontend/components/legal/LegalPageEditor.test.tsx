@@ -62,6 +62,8 @@ const LIVE: LegalVersionSummary = {
   versionNo: 1,
   publishedAt: "2026-09-01T00:00:00Z",
   publishedByName: "Jane Doe",
+  publishedByAvatarUrl: null,
+  initialVersion: false,
   publishNote: null,
 };
 
