@@ -51,3 +51,6 @@ backend/logs/
 # (frontend/package-lock.json) and installs under frontend/.
 /node_modules/
 /yarn.lock
+
+# Git Bash / Cygwin crash dumps
+*.stackdump
