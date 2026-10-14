@@ -91,7 +91,9 @@ export function AdminClaudeUsageView() {
 
   const reload = useCallback(async () => {
     try {
-      setDashboard(await fetchDashboard(period, offset));
+      const next = await fetchDashboard(period, offset);
+      // The usual auto-refresh brings back the same figures: keep the old object, so nothing redraws.
+      setDashboard((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Couldn't load Claude usage.");
@@ -105,9 +107,16 @@ export function AdminClaudeUsageView() {
     void reload();
   }, [reload]);
 
-  // Re-read on return to the tab, and after an admin's own CLI sign-in lands
-  // here (`/cli/signed-in` → `?cli=signed-in`) until the team totals move.
-  const { awaitingCliUpload } = useUsageAutoRefresh(reload, dashboard ? JSON.stringify(dashboard.totals) : undefined);
+  // Re-read on return to the tab, once a minute while visible (so "Last
+  // scan" moves on its own), and after an admin's own CLI sign-in lands here
+  // (`/cli/signed-in` → `?cli=signed-in`) until a scan shows up — the team
+  // totals or anyone's last scan moving.
+  const { awaitingCliUpload } = useUsageAutoRefresh(
+    reload,
+    dashboard
+      ? JSON.stringify([dashboard.totals, dashboard.members.map((m) => [m.id, m.lastScanAt ?? null])])
+      : undefined,
+  );
 
   function handlePeriodChange(next: Period) {
     setPeriod(next);

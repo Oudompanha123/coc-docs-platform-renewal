@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MyClaudeUsageDashboard } from "@/lib/claudeUsage/myUsage";
-import { CLI_POLL_INTERVAL_MS } from "@/lib/claudeUsage/useUsageAutoRefresh";
+import { CLI_POLL_INTERVAL_MS, DASHBOARD_POLL_INTERVAL_MS } from "@/lib/claudeUsage/useUsageAutoRefresh";
 import { MyClaudeUsageSection } from "./MyClaudeUsageSection";
 
 const { fetchMyUsage } = vi.hoisted(() => ({ fetchMyUsage: vi.fn() }));
@@ -174,7 +174,38 @@ describe("MyClaudeUsageSection — refresh after claude-team-usage (ADR-060)", (
     expect(fetchMyUsage).toHaveBeenCalledTimes(calls); // polling stopped
   });
 
-  it("does not poll on an ordinary visit", async () => {
+  it("a scan check-in moves Last scan on its own, within a minute, with no reload", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const fmt = (iso: string) =>
+      new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    fetchMyUsage.mockResolvedValue({ ...DASHBOARD, lastScanAt: "2026-10-06T04:00:00Z" });
+    render(<MyClaudeUsageSection />);
+    expect(await screen.findByText(`Last scan: ${fmt("2026-10-06T04:00:00Z")}`)).toBeTruthy();
+
+    fetchMyUsage.mockResolvedValue({ ...DASHBOARD, lastScanAt: "2026-10-06T09:00:00Z" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DASHBOARD_POLL_INTERVAL_MS);
+    });
+
+    expect(await screen.findByText(`Last scan: ${fmt("2026-10-06T09:00:00Z")}`)).toBeTruthy();
+    expect(screen.getByText("Last usage update: Never")).toBeTruthy(); // the usage totals were not touched
+  });
+
+  it("returning from the CLI sign-in: a check-in with nothing new also ends the wait", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.replaceState(null, "", "/my-claude-usage?cli=signed-in");
+    render(<MyClaudeUsageSection />);
+    expect(await screen.findByRole("status")).toHaveTextContent(/finishes uploading/);
+
+    fetchMyUsage.mockResolvedValue({ ...DASHBOARD, lastScanAt: "2026-09-30T09:00:00Z" }); // lastUpdated unchanged
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(CLI_POLL_INTERVAL_MS);
+    });
+
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+  });
+
+  it("does not poll fast on an ordinary visit — only the once-a-minute refresh", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     render(<MyClaudeUsageSection />);
     await screen.findByTestId("my-usage-total-cost");
