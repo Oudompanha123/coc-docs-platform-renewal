@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { CodeField, PasswordField } from "@/components/auth/FormField";
-import { LockIcon } from "@/components/auth/icons";
+import { Button } from "@/components/ui/button";
 import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupMaterial } from "@/lib/auth/api";
 
 const CODE_FIELD_ID = "totp-setup-code";
@@ -80,62 +80,49 @@ export function TotpSetupWizard({
   if (loadError) {
     return (
       <div className="mt-4 max-w-sm space-y-3">
-        <p role="alert" className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
           {loadError}
         </p>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-        >
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (!material) {
-    return <p className="mt-4 text-xs text-muted">Preparing your setup…</p>;
+    return <p className="mt-4 text-xs text-muted-foreground">Preparing your setup…</p>;
   }
 
   return (
     <div className="mt-4 max-w-sm space-y-4">
-      <div className="rounded-[10px] border border-border p-4">
-        <p className="text-xs font-semibold text-dash-ink">1. Scan this QR code with Google Authenticator</p>
+      <div className="rounded-xl border border-surface-border bg-card p-4">
+        <p className="text-xs font-semibold text-foreground">1. Scan this QR code with Google Authenticator</p>
         {/* eslint-disable-next-line @next/next/no-img-element -- a data: URI, not a remote image next/image can optimize */}
         <img
           src={material.qrCodeDataUri}
           alt="Scan this QR code with your authenticator app"
           className="mx-auto mt-3 h-40 w-40"
         />
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 text-xs text-muted-foreground">
           Open Google Authenticator, tap &ldquo;+&rdquo;, then &ldquo;Scan a QR code&rdquo;. Can&apos;t scan it? Enter
           this key manually instead:
         </p>
-        <code className="mt-2 block break-all rounded-lg bg-page px-2 py-1.5 text-xs text-dash-ink">
+        <code className="mt-2 block break-all rounded-lg bg-muted-surface px-2 py-1.5 text-xs text-foreground">
           {material.secret}
         </code>
       </div>
 
       <form onSubmit={handleVerify} className="space-y-3" noValidate>
-        <p className="text-xs font-semibold text-dash-ink">2. Enter the 6-digit code it shows</p>
+        <p className="text-xs font-semibold text-foreground">2. Enter the 6-digit code it shows</p>
         <CodeField id={CODE_FIELD_ID} label="Verification Code" value={code} onChange={setCode} error={codeError} />
         <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isVerifying}
-            aria-busy={isVerifying}
-            className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          </Button>
+          <Button type="submit" size="sm" disabled={isVerifying} aria-busy={isVerifying}>
             {isVerifying ? "Verifying…" : "Verify & turn on"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -187,26 +174,22 @@ export function TotpDisableForm({
         value={currentPassword}
         onChange={setCurrentPassword}
         placeholder="Enter your current password"
-        icon={<LockIcon className="h-4 w-4" />}
         autoComplete="current-password"
         error={error}
       />
       <div className="flex justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-        >
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          variant="destructiveOutline"
+          size="sm"
           disabled={isSubmitting}
           aria-busy={isSubmitting}
-          className="rounded-full border border-danger px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting ? "Turning off…" : "Turn off"}
-        </button>
+        </Button>
       </div>
     </form>
   );

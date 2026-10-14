@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Calendar } from "lucide-react";
 import { ChevronLeftIcon, ChevronRightIcon, ClockIcon, WarningIcon } from "@/components/layout/icons";
+import { SimpleSelect } from "@/components/ui/select";
 import {
   addMonths,
   buildMonthGrid,
@@ -94,8 +96,8 @@ export function AnnouncementExpiryField({
 
   return (
     <fieldset disabled={disabled}>
-      <legend className="text-sm font-semibold text-dash-ink">
-        Expires <span className="font-normal text-muted">(optional)</span>
+      <legend className="text-sm font-semibold text-foreground">
+        Expires <span className="font-normal text-muted-foreground">(optional)</span>
       </legend>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Expires">
@@ -108,8 +110,8 @@ export function AnnouncementExpiryField({
             onClick={() => choose(c.key)}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               choice === c.key
-                ? "bg-brand-purple/10 text-brand-purple"
-                : "border border-border text-muted hover:bg-page"
+                ? "bg-secondary text-foreground"
+                : "border border-surface-border text-muted-foreground hover:bg-accent"
             }`}
           >
             {c.label}
@@ -125,39 +127,22 @@ export function AnnouncementExpiryField({
             aria-expanded={calendarOpen}
             aria-label={`Expiry date, ${formatDisplayDate(parts.date)}`}
             onClick={() => setCalendarOpen((open) => !open)}
-            className="flex items-center gap-2 rounded-[10px] border border-border bg-white px-3.5 py-2 text-sm font-semibold text-dash-ink shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-purple/20 hover:shadow"
+            className="flex items-center gap-2 rounded-control border border-surface-border bg-card px-3.5 py-2 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/20"
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4 text-muted" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-              <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
-              <path d="M8 3v4M16 3v4M3.5 9.5h17" strokeLinecap="round" />
-            </svg>
+            <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
             {formatDisplayDate(parts.date)}
           </button>
 
           <div className="relative">
-            <ClockIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <select
-              value={parts.time}
-              onChange={(e) => setTime(e.target.value)}
+            <ClockIcon className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <SimpleSelect
               aria-label="Expiry time"
-              className="appearance-none rounded-xl border border-border bg-white py-2 pl-9 pr-9 text-sm font-semibold text-dash-ink focus:outline-none focus-visible:border-brand-purple focus-visible:ring-4 focus-visible:ring-brand-purple/15"
-            >
-              {timeOptions(parts.time).map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <svg
-              viewBox="0 0 24 24"
-              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              aria-hidden="true"
-            >
-              <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+              value={parts.time}
+              onValueChange={setTime}
+              options={timeOptions(parts.time).map((t) => ({ value: t, label: t }))}
+              className="w-32 pl-9 font-semibold"
+              contentClassName="max-h-64"
+            />
           </div>
         </div>
       )}
@@ -172,10 +157,10 @@ export function AnnouncementExpiryField({
           That time has already passed — choose a later one, or No expiry.
         </p>
       ) : (
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-2 text-xs text-muted-foreground">
           {value ? (
             <>
-              Members stop seeing it on <b className="font-semibold text-dash-ink">{formatDateTime(value)}</b> (
+              Members stop seeing it on <b className="font-semibold text-foreground">{formatDateTime(value)}</b> (
               {relativeExpiry(value)}).
             </>
           ) : (
@@ -201,29 +186,29 @@ function ExpiryCalendar({ selected, onPick }: { selected: string; onPick: (iso: 
   const grid = buildMonthGrid(viewMonth);
 
   return (
-    <div role="dialog" aria-label="Pick an expiry date" className="mt-2 w-72 rounded-xl border border-border bg-white p-3 shadow-lg">
+    <div role="dialog" aria-label="Pick an expiry date" className="mt-2 w-72 rounded-xl border border-surface-border bg-card p-3 shadow-lg">
       <div className="flex items-center justify-between px-1 pb-2">
         <button
           type="button"
           aria-label="Previous month"
           disabled={prevDisabled}
           onClick={() => setViewMonth((m) => addMonths(m, -1))}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
         >
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
-        <p className="text-sm font-semibold text-dash-ink">{monthLabel(viewMonth)}</p>
+        <p className="text-sm font-semibold text-foreground">{monthLabel(viewMonth)}</p>
         <button
           type="button"
           aria-label="Next month"
           onClick={() => setViewMonth((m) => addMonths(m, 1))}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
           <ChevronRightIcon className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-y-1 px-1 text-center text-xs font-semibold text-muted">
+      <div className="grid grid-cols-7 gap-y-1 px-1 text-center text-xs font-semibold text-muted-foreground">
         {WEEKDAYS.map((w) => (
           <span key={w}>{w}</span>
         ))}
@@ -246,12 +231,12 @@ function ExpiryCalendar({ selected, onPick }: { selected: string; onPick: (iso: 
                 aria-label={formatDisplayDate(iso)}
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-sm transition-colors ${
                   isSelected
-                    ? "bg-brand-purple font-semibold text-white"
+                    ? "bg-primary font-semibold text-primary-foreground"
                     : isPast
-                      ? "cursor-not-allowed text-muted/40"
+                      ? "cursor-not-allowed text-muted-foreground/40"
                       : isToday
-                        ? "text-dash-ink ring-2 ring-inset ring-brand-purple"
-                        : "text-dash-ink hover:bg-page"
+                        ? "text-foreground ring-2 ring-inset ring-ring"
+                        : "text-foreground hover:bg-accent"
                 }`}
               >
                 {Number(iso.slice(-2))}

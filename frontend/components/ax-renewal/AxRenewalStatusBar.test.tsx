@@ -86,7 +86,7 @@ describe("AxRenewalStatusBar", () => {
 
     const label = await screen.findByText("local model");
     expect(label).toBeInTheDocument();
-    expect(label).toHaveClass("text-brand-purple");
+    expect(label).toHaveClass("text-foreground");
     expect(screen.queryByText("no model")).not.toBeInTheDocument();
   });
 });

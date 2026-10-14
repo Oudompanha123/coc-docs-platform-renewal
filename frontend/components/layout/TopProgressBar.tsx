@@ -88,7 +88,7 @@ export function TopProgressBar() {
       className="fixed inset-x-0 top-0 z-[100] h-1 w-full overflow-hidden bg-transparent"
     >
       <div
-        className={`h-full rounded-r-full bg-gradient-to-r from-brand-purple to-brand-blue ${
+        className={`h-full rounded-r-full bg-primary ${
           phase === "loading" ? "top-progress-bar-grow" : "top-progress-bar-done"
         }`}
       />

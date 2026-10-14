@@ -1,0 +1,112 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "core": {
+    "background": {
+      "value": "#ffffff",
+      "role": "background",
+      "name": "tw-ring-offset-color"
+    },
+    "text-primary": {
+      "value": "#000000",
+      "role": "text-primary",
+      "name": "color-black"
+    },
+    "surface": {
+      "value": "#fef2f2",
+      "role": "surface",
+      "name": "color-red-50"
+    },
+    "border": {
+      "value": "#27272a",
+      "role": "border",
+      "name": "color-zinc-800"
+    },
+    "text-muted": {
+      "value": "#3f3f46",
+      "role": "text-muted",
+      "name": "color-zinc-700"
+    },
+    "accent": {
+      "value": "#00a544",
+      "role": "accent",
+      "name": "color-green-600"
+    }
+  },
+  "status": {
+    "danger": {
+      "value": "#ff667f",
+      "role": "danger",
+      "name": "color-rose-400"
+    },
+    "success": {
+      "value": "#f0fdf4",
+      "role": "success",
+      "name": "color-green-50"
+    }
+  },
+  "extended": {
+    "color-slate-200": {
+      "value": "#e2e8f0",
+      "role": "info",
+      "name": "color-slate-200"
+    },
+    "color-zinc-900": {
+      "value": "#18181b",
+      "role": "unknown",
+      "name": "color-zinc-900"
+    },
+    "color-gray-300": {
+      "value": "#d1d5dc",
+      "role": "unknown",
+      "name": "color-gray-300"
+    },
+    "color-zinc-950": {
+      "value": "#09090b",
+      "role": "unknown",
+      "name": "color-zinc-950"
+    },
+    "color-red-950": {
+      "value": "#460809",
+      "role": "unknown",
+      "name": "color-red-950"
+    },
+    "color-sky-400": {
+      "value": "#00bcfe",
+      "role": "unknown",
+      "name": "color-sky-400"
+    },
+    "color-sky-600": {
+      "value": "#0084cc",
+      "role": "unknown",
+      "name": "color-sky-600"
+    },
+    "color-zinc-500": {
+      "value": "#71717b",
+      "role": "unknown",
+      "name": "color-zinc-500"
+    },
+    "color-f97583": {
+      "value": "#f97583",
+      "role": "unknown"
+    },
+    "color-rose-600": {
+      "value": "#e70044",
+      "role": "unknown",
+      "name": "color-rose-600"
+    },
+    "color-gray-900": {
+      "value": "#101828",
+      "role": "unknown",
+      "name": "color-gray-900"
+    },
+    "color-zinc-400": {
+      "value": "#9f9fa9",
+      "role": "unknown",
+      "name": "color-zinc-400"
+    }
+  },
+  "meta": {
+    "theme": "light",
+    "updated": "2026-10-05"
+  }
+}

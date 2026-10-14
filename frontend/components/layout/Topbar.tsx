@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PanelLeft } from "lucide-react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { applyTheme, getResolvedTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
@@ -20,7 +21,6 @@ import { UserAvatar } from "./UserAvatar";
 import { ShieldIcon } from "@/components/auth/icons";
 import {
   BellIcon,
-  ChevronDownIcon,
   LogOutIcon,
   AuditIcon,
   MenuIcon,
@@ -44,8 +44,8 @@ type TopbarProps = {
 type MenuKey = "notifications" | "mail" | "user";
 
 /** Same panel container the Users & Roles ⋯ menu uses: rounded-xl border
- *  border-border bg-white shadow-lg, with hover:bg-page on each item. */
-const PANEL_CLASSES = "absolute right-0 z-20 mt-2 rounded-xl border border-border bg-white shadow-lg";
+ *  border-surface-border bg-card shadow-lg, with hover:bg-accent on each item. */
+const PANEL_CLASSES = "absolute right-0 z-50 mt-2 overflow-hidden rounded-lg border border-surface-border bg-popover text-popover-foreground shadow-md";
 
 function CountBadge({
   count,
@@ -67,11 +67,11 @@ function CountBadge({
       aria-label={`${label}, ${count} unread`}
       aria-haspopup="menu"
       aria-expanded={active}
-      className="relative rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+      className="relative flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {children}
       {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-background">
           {count}
         </span>
       )}
@@ -82,7 +82,7 @@ function CountBadge({
 type NotificationFilter = "unread" | "all";
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { header: { title, subtitle, titleIcon } } = useShell();
+  const { header: { title, subtitle, titleIcon }, sidebarCollapsed, toggleSidebar } = useShell();
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
@@ -187,7 +187,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   useEffect(() => {
     const stored = getStoredTheme();
     applyTheme(stored);
-    setDarkMode(stored === "dark");
+    setDarkMode(getResolvedTheme() === "dark");
   }, []);
 
   /**
@@ -236,20 +236,40 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <div className="contents">
-    <header className="flex items-center justify-between border-b border-border bg-white px-4 py-4 sm:px-6 lg:px-8">
-      <div className="flex items-start gap-3 min-w-0">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-surface-border bg-background px-4 sm:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Open menu"
-          className="rounded-xl p-2 text-dash-ink transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple lg:hidden"
+          className="-ml-1 flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         >
-          <MenuIcon className="h-5 w-5" />
+          <MenuIcon className="size-4" />
         </button>
+        {/* Desktop: unfolds the sidebar from its icon rail — shadcn's
+            SidebarTrigger, with the same panel glyph (ADR-104 r2.9). Only
+            while folded: expanded, the button sits in the sidebar's own
+            header, beside the logo (r2.12). Below lg the sidebar is a
+            drawer, opened by the menu button above. */}
+        {sidebarCollapsed && (
+          <>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label="Expand sidebar"
+              aria-expanded={false}
+              aria-controls="admin-sidebar"
+              className="-ml-1 hidden size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+            >
+              <PanelLeft className="size-4" aria-hidden="true" />
+            </button>
+            <span aria-hidden="true" className="mr-1 hidden h-4 w-px bg-surface-border lg:block" />
+          </>
+        )}
         {titleIcon}
         <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold text-dash-ink sm:text-2xl">{title}</h1>
-          <p className="truncate text-sm text-muted">{subtitle}</p>
+          <h1 className="truncate text-lg leading-tight font-semibold text-foreground">{title}</h1>
+          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
 
@@ -259,9 +279,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           onClick={toggleTheme}
           aria-label="Toggle dark mode"
           aria-pressed={darkMode}
-          className="rounded-xl bg-gray-100 p-2.5 text-dash-ink/70 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+          className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {darkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+          {darkMode ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
         </button>
 
         <div className="relative">
@@ -271,13 +291,13 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             active={openMenu === "notifications"}
             onClick={() => toggleMenu("notifications")}
           >
-            <BellIcon className="h-5 w-5" />
+            <BellIcon className="size-4" />
           </CountBadge>
 
           {openMenu === "notifications" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
-              <div className="border-b border-border px-4 py-3">
-                <p className="text-sm font-semibold text-dash-ink">Notifications</p>
+              <div className="border-b border-surface-border px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">Notifications</p>
                 <div className="mt-2.5 flex items-center gap-1.5">
                   {(["unread", "all"] as const).map((key) => (
                     <button
@@ -286,8 +306,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       onClick={() => setNotificationFilter(key)}
                       className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                         notificationFilter === key
-                          ? "bg-brand-purple/10 text-brand-purple"
-                          : "border border-border text-muted hover:bg-page"
+                          ? "bg-secondary text-foreground"
+                          : "border border-surface-border text-muted-foreground hover:bg-accent"
                       }`}
                     >
                       {key}
@@ -303,7 +323,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       if (notificationsExpanded) history.markAllReadLocal();
                     }}
                     disabled={notifications.unreadCount === 0}
-                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
                   >
                     Read all
                   </button>
@@ -316,7 +336,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                 className="max-h-80 overflow-y-auto py-1"
               >
                 {visibleNotifications.length === 0 && notificationsExpanded && (history.loading || history.error) ? null : visibleNotifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-muted">
+                  <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                     {notificationFilter === "unread"
                       ? "You're all caught up."
                       : "Nothing needs your attention."}
@@ -341,8 +361,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                         void notifications.open(n);
                         setOpenMenu(null);
                       }}
-                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                        n.read ? "" : "bg-brand-purple/5"
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent ${
+                        n.read ? "" : "bg-secondary"
                       }`}
                     >
                       {n.type === "auth.new-device" ? (
@@ -367,26 +387,26 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       )}
                       <span className="min-w-0 flex-1">
                         <span
-                          className={`block truncate text-sm text-dash-ink ${
+                          className={`block truncate text-sm text-foreground ${
                             n.read ? "font-medium" : "font-semibold"
                           }`}
                         >
                           {n.title}
                         </span>
-                        <span className="block truncate text-xs text-muted">{n.detail}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{n.detail}</span>
                       </span>
                       {!n.read && (
                         <span
                           aria-label="Unread"
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                         />
                       )}
                     </button>
                   ))
                 )}
                 {notificationsExpanded && history.loading && (
-                  <div role="status" className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-muted">
-                    <Spinner className="h-4 w-4 border-2" />
+                  <div role="status" className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-muted-foreground">
+                    <Spinner className="size-4" />
                     Loading…
                   </div>
                 )}
@@ -400,14 +420,14 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   !history.error &&
                   !history.hasMore &&
                   history.items.length > 0 && (
-                    <p className="px-4 py-3 text-center text-xs text-muted">You&apos;re all caught up.</p>
+                    <p className="px-4 py-3 text-center text-xs text-muted-foreground">You&apos;re all caught up.</p>
                   )}
               </div>
               {canExpandNotifications && (
                 <button
                   type="button"
                   onClick={() => setNotificationsExpanded(true)}
-                  className="block w-full rounded-b-xl border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-brand-purple transition-colors hover:bg-page"
+                  className="block w-full border-t border-surface-border px-4 py-2.5 text-center text-sm font-medium text-foreground transition-colors hover:bg-accent"
                 >
                   View all notifications
                 </button>
@@ -423,16 +443,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             active={openMenu === "mail"}
             onClick={() => toggleMenu("mail")}
           >
-            <AuditIcon className="h-5 w-5" />
+            <AuditIcon className="size-4" />
           </CountBadge>
 
           {openMenu === "mail" && (
             <div role="menu" className={`${PANEL_CLASSES} w-80`}>
-              <div className="border-b border-border px-4 py-3">
+              <div className="border-b border-surface-border px-4 py-3">
                 {/* "Activity", not "Messages": these are recorded events, not
                     mail from a person. The old label invited people to look
                     for a Reply button that was never going to exist. */}
-                <p className="text-sm font-semibold text-dash-ink">Activity</p>
+                <p className="text-sm font-semibold text-foreground">Activity</p>
                 <div className="mt-2.5 flex items-center gap-1.5">
                   {(["unread", "all"] as const).map((key) => (
                     <button
@@ -441,8 +461,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       onClick={() => setActivityFilter(key)}
                       className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
                         activityFilter === key
-                          ? "bg-brand-purple/10 text-brand-purple"
-                          : "border border-border text-muted hover:bg-page"
+                          ? "bg-secondary text-foreground"
+                          : "border border-surface-border text-muted-foreground hover:bg-accent"
                       }`}
                     >
                       {key}
@@ -455,7 +475,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                     type="button"
                     onClick={() => activity.markAllRead()}
                     disabled={activity.count === 0}
-                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
+                    className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
                   >
                     Read all
                   </button>
@@ -463,7 +483,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               </div>
               <div className="max-h-80 overflow-y-auto py-1">
                 {visibleActivity.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-xs text-muted">
+                  <p className="px-4 py-6 text-center text-xs text-muted-foreground">
                     {/* Two different facts. Under "Unread" an empty list means
                         caught up; under "All" it means nothing has happened. */}
                     {activityFilter === "unread" ? "You're all caught up." : "Nothing recent."}
@@ -498,21 +518,21 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                           router.push(item.href);
                         }
                       }}
-                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                        item.read ? "" : "bg-brand-purple/5"
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-accent ${
+                        item.read ? "" : "bg-secondary"
                       }`}
                     >
                       <ActivityAvatar item={item} />
                       <span className="min-w-0 flex-1">
                         <span
-                          className={`block truncate text-sm text-dash-ink ${
+                          className={`block truncate text-sm text-foreground ${
                             item.read ? "font-medium" : "font-semibold"
                           }`}
                         >
                           {actorName(item)}
                         </span>
-                        <span className="block truncate text-xs text-muted">{item.summary}</span>
-                        <span className="mt-0.5 block text-[11px] text-muted">
+                        <span className="block truncate text-xs text-muted-foreground">{item.summary}</span>
+                        <span className="mt-0.5 block text-[11px] text-muted-foreground">
                           {timeAgo(item.occurredAt)}
                         </span>
                       </span>
@@ -522,7 +542,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                       {!item.read && (
                         <span
                           aria-label="Unread"
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-purple"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                         />
                       )}
                     </button>
@@ -539,7 +559,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             onClick={() => toggleMenu("user")}
             aria-haspopup="menu"
             aria-expanded={openMenu === "user"}
-            className="flex min-w-0 items-center gap-2 rounded-xl bg-gray-100 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-brand-purple/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+            // Avatar only, as on the member header: the name and role are the
+            // first thing in the menu this opens, and stay in the accessible
+            // name so the button is still announced as the person.
+            aria-label={`${user?.name ?? "Guest"}${user?.role ? `, ${user.role}` : ""}`}
+            title={user?.name ?? "Guest"}
+            className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <UserAvatar
               avatarUrl={user?.avatarUrl ?? null}
@@ -547,16 +572,11 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               name={user?.name ?? "Guest"}
               className={`h-8 w-8 ${userAvatar}`}
             />
-            <div className="hidden min-w-0 text-left sm:block">
-              <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
-              <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
-            </div>
-            <ChevronDownIcon className="hidden h-4 w-4 text-muted sm:block" />
           </button>
 
           {openMenu === "user" && (
             <div role="menu" className={`${PANEL_CLASSES} w-64`}>
-              <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+              <div className="flex items-center gap-3 border-b border-surface-border px-4 py-3">
                 <UserAvatar
                   avatarUrl={user?.avatarUrl ?? null}
                   initials={user?.initials ?? "?"}
@@ -564,8 +584,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   className={`h-9 w-9 ${userAvatar}`}
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-dash-ink">{user?.name ?? "Guest"}</p>
-                  <p className="truncate text-xs text-muted">{user?.role ?? ""}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{user?.name ?? "Guest"}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.role ?? ""}</p>
                 </div>
               </div>
               <div className="py-1">
@@ -573,22 +593,22 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   type="button"
                   role="menuitem"
                   onClick={() => { setOpenMenu(null); setShowProfile(true); }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-page"
+                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
                 >
-                  <PersonIcon className="h-4 w-4 text-muted" />
+                  <PersonIcon className="h-4 w-4 text-muted-foreground" />
                   My Profile
                 </button>
                 <Link
                   href="/settings"
                   role="menuitem"
                   onClick={() => setOpenMenu(null)}
-                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-dash-ink transition-colors hover:bg-page"
+                  className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent"
                 >
-                  <SettingsIcon className="h-4 w-4 text-muted" />
+                  <SettingsIcon className="h-4 w-4 text-muted-foreground" />
                   Settings
                 </Link>
               </div>
-              <div className="border-t border-border py-1">
+              <div className="border-t border-surface-border py-1">
                 <button
                   type="button"
                   role="menuitem"

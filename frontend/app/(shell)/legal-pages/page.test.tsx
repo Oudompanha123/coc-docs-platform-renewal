@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ShellProvider } from "@/lib/layout/ShellContext";
@@ -13,16 +13,10 @@ const { termsDirtySetter, privacyDirtySetter } = vi.hoisted(() => ({
   privacyDirtySetter: { current: (d: boolean) => { void d; } },
 }));
 
-vi.mock("@/components/legal/TermsDocumentEditor", () => ({
-  TermsDocumentEditor: ({ onDirtyChange }: { canEdit: boolean; onDirtyChange?: (d: boolean) => void }) => {
-    if (onDirtyChange) termsDirtySetter.current = onDirtyChange;
-    return <div>Terms editor</div>;
-  },
-}));
-vi.mock("@/components/legal/PrivacyLegalPageEditor", () => ({
-  PrivacyLegalPageEditor: ({ onDirtyChange }: { canEdit: boolean; onDirtyChange?: (d: boolean) => void }) => {
-    if (onDirtyChange) privacyDirtySetter.current = onDirtyChange;
-    return <div>Privacy editor</div>;
+vi.mock("@/components/legal/LegalPageEditor", () => ({
+  LegalPageEditor: ({ slug, active, onDirtyChange }: { slug: string; active?: boolean; onDirtyChange?: (d: boolean) => void }) => {
+    if (onDirtyChange) (slug === "terms" ? termsDirtySetter : privacyDirtySetter).current = onDirtyChange;
+    return <div data-active={active ? "yes" : "no"}>{slug === "terms" ? "Terms editor" : "Privacy editor"}</div>;
   },
 }));
 
@@ -43,75 +37,58 @@ beforeEach(() => {
 });
 
 describe("LegalPagesAdminPage", () => {
-  it("shows the Terms tab by default", () => {
+  it("shows the Terms tab by default, with the Privacy editor mounted but hidden", () => {
     renderPage();
-    expect(screen.getByText("Terms editor")).toBeInTheDocument();
+    expect(screen.getByText("Terms editor")).toBeVisible();
+    expect(screen.getByText("Terms editor")).toHaveAttribute("data-active", "yes");
+    expect(screen.getByText("Privacy editor", { selector: "div" })).not.toBeVisible();
     expect(screen.getByRole("tab", { name: "Terms of Service" })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("switches to the Privacy tab", async () => {
+  it("switches tabs without asking, even with unsaved changes — the hidden editor keeps its work", async () => {
     const user = userEvent.setup();
     renderPage();
+    act(() => termsDirtySetter.current(true));
 
-    await user.click(screen.getByRole("tab", { name: "Privacy Policy" }));
-
-    expect(screen.getByText("Privacy editor")).toBeInTheDocument();
-    expect(screen.queryByText("Terms editor")).not.toBeInTheDocument();
-  });
-
-  it("confirms before switching away from a tab with unsaved changes", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    termsDirtySetter.current(true);
-
-    await user.click(screen.getByRole("tab", { name: "Privacy Policy" }));
-
-    expect(window.confirm).toHaveBeenCalledWith("You have unsaved changes. Switch pages without saving?");
-    expect(screen.getByText("Privacy editor")).toBeInTheDocument();
-  });
-
-  it("does not switch tabs when the confirmation is declined", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    const user = userEvent.setup();
-    renderPage();
-    termsDirtySetter.current(true);
-
-    await user.click(screen.getByRole("tab", { name: "Privacy Policy" }));
-
-    expect(screen.getByText("Terms editor")).toBeInTheDocument();
-  });
-
-  it("does not ask for confirmation when the active tab has no unsaved changes", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    termsDirtySetter.current(false);
-
-    await user.click(screen.getByRole("tab", { name: "Privacy Policy" }));
+    await user.click(screen.getByRole("tab", { name: /Privacy Policy/ }));
 
     expect(window.confirm).not.toHaveBeenCalled();
+    expect(screen.getByText("Privacy editor")).toBeVisible();
+    expect(screen.getByText("Privacy editor")).toHaveAttribute("data-active", "yes");
+    expect(screen.getByText("Terms editor")).toHaveAttribute("data-active", "no");
+  });
+
+  it("marks a tab with unsaved changes", () => {
+    renderPage();
+    act(() => privacyDirtySetter.current(true));
+    expect(screen.getByRole("tab", { name: /Privacy Policy/ })).toContainElement(screen.getByRole("img", { name: "unsaved changes" }));
+  });
+
+  it("asks before following an in-app link while anything is unsaved", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderPage();
+    act(() => termsDirtySetter.current(true));
+    const link = document.createElement("a");
+    link.href = "/overview";
+    link.textContent = "Overview";
+    document.body.appendChild(link);
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(event);
+    expect(window.confirm).toHaveBeenCalledWith("You have unsaved changes on the legal pages. Leave without saving?");
+    expect(event.defaultPrevented).toBe(true);
+    link.remove();
   });
 
   it("passes each editor the same onDirtyChange reference across re-renders", async () => {
-    // Regression test: each editor's own `useEffect(() => onDirtyChange?.
-    // (unsaved), [unsaved, onDirtyChange])` re-fires whenever this identity
-    // changes. A page.tsx that passed an inline arrow instead of a `useCallback`
-    // (as this one briefly did) hands down a NEW function every render, which
-    // re-fires that effect, which calls `setDirty` here, which re-renders this
-    // page with yet another new arrow — "Maximum update depth exceeded" in a
-    // real browser. The two mocked editors above only capture whichever
-    // reference they were LAST given, which can't tell a stable prop from an
-    // unstable one the way this identity check can.
+    // Each editor's `useEffect(() => onDirtyChange?.(unsaved), [unsaved, onDirtyChange])`
+    // re-fires whenever this identity changes; an inline arrow here would loop
+    // ("Maximum update depth exceeded").
     const user = userEvent.setup();
     renderPage();
     const firstTerms = termsDirtySetter.current;
-
-    // Privacy's editor isn't mounted until its tab is first opened, so its
-    // own captured reference only becomes meaningful from here on.
-    await user.click(screen.getByRole("tab", { name: "Privacy Policy" }));
     const firstPrivacy = privacyDirtySetter.current;
-    await user.click(screen.getByRole("tab", { name: "Terms of Service" }));
-    await user.click(screen.getByRole("tab", { name: "Privacy Policy" }));
-
+    await user.click(screen.getByRole("tab", { name: /Privacy Policy/ }));
+    await user.click(screen.getByRole("tab", { name: /Terms of Service/ }));
     expect(termsDirtySetter.current).toBe(firstTerms);
     expect(privacyDirtySetter.current).toBe(firstPrivacy);
   });

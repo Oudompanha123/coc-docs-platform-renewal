@@ -4,6 +4,7 @@ import { useState } from "react";
 import { avatarColorFor, formatLastActive, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -15,8 +16,8 @@ function formatCost(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-/** Same table shell (rounded card, header tint, row hover, divide-y) as
- *  users-roles/AccountsTable.tsx — different columns for this page's
+/** The compact shadcn table parts (ADR-104 r2.9), flush inside the caller's
+ *  card — the same parts as users-roles/AccountsTable.tsx, different columns for this page's
  *  per-user token/cost/soft-budget data. Every figure here (totals, cost,
  *  budgetPct) is read straight off the API's period rollup, not recomputed
  *  client-side — the scaling that budgetPct depends on lives server-side.
@@ -55,117 +56,115 @@ export function UsageTable({
 
   if (reporting.length === 0) {
     return (
-      <div className="rounded-[10px] border border-border bg-page px-4 py-8 text-center text-sm text-muted">
+      <div className="mx-4 mb-4 rounded-lg bg-muted-surface px-4 py-8 text-center text-sm text-muted-foreground">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-border">
-      <div className="overflow-x-auto overflow-y-hidden">
-        <table className="w-full min-w-[820px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-[#f8fafc] text-xs font-semibold uppercase tracking-wide text-muted">
-              <th className="px-4 py-3">Person</th>
-              <th className="px-4 py-3">Models Used</th>
-              <th className="px-4 py-3">Input / Output</th>
-              <th className="px-4 py-3">Total Tokens</th>
-              <th className="px-4 py-3">Cost</th>
-              <th className="px-4 py-3">Soft Budget</th>
-              {/* last_scan_at -- the reporter's last check-in, with or without new tokens (ADR-097). */}
-              <th className="px-4 py-3">Last Scan</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {visible.map((member, index) => {
-              const pct = member.budgetPct;
-              const isAmber = member.budgetStatus === "amber";
-              const isRed = member.budgetStatus === "red";
-              const select = onSelect ? () => onSelect(member, avatarColorFor(offset + index)) : undefined;
+    <div>
+      <Table className="min-w-[820px]" containerClassName="border-t border-surface-border">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="pl-4">Person</TableHead>
+            <TableHead>Models Used</TableHead>
+            <TableHead>Input / Output</TableHead>
+            <TableHead>Total Tokens</TableHead>
+            <TableHead>Cost</TableHead>
+            <TableHead>Soft Budget</TableHead>
+            {/* last_scan_at -- the reporter's last check-in, with or without new tokens (ADR-097). */}
+            <TableHead className="pr-4">Last Scan</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {visible.map((member, index) => {
+            const pct = member.budgetPct;
+            const isAmber = member.budgetStatus === "amber";
+            const isRed = member.budgetStatus === "red";
+            const select = onSelect ? () => onSelect(member, avatarColorFor(offset + index)) : undefined;
 
-              return (
-                <tr
-                  key={member.id}
-                  onClick={select}
-                  onKeyDown={
-                    select
-                      ? (event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            select();
-                          }
+            return (
+              <TableRow
+                key={member.id}
+                onClick={select}
+                onKeyDown={
+                  select
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          select();
                         }
-                      : undefined
-                  }
-                  tabIndex={select ? 0 : undefined}
-                  aria-label={select ? `View activity for ${member.displayName}` : undefined}
-                  className={`transition-colors hover:bg-[#f8fafc] ${
-                    select ? "cursor-pointer focus-visible:bg-[#f8fafc] focus-visible:outline-none" : ""
-                  }`}
-                >
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        avatarUrl={member.avatarUrl}
-                        name={member.displayName}
-                        initials={member.displayName
-                          .split(" ")
-                          .map((part) => part[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                        className="h-10 w-10 !text-sm shadow-sm"
-                        style={{ backgroundColor: avatarColorFor(offset + index) }}
+                      }
+                    : undefined
+                }
+                tabIndex={select ? 0 : undefined}
+                aria-label={select ? `View activity for ${member.displayName}` : undefined}
+                className={select ? "cursor-pointer focus-visible:bg-muted-surface/50 focus-visible:outline-none" : undefined}
+              >
+                <TableCell className="pl-4">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      avatarUrl={member.avatarUrl}
+                      name={member.displayName}
+                      initials={member.displayName
+                        .split(" ")
+                        .map((part) => part[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                      className="size-8 !text-xs"
+                      style={{ backgroundColor: avatarColorFor(offset + index) }}
+                    />
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-1.5 truncate font-medium text-foreground">
+                        {member.displayName}
+                        {/* Budget status (green/amber/red), never a roster/tracking status --
+                            a nudge to hand off work before hitting the wall. */}
+                        {isRed && (
+                          <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                            Hand off
+                          </span>
+                        )}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">{member.email}</p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {member.modelsUsed.length > 0 ? member.modelsUsed.join(", ") : "—"}
+                </TableCell>
+                <TableCell>
+                  <p className="tabular-nums text-foreground">{formatTokens(member.inputTokens)} in</p>
+                  <p className="text-xs tabular-nums text-muted-foreground">{formatTokens(member.outputTokens)} out</p>
+                </TableCell>
+                <TableCell className="font-medium tabular-nums text-foreground">{formatTokens(member.totalTokens)}</TableCell>
+                <TableCell className="tabular-nums text-foreground">{formatCost(member.costUsd)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted-surface">
+                      <div
+                        className={`h-full rounded-full ${isRed ? "bg-destructive" : isAmber ? "bg-[#e0873c]" : "bg-[#1f9d6b]"}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
                       />
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-1.5 truncate font-semibold text-dash-ink">
-                          {member.displayName}
-                          {/* Budget status (green/amber/red), never a roster/tracking status --
-                              a nudge to hand off work before hitting the wall. */}
-                          {isRed && (
-                            <span className="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-danger">
-                              Hand off
-                            </span>
-                          )}
-                        </p>
-                        <p className="truncate text-xs text-muted">{member.email}</p>
-                      </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-4 text-muted">
-                    {member.modelsUsed.length > 0 ? member.modelsUsed.join(", ") : "—"}
-                  </td>
-                  <td className="px-4 py-4">
-                    <p className="text-dash-ink">{formatTokens(member.inputTokens)} in</p>
-                    <p className="text-xs text-muted">{formatTokens(member.outputTokens)} out</p>
-                  </td>
-                  <td className="px-4 py-4 font-semibold text-dash-ink">{formatTokens(member.totalTokens)}</td>
-                  <td className="px-4 py-4 text-dash-ink">{formatCost(member.costUsd)}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-page">
-                        <div
-                          className={`h-full rounded-full ${isRed ? "bg-danger" : isAmber ? "bg-[#e0873c]" : "bg-[#1f9d6b]"}`}
-                          style={{ width: `${Math.min(pct, 100)}%` }}
-                        />
-                      </div>
-                      <span className={`text-xs font-semibold ${isRed ? "text-danger" : isAmber ? "text-[#e0873c]" : "text-muted"}`}>
-                        {pct}%
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-xs text-muted">
-                    {/* One time only: the reporter's last check-in, which moves even when nothing
-                        new was uploaded — an upload touches it too (ADR-097). */}
-                    {member.lastScanAt ? formatLastActive(member.lastScanAt) : "No scan recorded"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                    <span
+                      className={`text-xs font-medium tabular-nums ${isRed ? "text-destructive" : isAmber ? "text-[#e0873c]" : "text-muted-foreground"}`}
+                    >
+                      {pct}%
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap pr-4 text-xs text-muted-foreground">
+                  {/* One time only: the reporter's last check-in, which moves even when nothing
+                      new was uploaded — an upload touches it too (ADR-097). */}
+                  {member.lastScanAt ? formatLastActive(member.lastScanAt) : "No scan recorded"}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
 
       <Pagination
         total={reporting.length}

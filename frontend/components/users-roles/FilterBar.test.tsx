@@ -88,15 +88,15 @@ describe("FilterBar dropdowns", () => {
     const user = userEvent.setup();
     render(<Harness />);
     const trigger = () => screen.getByRole("button", { name: /^Role:/ });
-    expect(trigger()).not.toHaveClass("text-brand-purple");
+    expect(trigger()).not.toHaveClass("text-foreground");
 
     await user.click(trigger());
     await user.click(screen.getByRole("option", { name: "Lead" }));
-    expect(trigger()).toHaveClass("text-brand-purple");
+    expect(trigger()).toHaveClass("text-foreground");
 
     await user.click(trigger());
     await user.click(screen.getByRole("option", { name: "All Roles" }));
-    expect(trigger()).not.toHaveClass("text-brand-purple");
+    expect(trigger()).not.toHaveClass("text-foreground");
   });
 
   it("works from the keyboard: open, move, pick", async () => {

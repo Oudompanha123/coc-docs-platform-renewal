@@ -29,7 +29,7 @@ describe("ConnectedAccountsCard", () => {
 
   it("shows a loading state", () => {
     render(<ConnectedAccountsCard state={{ kind: "loading" }} />);
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading connected accounts" })).toBeInTheDocument();
   });
 
   it("shows an error state", () => {

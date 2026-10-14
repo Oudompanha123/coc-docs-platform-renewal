@@ -63,6 +63,11 @@ step adds its error message, with your token masked and your home folder shown a
 "No new usage" counts as a successful scan. If the server can't be reached, the record
 waits in `scan-logs-pending.json` and is sent by the next scan. `--dry-run` sends none.
 
+**In progress** (since 0.6.0): as a scan begins it also tells Coc Docs it has started
+(scan ID, start time, CLI version — nothing else), so the Scan Logs page can show it
+"In progress" until the record above arrives. This is sent once, alongside the scan, and
+never retried or queued: if it can't be delivered, the scan carries on as before.
+
 ## Scheduled runs
 
 After the first sign-in, a scheduled run works unattended. A run with no terminal

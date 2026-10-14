@@ -9,7 +9,6 @@ import {
   ExternalLinkIcon,
   LinkIcon,
   LogOutIcon,
-  MonitorIcon,
   PersonIcon,
   ReturnIcon,
   SunIcon,
@@ -28,7 +27,6 @@ const SECTION_LABELS: Record<SettingsSectionId, { label: string; Icon: IconCompo
   attendance: { label: "Attendance", Icon: CalendarCheckIcon },
   "connected-accounts": { label: "Connected accounts", Icon: LinkIcon },
   security: { label: "Security", Icon: ShieldIcon },
-  sessions: { label: "Sessions", Icon: MonitorIcon },
 };
 
 type ButtonRefs = React.MutableRefObject<Partial<Record<SettingsSectionId, HTMLButtonElement | null>>>;
@@ -116,6 +114,13 @@ export function SettingsSideMenu({
         <div className="sticky top-20 space-y-1">
           <div role="tablist" aria-orientation="vertical" className="space-y-1">
             {sections.map(({ id, label, Icon }, index) => (
+              // A tab, not a button. It carries role="tab", a roving
+              // tabIndex and this component's own arrow-key handling, and it
+              // is styled to match the <Link> rows beside it rather than any
+              // Button variant. Tabs are a phase-3 primitive (ADR-104 §2.5),
+              // and that primitive owns the keyboard pattern this file
+              // currently implements by hand.
+              // eslint-disable-next-line react/forbid-elements
               <button
                 key={id}
                 ref={(el) => {
@@ -129,35 +134,40 @@ export function SettingsSideMenu({
                 tabIndex={focusedId === id ? 0 : -1}
                 onClick={() => onActivate(id)}
                 onKeyDown={(e) => handleTabKeyDown(e, index, desktopRefs)}
-                className={`settings-nav-item flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                className={`settings-nav-item flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium transition-colors ${
                   active === id
-                    ? "settings-nav-item-active bg-brand-purple/10 text-brand-purple"
-                    : "text-dash-ink hover:bg-page"
+                    ? "settings-nav-item-active bg-secondary text-foreground"
+                    : "text-foreground hover:bg-accent"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="size-4 shrink-0" />
                 {label}
               </button>
             ))}
           </div>
-          <div className="my-2 border-t border-border" />
+          <div className="my-2 border-t border-surface-border" />
           {canOpenDashboard && (
             <Link
               href="/overview"
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-dash-ink transition-colors hover:bg-page"
+              className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"
             >
-              <ReturnIcon className="h-4 w-4 shrink-0" />
+              <ReturnIcon className="size-4 shrink-0" />
               <span className="flex-1">Open Dashboard</span>
-              <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
+              <ExternalLinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
             </Link>
           )}
+          {/* A nav row that happens to act rather than navigate. Its styling
+              is deliberately identical to the <Link> directly above it, and a
+              Button variant would break that match for no gain. Left as it
+              is (ADR-104 decision 7). */}
+          {/* eslint-disable-next-line react/forbid-elements */}
           <button
             type="button"
             onClick={() => void signOut()}
             disabled={isSigningOut}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <LogOutIcon className="h-4 w-4 shrink-0" />
+            <LogOutIcon className="size-4 shrink-0" />
             {isSigningOut ? "Logging out…" : "Log out"}
           </button>
         </div>
@@ -170,6 +180,9 @@ export function SettingsSideMenu({
         className="no-scrollbar-arrows -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 md:hidden"
       >
         {sections.map(({ id, label, Icon }, index) => (
+          // The same tab list at mobile width — see the note on the desktop
+          // one above.
+          // eslint-disable-next-line react/forbid-elements
           <button
             key={id}
             ref={(el) => {
@@ -182,13 +195,13 @@ export function SettingsSideMenu({
             tabIndex={focusedId === id ? 0 : -1}
             onClick={() => onActivate(id)}
             onKeyDown={(e) => handleTabKeyDown(e, index, mobileRefs)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors ${
               active === id
-                ? "settings-nav-item-active border-brand-purple bg-brand-purple/10 text-brand-purple"
-                : "border-border text-dash-ink"
+                ? "settings-nav-item-active border-primary bg-secondary text-foreground"
+                : "border-surface-border text-foreground"
             }`}
           >
-            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <Icon className="size-3.5 shrink-0" />
             {label}
           </button>
         ))}

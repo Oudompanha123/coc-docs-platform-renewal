@@ -6,10 +6,10 @@ import { formatActivityEntry, formatRelativeTime, toneForEmail, type ActivitySta
 import { TONE_STYLES } from "./tone";
 
 const STATUS_STYLE: Record<ActivityStatus, { icon: typeof CheckCircleIcon; className: string }> = {
-  signIn: { icon: CheckCircleIcon, className: "text-[#1f9d6b]" },
-  signOut: { icon: RingIcon, className: "text-[#e0873c]" },
-  roleChange: { icon: CheckCircleIcon, className: "text-[#3b6fe0]" },
-  other: { icon: RingIcon, className: "text-muted" },
+  signIn: { icon: CheckCircleIcon, className: "text-emerald-600 dark:text-emerald-400" },
+  signOut: { icon: RingIcon, className: "text-amber-600 dark:text-amber-400" },
+  roleChange: { icon: CheckCircleIcon, className: "text-sky-600 dark:text-sky-400" },
+  other: { icon: RingIcon, className: "text-muted-foreground" },
 };
 
 /**
@@ -32,14 +32,14 @@ function ActorAvatar({ email, avatarUrl }: { email: string; avatarUrl: string | 
         aria-hidden="true"
         onError={() => setFailed(true)}
         referrerPolicy="no-referrer"
-        className="h-9 w-9 shrink-0 rounded-full object-cover"
+        className="size-8 shrink-0 rounded-full object-cover"
       />
     );
   }
 
   return (
     <div
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${tone.bg} ${tone.fg}`}
+      className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${tone.bg} ${tone.fg}`}
     >
       {email.charAt(0).toUpperCase()}
     </div>
@@ -51,14 +51,18 @@ export function ActivityRow({ data }: { data: ActivityEntry }) {
   const StatusIcon = STATUS_STYLE[status].icon;
 
   return (
-    <div className="-mx-2 flex items-start gap-3 rounded-xl px-2 py-3 transition-colors duration-150 hover:bg-page">
+    // Two lines, not three (ADR-104 r2.10): what happened, then who and when.
+    // The actor's email used to lead the row in bold, above the event itself —
+    // the least interesting fact on the line was the loudest.
+    <div className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-150 hover:bg-accent">
       <ActorAvatar email={data.actorEmail} avatarUrl={data.actorAvatarUrl} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-dash-ink">{data.actorEmail}</p>
-        <p className="text-sm text-dash-ink/80">{description}</p>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-          <StatusIcon className={`h-3.5 w-3.5 shrink-0 ${STATUS_STYLE[status].className}`} />
-          {formatRelativeTime(data.occurredAt)}
+        <p className="truncate text-sm text-foreground">{description}</p>
+        <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <StatusIcon aria-hidden="true" className={`size-3.5 shrink-0 ${STATUS_STYLE[status].className}`} />
+          <span className="truncate">{data.actorEmail}</span>
+          <span aria-hidden="true">·</span>
+          <span className="shrink-0 whitespace-nowrap">{formatRelativeTime(data.occurredAt)}</span>
         </p>
       </div>
     </div>

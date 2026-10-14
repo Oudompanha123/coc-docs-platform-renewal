@@ -4,23 +4,23 @@ import type { AccountStatus } from "@/lib/mock/users-roles";
 export function StatusBadge({ status }: { status: AccountStatus }) {
   if (status === "active") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e1f5ec] px-2.5 py-1 text-xs font-semibold text-[#1f9d6b]">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1f9d6b]/10 px-2 py-0.5 text-xs font-medium text-[#1f9d6b]">
+        <span className="size-1.5 rounded-full bg-[#1f9d6b]" aria-hidden="true" />
         Active
       </span>
     );
   }
   if (status === "pending") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+        <span className="size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
         Pending
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-page px-2.5 py-1 text-xs font-semibold text-muted">
-      <span className="h-1.5 w-1.5 rounded-full bg-muted" aria-hidden="true" />
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-muted-foreground">
+      <span className="size-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />
       Deactivated
     </span>
   );

@@ -67,6 +67,11 @@ beforeEach(async () => {
         backend.scanLogs.at(-1).accepted = true;
         return { status: 200, body: { action: 'recorded' } };
       },
+      scanStart: () => {
+        if (mode === 'down') return { status: 503, body: { detail: 'down' } };
+        if (mode === 'old') return null;
+        return { status: 200, body: { action: 'started' } };
+      },
     },
   );
   saveLogin(configHome, { ingestUrl: backend.url });
@@ -164,6 +169,50 @@ describe('scan log (ADR-099)', () => {
     await scan('--dry-run');
     assert.equal(logs().length, 0);
     assert.equal(pending().length, 0);
+  });
+});
+
+describe('scan start (ADR-107)', () => {
+  it('announces the scan before its record, with the same scan id and no credential', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    const run = await scan();
+    assert.equal(run.code, 0, run.stderr);
+
+    assert.equal(backend.scanStarts.length, 1);
+    const [start] = backend.scanStarts;
+    const [record] = logs();
+    assert.deepEqual(Object.keys(start.body).sort(), ['cliVersion', 'email', 'scanId', 'startedAt', 'trigger']);
+    assert.equal(start.body.scanId, record.scanId);
+    assert.equal(start.body.startedAt, record.startedAt);
+    assert.equal(start.body.email, 'dana@example.com');
+    assert.equal(start.headers.authorization, `Bearer ${TOKEN}`);
+    assert.ok(!JSON.stringify(start.body).includes(TOKEN));
+    const recordArrival = backend.scanLogs.find((r) => r.body.scanId === record.scanId);
+    assert.ok(start.at <= recordArrival.at, 'the start reaches the server before the record that completes it');
+  });
+
+  it('a failed scan is announced too, and its record still follows', async () => {
+    const run = await runCli(['scan'], { env: env({ CLAUDE_PROJECTS_DIR: path.join(projects, 'nope') }) });
+    assert.equal(run.code, 1);
+    assert.equal(backend.scanStarts.length, 1);
+    assert.equal(logs()[0].scanId, backend.scanStarts[0].body.scanId);
+    assert.equal(logs()[0].errorStep, 'find-transcripts');
+  });
+
+  it('a server without the start route (or down): the scan is unaffected and the start is never queued', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    mode = 'old';
+    const run = await scan();
+    assert.equal(run.code, 0, run.stderr);
+    assert.equal(backend.scanStarts.length, 1, 'tried once, no retry');
+    assert.equal(usageUploads().length, 1);
+    assert.equal(pending().length, 0, 'a start is never queued for a later scan');
+  });
+
+  it('--dry-run announces nothing', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    await scan('--dry-run');
+    assert.equal(backend.scanStarts.length, 0);
   });
 });
 

@@ -98,13 +98,13 @@ describe("AttendanceDatePicker", () => {
 
     const selected = screen.getByRole("button", { name: "7" });
     expect(selected).toHaveAttribute("aria-pressed", "true");
-    expect(selected.className).toContain("bg-brand-purple");
+    expect(selected.className).toContain("bg-primary");
 
     const today = screen.getByRole("button", { name: "28" });
     expect(today).toHaveAttribute("aria-current", "date");
     expect(today).toHaveAttribute("aria-pressed", "false");
-    expect(today.className).toContain("ring-brand-purple");
-    expect(today.className).not.toContain("bg-brand-purple");
+    expect(today.className).toContain("ring-ring");
+    expect(today.className).not.toContain("bg-primary");
   });
 
   it("closes on Escape and returns focus to the date button", async () => {
@@ -241,7 +241,7 @@ describe("AttendanceDatePicker", () => {
       await newUser().click(screen.getByRole("button", { name: "09-Sep-2026" }));
 
       for (const day of WEEK_DAYS) {
-        expect(rowClass(day)).not.toContain("bg-brand-purple/10");
+        expect(rowClass(day)).not.toContain("bg-secondary");
       }
     });
 
@@ -250,11 +250,11 @@ describe("AttendanceDatePicker", () => {
       await newUser().click(screen.getByRole("button", { name: "09-Sep-2026" }));
 
       for (const day of WEEK_DAYS) {
-        expect(rowClass(day)).toContain("bg-brand-purple/10");
+        expect(rowClass(day)).toContain("bg-secondary");
       }
       // The adjacent weeks stay unhighlighted.
-      expect(rowClass("6")).not.toContain("bg-brand-purple/10");
-      expect(rowClass("14")).not.toContain("bg-brand-purple/10");
+      expect(rowClass("6")).not.toContain("bg-secondary");
+      expect(rowClass("14")).not.toContain("bg-secondary");
     });
 
     it("moves the highlighted row to whichever day is currently active", async () => {
@@ -269,8 +269,8 @@ describe("AttendanceDatePicker", () => {
       await user.click(screen.getByRole("button", { name: "21" })); // Monday of a later week
       rerender(<AttendanceDatePicker date={date} onChange={onChange} range="week" />);
 
-      expect(rowClass("21")).toContain("bg-brand-purple/10");
-      expect(rowClass("9")).not.toContain("bg-brand-purple/10");
+      expect(rowClass("21")).toContain("bg-secondary");
+      expect(rowClass("9")).not.toContain("bg-secondary");
     });
 
     it("still shows the active day's own solid circle on top of the row tint", async () => {
@@ -278,9 +278,9 @@ describe("AttendanceDatePicker", () => {
       await newUser().click(screen.getByRole("button", { name: "09-Sep-2026" }));
 
       const day9 = screen.getByRole("button", { name: "9" });
-      expect(day9.className).toContain("bg-brand-purple");
-      expect(day9.className).not.toContain("bg-brand-purple/10");
-      expect(rowClass("9")).toContain("bg-brand-purple/10");
+      expect(day9.className).toContain("bg-primary");
+      expect(day9.className).not.toContain("bg-secondary");
+      expect(rowClass("9")).toContain("bg-secondary");
     });
   });
 
@@ -293,7 +293,7 @@ describe("AttendanceDatePicker", () => {
       render(<AttendanceDatePicker date="2026-09-09" onChange={() => {}} />);
       await newUser().click(screen.getByRole("button", { name: "09-Sep-2026" }));
 
-      expect(cellClass("9")).not.toContain("bg-brand-purple/10");
+      expect(cellClass("9")).not.toContain("bg-secondary");
     });
 
     it("bands exactly the days between the earliest and latest pick — not the whole row", async () => {
@@ -306,12 +306,12 @@ describe("AttendanceDatePicker", () => {
       // Every day from 9 to 26 inclusive bands, including the whole
       // no-pick-of-its-own middle row (14-20).
       for (const day of ["9", "13", "14", "20", "21", "26"]) {
-        expect(cellClass(day)).toContain("bg-brand-purple/10");
+        expect(cellClass(day)).toContain("bg-secondary");
       }
       // Days before the earliest pick or after the latest one, even within
       // the same partial row as a pick, don't band.
       for (const day of ["7", "8", "27", "28"]) {
-        expect(cellClass(day)).not.toContain("bg-brand-purple/10");
+        expect(cellClass(day)).not.toContain("bg-secondary");
       }
     });
 
@@ -341,7 +341,7 @@ describe("AttendanceDatePicker", () => {
       await user.click(screen.getByRole("button", { name: "09-Sep-2026" }));
       await user.click(screen.getByRole("button", { name: "26" }));
 
-      expect(cellClass("14")).toContain("bg-brand-purple/10");
+      expect(cellClass("14")).toContain("bg-secondary");
     });
 
     it("removes the span once Clear brings the selection back down to one date", async () => {
@@ -350,11 +350,11 @@ describe("AttendanceDatePicker", () => {
 
       await user.click(screen.getByRole("button", { name: "09-Sep-2026" }));
       await user.click(screen.getByRole("button", { name: "26" }));
-      expect(cellClass("14")).toContain("bg-brand-purple/10");
+      expect(cellClass("14")).toContain("bg-secondary");
 
       await user.click(screen.getByRole("button", { name: "Clear" }));
 
-      expect(cellClass("14")).not.toContain("bg-brand-purple/10");
+      expect(cellClass("14")).not.toContain("bg-secondary");
     });
   });
 

@@ -1,6 +1,10 @@
-import { FormField, fieldInputClass, fieldTextareaClass } from "./FormField";
+import { FormField } from "./FormField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { moveItem } from "./reorder";
 import type { StepsContent } from "@/lib/docs/content-types";
+import { SimpleSelect } from "@/components/ui/select";
 
 export function StepsForm({ value, onChange }: { value: StepsContent; onChange: (next: StepsContent) => void }) {
   function set<K extends keyof StepsContent>(key: K, val: StepsContent[K]) {
@@ -42,32 +46,33 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
   }
 
   return (
-    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-[30px] py-0">
+    <div className="no-scrollbar-arrows min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-5 py-0">
       <FormField label="Eyebrow">
-        <input className={fieldInputClass} value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
+        <Input value={value.eyebrow} onChange={(e) => set("eyebrow", e.target.value)} />
       </FormField>
       <FormField label="Heading" required>
-        <input className={fieldInputClass} value={value.heading} onChange={(e) => set("heading", e.target.value)} />
+        <Input value={value.heading} onChange={(e) => set("heading", e.target.value)} />
       </FormField>
       <FormField label="Intro">
-        <textarea rows={2} className={fieldTextareaClass} value={value.intro} onChange={(e) => set("intro", e.target.value)} />
+        <Textarea rows={2} className="h-[120px] resize-none" value={value.intro} onChange={(e) => set("intro", e.target.value)} />
       </FormField>
 
       <div className="grid grid-cols-3 gap-4">
         <FormField label="Callout tone">
-          <select
-            className={fieldInputClass}
+          <SimpleSelect
+            aria-label="Callout tone"
             value={value.calloutTone ?? "info"}
-            onChange={(e) => set("calloutTone", e.target.value as "info" | "warning")}
-          >
-            <option value="info">Info</option>
-            <option value="warning">Warning</option>
-          </select>
+            onValueChange={(v) => set("calloutTone", v as "info" | "warning")}
+            options={[
+              { value: "info", label: "Info" },
+              { value: "warning", label: "Warning" },
+            ]}
+          />
         </FormField>
         <div className="col-span-2">
           <FormField label="Callout text (leave blank to hide)">
-            <input
-              className={fieldInputClass}
+            <Input
+              
               value={value.calloutText ?? ""}
               onChange={(e) => set("calloutText", e.target.value)}
             />
@@ -77,18 +82,17 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
 
       <div>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-muted">Steps</span>
-          <button
+          <span className="text-xs font-medium text-muted-foreground">Steps</span>
+          <Button
             type="button"
-            onClick={addStep}
-            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-dash-ink hover:bg-page"
+            onClick={addStep} variant="outline" size="sm"
           >
             + Add step
-          </button>
+          </Button>
         </div>
         <div className="mt-2 space-y-3">
           {value.steps.map((step, i) => (
-            <div key={i} className="rounded-[10px] border border-border p-3">
+            <div key={i} className="rounded-xl border border-surface-border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex shrink-0 flex-col">
                   <button
@@ -96,7 +100,7 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
                     disabled={i === 0}
                     onClick={() => moveStep(i, -1)}
                     aria-label="Move step up"
-                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded px-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ↑
                   </button>
@@ -105,45 +109,44 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
                     disabled={i === value.steps.length - 1}
                     onClick={() => moveStep(i, 1)}
                     aria-label="Move step down"
-                    className="rounded px-1 text-muted hover:text-dash-ink disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded px-1 text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     ↓
                   </button>
                 </div>
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-white">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                   {i + 1}
                 </span>
-                <input
-                  className={`${fieldInputClass} min-w-0 flex-1`}
+                <Input
+                  className="min-w-0 flex-1"
                   placeholder="Step title"
                   value={step.title}
                   onChange={(e) => updateStep(i, { title: e.target.value })}
                 />
-                <button
+                <Button
                   type="button"
-                  onClick={() => removeStep(i)}
-                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                  onClick={() => removeStep(i)} variant="ghost" size="sm" className="h-7 shrink-0 px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
-              <textarea
+              <Textarea
                 rows={2}
-                className={`${fieldTextareaClass} mt-2`}
+                className="h-[120px] resize-none mt-2"
                 placeholder="Body text (optional)"
                 value={step.body}
                 onChange={(e) => updateStep(i, { body: e.target.value })}
               />
-              <textarea
+              <Textarea
                 rows={2}
-                className={`${fieldTextareaClass} mt-2 font-mono`}
+                className="h-[120px] resize-none mt-2 font-mono"
                 placeholder="Command (optional)"
                 value={step.command ?? ""}
                 onChange={(e) => updateStep(i, { command: e.target.value })}
               />
-              <textarea
+              <Textarea
                 rows={2}
-                className={`${fieldTextareaClass} mt-2 font-mono`}
+                className="h-[120px] resize-none mt-2 font-mono"
                 placeholder="Command output (optional)"
                 value={step.output ?? ""}
                 onChange={(e) => updateStep(i, { output: e.target.value })}
@@ -151,38 +154,36 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
 
               <div className="mt-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted">Downloads (optional)</span>
-                  <button
+                  <span className="text-xs font-medium text-muted-foreground">Downloads (optional)</span>
+                  <Button
                     type="button"
-                    onClick={() => addDownload(i)}
-                    className="rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold text-dash-ink hover:bg-page"
+                    onClick={() => addDownload(i)} variant="outline" size="sm" className="h-7 px-2.5"
                   >
                     + Add file
-                  </button>
+                  </Button>
                 </div>
                 {(step.downloads ?? []).length > 0 && (
                   <div className="mt-1.5 space-y-1.5">
                     {(step.downloads ?? []).map((d, di) => (
                       <div key={di} className="flex items-center gap-1.5">
-                        <input
-                          className={`${fieldInputClass} min-w-0 flex-1`}
+                        <Input
+                          className="min-w-0 flex-1"
                           placeholder="Button label, e.g. push-usage.mjs"
                           value={d.label}
                           onChange={(e) => updateDownload(i, di, { label: e.target.value })}
                         />
-                        <input
-                          className={`${fieldInputClass} min-w-0 flex-1 font-mono`}
+                        <Input
+                          className="min-w-0 flex-1 font-mono"
                           placeholder="/downloads/push-usage.mjs"
                           value={d.href}
                           onChange={(e) => updateDownload(i, di, { href: e.target.value })}
                         />
-                        <button
+                        <Button
                           type="button"
-                          onClick={() => removeDownload(i, di)}
-                          className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-danger hover:bg-danger/10"
+                          onClick={() => removeDownload(i, di)} variant="ghost" size="sm" className="h-7 shrink-0 px-2.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                         >
                           Remove
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>

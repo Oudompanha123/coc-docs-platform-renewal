@@ -3,7 +3,8 @@
  * section body — hand-written parser and types, no library (task
  * constraint: never add a new dependency for the editor or renderer).
  *
- * Whitelist: paragraphs, `###`/`####` headings, `**bold**`, `*italic*`,
+ * Whitelist: paragraphs, `##`/`###`/`####` headings (`##` starts a
+ * section of a legal page and gets an anchor — ADR-104 r2.13), `**bold**`, `*italic*`,
  * `-`/`1.` lists (2 levels), `> `quotes, `---` dividers, `[text](url)`
  * links (`https://`/`mailto:`, or a same-origin relative path starting with
  * a single `/`). Anything else — images, raw HTML,
@@ -18,7 +19,7 @@ export type MdSpan = { text: string; bold?: boolean; italic?: boolean; href?: st
 
 export type MdBlock =
   | { kind: "paragraph"; spans: MdSpan[] }
-  | { kind: "heading"; level: 3 | 4; spans: MdSpan[] }
+  | { kind: "heading"; level: 2 | 3 | 4; spans: MdSpan[] }
   | { kind: "bulletList"; items: MdBlock[][] }
   | { kind: "orderedList"; items: MdBlock[][] }
   | { kind: "blockquote"; blocks: MdBlock[] }
@@ -79,7 +80,7 @@ export function parseInline(text: string): MdSpan[] {
 // Block parsing — line-oriented.
 // ---------------------------------------------------------------------------
 
-const HEADING_RE = /^(#{3,4})\s+(.*)$/;
+const HEADING_RE = /^(#{2,4})\s+(.*)$/;
 const HR_RE = /^-{3,}\s*$/;
 const BULLET_RE = /^([ \t]*)-\s+(.*)$/;
 const ORDERED_RE = /^([ \t]*)\d+\.\s+(.*)$/;
@@ -141,7 +142,7 @@ export function parseMarkdown(source: string): MdDoc {
 
     const heading = HEADING_RE.exec(line);
     if (heading) {
-      blocks.push({ kind: "heading", level: heading[1]!.length as 3 | 4, spans: parseInline(heading[2]!.trim()) });
+      blocks.push({ kind: "heading", level: heading[1]!.length as 2 | 3 | 4, spans: parseInline(heading[2]!.trim()) });
       i++;
       continue;
     }
@@ -196,6 +197,40 @@ export function parseMarkdown(source: string): MdDoc {
   }
 
   return blocks;
+}
+
+/** Lowercases, strips punctuation, dashes the rest — "Acceptable Use" → "acceptable-use". */
+function slugify(text: string): string {
+  const slug = text
+    .toLowerCase()
+    .trim()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "section";
+}
+
+export type MdOutlineEntry = { id: string; title: string };
+
+/**
+ * The document's sections — every `##` heading, in order, each with a unique
+ * anchor id (`-2`, `-3` on repeats). `MarkdownView` gives each `<h2>` the id
+ * from this same function, so a contents list built from it always links to
+ * the right place.
+ */
+export function markdownOutline(source: string): MdOutlineEntry[] {
+  const seen = new Set<string>();
+  const entries: MdOutlineEntry[] = [];
+  for (const block of parseMarkdown(source)) {
+    if (block.kind !== "heading" || block.level !== 2) continue;
+    const title = block.spans.map((s) => s.text).join("").trim();
+    const base = slugify(title);
+    let id = base;
+    for (let n = 2; seen.has(id); n++) id = `${base}-${n}`;
+    seen.add(id);
+    entries.push({ id, title });
+  }
+  return entries;
 }
 
 export function isMarkdownEmpty(source: string | null | undefined): boolean {

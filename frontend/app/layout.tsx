@@ -4,6 +4,9 @@ import localFont from "next/font/local";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
+
+const THEME_BOOT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,6 +32,15 @@ const pretendard = localFont({
     { path: "../public/fonts/pretendard/Pretendard-Black.woff2", weight: "900", style: "normal" },
   ],
   variable: "--font-pretendard",
+  display: "swap",
+});
+
+/** Heading face — Cal Sans SemiBold, from the coc-docs design system
+ *  (`.claude/skills/coc-docs/fonts/`, SIL OFL). Applied to h1/h2 through
+ *  `--font-heading` in globals.css; body text stays Inter. */
+const calSans = localFont({
+  src: [{ path: "../public/fonts/cal-sans/CalSans-SemiBold.woff2", weight: "600", style: "normal" }],
+  variable: "--font-cal-sans",
   display: "swap",
 });
 
@@ -85,9 +97,17 @@ export default function RootLayout({
     // never its descendants. A real mismatch inside the app still reports.
     <html
       lang="en"
-      className={`${inter.variable} ${pretendard.variable}`}
+      className={`${inter.variable} ${pretendard.variable} ${calSans.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Writes the resolved theme to <html data-theme> before first paint,
+            so a dark or "system" choice doesn't flash light while the bundle
+            loads. Mirrors lib/theme.ts (same key, same resolution); that
+            module takes over, and starts following OS changes, once React
+            mounts. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <TopProgressBar />
         <Providers>{children}</Providers>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
@@ -54,6 +55,9 @@ import {
   type AxRenewalRunLocallyStatus,
   type PlanSection,
 } from "@/lib/ax-renewal/api";
+import { inputBaseClass } from "@/components/ui/input";
+import { textareaBaseClass } from "@/components/ui/textarea";
+import { SimpleSelect } from "@/components/ui/select";
 
 export default function AxRenewalPage() {
   const { user } = useSession();
@@ -121,7 +125,7 @@ export default function AxRenewalPage() {
       {!detail && <AxRenewalLanding>{picker}</AxRenewalLanding>}
 
       {detail && active != null && (
-        <p className="text-sm text-muted">
+        <p className="text-sm text-muted-foreground">
           Plan a legacy-code migration: attach, analyze, agree a plan, and record the sign-off.
         </p>
       )}
@@ -129,16 +133,16 @@ export default function AxRenewalPage() {
       {detail && active != null && picker}
 
       {loadError && (
-        <div role="alert" className="flex items-start gap-3 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3">
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3">
           <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
           <p className="text-sm font-medium text-danger">{loadError}</p>
         </div>
       )}
 
       {viewingAsSuperAdminOnly && (
-        <div role="status" className="flex items-start gap-3 rounded-[10px] border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
-          <p className="text-sm text-dash-ink">
+        <div role="status" className="flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
+          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+          <p className="text-sm text-foreground">
             You&rsquo;re not a member of this project. You can open it because you&rsquo;re a Super Admin; its members
             are listed under <strong className="font-semibold">Workspace → Members</strong>.
           </p>
@@ -271,9 +275,9 @@ export default function AxRenewalPage() {
 /** The honest "no model connected" disclaimer, shared by every Understand panel that reads the analysis. */
 function NoModelBanner() {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-brand-purple/20 bg-brand-purple/5 px-4 py-3">
-      <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-purple" />
-      <p className="text-sm text-dash-ink">
+    <div className="flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
+      <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
+      <p className="text-sm text-foreground">
         No AI model is connected on this deployment yet — this is a keyword-matched placeholder, not a real reading
         of the attached source.
       </p>
@@ -293,10 +297,10 @@ function NoModelBanner() {
  */
 function NotAnalysedYet({ what }: { what: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center">
-      <p className="text-sm font-medium text-dash-ink">Nothing analysed yet</p>
-      <p className="mt-1 text-xs text-muted">
-        Press <b className="font-semibold text-dash-ink">Run analysis</b> under Understand → Attach source, and {what}{" "}
+    <div className="rounded-xl border border-dashed border-surface-border px-4 py-5 text-center">
+      <p className="text-sm font-medium text-foreground">Nothing analysed yet</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Press <b className="font-semibold text-foreground">Run analysis</b> under Understand → Attach source, and {what}{" "}
         appears here.
       </p>
     </div>
@@ -330,8 +334,8 @@ function NoTabOpenState() {
         <span className="ax-empty-tab-dot absolute bottom-2 right-1 h-2 w-2 rounded-full" />
       </div>
       <div>
-        <p className="text-sm font-bold text-dash-ink">No tab open</p>
-        <p className="mt-1 text-xs text-muted">Pick something from the Explorer to get started.</p>
+        <p className="text-sm font-semibold text-foreground">No tab open</p>
+        <p className="mt-1 text-xs text-muted-foreground">Pick something from the Explorer to get started.</p>
       </div>
     </div>
   );
@@ -363,41 +367,41 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Codebase</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Codebase</h3>
         </div>
-        <div className="p-5">
-        <p className="text-xs text-muted">Counted at attach time. Detection below comes from analysis.</p>
+        <div className="p-4">
+        <p className="text-xs text-muted-foreground">Counted at attach time. Detection below comes from analysis.</p>
 
         <div className="mt-4 space-y-4">
           {analysis && !analysis.modelConnected && <NoModelBanner />}
 
           {attachStats ? (
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-surface-border bg-surface-border sm:grid-cols-4">
               {[
                 { label: "project files", value: attachStats.fileCount.toLocaleString() },
                 { label: "on disk", value: formatBytes(attachStats.totalBytes) },
                 { label: "file types", value: Object.keys(attachStats.extensions).length.toLocaleString() },
                 { label: "runtime", value: attachStats.runtime ?? "—" },
               ].map((cell) => (
-                <div key={cell.label} className="bg-white p-3">
-                  <b className="block text-lg font-bold tracking-tight text-dash-ink">{cell.value}</b>
-                  <span className="text-xs text-muted">{cell.label}</span>
+                <div key={cell.label} className="bg-card p-3">
+                  <b className="block text-base font-semibold tracking-tight text-foreground">{cell.value}</b>
+                  <span className="text-xs text-muted-foreground">{cell.label}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted">Nothing attached yet — start at Understand → Attach source.</p>
+            <p className="text-sm text-muted-foreground">Nothing attached yet — start at Understand → Attach source.</p>
           )}
 
           {topExtensions.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">By file type</h4>
+              <h4 className="text-xs font-medium text-muted-foreground">By file type</h4>
               <div className="mt-2 flex flex-wrap gap-2">
                 {topExtensions.map(([ext, count]) => (
-                  <span key={ext} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
-                    .{ext} <span className="text-muted">{count.toLocaleString()}</span>
+                  <span key={ext} className="rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-foreground">
+                    .{ext} <span className="text-muted-foreground">{count.toLocaleString()}</span>
                   </span>
                 ))}
               </div>
@@ -405,13 +409,13 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
           )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-xl bg-page p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Manifest</p>
-              <p className="mt-1 text-sm font-medium text-dash-ink">{detail.project.manifestFilename ?? "—"}</p>
+            <div className="rounded-xl bg-muted-surface p-3">
+              <p className="text-xs font-medium text-muted-foreground">Manifest</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{detail.project.manifestFilename ?? "—"}</p>
             </div>
-            <div className="rounded-xl bg-page p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Analyzed</p>
-              <p className="mt-1 text-sm font-medium text-dash-ink">
+            <div className="rounded-xl bg-muted-surface p-3">
+              <p className="text-xs font-medium text-muted-foreground">Analyzed</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
                 {analysis ? new Date(analysis.analyzedAt).toLocaleString() : "not yet — press Run analysis"}
               </p>
             </div>
@@ -419,7 +423,7 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
           {analysis && Object.keys(analysis.stackDetected).length > 0 && (
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wide text-muted">Detected</h4>
+              <h4 className="text-xs font-medium text-muted-foreground">Detected</h4>
               <div className="mt-2 flex flex-wrap gap-2">
                 {/* "notes" is prose, not a short tag — a pill stretched around a
                     whole sentence is the broken-looking oval this excludes it from;
@@ -427,13 +431,13 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
                 {Object.entries(analysis.stackDetected)
                   .filter(([key]) => key !== "notes")
                   .map(([key, value]) => (
-                    <span key={key} className="rounded-full bg-page px-3 py-1 text-xs font-medium text-dash-ink">
+                    <span key={key} className="rounded-full bg-muted-surface px-2 py-0.5 text-xs font-medium text-foreground">
                       {key}: {value}
                     </span>
                   ))}
               </div>
               {analysis.stackDetected.notes && (
-                <p className="mt-2 text-sm text-dash-ink">{analysis.stackDetected.notes}</p>
+                <p className="mt-2 text-sm text-foreground">{analysis.stackDetected.notes}</p>
               )}
             </div>
           )}
@@ -442,15 +446,15 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
       </div>
 
       {attachStats && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Indexed</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Indexed</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             Files, size and runtime above are counted at attach time; lines, routes, templates, dependencies and
             test coverage need a connected local model reading the source —{" "}
-            <span className="font-medium text-dash-ink">—</span> means it hasn&apos;t reported one.
+            <span className="font-medium text-foreground">—</span> means it hasn&apos;t reported one.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {[
@@ -463,9 +467,9 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
                 value: indexed.testCoveragePercent != null ? `${indexed.testCoveragePercent}%` : "—",
               },
             ].map((cell) => (
-              <div key={cell.label} className="rounded-xl bg-page p-3">
-                <p className="text-xl font-bold tabular-nums tracking-tight text-dash-ink">{cell.value}</p>
-                <p className="text-xs text-muted">{cell.label}</p>
+              <div key={cell.label} className="rounded-xl bg-muted-surface p-3">
+                <p className="text-lg font-semibold tabular-nums tracking-tight text-foreground">{cell.value}</p>
+                <p className="text-xs text-muted-foreground">{cell.label}</p>
               </div>
             ))}
           </div>
@@ -474,12 +478,12 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
       )}
 
       {fileLayout.length > 0 && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">File layout</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">File layout</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             {attachFileLayout.length > 0
               ? "The largest directories in the attached folder, by file count — read from the browser's own scan, not a guess."
               : "Directories a connected local model actually looked at while reading the source — not a full scan, and not a guess."}
@@ -487,16 +491,16 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
           <div className="mt-3 space-y-1.5 font-mono text-xs">
             {fileLayout.map((entry) => (
               <div key={entry.dir || "(root)"} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="font-semibold text-dash-ink">{entry.dir ? `${entry.dir}/` : "(root)"}</span>
+                <span className="font-semibold text-foreground">{entry.dir ? `${entry.dir}/` : "(root)"}</span>
                 {entry.files.map((name) => {
                   const risky = entry.riskFiles.includes(name);
                   return (
-                    <span key={name} className={risky ? "font-semibold text-danger" : "text-muted"}>
+                    <span key={name} className={risky ? "font-semibold text-danger" : "text-muted-foreground"}>
                       {name}
                     </span>
                   );
                 })}
-                {entry.truncated && <span className="text-muted">+{entry.fileCount - entry.files.length} more</span>}
+                {entry.truncated && <span className="text-muted-foreground">+{entry.fileCount - entry.files.length} more</span>}
                 {entry.riskFiles.length > 0 && (
                   <span className="text-danger">— possible credentials in {entry.riskFiles.join(", ")}</span>
                 )}
@@ -508,17 +512,17 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
       )}
 
       {languages.length > 0 && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Languages</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Languages</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">Share of recognized source files by extension, not by AI guess.</p>
-          <div className="mt-3 divide-y divide-border">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">Share of recognized source files by extension, not by AI guess.</p>
+          <div className="mt-3 divide-y divide-surface-border">
             {languages.map((l) => (
               <div key={l.name} className="flex items-center justify-between py-1.5 text-sm">
-                <span className="text-muted">{l.name}</span>
-                <b className="font-semibold tabular-nums text-dash-ink">{l.percent}%</b>
+                <span className="text-muted-foreground">{l.name}</span>
+                <b className="font-semibold tabular-nums text-foreground">{l.percent}%</b>
               </div>
             ))}
           </div>
@@ -527,22 +531,22 @@ function CodebasePanel({ detail }: { detail: AxRenewalProjectDetail }) {
       )}
 
       {runningOnToday.length > 0 && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Running on today</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Running on today</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             What the connected model actually found in place — not a recommendation for what to move to.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {runningOnToday.map((tag) => (
               <span
                 key={tag.label}
-                className={`rounded-md border px-2.5 py-1 font-mono text-xs ${
+                className={`rounded-md border px-2 py-0.5 font-mono text-xs ${
                   tag.note
                     ? "border-amber-200 bg-amber-50 text-amber-800"
-                    : "border-border bg-page text-dash-ink"
+                    : "border-surface-border bg-muted-surface text-foreground"
                 }`}
               >
                 {tag.label}
@@ -572,13 +576,13 @@ const ARCHITECTURE_TABS: Tab[] = [
 /** The "What this shows" / "Why it matters" pair from CodeRenewalPlatform.html's own diagram tabs, written to describe real data rather than the prototype's fixed demo commentary. */
 function ArchExplainer({ what, why }: { what: string; why: string }) {
   return (
-    <div className="space-y-3 border-t border-border pt-3 text-sm text-dash-ink">
+    <div className="space-y-3 border-t border-surface-border pt-3 text-sm text-foreground">
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wide text-muted">What this shows</h4>
+        <h4 className="text-xs font-medium text-muted-foreground">What this shows</h4>
         <p className="mt-1">{what}</p>
       </div>
       <div>
-        <h4 className="text-xs font-bold uppercase tracking-wide text-muted">Why it matters for the move</h4>
+        <h4 className="text-xs font-medium text-muted-foreground">Why it matters for the move</h4>
         <p className="mt-1">{why}</p>
       </div>
     </div>
@@ -596,9 +600,9 @@ function ArchExplainer({ what, why }: { what: string; why: string }) {
  */
 function HonestlyUnavailable({ reason }: { reason: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center">
-      <p className="text-sm font-medium text-dash-ink">Not something this tool can answer</p>
-      <p className="mx-auto mt-1 max-w-md text-xs text-muted">{reason}</p>
+    <div className="rounded-xl border border-dashed border-surface-border px-4 py-5 text-center">
+      <p className="text-sm font-medium text-foreground">Not something this tool can answer</p>
+      <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">{reason}</p>
     </div>
   );
 }
@@ -621,12 +625,12 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Architecture</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Architecture</h3>
         </div>
-        <div className="p-5">
-        <p className="text-xs text-muted">How the current system is put together, from what analysis found.</p>
+        <div className="p-4">
+        <p className="text-xs text-muted-foreground">How the current system is put together, from what analysis found.</p>
 
         <div className="mt-4 space-y-4">
           {analysis && !analysis.modelConnected && <NoModelBanner />}
@@ -640,7 +644,7 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
               {archTab === "context" &&
                 (hasContext ? (
                   <div className="space-y-3">
-                    <div className="rounded-xl border border-border bg-page p-3">
+                    <div className="rounded-xl border border-surface-border bg-muted-surface/50 p-3">
                       <SystemContextDiagram
                         runtime={runtime}
                         framework={framework}
@@ -654,7 +658,7 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
                     />
                   </div>
                 ) : (
-                  <p className="text-sm text-muted">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
+                  <p className="text-sm text-muted-foreground">Not enough detected yet to draw this — attach a folder and run analysis first.</p>
                 ))}
 
               {archTab === "sequence" && (
@@ -664,10 +668,10 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
               {archTab === "coupling" &&
                 (hasCoupling ? (
                   <div className="space-y-3">
-                    <div className="rounded-xl border border-border bg-page p-3">
+                    <div className="rounded-xl border border-surface-border bg-muted-surface/50 p-3">
                       <ModuleCouplingDiagram coupling={coupling} />
                     </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-muted">
+                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <span className="h-2.5 w-2.5 rounded-sm border border-danger bg-danger/10" /> hub — imported by
                         several modules
@@ -701,12 +705,12 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
           graph to follow; the database/framing points are true regardless of
           which tab found what. */}
       {analysis && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Read this before choosing a target stack</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Read this before choosing a target stack</h3>
           </div>
-          <div className="p-5">
-          <ul className="list-disc space-y-2 pl-4 text-sm text-dash-ink">
+          <div className="p-4">
+          <ul className="list-disc space-y-2 pl-4 text-sm text-foreground">
             <li>
               A slow request or a tangled import graph isn&apos;t fixed by switching frameworks alone — both need a
               change in shape, which is what the rest of Plan sets up.
@@ -722,13 +726,12 @@ function UnderstandArchitecturePanel({ detail }: { detail: AxRenewalProjectDetai
             </li>
           </ul>
           <div className="mt-4 flex justify-end">
-            <button
+            <Button
               type="button"
               onClick={() => router.push(`/ax-renewal?project=${detail.project.id}&section=stack-move`)}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
             >
               Open the stack move
-            </button>
+            </Button>
           </div>
           </div>
         </div>
@@ -743,7 +746,7 @@ const SEVERITY_ORDER: Record<string, number> = { risk: 0, warn: 1, info: 2 };
 function severityBadgeClasses(severity: string): string {
   if (severity === "risk") return "bg-danger/10 text-danger";
   if (severity === "warn") return "bg-amber-50 text-amber-800";
-  return "bg-page text-muted";
+  return "bg-muted-surface text-muted-foreground";
 }
 
 const FIXED_BY_LABELS: { key: AxRenewalFixedBy; label: string }[] = [
@@ -768,24 +771,24 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">
             {analysis ? `${findings.length} finding${findings.length === 1 ? "" : "s"}` : "Findings"}
           </h3>
-          {findings.length > 0 && <span className="text-xs text-muted">worst first</span>}
+          {findings.length > 0 && <span className="text-xs text-muted-foreground">worst first</span>}
         </div>
-        <div className="p-5">
-        <p className="text-xs text-muted">What a renewal would need to address.</p>
+        <div className="p-4">
+        <p className="text-xs text-muted-foreground">What a renewal would need to address.</p>
 
         <div className="mt-4 space-y-4">
           {analysis && !analysis.modelConnected && <NoModelBanner />}
           {!analysis ? (
             <NotAnalysedYet what="what a renewal would have to deal with" />
           ) : findings.length === 0 ? (
-            <p className="text-sm text-muted">Nothing flagged — the analysis found no issues worth raising.</p>
+            <p className="text-sm text-muted-foreground">Nothing flagged — the analysis found no issues worth raising.</p>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-surface-border">
               {findings.map((f, i) => (
                 <li key={i} className="flex items-start gap-3 py-2.5">
                   <span
@@ -794,11 +797,11 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
                     {f.severity === "info" ? "·" : "!"}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-dash-ink">{f.what}</span>
-                    <span className="mt-0.5 block font-mono text-xs text-muted">{f.where}</span>
+                    <span className="block text-sm font-medium text-foreground">{f.what}</span>
+                    <span className="mt-0.5 block font-mono text-xs text-muted-foreground">{f.where}</span>
                   </span>
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${severityBadgeClasses(f.severity)}`}
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${severityBadgeClasses(f.severity)}`}
                   >
                     {f.severity}
                   </span>
@@ -811,16 +814,16 @@ function FindingsPanel({ detail }: { detail: AxRenewalProjectDetail }) {
       </div>
 
       {fixedByGroups.length > 0 && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Which of these the renewal fixes</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Which of these the renewal fixes</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             Only findings the connected model was confident enough to place — most findings are not categorized
             below, and that&apos;s the honest answer, not a gap.
           </p>
-          <ul className="mt-3 space-y-2 text-sm text-dash-ink">
+          <ul className="mt-3 space-y-2 text-sm text-foreground">
             {fixedByGroups.map((group) => (
               <li key={group.key}>
                 <b className="font-semibold">{group.label}:</b>{" "}
@@ -902,12 +905,12 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">Pages</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Pages</h3>
         </div>
-        <div className="p-5">
-        <p className="text-xs text-muted">Every route or screen analysis actually detected, one at a time.</p>
+        <div className="p-4">
+        <p className="text-xs text-muted-foreground">Every route or screen analysis actually detected, one at a time.</p>
 
         <div className="mt-4 space-y-4">
           {analysis && !analysis.modelConnected && <NoModelBanner />}
@@ -915,31 +918,35 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
           {!analysis ? (
             <NotAnalysedYet what="every page it detected" />
           ) : pages.length === 0 ? (
-            <p className="text-sm text-muted">No pages or routes were detected.</p>
+            <p className="text-sm text-muted-foreground">No pages or routes were detected.</p>
           ) : (
             <>
-              <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
-                <button
+              <div className="flex items-center justify-between gap-3 border-b border-surface-border pb-3">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIndex(safeIndex - 1)}
                   disabled={safeIndex === 0}
-                  className="flex min-w-0 items-center gap-1 rounded-[5px] border border-border px-2.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
+                  className="min-w-0"
                 >
                   <ChevronLeftIcon className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{safeIndex > 0 ? pages[safeIndex - 1]!.path : "first"}</span>
-                </button>
-                <span className="shrink-0 font-mono text-xs text-muted">
+                </Button>
+                <span className="shrink-0 font-mono text-xs text-muted-foreground">
                   {safeIndex + 1} / {pages.length}
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setIndex(safeIndex + 1)}
                   disabled={safeIndex === pages.length - 1}
-                  className="flex min-w-0 items-center gap-1 rounded-[5px] border border-border px-2.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
+                  className="min-w-0"
                 >
                   <span className="truncate">{safeIndex < pages.length - 1 ? pages[safeIndex + 1]!.path : "last"}</span>
                   <ChevronRightIcon className="h-3.5 w-3.5 shrink-0" />
-                </button>
+                </Button>
               </div>
 
               <div className="flex flex-wrap gap-1.5">
@@ -949,10 +956,10 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
                     type="button"
                     aria-current={i === safeIndex ? "true" : undefined}
                     onClick={() => setIndex(i)}
-                    className={`rounded-full border px-2.5 py-1 font-mono text-xs transition-colors ${
+                    className={`rounded-full border px-2 py-0.5 font-mono text-xs transition-colors ${
                       i === safeIndex
-                        ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
-                        : "border-border text-muted hover:bg-page"
+                        ? "border-primary bg-secondary text-foreground"
+                        : "border-surface-border text-muted-foreground hover:bg-accent"
                     }`}
                   >
                     {p.path}
@@ -967,31 +974,31 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
       {analysis && current && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-            <div className="border-b border-border bg-page px-5 py-3">
-              <h3 className="text-sm font-bold text-dash-ink">Page view</h3>
+          <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+            <div className="border-b border-surface-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Page view</h3>
             </div>
-            <div className="p-5">
-            <div className="overflow-hidden rounded-xl border border-border">
-              <div className="border-b border-border bg-page px-3 py-2 font-mono text-xs text-muted">
+            <div className="p-4">
+            <div className="overflow-hidden rounded-xl border border-surface-border">
+              <div className="border-b border-surface-border bg-muted-surface px-3 py-2 font-mono text-xs text-muted-foreground">
                 {current.path}
               </div>
-              <div className="bg-white p-4">
-                <p className="text-sm text-dash-ink">{current.purpose}</p>
+              <div className="bg-card p-4">
+                <p className="text-sm text-foreground">{current.purpose}</p>
               </div>
             </div>
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-2 text-xs text-muted-foreground">
               A rendered screenshot needs a real, running instance of the page — this shows what analysis actually
               read about it instead of a fabricated one.
             </p>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-            <div className="border-b border-border bg-page px-5 py-3">
-              <h3 className="text-sm font-bold text-dash-ink">Processing flow</h3>
+          <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+            <div className="border-b border-surface-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Processing flow</h3>
             </div>
-            <div className="p-5">
+            <div className="p-4">
               <HonestlyUnavailable reason="Seeing what actually happens on one request to this page — which queries run, how long each step takes — means running the application with real traffic and measuring it, the same as Architecture → Request lifecycle. Static analysis, connected model or not, cannot produce those numbers without executing the code." />
             </div>
           </div>
@@ -999,21 +1006,21 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
       )}
 
       {analysis && current && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Files</h3>
-            {matchedFiles.length > 0 && <span className="text-xs text-muted">{matchedFiles.length}</span>}
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Files</h3>
+            {matchedFiles.length > 0 && <span className="text-xs text-muted-foreground">{matchedFiles.length}</span>}
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             A best-effort text match against the directories and files Understand → Codebase already saw — analysis
             doesn&apos;t report which files implement which page, so this is worth checking, not a guarantee.
           </p>
           <div className="mt-3">
             {matchedFiles.length === 0 ? (
-              <p className="text-sm text-muted">Nothing in what analysis saw matched this page&apos;s path.</p>
+              <p className="text-sm text-muted-foreground">Nothing in what analysis saw matched this page&apos;s path.</p>
             ) : (
-              <div className="space-y-1 font-mono text-xs text-dash-ink">
+              <div className="space-y-1 font-mono text-xs text-foreground">
                 {matchedFiles.map((f) => (
                   <p key={f}>{f}</p>
                 ))}
@@ -1025,21 +1032,21 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
       )}
 
       {analysis && current && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Issues on this page</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Issues on this page</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             Findings whose location mentions <span className="font-mono">{current.path}</span> — most findings
             don&apos;t name a specific page, so a shorter list here (or none) is the honest answer, not a gap. The
             full list is under Understand → Findings.
           </p>
           <div className="mt-3">
             {relatedFindings.length === 0 ? (
-              <p className="text-sm text-muted">Nothing found that names this page specifically.</p>
+              <p className="text-sm text-muted-foreground">Nothing found that names this page specifically.</p>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-surface-border">
                 {relatedFindings.map((f, i) => (
                   <li key={i} className="flex items-start gap-3 py-2.5">
                     <span
@@ -1048,8 +1055,8 @@ function UnderstandPagesPanel({ detail }: { detail: AxRenewalProjectDetail }) {
                       {f.severity === "info" ? "·" : "!"}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-dash-ink">{f.what}</span>
-                      <span className="mt-0.5 block font-mono text-xs text-muted">{f.where}</span>
+                      <span className="block text-sm font-medium text-foreground">{f.what}</span>
+                      <span className="mt-0.5 block font-mono text-xs text-muted-foreground">{f.where}</span>
                     </span>
                   </li>
                 ))}
@@ -1091,17 +1098,17 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">How the old becomes the new</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">How the old becomes the new</h3>
         </div>
-        <div className="p-5">
-        <p className="text-xs text-muted">The whole move on one page, built from what is entered under Plan.</p>
-        <div className="mt-3 rounded-xl border border-border bg-page p-3">
+        <div className="p-4">
+        <p className="text-xs text-muted-foreground">The whole move on one page, built from what is entered under Plan.</p>
+        <div className="mt-3 rounded-xl border border-surface-border bg-muted-surface/50 p-3">
           {layers.length > 0 ? (
             <OldToNewDiagram layers={layers} sameDatabase={sameDatabase} />
           ) : (
-            <p className="py-6 text-center text-sm text-muted">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               Nothing recorded yet — fill in Plan → Stack move first.
             </p>
           )}
@@ -1110,32 +1117,32 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
       </div>
 
       {layers.length > 0 && (
-        <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-          <div className="border-b border-border bg-page px-5 py-3">
-            <h3 className="text-sm font-bold text-dash-ink">Side by side</h3>
+        <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+          <div className="border-b border-surface-border px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">Side by side</h3>
           </div>
-          <div className="p-5">
-          <p className="text-xs text-muted">
+          <div className="p-4">
+          <p className="text-xs text-muted-foreground">
             Every layer entered under Plan → Stack move. Edit it there; this view is read-only.
           </p>
-          <div className="mt-3 grid grid-cols-1 divide-y divide-border overflow-hidden rounded-xl border border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+          <div className="mt-3 grid grid-cols-1 divide-y divide-surface-border overflow-hidden rounded-xl border border-surface-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             <div className="bg-[#fdf1e3]/30 p-3">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-[#9c4620]">Old</h4>
+              <h4 className="text-xs font-medium text-[#9c4620]">Old</h4>
               <div className="mt-2 space-y-1.5">
                 {layers.map((l) => (
-                  <p key={l.layerKey} className="text-sm text-dash-ink">
-                    {l.oldTarget || "—"} <span className="text-xs text-muted">{l.layerKey}</span>
+                  <p key={l.layerKey} className="text-sm text-foreground">
+                    {l.oldTarget || "—"} <span className="text-xs text-muted-foreground">{l.layerKey}</span>
                   </p>
                 ))}
               </div>
             </div>
-            <div className="bg-brand-purple/5 p-3">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-brand-purple">New</h4>
+            <div className="bg-secondary p-3">
+              <h4 className="text-xs font-medium text-foreground">New</h4>
               <div className="mt-2 space-y-1.5">
                 {layers.map((l) => (
-                  <p key={l.layerKey} className="text-sm text-dash-ink">
+                  <p key={l.layerKey} className="text-sm text-foreground">
                     {l.newTarget || `stays on ${l.oldTarget || "—"}`}{" "}
-                    <span className="text-xs text-muted">{l.layerKey}</span>
+                    <span className="text-xs text-muted-foreground">{l.layerKey}</span>
                   </p>
                 ))}
               </div>
@@ -1145,12 +1152,12 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-        <div className="border-b border-border bg-page px-5 py-3">
-          <h3 className="text-sm font-bold text-dash-ink">What does not change</h3>
+      <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+        <div className="border-b border-surface-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">What does not change</h3>
         </div>
-        <div className="p-5">
-        <ul className="space-y-2.5 text-sm text-dash-ink">
+        <div className="p-4">
+        <ul className="space-y-2.5 text-sm text-foreground">
           <li>
             <b className="font-semibold">The database.</b>{" "}
             {dbChanges.length > 0
@@ -1181,20 +1188,19 @@ function OldNewPanel({ detail }: { detail: AxRenewalProjectDetail }) {
           </li>
         </ul>
         <div className="mt-4 flex flex-wrap gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => goTo("stack-move")}
-            className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
           >
             Choose the target stack
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
             onClick={() => goTo("output")}
-            className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page"
           >
             Set where the code goes
-          </button>
+          </Button>
         </div>
         </div>
       </div>
@@ -1241,15 +1247,15 @@ function OutputPanel({
   }
 
   return (
-    <div className="overflow-hidden rounded-[5px] border border-border bg-white">
-      <div className="flex items-center justify-between border-b border-border bg-page px-5 py-3">
-        <h3 className="text-sm font-bold text-dash-ink">Output</h3>
-        <span className="text-xs text-muted">{detail.destination ? "set" : "not set"}</span>
+    <div className="overflow-hidden rounded-xl border border-surface-border bg-card">
+      <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-foreground">Output</h3>
+        <span className="text-xs text-muted-foreground">{detail.destination ? "set" : "not set"}</span>
       </div>
-      <div className="p-5">
-        <p className="text-xs text-muted">Where the renewed project would be written.</p>
+      <div className="p-4">
+        <p className="text-xs text-muted-foreground">Where the renewed project would be written.</p>
         {kind === "filesystem_path" && (
-          <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
             Unlike the source path in AI engine, this one is shared for the whole project, not set per machine —
             whoever clicks Approve or Run Locally writes to or reads from exactly this path on <em>their own</em>{" "}
             computer. On a team where more than one person does that, it only behaves consistently if this path
@@ -1259,44 +1265,45 @@ function OutputPanel({
         )}
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <select
+          <SimpleSelect
+            aria-label="Source type"
             value={kind}
             disabled={!canEdit}
-            onChange={(e) => setKind(e.target.value as typeof kind)}
-            className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-dash-ink focus:outline-none disabled:bg-page"
-          >
-            <option value="git_repo">Git repository</option>
-            <option value="filesystem_path">Filesystem path</option>
-            <option value="other">Other</option>
-          </select>
+            onValueChange={(v) => setKind(v as typeof kind)}
+            options={[
+              { value: "git_repo", label: "Git repository" },
+              { value: "filesystem_path", label: "Filesystem path" },
+              { value: "other", label: "Other" },
+            ]}
+          />
           <input
             value={target}
             disabled={!canEdit}
             onChange={(e) => setTarget(e.target.value)}
             placeholder="Target (repo URL or path)"
-            className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-2"
+            className={`${inputBaseClass} sm:col-span-2`}
           />
           <input
             value={branch}
             disabled={!canEdit}
             onChange={(e) => setBranch(e.target.value)}
             placeholder="Branch (optional)"
-            className="rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:bg-page sm:col-span-3"
+            className={`${inputBaseClass} sm:col-span-3`}
           />
         </div>
 
-        {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
         {canEdit && (
           <div className="mt-3 flex justify-end">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void handleSave()}
               disabled={saving || !target.trim()}
-              className="rounded-[5px] border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save destination"}
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -1450,18 +1457,18 @@ function ImplementationPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[5px] border border-border bg-white p-5">
-        <h3 className="text-sm font-bold text-dash-ink">Implementation</h3>
+      <div className="rounded-xl border border-surface-border bg-card p-4">
+        <h3 className="text-sm font-semibold text-foreground">Implementation</h3>
         {!readyToStart && (
-          <p className="mt-2 text-xs text-muted">Confirm all four plan sections and set a destination before starting.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Confirm all four plan sections and set a destination before starting.</p>
         )}
 
         {canConfirm && engine?.connected && !isActive && (
           <div className="mt-3">
-            <label htmlFor="ax-implementation-source-path" className="text-xs font-semibold text-muted">
+            <label htmlFor="ax-implementation-source-path" className="text-xs font-semibold text-muted-foreground">
               Your legacy project&apos;s path on this machine
             </label>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-muted-foreground">
               Needed to generate real code changes — without it, this still records the confirmed plan but writes
               nothing.
             </p>
@@ -1473,23 +1480,22 @@ function ImplementationPanel({
               placeholder="e.g. C:\Users\you\projects\legacy-app"
               spellCheck={false}
               autoComplete="off"
-              className="mt-2 w-full rounded-xl border border-border px-3 py-1.5 font-mono text-xs text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${inputBaseClass} mt-2 w-full font-mono`}
             />
           </div>
         )}
 
         {canConfirm && !isActive && (
           <div className="mt-3">
-            <button
+            <Button
               type="button"
               onClick={() => void handleStart()}
               disabled={!readyToStart || starting}
-              className="rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {starting ? "Starting…" : run ? "Rebuild" : "Start implementation"}
-            </button>
+            </Button>
             {run && !readyToStart && (
-              <p className="mt-1.5 text-xs text-muted">
+              <p className="mt-1.5 text-xs text-muted-foreground">
                 A Plan section changed since the last build — reconfirm all four sections above to rebuild.
               </p>
             )}
@@ -1502,11 +1508,11 @@ function ImplementationPanel({
             run from Rebuild's own confirmed-Plan one, reviewed the same way
             below once it reaches awaiting_review. */}
         {canConfirm && !isActive && run?.status === "applied" && (
-          <div className="mt-4 rounded-xl border border-border bg-page p-4">
-            <label htmlFor="ax-ui-change-description" className="text-xs font-semibold text-dash-ink">
+          <div className="mt-4 rounded-xl border border-surface-border bg-muted-surface/50 p-4">
+            <label htmlFor="ax-ui-change-description" className="text-xs font-semibold text-foreground">
               Describe a UI change
             </label>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-muted-foreground">
               Colors, layout, fonts, spacing, component styles — against the renewed project&apos;s own UI, in your
               own words. Reviewed as a diff before anything is written, same as Rebuild.
             </p>
@@ -1517,16 +1523,17 @@ function ImplementationPanel({
               disabled={startingUiChange}
               rows={2}
               placeholder="e.g. make the primary button purple and increase the page padding"
-              className="mt-2 w-full resize-none rounded-xl border border-border px-3 py-2 text-sm text-dash-ink placeholder:text-muted focus:outline-none focus-visible:border-brand-purple focus-visible:ring-2 focus-visible:ring-brand-purple/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${textareaBaseClass} mt-2 w-full resize-none`}
             />
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={() => void handleStartUiChange()}
               disabled={startingUiChange || !uiChangeText.trim()}
-              className="mt-2 rounded-[5px] bg-gradient-to-r from-brand-purple to-brand-blue px-3.5 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2"
             >
               {startingUiChange ? "Starting…" : "Generate this change"}
-            </button>
+            </Button>
             {uiChangeError && (
               <p role="alert" className="mt-2 text-xs font-medium text-danger">
                 {uiChangeError}
@@ -1536,57 +1543,61 @@ function ImplementationPanel({
         )}
 
         {run && (
-          <div className="mt-4 rounded-xl border border-border bg-page p-4 text-sm">
+          <div className="mt-4 rounded-xl border border-surface-border bg-muted-surface/50 p-4 text-sm">
             {isActive ? (
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span
-                    className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-purple/30 border-t-brand-purple"
+                    className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-primary/30 border-t-primary"
                     aria-hidden="true"
                   />
                   <div>
-                    <p className="font-semibold text-dash-ink">
+                    <p className="font-semibold text-foreground">
                       {run.status === "generating" ? "Rebuilding…" : "Applying…"}
                     </p>
-                    <p className="text-xs text-muted">{elapsedSecs}s elapsed</p>
+                    <p className="text-xs text-muted-foreground">{elapsedSecs}s elapsed</p>
                   </div>
                 </div>
                 {canConfirm && run.status === "generating" && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => void handleCancel()}
                     disabled={cancelling}
-                    className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                    className="hover:bg-danger/10 hover:text-danger"
                   >
                     {cancelling ? "Cancelling…" : "Cancel"}
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-dash-ink">
+                <p className="font-semibold text-foreground">
                   Status: {run.status.replace(/_/g, " ")}
                   {run.runKind !== "plan" && (
-                    <span className="ml-2 rounded-full bg-brand-purple/10 px-2 py-0.5 text-[11px] font-semibold uppercase text-brand-purple">
+                    <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold uppercase text-foreground">
                       {run.runKind === "error_fix" ? "error fix" : "UI change"}
                     </span>
                   )}
                 </p>
                 {canConfirm && run.status === "applied" && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => void handleRevert()}
                     disabled={reverting}
-                    className="rounded-[5px] border border-border px-3.5 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                    className="hover:bg-danger/10 hover:text-danger"
                   >
                     {reverting ? "Reverting…" : "Revert this run"}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
             {revertError && <p role="alert" className="mt-2 text-xs font-medium text-danger">{revertError}</p>}
             {run.instruction && (
-              <p className="mt-2 whitespace-pre-wrap break-words text-xs text-muted">
+              <p className="mt-2 whitespace-pre-wrap break-words text-xs text-muted-foreground">
                 {run.runKind === "error_fix" ? "Fixing: " : "Requested: "}
                 {run.instruction}
               </p>
@@ -1596,27 +1607,27 @@ function ImplementationPanel({
                 the model's own actions, as the backend running it reports them. */}
             {run.status === "generating" && (
               <>
-                <p className="mt-2 text-xs text-muted">
+                <p className="mt-2 text-xs text-muted-foreground">
                   This can take up to 20 minutes. Nothing is written to the destination until you approve it.
                 </p>
                 <GenerationProgress projectId={detail.project.id} runId={run.id} />
               </>
             )}
-            {run.status === "applying" && <p className="mt-2 text-dash-ink">Copying the approved changes into the destination…</p>}
+            {run.status === "applying" && <p className="mt-2 text-foreground">Copying the approved changes into the destination…</p>}
             {run.status === "failed" && run.failureReason && (
               <p className="mt-2 text-danger">{run.failureReason}</p>
             )}
             {run.status === "cancelled" && (
-              <p className="mt-2 text-dash-ink">Cancelled — nothing was written to the destination.</p>
+              <p className="mt-2 text-foreground">Cancelled — nothing was written to the destination.</p>
             )}
             {(run.status === "completed" || run.status === "applied" || run.status === "rejected") &&
-              run.afterReport && <p className="mt-2 text-dash-ink">{String(run.afterReport.note ?? "")}</p>}
+              run.afterReport && <p className="mt-2 text-foreground">{String(run.afterReport.note ?? "")}</p>}
             {run.status === "applied" && typeof run.afterReport?.filesApplied === "number" && (
-              <p className="mt-1 text-dash-ink">{run.afterReport.filesApplied} file(s) written to the destination.</p>
+              <p className="mt-1 text-foreground">{run.afterReport.filesApplied} file(s) written to the destination.</p>
             )}
 
             {run.status === "awaiting_review" && run.beforeReport?.mode === "replay" && (
-              <p className="mt-2 text-dash-ink">
+              <p className="mt-2 text-foreground">
                 This reproduces the exact result already approved for this project — the confirmed plan hasn&rsquo;t
                 changed, so nothing was generated again.
               </p>
@@ -1632,7 +1643,7 @@ function ImplementationPanel({
           </div>
         )}
 
-        {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
 
         {/* Every earlier run too (ADR-078), read-only. Re-read whenever the
             latest run starts, changes status or is replaced. */}
@@ -1767,12 +1778,12 @@ function RunLocallyPanel({
 
   if (!unlocked) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-[5px] border border-border bg-white p-16 text-center">
-        <PlugIcon className="h-8 w-8 text-muted" />
-        <p className="mt-3 text-sm font-semibold text-dash-ink">Not available yet</p>
-        <p className="mt-1 max-w-sm text-xs text-muted">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-surface-border bg-card p-10 text-center">
+        <PlugIcon className="h-6 w-6 text-muted-foreground" />
+        <p className="mt-3 text-sm font-semibold text-foreground">Not available yet</p>
+        <p className="mt-1 max-w-sm text-xs text-muted-foreground">
           Run Locally needs a real, applied build to point at — confirm the Plan and approve an Implementation run
-          first. This unlocks the moment one reaches <span className="font-medium text-dash-ink">applied</span>.
+          first. This unlocks the moment one reaches <span className="font-medium text-foreground">applied</span>.
         </p>
       </div>
     );
@@ -1780,14 +1791,14 @@ function RunLocallyPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[5px] border border-border bg-white p-5">
+      <div className="rounded-xl border border-surface-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-dash-ink">Run locally</h3>
+          <h3 className="text-sm font-semibold text-foreground">Run locally</h3>
           {canConfirm && (
             <RunLocallyControls state={status?.status ?? null} onStart={handleStart} onStop={handleStop} />
           )}
         </div>
-        <p className="mt-1.5 text-xs text-muted">
+        <p className="mt-1.5 text-xs text-muted-foreground">
           Runs this project&apos;s own <code>npm install &amp;&amp; npm run dev</code> as a background process on
           this machine, and shows its real output below — nothing here is simulated or estimated.
         </p>
@@ -1797,18 +1808,18 @@ function RunLocallyPanel({
             <span
               className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                 status.status === "running"
-                  ? "bg-brand-purple"
+                  ? "bg-primary"
                   : status.status === "starting"
                     ? "animate-pulse bg-amber-400"
                     : status.status === "failed"
                       ? "bg-danger"
-                      : "bg-muted"
+                      : "bg-muted-foreground/40"
               }`}
               aria-hidden="true"
             />
-            <span className="text-xs font-semibold text-dash-ink">{status.status}</span>
+            <span className="text-xs font-semibold text-foreground">{status.status}</span>
             {status.startedAt && (
-              <span className="text-xs text-muted">
+              <span className="text-xs text-muted-foreground">
                 since {new Date(status.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
@@ -1827,10 +1838,10 @@ function RunLocallyPanel({
             role={guidance.tone === "error" ? "alert" : undefined}
             className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
               guidance.tone === "success"
-                ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : guidance.tone === "error"
                   ? "border-danger/30 bg-danger/10 text-danger"
-                  : "border-brand-purple/20 bg-brand-purple/5 text-dash-ink"
+                  : "border-surface-border bg-secondary text-foreground"
             }`}
           >
             {guidance.message}
@@ -1846,41 +1857,42 @@ function RunLocallyPanel({
         {hasActionableFailure && canEdit && (
           <div className="mt-3">
             <div className="flex flex-wrap gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => void handleExplain()}
                 disabled={explaining}
-                className="rounded-[10px] border border-brand-purple/30 bg-brand-purple/5 px-3 py-1.5 text-xs font-semibold text-brand-purple transition-colors hover:bg-brand-purple/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {explaining ? "Asking the local model…" : "Ask AI to explain this"}
-              </button>
+              </Button>
               {/* AI Error Assistant, phase 2 (ADR-062) — Super-Admin-or-
                   Developer-exact only, the same write floor Approve/Reject
                   sit at, since this actually generates a candidate fix (never
                   applied without a separate review/approve). */}
               {canConfirm && (
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => void handleApplyFix()}
                   disabled={fixing}
-                  className="rounded-[10px] bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {fixing ? "Starting…" : "Generate a fix"}
-                </button>
+                </Button>
               )}
             </div>
             {explanation && (
-              <div className="mt-2 whitespace-pre-wrap break-words rounded-[10px] border border-border bg-white px-3 py-2 text-sm text-dash-ink">
+              <div className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-surface-border bg-card px-3 py-2 text-sm text-foreground">
                 {explanation}
               </div>
             )}
             {explainError && (
-              <p role="alert" className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+              <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
                 {explainError}
               </p>
             )}
             {fixError && (
-              <p role="alert" className="mt-2 rounded-xl bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+              <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
                 {fixError}
               </p>
             )}
@@ -1892,7 +1904,7 @@ function RunLocallyPanel({
             href={status.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-purple hover:underline"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground hover:underline"
           >
             <GlobeIcon className="h-4 w-4" />
             Open {status.url}
@@ -1903,7 +1915,7 @@ function RunLocallyPanel({
       {status && status.log.length > 0 && (
         <pre
           ref={logRef}
-          className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-[5px] border border-border bg-[#0b0d12] p-4 font-mono text-xs leading-relaxed text-[#c9d1d9]"
+          className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-surface-border bg-[#0b0d12] p-4 font-mono text-xs leading-relaxed text-[#c9d1d9]"
         >
           {status.log.join("\n")}
         </pre>

@@ -1,15 +1,117 @@
 @import "tailwindcss";
 
+/* The `dark:` variant, taught this project's dark mode (ADR-104 decision 3).
+   shadcn/ui primitives are written against `dark:` utilities and assume a
+   `.dark` class on <html>. This project has never used one: lib/theme.ts
+   writes data-theme="light|dark" on <html>, and dark mode deliberately
+   applies only inside the three shells — login, register and welcome stay
+   light whatever the stored preference is (see the long note further down).
+
+   So the variant is defined to match that exactly, in both the forms the
+   rest of this file already handles: the shell element itself, and anything
+   inside it. Get this wrong in the permissive direction and every migrated
+   primitive on /login quietly turns dark the first time a visitor who once
+   chose dark mode signs out.
+
+   `.landing-dark` is the fourth scope (ADR-104 r2.5): /welcome's own local
+   dark toggle puts it on the page root, and it is only ever there while that
+   toggle is on, so it widens nothing on /login. */
+@custom-variant dark (&:where(
+  :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]),
+  :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) *,
+  .landing-dark,
+  .landing-dark *
+));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* shadcn/ui's neutral palette, adopted as the product's own (ADR-104 r2.0).
+     These are the real shadcn "neutral" base-colour values, not the brand
+     ones they replaced: a near-black primary, flat greys, no gradient. The
+     purple→blue gradient that used to mean "primary action" is retired —
+     it survives only as a decorative accent where one is wanted.
+
+     Declared here as plain custom properties and exposed through `@theme
+     inline` below, so the generated utilities emit `var(--card)` rather than
+     a baked literal. That indirection is what lets one override under the
+     dark selector reach `.bg-card` everywhere at once — the thing the note
+     further down this file explains is NOT possible for the older `@theme`
+     tokens, each of which needs its own per-utility dark rule. */
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --muted-surface: #f5f5f5;
+  --muted-text: #737373;
+  --destructive: #e7000b;
+  --destructive-foreground: #fafafa;
+  --input: #e5e5e5;
+  --ring: #a1a1a1;
+  --surface-border: #e5e5e5;
+
+  /* The admin shell's sidebar, per the coc-docs dashboard pattern
+     (ADR-104 r2.7): a light panel one step off the page, not the dark navy
+     column the app had. Named `nav-*` because `--color-sidebar` is an older
+     literal token still used by AX Renewal and the docs code block. */
+  --nav: #fafafa;
+  --nav-foreground: #0a0a0a;
+  --nav-muted: #737373;
+  --nav-accent: #f0f0f0;
+  --nav-border: #e5e5e5;
+
+  /* Chart series (ADR-104 r2.10), the dataviz reference palette's eight hues in
+     this app's fixed order. Light and dark are separately *selected* steps of
+     the same hues, each set run through the palette validator against its own
+     surface — CVD separation, normal-vision floor and lightness band pass in
+     both; three light steps sit under 3:1 on white, so every chart that uses
+     them ships a legend and a table view. Assign in order, never cycle: a 9th
+     series folds into --series-other. */
+  --series-1: #4a3aa7;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #2a78d6;
+  --series-8: #e34948;
+  --series-other: #8b8b9c;
+
+  /* shadcn's radius scale. `--radius` is the one number to turn.
+     The four derived steps below are declared in `@theme inline`, which means
+     they REPLACE Tailwind's own `rounded-sm|md|lg|xl` — app-wide, including
+     screens not yet migrated. That is deliberate: it is a 2px shift in corner
+     radius and it moves the whole product onto the new design language in one
+     line, which is the point of the upgrade. If a specific screen needs the
+     old geometry back, it asks for it explicitly rather than this scale being
+     split in two. */
+  --radius: 0.625rem;
 }
 
 /* Brand accent colors outside @theme inline so utilities use var() at runtime,
    enabling live accent-color changes via JS setProperty(). */
+/* The brand accents, retired (ADR-104 r2.0). These were #6d3ce0 → #404040,
+   the purple-to-blue gradient that meant "primary action" across the whole
+   product. The upgrade is to shadcn's neutral language, so they now resolve
+   to two steps of near-black.
+
+   They are not deleted, and that is deliberate: roughly a hundred files use
+   `from-brand-purple to-brand-blue` for icon tiles, avatars and accent rules.
+   Repointing the token repaints every one of them in a single edit and keeps
+   them consistent while the structural repaint works through area by area.
+   Deleting the names instead would mean a hundred-file sweep before anything
+   could render, and a half-finished sweep would leave the app in two
+   palettes at once. The names go once nothing references them. */
 @theme {
-  --color-brand-purple: #6d3ce0;
-  --color-brand-blue: #4c6ff0;
+  --color-brand-purple: #171717;
+  --color-brand-blue: #404040;
 }
 
 @theme inline {
@@ -19,32 +121,105 @@
   /* Opt-in only — font-sans/Inter stays the default everywhere. Use the
      `font-pretendard` utility this generates on anything that wants it. */
   --font-pretendard: var(--font-pretendard);
+  /* Headings — Cal Sans, per the coc-docs design system (ADR-104 r2.6).
+     Cal Sans only carries Latin glyphs, so the stack falls through to Inter
+     and then Pretendard: a Korean or Khmer heading still renders in a real
+     font rather than the platform default. */
+  --font-heading: var(--font-cal-sans), var(--font-inter), var(--font-pretendard), ui-sans-serif, system-ui, sans-serif;
 
-  --color-ink: #28226d;
-  --color-muted: #6b6b80;
-  --color-border: #ececf2;
-  --color-page: #eef0f8;
+  /* The legacy palette, repointed at shadcn's neutrals (ADR-104 r2.0).
+     Every one of these used to be brand-tinted: ink was #28226d (a deep
+     indigo), page #eef0f8 (a blue-grey), the sidebar #161226 (a purple-black).
+     The tints were what made the product look like its old self no matter
+     which component you replaced.
 
-  /* Admin dashboard tokens — the mockup's "ink" (#16141f) reads darker/neutral
-     than the auth pages' brand-tinted --color-ink (#28226d), so it gets its
-     own token instead of overwriting a value already set at the user's
-     request for /login and /register. */
-  --color-dash-ink: #16141f;
-  --color-sidebar: #161226;
-  --color-sidebar-hover: #211d33;
-  --color-sidebar-muted: #9490ab;
-  --color-danger: #d6304a;
+     `--color-ink` and `--color-dash-ink` existed as two values because the
+     admin mockup wanted a neutral black while the auth pages had a
+     brand-tinted one. With no tint left there is nothing to tell them apart,
+     so both are the foreground now. They stay as two names only until the
+     files using them are swept. */
+  --color-ink: #0a0a0a;
+  --color-muted: #737373;
+  --color-border: #e5e5e5;
+  --color-page: #f5f5f5;
 
-  /* Admin /legal-pages form (task: "remove accent lines, cleaner spacing") —
-     named tokens rather than arbitrary-value classes so the dark-mode
-     overrides just below can target a plain class name instead of an
-     escaped `text-\[\#...\]` selector. */
-  --color-legal-label: #6b7280;
-  --color-legal-helper: #9ca3af;
-  --color-legal-divider: #f1f2f6;
-  --color-legal-card-border: #e8eaf1;
-  --color-legal-status-border: #d1d5db;
-  --color-legal-status-bg-selected: #f8f7ff;
+  --color-dash-ink: #0a0a0a;
+  --color-sidebar: #171717;
+  --color-sidebar-hover: #262626;
+  --color-sidebar-muted: #a1a1a1;
+  --color-danger: #e7000b;
+
+  /* shadcn/ui's semantic names, pointed at this product's values (ADR-104
+     decision 2). These generate bg-card / text-muted-foreground / ring-ring
+     and the rest, which is the vocabulary every copied primitive is written
+     in. Each one resolves through the var() declared in :root above, so dark
+     mode is a variable swap rather than a per-utility override.
+
+     `--color-muted` is NOT redefined. It already exists above as a *text*
+     colour (`text-muted`, used across the app), whereas shadcn's `muted` is a
+     *surface*. Redefining it would repaint text in dozens of files that have
+     nothing to do with this migration, so shadcn's pair maps onto two
+     separate variables instead. */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted-surface: var(--muted-surface);
+  --color-muted-foreground: var(--muted-text);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* `border-surface` rather than reusing `border-border`: the old token is
+     #ececf2 and still owns every unmigrated screen. Giving the new neutral
+     its own name means both can exist while the migration runs, instead of
+     one repainting the other ahead of schedule. */
+  --color-surface-border: var(--surface-border);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-accent: var(--nav-accent);
+  --color-nav-border: var(--nav-border);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* The button corner, stated once by name (ADR-104 r2.6, r2.9). Every button
+     reads it — `Button`'s default shape and the hand-written ones alike.
+     It was the design system's 7.2px for a round; the product owner chose
+     fully rounded buttons after seeing it, so it is a pill now. Changing the
+     product's button shape again is this one line. */
+  --radius-control: 9999px;
+}
+
+/* Cal Sans for h1/h2, as the design system specifies — in the base layer so
+   any utility on the element still wins. The face ships in one weight (600);
+   synthesis is off so a `font-bold`/`font-extrabold` heading renders the real
+   600 instead of a smeared fake bold. */
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--font-heading);
+    font-synthesis-weight: none;
+  }
+
+  /* Admin /legal-pages form tokens (from feature/legal-pages-admin-editor),
+     on the neutral palette: the branch introduced them brand-tinted
+     (#f8f7ff, #e8eaf1), which the r2.0 repaint retired everywhere else. */
+  --color-legal-label: #737373;
+  --color-legal-helper: #a1a1a1;
+  --color-legal-divider: #f0f0f0;
+  --color-legal-card-border: #e5e5e5;
+  --color-legal-status-border: #d4d4d4;
+  --color-legal-status-bg-selected: #f5f5f5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -59,7 +234,7 @@
 :root[data-theme="dark"] {
   --background: #0a0a0a;
   --foreground: #ededed;
-  --color-page: #121018;
+  --color-page: #0a0a0a;
 }
 
 /* Full dark theme for the admin shell (AppShell.tsx root carries
@@ -82,6 +257,82 @@
    visitor's last theme choice was "dark". */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) {
   color-scheme: dark;
+
+  /* Dark values for the shadcn/ui tokens (ADR-104 decision 2). Seventeen
+     declarations instead of seventeen per-utility override rules, because
+     those tokens are exposed through `@theme inline` as var() references —
+     the utilities read the variable at runtime, so redefining it here is
+     enough. The older `@theme` tokens below cannot work this way, which is
+     why each of them still needs its own rule.
+
+     Colours are taken from the overrides already in this file, so a shadcn
+     surface matches the hand-rolled card sitting next to it during the
+     migration rather than being a second, slightly different dark grey. */
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  /* Inverted, as shadcn's dark theme does it: the primary button is light on
+     a dark page, not a darker shade of the page it sits on. */
+  --primary: #fafafa;
+  --primary-foreground: #171717;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --muted-surface: #262626;
+  --muted-text: #a1a1a1;
+  --destructive: #ef4444;
+  --input: #2e2e2e;
+  --ring: #737373;
+  --surface-border: #2a2a2a;
+  --nav: #171717;
+  --nav-foreground: #fafafa;
+  --nav-muted: #a1a1a1;
+  --nav-accent: #262626;
+  --nav-border: rgb(255 255 255 / 10%);
+  --series-1: #9085e9;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #3987e5;
+  --series-8: #e66767;
+  --series-other: #737373;
+}
+
+/* The landing page's dark mode (ADR-104 r2.5). /welcome sits outside every
+   [data-shell], so the block above never reaches it, and it has its own
+   local dark toggle rather than the stored preference. It used to paint
+   dark mode itself, one hex literal per element, which drifted: its
+   decorative glow was `bg-secondary`, still the LIGHT grey out here, and
+   rendered as a white blob over the dark hero.
+
+   The same token values, under a class the page puts on its own root. A
+   token utility inside it (`bg-card`, `text-muted-foreground`, `bg-primary`)
+   now flips with no per-element condition, and it can never disagree with
+   the dark mode the visitor will see after signing in. */
+.landing-dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #171717;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --muted-surface: #262626;
+  --muted-text: #a1a1a1;
+  --destructive: #ef4444;
+  --input: #2e2e2e;
+  --ring: #737373;
+  --surface-border: #2a2a2a;
 }
 
 /* Both forms: a descendant (the common case) AND the shell element itself,
@@ -94,39 +345,39 @@
    that one shell alone. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]).bg-white,
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-white {
-  background-color: #1e1a30;
+  background-color: #171717;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-gray-100 {
-  background-color: #2a2545;
+  background-color: #262626;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-border {
-  border-color: #332e4d;
+  border-color: #2a2a2a;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-border {
-  background-color: #332e4d;
+  background-color: #2a2a2a;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .divide-border > :not([hidden]) ~ :not([hidden]) {
-  border-color: #332e4d;
+  border-color: #2a2a2a;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-white {
-  border-color: #1e1a30;
+  border-color: #171717;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-dash-ink {
-  color: #f2effa;
+  color: #fafafa;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-dash-ink\/70 {
-  color: rgb(242 239 250 / 70%);
+  color: rgb(250 250 250 / 70%);
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-ink {
-  color: #f2effa;
+  color: #fafafa;
 }
 
 /* MarkdownEditor.tsx's syntax-highlight overlay (legal pages' Markdown
@@ -184,11 +435,11 @@
    .text-ink is covered above but an opacity-suffixed class is its own,
    separate generated utility and needs its own rule. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-ink\/70 {
-  color: rgb(242 239 250 / 70%);
+  color: rgb(250 250 250 / 70%);
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-muted {
-  color: #8a93a8;
+  color: #a1a1a1;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-muted {
@@ -200,14 +451,14 @@
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:bg-page:hover {
-  background-color: #2a2545;
+  background-color: #262626;
 }
 
 /* AccountsTable's header tint + row hover use a literal #f8fafc (a specific
    hex the user asked for in light mode) rather than a theme token. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f8fafc\],
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:bg-\[\#f8fafc\]:hover {
-  background-color: #2a2545;
+  background-color: #262626;
 }
 
 /* ConnectedAccountsCard's Linked/Not-linked chips (Settings — Connected
@@ -257,7 +508,7 @@
    Admin's solid #5b4fe8 fill needs no override, same reasoning as the
    brand-purple solids above). */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-\[\#24216b\] {
-  color: #f2effa;
+  color: #fafafa;
 }
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-\[\#f3f4f6\] {
   background-color: rgb(107 114 128 / 16%);
@@ -279,7 +530,7 @@
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .hover\:text-dash-ink:hover {
-  color: #f2effa;
+  color: #fafafa;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .bg-brand-purple\/10 {
@@ -397,7 +648,7 @@ a:hover .hero-download-tile--linux {
 
 /* The admin shell's own page backdrop, on direct request — #1a1a1a, same
    value as the member landing area's below, rather than the plain dark
-   default (#121018) every shell otherwise falls back to. Same pattern as
+   default (#0a0a0a) every shell otherwise falls back to. Same pattern as
    ax-renewal's own --color-page override just above: a shell-scoped
    custom-property redefinition, no per-class override list needed since
    every .bg-page use already reads var(--color-page) at runtime. */
@@ -408,21 +659,12 @@ a:hover .hero-download-tile--linux {
 /* The admin shell's cards/panels (.bg-white) — same #1a1a1a as the page
    backdrop above, on direct request (the first pass only changed the
    backdrop, not these boxes, which still read the shared block's navy
-   #1e1a30). Same both-forms pattern as ax-renewal's own .bg-white override
+   #171717). Same both-forms pattern as ax-renewal's own .bg-white override
    just below: the compound self-referencing selector in case some admin
    root element ever carries data-shell="admin" and .bg-white together, plus
    the ordinary descendant form for every card/panel beneath it. */
 :root[data-theme="dark"] [data-shell="admin"].bg-white,
 :root[data-theme="dark"] [data-shell="admin"] .bg-white {
-  background-color: #1a1a1a;
-}
-
-/* The admin sidebar (Sidebar.tsx), on direct request — same #1a1a1a as the
-   backdrop and cards. Targets its own .admin-sidebar marker class, not the
-   shared .bg-sidebar utility directly: that utility is also DocsCodeBlock's
-   code-block background and the public /welcome preview's own (differently
-   themed) mockup, neither of which should follow this admin-only change. */
-:root[data-theme="dark"] [data-shell="admin"] .admin-sidebar {
   background-color: #1a1a1a;
 }
 
@@ -432,7 +674,7 @@ a:hover .hero-download-tile--linux {
 }
 
 /* The member landing area's own dark background, on direct request —
-   #1a1a1a rather than the shared block's navy-tinted #1e1a30. Same
+   #1a1a1a rather than the shared block's navy-tinted #171717. Same
    specificity-wins-by-source-order trick as the ax-renewal override just
    above: a plain [data-shell="home"] selector, not wrapped in :is(), so it
    wins only for this shell without touching admin's shared navy dark theme
@@ -812,13 +1054,13 @@ a:hover .hero-download-tile--linux {
 }
 
 :root[data-theme="dark"] [data-shell="ax-renewal"] .border-white\/10 {
-  border-color: #332e4d;
+  border-color: #2a2a2a;
 }
 
 /* Icon rail's own inner div — dark theme only; light theme never had a
    border-right here, so no light-mode rule is needed to remove one. */
 :root[data-theme="dark"] [data-shell="ax-renewal"] .bg-sidebar.w-\[52px\] {
-  border-right: 1px solid #332e4d;
+  border-right: 1px solid #2a2a2a;
 }
 
 /* Explorer panel itself (not just its nav list) — dark theme only; light
@@ -829,12 +1071,12 @@ a:hover .hero-download-tile--linux {
 
 /* text-dash-ink/.text-muted are GLOBAL tokens (#16141f / #6b6b80, used
    across the whole app, not just ax-renewal) — pixel-sampled reference
-   values differ slightly (#14152c / #6b7095, confirmed consistently
+   values differ slightly (#171717 / #6b7095, confirmed consistently
    across five separate heading/value-text samples for dash-ink), so
    these are scoped overrides here rather than changing the shared token
    and affecting admin/home too. */
 [data-shell="ax-renewal"] .text-dash-ink {
-  color: #14152c;
+  color: #171717;
 }
 
 [data-shell="ax-renewal"] .text-muted {
@@ -846,7 +1088,7 @@ a:hover .hero-download-tile--linux {
    background stays dark enough for white text to read), but in light
    theme the background is now a pale tint (#eaf1fe) where white text is
    nearly invisible — confirmed by the reference itself, which shows dark
-   ink (#14152c, the same as every other heading/value text) for this
+   ink (#171717, the same as every other heading/value text) for this
    label, not white.
 
    This plain rule has no theme guard, so on its own it would win in BOTH
@@ -855,7 +1097,7 @@ a:hover .hero-download-tile--linux {
    right after it explicitly restores white for dark, at higher
    specificity, exactly like every other light/dark pair in this file. */
 [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md.text-white {
-  color: #14152c;
+  color: #171717;
 }
 
 :root[data-theme="dark"] [data-shell="ax-renewal"] .bg-gradient-to-r.from-brand-purple.to-brand-blue.shadow-md.text-white {
@@ -890,7 +1132,7 @@ a:hover .hero-download-tile--linux {
      exact value — covers sub-item row text and (via currentColor
      inheritance, since nav icons carry no color class of their own) nav
      item icons. */
-  color: #8a93a8;
+  color: #a1a1a1;
 }
 
 /* Every other remaining accent use of brand-purple, dark theme — the
@@ -912,10 +1154,10 @@ a:hover .hero-download-tile--linux {
    text-brand-purple, not text-sidebar-muted, as their base color (unique
    combo: only this button pairs text-brand-purple with tracking-wider).
    More specific than the general text-brand-purple rule above, so this
-   #8a93a8 wins here specifically, now that the icon-badge square in front
+   #a1a1a1 wins here specifically, now that the icon-badge square in front
    of it is gone. */
 :root[data-theme="dark"] [data-shell="ax-renewal"] .text-brand-purple.tracking-wider {
-  color: #8a93a8;
+  color: #a1a1a1;
 }
 
 /* "No tab open" empty-state illustration (main content area) — the front
@@ -1063,14 +1305,14 @@ html {
 /* Dark theme only — the global #ccc thumb reads as a light-gray smudge
    against this panel's near-black background, so this reuses the same
    muted-slate tone already used for this exact element's own border-right
-   (#332e4d) rather than inventing a new dark value. Light theme keeps the
+   (#2a2a2a) rather than inventing a new dark value. Light theme keeps the
    default #ccc, which already reads fine there. */
 :root[data-theme="dark"] [data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 :root[data-theme="dark"] [data-shell="ax-renewal"] nav.min-h-0.flex-1.space-y-1.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 /* Every other scrollbar, on request — admin's and AX Renewal's own <main>
@@ -1080,34 +1322,34 @@ html {
    container of their own (min-h-screen, not h-screen/overflow-hidden), so
    the thing that actually scrolls is <html> itself — reached here with
    :has(), not a descendant selector, since html is an *ancestor* of
-   [data-shell="home"], never a descendant of it. Same muted-slate #332e4d
+   [data-shell="home"], never a descendant of it. Same muted-slate #2a2a2a
    already used for ax-renewal's nav above, for one consistent dark
    scrollbar everywhere rather than a different shade per shell. */
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"]) main {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"]) main::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 :root[data-theme="dark"]:has([data-shell="home"]) {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 :root[data-theme="dark"]:has([data-shell="home"])::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 /* /welcome's own dark toggle is separate from the shared data-theme
    mechanism (see WelcomePage's own effect in app/welcome/page.tsx) — same
-   #332e4d, applied through its own marker class instead. */
+   #2a2a2a, applied through its own marker class instead. */
 html.welcome-dark-scroll {
-  scrollbar-color: #332e4d transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
 html.welcome-dark-scroll::-webkit-scrollbar-thumb {
-  background: #332e4d;
+  background: #2a2a2a;
 }
 
 /* Tailwind v4 resolves @theme color tokens to a static literal at build
@@ -1161,8 +1403,105 @@ button:not(:disabled) {
   animation-fill-mode: both;
 }
 
+/* The legal pages' visual editor (RichTextEditor, ADR-109). Mirrors
+   MarkdownView's "document" variant — what /terms and /privacy render — so
+   what an editor types already looks like the published page. Change one,
+   change the other. */
+.legal-prose {
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--foreground);
+}
+.legal-prose > * + * {
+  margin-top: 0.875rem;
+}
+.legal-prose h2 {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.75rem;
+}
+.legal-prose h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+}
+.legal-prose h4 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.legal-prose > :first-child {
+  margin-top: 0;
+}
+.legal-prose strong {
+  font-weight: 600;
+}
+.legal-prose a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.legal-prose ul,
+.legal-prose ol {
+  padding-left: 1.25rem;
+}
+.legal-prose ul {
+  list-style: disc;
+}
+.legal-prose ol {
+  list-style: decimal;
+}
+.legal-prose li + li {
+  margin-top: 0.375rem;
+}
+.legal-prose li > ul,
+.legal-prose li > ol {
+  margin-top: 0.375rem;
+}
+.legal-prose ol > li::marker {
+  font-weight: 600;
+}
+.legal-prose blockquote {
+  border-left: 2px solid var(--color-surface-border);
+  padding-left: 0.75rem;
+  font-style: italic;
+  color: var(--color-muted-foreground);
+}
+.legal-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-surface-border);
+  margin: 1.5rem 0;
+}
+.legal-prose hr.ProseMirror-selectednode {
+  border-top-color: var(--foreground);
+}
+.legal-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-muted-foreground);
+}
+
+/* /welcome's hero: the headline block and the dashboard preview under it
+   enter as one piece. The preview used to start 120ms after the headline on
+   the same 380ms curve, so for the first third of a second the hero read as
+   finished with an empty hole where the preview belonged — then a large
+   card faded in late. Same start, a longer ease-out-expo curve that does
+   most of its travel in the first frames, and the layer promoted up front
+   (`will-change`) so the preview's 50px `shadow-2xl` is composited once
+   rather than repainted on every frame of the fade. */
+.animate-hero-entrance {
+  animation-name: fade-slide-up;
+  animation-duration: 560ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-entrance {
+  .animate-entrance,
+  .animate-hero-entrance {
     animation: none;
   }
 }
@@ -1270,77 +1609,37 @@ button:not(:disabled) {
 }
 
 /* LoadingDim — the full-screen overlay for signing in and out (and the
-   new-tab "View site" page). A brand ring rather than the 12 black blades
-   ported from the old 로딩DIM.html reference: a purple-to-blue gradient arc
-   with a rounded head over a faint track, turning continuously, on a soft
-   blurred overlay that follows the theme. The standalone copy in
-   LoadingDim.tsx (loadingDimStandaloneHtml) mirrors these values. */
+   new-tab "View site" page). shadcn's spinner (Lucide's LoaderCircle) in
+   neutral grey on a soft blurred overlay that follows the theme
+   (ADR-104 r2.5); it replaced a purple-to-blue conic ring from the retired
+   brand palette. The standalone copy in LoadingDim.tsx
+   (loadingDimStandaloneHtml) mirrors these values. With motion reduced, the
+   blanket rule below stops the spin and the spinner simply rests. */
 .loading-dim {
-  background-color: rgba(255, 255, 255, 0.72);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+  background-color: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 :root[data-theme="dark"] .loading-dim {
-  background-color: rgba(10, 10, 16, 0.66);
+  background-color: rgba(10, 10, 10, 0.8);
 }
 
 .loading-dim-label {
-  color: #2d2a4a;
+  color: #171717;
+}
+
+.loading-dim-spinner {
+  color: #737373;
 }
 
 :root[data-theme="dark"] .loading-dim-label {
-  color: #e7e5f4;
+  color: #fafafa;
 }
 
-.cdp-spinner {
-  position: relative;
-  display: inline-block;
-  width: 56px;
-  height: 56px;
+:root[data-theme="dark"] .loading-dim-spinner {
+  color: #a1a1a1;
 }
-
-/* The faint full circle the arc travels round. */
-.cdp-spinner::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 5px solid rgba(109, 60, 224, 0.14);
-}
-
-.cdp-spinner-arc {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  /* Transparent at the tail, full brand colour at the head (12 o'clock). */
-  background: conic-gradient(from 0deg, rgba(109, 60, 224, 0) 0deg, #6d3ce0 210deg, #4c6ff0 360deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
-  animation: cdp-spin 0.9s linear infinite;
-}
-
-/* The rounded head: a dot sitting on the arc's leading end. */
-.cdp-spinner-arc::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  margin-left: -2.5px;
-  border-radius: 9999px;
-  background: #4c6ff0;
-}
-
-@keyframes cdp-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* With motion reduced, the blanket rule below ends every animation at once —
-   the ring then simply rests, still visibly a loading indicator. */
 
 /* Blanket reduced-motion safety net — the two @media blocks above only cover
    the two keyframe-based entrance animations by name. Every hover/press
@@ -1383,89 +1682,69 @@ button:not(:disabled) {
   display: none;
 }
 
-/* Standardized focus border across every text-like input, textarea, and
-   select, instead of editing the many one-off form controls scattered
-   across auth, admin, and the doc editor, several of which used a
-   different focus convention from each other. important overrides
-   Tailwind's own focus ring/border utility classes, which otherwise win
-   on specificity; box-shadow and outline are cleared so the border is
-   the only visible focus indicator. input without a type attribute is
-   included since several doc-editor inputs omit it while still behaving
-   as text fields, and the attribute selector otherwise would not match. */
-input:not([type]):focus,
-input:not([type]):focus-visible,
-input[type="text"]:focus,
-input[type="text"]:focus-visible,
-input[type="email"]:focus,
-input[type="email"]:focus-visible,
-input[type="password"]:focus,
-input[type="password"]:focus-visible,
-input[type="search"]:focus,
-input[type="search"]:focus-visible,
-input[type="tel"]:focus,
-input[type="tel"]:focus-visible,
-input[type="url"]:focus,
-input[type="url"]:focus-visible,
-input[type="number"]:focus,
-input[type="number"]:focus-visible,
-input[type="date"]:focus,
-input[type="date"]:focus-visible,
-textarea:focus,
-textarea:focus-visible,
-select:focus,
-select:focus-visible {
-  border: 1px solid #1c70e2 !important;
-  box-shadow: none !important;
-  outline: none !important;
+/* Autofill, de-blued.
+ *
+ * A field Chrome has filled in — the remembered email on /login, a saved
+ * password — gets painted rgb(232, 240, 254), a pale blue, by the UA
+ * stylesheet. It is why a field with text in it looked faintly blue while an
+ * empty one did not, and it cannot be fixed with `background-color`: the
+ * browser paints that colour above the element's own background.
+ *
+ * An enormous inset box-shadow is the way around it, because box-shadow is
+ * painted above the autofill layer. The focus rule re-states the field's own
+ * lift (components/ui/input.tsx) alongside it, since a second box-shadow
+ * declaration replaces the first rather than adding to it — without that, an
+ * autofilled field would lose its shadow the moment it was focused.
+ *
+ * `-webkit-text-fill-color` is needed as well: the same UA rule overrides
+ * `color`, so autofilled text would otherwise stay the browser's near-black
+ * rather than the theme's.
+ *
+ * Only the pill fields are targeted. A checkbox, radio or file input is never
+ * autofilled, and a 1000px inset shadow on one would be a solid block. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--foreground);
+  box-shadow: 0 0 0 1000px var(--muted-surface) inset;
 }
 
-/* The one exception: OtpCodeInput's real input is invisible, spread over the
-   six digit boxes that show what it holds and which box is next. The rule
-   above drew a blue frame round the whole row of boxes; here the boxes are
-   the focus indicator. Higher specificity, and after it, so it wins. */
-input.otp-code-input[type="text"],
-input.otp-code-input[type="text"]:focus,
-input.otp-code-input[type="text"]:focus-visible {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--foreground);
+  box-shadow:
+    0 0 0 1000px var(--background) inset,
+    0 1px 2px rgb(0 0 0 / 4%),
+    0 8px 24px -8px rgb(0 0 0 / 12%);
 }
 
-/* Standardized resting border-radius on the same text-like input set as
-   the focus rule above, applied regardless of focus state. Same
-   important-override reasoning: these elements carry Tailwind rounded
-   utility classes of varying values (rounded-lg, rounded-xl, and so on)
-   scattered across the app, each with higher selector specificity than a
-   plain element selector. Checkbox, radio, file, and color inputs are
-   excluded, matching the focus rule above, since forcing a rectangular
-   6px radius onto those native shapes was never asked for. */
-input:not([type]),
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-input[type="number"],
-input[type="date"],
-textarea,
-select {
-  border-radius: 6px !important;
+/* Firefox tints its own autofilled fields instead, and respects a plain
+   background — so it needs the colour but none of the shadow gymnastics.
+   A separate rule rather than another selector in the list above: a browser
+   that does not know `:autofill` would throw the whole list away, taking the
+   `-webkit-` fix with it. */
+input:autofill,
+textarea:autofill,
+select:autofill {
+  background-color: var(--muted-surface);
+  color: var(--foreground);
 }
 
-/* MarkdownEditor's textarea sits inside a framed box (toolbar above it) that
-   already shows focus with its own border. The two rules above drew a second,
-   rounded frame inside that one; here the outer frame is the focus indicator.
-   Higher specificity, and after both, so it wins. */
-textarea.markdown-editor-input,
-textarea.markdown-editor-input:focus,
-textarea.markdown-editor-input:focus-visible {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
+/* The blanket `!important` rules that used to live here — a 6px radius and
+   a blue focus border forced onto every text-like input, textarea and select —
+   are gone (ADR-104 r2.1). They existed because field styling was scattered
+   across auth, admin and the doc editor with a different convention in each
+   place, and a global override was the only way to make them agree.
+
+   `components/ui/input.tsx` is that agreement now, so the override has nothing
+   left to fix and plenty to break: it squared off the new pill fields and drew
+   a grey rectangle around them, beating the primitive on `!important` where no
+   Tailwind class could answer back. The two exceptions beneath it went with it,
+   since both existed only to undo it, and both elements already set their own
+   `border-0`. */
 
 /* Home page CTA band (components/home/CtaWaveBackground.tsx) — the ribbon
    SVG is two copies of one tile side by side at 200% width; sliding exactly

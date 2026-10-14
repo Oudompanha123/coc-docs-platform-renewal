@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { GoogleIcon } from "@/components/auth/icons";
 import { fetchMySecurity, type SignInEvent } from "@/lib/me/security";
@@ -55,38 +56,38 @@ export function SecurityCard() {
   }, []);
 
   return (
-    <section id="security" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
-      <h2 className="text-base font-bold text-dash-ink">Security</h2>
-      <p className="mt-0.5 text-sm text-muted">How you sign in, and your recent sign-in activity.</p>
+    <section id="security" className="scroll-mt-24 rounded-xl border border-surface-border bg-card p-5">
+      <h2 className="text-base font-semibold text-foreground">Security</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">How you sign in, and your recent sign-in activity.</p>
 
-      {state.status === "loading" && <p className="mt-4 text-sm text-muted">Loading…</p>}
+      {state.status === "loading" && <SkeletonGroup label="Loading security" className="mt-4"><SkeletonList rows={3} /></SkeletonGroup>}
       {state.status === "error" && <p className="mt-4 text-sm text-danger">{state.message}</p>}
 
       {state.status === "ready" && (
-        <div className="mt-5 space-y-5">
-          <div className="flex items-center gap-3 rounded-[10px] border border-border px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-blue/10 text-brand-blue">
-              <GoogleIcon className="h-4 w-4" />
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center gap-3 rounded-lg border border-surface-border px-3 py-2.5">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground">
+              <GoogleIcon className="size-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-dash-ink">Google account</p>
-              <p className="text-xs text-muted">{state.email}</p>
+              <p className="text-sm font-medium text-foreground">Google account</p>
+              <p className="text-xs text-muted-foreground">{state.email}</p>
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Recent sign-ins</p>
+            <p className="text-xs font-medium text-muted-foreground">Recent sign-ins</p>
             {state.recentSignIns.length === 0 ? (
-              <p className="mt-2 text-sm text-muted">No sign-in history yet.</p>
+              <p className="mt-2 text-sm text-muted-foreground">No sign-in history yet.</p>
             ) : (
-              <div className="mt-2 divide-y divide-border">
+              <div className="mt-2 divide-y divide-surface-border">
                 {state.recentSignIns.map((event, i) => (
                   <div key={i} className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
                     <div>
-                      <p className="text-sm font-medium text-dash-ink">{eventLabel(event.action)}</p>
-                      <p className="text-xs text-muted">{event.device || "Unknown device"}</p>
+                      <p className="text-sm font-medium text-foreground">{eventLabel(event.action)}</p>
+                      <p className="text-xs text-muted-foreground">{event.device || "Unknown device"}</p>
                     </div>
-                    <p className="shrink-0 text-xs text-muted">{formatWhen(event.occurredAt)}</p>
+                    <p className="shrink-0 text-xs text-muted-foreground">{formatWhen(event.occurredAt)}</p>
                   </div>
                 ))}
               </div>

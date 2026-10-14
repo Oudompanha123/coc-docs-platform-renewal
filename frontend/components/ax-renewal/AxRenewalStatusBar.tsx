@@ -40,7 +40,7 @@ export function AxRenewalStatusBar() {
 
   if (!detail) {
     return (
-      <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 border-t border-border bg-white px-4 text-xs text-muted">
+      <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 border-t border-surface-border bg-card px-4 text-xs text-muted-foreground">
         <span>No project selected</span>
         {user?.displayName && (
           <span className="ml-auto">
@@ -60,20 +60,20 @@ export function AxRenewalStatusBar() {
     detail.confirmations.database != null && !detail.dbConnection && detail.dbChanges.length === 0;
 
   return (
-    <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 overflow-x-auto border-t border-border bg-white px-4 font-mono text-xs text-muted">
-      <span className={analyzed ? "text-brand-purple" : ""}>{analyzed ? "analysed" : "not analysed"}</span>
+    <footer className="sticky bottom-0 z-10 flex h-8 items-center gap-4 overflow-x-auto border-t border-surface-border bg-card px-4 font-mono text-xs text-muted-foreground">
+      <span className={analyzed ? "text-foreground" : ""}>{analyzed ? "analysed" : "not analysed"}</span>
       {analyzed && (
         <>
           <span>{movingLayers}/{detail.stackLayers.length} layers moving</span>
-          <span className={detail.dbConnection || noDatabaseNeeded ? "text-brand-purple" : ""}>
+          <span className={detail.dbConnection || noDatabaseNeeded ? "text-foreground" : ""}>
             {detail.dbConnection
               ? detail.dbConnection.databaseName ?? "connected"
               : noDatabaseNeeded
                 ? "no database required"
                 : "database not connected"}
           </span>
-          <span className={confirmedCount === 4 ? "text-brand-purple" : ""}>{confirmedCount}/4 confirmed</span>
-          <span className={detail.destination ? "text-brand-purple" : ""}>
+          <span className={confirmedCount === 4 ? "text-foreground" : ""}>{confirmedCount}/4 confirmed</span>
+          <span className={detail.destination ? "text-foreground" : ""}>
             {detail.destination ? detail.destination.target : "no destination"}
           </span>
         </>
@@ -81,7 +81,7 @@ export function AxRenewalStatusBar() {
       <span className="ml-auto">
         {detail.latestImplementationRun ? detail.latestImplementationRun.status : "idle"}
       </span>
-      <span className={engine?.connected ? "text-brand-purple" : ""}>
+      <span className={engine?.connected ? "text-foreground" : ""}>
         {!engine ? "checking model" : engine.connected ? "local model" : "no model"}
       </span>
       {user?.displayName && (

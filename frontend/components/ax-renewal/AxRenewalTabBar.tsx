@@ -16,7 +16,7 @@ type AxRenewalTabBarProps = {
 function accentColor(group: string): string {
   if (group === "Understand") return "bg-[#9c4620]";
   if (group === "Workspace") return "bg-muted";
-  return "bg-brand-purple";
+  return "bg-primary";
 }
 
 /**
@@ -80,29 +80,29 @@ export function AxRenewalTabBar({ tabs, active, onSelect, onClose }: AxRenewalTa
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
       onClickCapture={handleClickCapture}
-      className="no-scrollbar flex min-w-0 flex-1 cursor-grab select-none overflow-x-auto border-b border-border bg-page active:cursor-grabbing">
+      className="no-scrollbar flex min-w-0 flex-1 cursor-grab select-none overflow-x-auto border-b border-surface-border bg-muted-surface active:cursor-grabbing">
       {tabs.map((key) => {
         const meta = EXPLORER_META[key];
         const isActive = key === active;
         return (
           <div
             key={key}
-            className={`group relative flex max-w-[220px] shrink-0 items-center gap-1.5 border-r border-border py-1.5 pl-3 pr-2 text-xs ${
-              isActive ? "bg-white font-semibold text-dash-ink" : "text-muted hover:bg-white/60 hover:text-dash-ink"
+            className={`group relative flex max-w-[220px] shrink-0 h-9 items-center gap-1.5 border-r border-surface-border pl-3 pr-2 text-xs ${
+              isActive ? "bg-card font-semibold text-foreground" : "text-muted-foreground hover:bg-card/60 hover:text-foreground"
             }`}
           >
             {isActive && (
               <span className={`absolute inset-x-0 top-0 h-[2px] ${accentColor(meta.group)}`} aria-hidden="true" />
             )}
             <button type="button" onClick={() => onSelect(key)} className="flex min-w-0 flex-1 items-center gap-1.5">
-              <meta.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-brand-purple" : "text-muted"}`} />
+              <meta.icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-foreground" : "text-muted-foreground"}`} />
               <span className="truncate">{meta.label}</span>
             </button>
             <button
               type="button"
               onClick={() => onClose(key)}
               aria-label={`Close ${meta.label}`}
-              className={`shrink-0 rounded-[10px] p-0.5 text-muted opacity-0 transition-opacity hover:bg-page hover:text-dash-ink group-hover:opacity-100 ${
+              className={`shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 ${
                 isActive ? "opacity-100" : ""
               }`}
             >

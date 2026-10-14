@@ -1,9 +1,10 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { XIcon } from "@/components/layout/icons";
 import { fetchLegalVersion, fetchLegalVersions, type LegalSlug, type LegalVersionMeta, type LegalVersionSummary } from "@/lib/legal/legal-api";
-import type { LegalContent } from "@/lib/legal/content-types";
+import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -18,7 +19,7 @@ function formatWhen(iso: string | null): string {
  * design), so this is new. Escape/backdrop-click to close, same house style
  * `HrmsReportModal` uses for its own dialog.
  */
-export function LegalHistoryPanel<T = LegalContent>({
+export function LegalHistoryPanel<T = LegalDocumentContent>({
   slug,
   onClose,
   onPreview,
@@ -80,36 +81,36 @@ export function LegalHistoryPanel<T = LegalContent>({
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Version history" className="fixed inset-0 z-40 flex justify-end bg-black/40" onClick={onClose}>
-      <div className="h-full w-full max-w-[380px] overflow-y-auto bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-base font-bold text-dash-ink">History</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-muted hover:bg-page">
+      <div className="h-full w-full max-w-[380px] overflow-y-auto bg-card shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-surface-border px-5 py-4">
+          <h2 className="text-base font-bold text-foreground">History</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-1.5 text-muted-foreground hover:bg-accent">
             <XIcon className="h-4 w-4" />
           </button>
         </div>
 
         <div className="p-5">
-          {error && <p className="mb-3 rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
-          {!versions && !error && <p className="text-sm text-muted">Loading…</p>}
-          {versions && versions.length === 0 && <p className="text-sm text-muted">Nothing published yet.</p>}
+          {error && <p className="mb-3 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
+          {!versions && !error && <SkeletonGroup label="Loading history"><SkeletonList rows={3} avatar={false} /></SkeletonGroup>}
+          {versions && versions.length === 0 && <p className="text-sm text-muted-foreground">Nothing published yet.</p>}
 
           <ul className="space-y-2.5">
             {versions?.map((version) => (
-              <li key={version.id} className="rounded-xl border border-border p-3">
+              <li key={version.id} className="rounded-xl border border-surface-border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${
-                      version.status === "published" ? "bg-[#e1f5ec] text-[#1f9d6b]" : "bg-page text-muted"
+                      version.status === "published" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-muted-surface text-muted-foreground"
                     }`}
                   >
                     {version.status}
                   </span>
-                  <span className="text-xs text-muted">v{version.versionNo}</span>
+                  <span className="text-xs text-muted-foreground">v{version.versionNo}</span>
                 </div>
-                <p className="mt-1.5 text-sm text-dash-ink">{formatWhen(version.publishedAt)}</p>
-                <p className="text-xs text-muted">{version.publishedByName ?? "System"}</p>
+                <p className="mt-1.5 text-sm text-foreground">{formatWhen(version.publishedAt)}</p>
+                <p className="text-xs text-muted-foreground">{version.publishedByName ?? "System"}</p>
                 {version.publishNote && (
-                  <p className="mt-1 text-xs italic text-muted">
+                  <p className="mt-1 text-xs italic text-muted-foreground">
                     &ldquo;{version.publishNote}&rdquo;
                   </p>
                 )}
@@ -118,7 +119,7 @@ export function LegalHistoryPanel<T = LegalContent>({
                     type="button"
                     disabled={previewingId === version.id}
                     onClick={() => handlePreview(version.id)}
-                    className="flex-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink hover:bg-page disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex-1 rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {previewingId === version.id ? "Loading…" : "Preview"}
                   </button>
@@ -126,7 +127,7 @@ export function LegalHistoryPanel<T = LegalContent>({
                     <button
                       type="button"
                       onClick={() => handleRestore(version.id)}
-                      className="flex-1 rounded-full bg-brand-purple/10 px-3 py-1.5 text-xs font-semibold text-brand-purple hover:bg-brand-purple/20"
+                      className="flex-1 rounded-full bg-muted-surface px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted-surface"
                     >
                       Restore as draft
                     </button>

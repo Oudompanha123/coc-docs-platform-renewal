@@ -39,8 +39,8 @@ export function RolesTab({
 
   if (error) {
     return (
-      <div className="p-6">
-        <p className="rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+      <div className="p-5">
+        <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">
           {error}
         </p>
       </div>
@@ -48,8 +48,8 @@ export function RolesTab({
   }
 
   return (
-    <div className="animate-entrance space-y-4 p-6">
-      <p className="text-sm text-muted">
+    <div className="animate-entrance space-y-3 p-5">
+      <p className="text-sm text-muted-foreground">
         Roles are fixed and their permissions are set by migration — there is no custom-role builder.
         Each role grants everything the one below it does.
       </p>
@@ -58,13 +58,13 @@ export function RolesTab({
         const areas = [...new Set(role.permissions.map(areaOf))].sort();
 
         return (
-          <div key={role.key} className="rounded-[10px] border border-border p-4">
+          <div key={role.key} className="rounded-xl border border-surface-border p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <RoleBadge role={role.key === "guest" ? "user" : role.key} />
-                <span className="text-sm font-semibold text-dash-ink">{role.description}</span>
+                <span className="text-sm font-medium text-foreground">{role.description}</span>
               </div>
-              <span className="text-xs text-muted">
+              <span className="text-xs text-muted-foreground">
                 {role.accountCount === 1 ? "1 account" : `${role.accountCount} accounts`}
               </span>
             </div>
@@ -72,12 +72,12 @@ export function RolesTab({
             {role.permissions.length === 0 ? (
               // guest holds nothing. Said explicitly rather than shown as an
               // empty space, which reads as a rendering bug.
-              <p className="mt-3 text-xs text-muted">Grants nothing.</p>
+              <p className="mt-3 text-xs text-muted-foreground">Grants nothing.</p>
             ) : (
               <div className="mt-3 space-y-2">
                 {areas.map((area) => (
                   <div key={area} className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {area}
                     </span>
                     {role.permissions
@@ -85,7 +85,7 @@ export function RolesTab({
                       .map((permission) => (
                         <code
                           key={permission}
-                          className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-dash-ink"
+                          className="rounded-md bg-muted-surface px-2 py-0.5 text-xs text-foreground"
                         >
                           {permission}
                         </code>

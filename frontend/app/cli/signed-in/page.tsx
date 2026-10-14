@@ -40,7 +40,7 @@ function RouteByRole() {
 
   return (
     <main className="grid min-h-[90vh] place-items-center px-4 text-center">
-      <p className="text-sm text-muted">Returning to Claude Usage…</p>
+      <p className="text-muted-foreground text-sm">Returning to Claude Usage…</p>
     </main>
   );
 }

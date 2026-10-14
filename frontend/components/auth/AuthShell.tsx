@@ -1,73 +1,56 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import appIcon from "@/app/icon.png";
 
 type AuthShellProps = {
-  icon: ReactNode;
+  /** Accepted for call-site compatibility; no longer rendered — see below. */
+  icon?: ReactNode;
   badge?: ReactNode;
   heading: ReactNode;
-  subheading: string;
+  /** ReactNode, not string — a page may need to mark part of it up (the OTP
+   *  step emphasises which account the code belongs to). */
+  subheading: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
-  /** Vertical padding class for the form (right) panel at md+. Defaults to the Login page's value. */
-  formPanelPaddingY?: string;
-  /** Horizontal padding for the form (right) panel. Defaults to the original
-   *  px-8/md:px-14 both pages used. Register overrides this to px-0 and
-   *  re-applies the same px-8/md:px-14 on each of its own children instead,
-   *  so its scrollable form's scrollbar renders flush against the card's
-   *  edge rather than inset by the wrapper's padding. */
-  formPanelPaddingX?: string;
 };
 
-/** Shared split-panel shell for the Login and Register screens. */
-export function AuthShell({
-  icon,
-  badge,
-  heading,
-  subheading,
-  footer,
-  children,
-  formPanelPaddingY = "md:py-16",
-  formPanelPaddingX = "px-8 md:px-14",
-}: AuthShellProps) {
+/**
+ * The shell behind /login, /register, /forgot-password, /reset-password and
+ * /create-password (ADR-104 r2.1).
+ *
+ * It used to be a 960px split panel: a pastel gradient on the left with
+ * floating blurred circles, a decorative progress rail and a badge, and the
+ * form on the right. It is now what the reference design the product owner
+ * supplied shows — a narrow column on a plain background, a bold left-aligned
+ * title, and the form. No card, no border, no shadow, no decoration.
+ *
+ * `icon` and `badge` are still accepted so no page had to change shape, and
+ * neither is rendered: the reference has no icon above the title, and a badge
+ * only existed to decorate the panel that is gone. Removing the props is a
+ * separate mechanical sweep.
+ *
+ * The product's logo sits above the title (product owner, 2026-10-14) — the
+ * app icon itself (`app/icon.png`, imported so it is the same file the
+ * favicon is built from) beside the name, linking back to /welcome.
+ */
+export function AuthShell({ heading, subheading, footer, children }: AuthShellProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-page px-4 py-10">
-      <div className="animate-entrance flex max-h-[760px] w-full max-w-[960px] flex-col overflow-hidden rounded-[10px] bg-white shadow-xl md:flex-row">
-        <div className="relative flex flex-col items-center justify-center gap-4 overflow-hidden bg-gradient-to-br from-[#ded9f8] to-[#d3e2fb] px-6 py-8 text-center md:w-[50%] md:gap-6 md:px-10 md:py-16">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:block">
-            <div className="absolute -left-10 -top-10 h-44 w-44 rounded-full bg-[#c8b8f2] opacity-60 blur-2xl" />
-            <div className="absolute right-6 top-16 h-16 w-16 rounded-full bg-[#a9e0d2] opacity-70 blur-xl" />
-            <div className="absolute -left-6 bottom-24 h-24 w-24 rounded-full bg-[#e8cfa3] opacity-60 blur-xl" />
-            <div className="absolute -right-16 -bottom-16 h-52 w-52 rounded-full bg-[#a9bdf5] opacity-60 blur-2xl" />
-            <div className="absolute bottom-32 left-10 h-14 w-14 rounded-full bg-[#e8cfa3] opacity-50 blur-lg" />
-          </div>
+    <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 py-12">
+      <div className="animate-entrance w-full max-w-sm">
+        <Link
+          href="/welcome"
+          className="mb-8 inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+          <img src={appIcon.src} alt="" width={40} height={40} className="size-10 object-contain" />
+          <span className="text-base font-semibold tracking-tight text-foreground">Coc Docs Platform</span>
+        </Link>
+        <h1 className="text-2xl font-semibold tracking-tight text-balance">{heading}</h1>
+        <p className="text-muted-foreground mt-2 text-sm text-balance">{subheading}</p>
 
-          <div className="relative z-10">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md md:h-16 md:w-16">
-              {icon}
-            </div>
-            {badge && (
-              <div className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-brand-purple to-brand-blue text-white shadow">
-                {badge}
-              </div>
-            )}
-          </div>
+        <div className="mt-6">{children}</div>
 
-          <div className="relative z-10 space-y-1.5 md:space-y-2">
-            <p className="text-xl font-extrabold leading-tight text-ink md:text-2xl">{heading}</p>
-            <p className="max-w-[260px] text-sm text-muted">{subheading}</p>
-          </div>
-
-          <div aria-hidden="true" className="relative z-10 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
-            <span className="h-[2px] w-6 bg-[#cfcbe6]" />
-            <span className="h-2 w-2 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue" />
-            <span className="h-[2px] w-6 bg-[#cfcbe6]" />
-            <span className="h-2 w-2 rounded-full bg-[#cfcbe6]" />
-          </div>
-
-          {footer && <div className="relative z-10">{footer}</div>}
-        </div>
-
-        <div className={`flex flex-1 flex-col justify-center py-10 ${formPanelPaddingX} ${formPanelPaddingY}`}>{children}</div>
+        {footer && <div className="text-muted-foreground mt-6 text-center text-xs text-balance">{footer}</div>}
       </div>
     </div>
   );

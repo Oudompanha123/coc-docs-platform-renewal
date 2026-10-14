@@ -35,7 +35,7 @@ export function DisabledMembersPanel({
   if (members.length === 0) return null;
 
   return (
-    <div className="mt-4 rounded-[10px] border border-border bg-white p-5 shadow-sm">
+    <div className="mt-4 rounded-xl border border-surface-border bg-card p-4">
       <button
         type="button"
         aria-expanded={open}
@@ -43,16 +43,16 @@ export function DisabledMembersPanel({
         className="flex w-full items-center justify-between text-left"
       >
         <span>
-          <span className="block text-sm font-bold text-dash-ink">Disabled members ({members.length})</span>
-          <span className="block text-xs text-muted">
+          <span className="block text-sm font-semibold text-foreground">Disabled members ({members.length})</span>
+          <span className="block text-xs text-muted-foreground">
             Not tracked and not counted. Usage collected before they were disabled is kept.
           </span>
         </span>
-        <span className="text-sm font-semibold text-brand-purple">{open ? "Hide" : "Show"}</span>
+        <span className="text-sm font-medium text-muted-foreground hover:text-foreground">{open ? "Hide" : "Show"}</span>
       </button>
 
       {open && (
-        <ul className="mt-4 divide-y divide-border overflow-hidden rounded-[10px] border border-border">
+        <ul className="mt-4 divide-y divide-surface-border overflow-hidden rounded-xl border border-surface-border">
           {members.map((member, index) => {
             const color = avatarColorFor(index);
             return (
@@ -66,18 +66,18 @@ export function DisabledMembersPanel({
                     avatarUrl={member.avatarUrl}
                     name={member.displayName}
                     initials={initialsOf(member.displayName)}
-                    className="h-10 w-10 shrink-0 !text-sm opacity-60 shadow-sm"
+                    className="size-8 shrink-0 !text-xs opacity-60"
                     style={{ backgroundColor: color }}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-dash-ink">{member.displayName}</span>
-                    <span className="block truncate text-xs text-muted">{member.email}</span>
+                    <span className="block truncate text-sm font-medium text-foreground">{member.displayName}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{member.email}</span>
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onEnable(member)}
-                  className="inline-flex shrink-0 items-center rounded-[4px] bg-[#1f9d6b]/10 px-4 py-1.5 text-sm font-semibold text-[#1f9d6b] transition-colors hover:bg-[#1f9d6b]/20"
+                  className="inline-flex h-8 shrink-0 items-center rounded-control bg-emerald-500/10 px-3.5 text-sm font-medium text-emerald-700 dark:text-emerald-400 transition-colors hover:bg-emerald-500/20"
                 >
                   Enable
                 </button>

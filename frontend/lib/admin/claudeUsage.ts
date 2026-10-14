@@ -369,13 +369,18 @@ export function formatLastActive(iso: string | null): string {
 }
 
 // ---------------------------------------------------------------------------
-// Scan logs — the Scan Logs page (ADR-099)
+// Scan logs — the Scan Logs page (ADR-099, ADR-107)
 // ---------------------------------------------------------------------------
 
-/** Derived server-side from the steps. "No new usage" is `success`. */
-export type ScanStatus = "success" | "warning" | "failed";
+/**
+ * Derived server-side from the steps. "No new usage" is `success`.
+ * `running`: the reporter said the scan started and its result hasn't arrived
+ * yet (ADR-107). `incomplete`: still no result long after the start — the
+ * server can't say how the scan ended.
+ */
+export type ScanStatus = "running" | "incomplete" | "success" | "warning" | "failed";
 /** `skipped`: the step never ran, because an earlier one failed. */
-export type ScanStepStatus = ScanStatus | "skipped";
+export type ScanStepStatus = "success" | "warning" | "failed" | "skipped";
 export type ScanUploadStatus = "uploaded" | "not-needed" | "failed" | "not-attempted";
 export type ScanStepKey =
   | "start"
@@ -400,10 +405,12 @@ export interface ScanLogSummary {
   cliVersion: string | null;
   /** The PC's own clock. */
   startedAt: string;
-  finishedAt: string;
-  /** Server time on arrival — later than `finishedAt` for a record that waited in the PC's queue. */
+  /** Null while the scan has no result (`running` / `incomplete`). */
+  finishedAt: string | null;
+  /** Server time the latest message arrived — the start, then the result; later than `finishedAt` for a queued record. */
   receivedAt: string;
-  durationMs: number;
+  /** Null while the scan has no result. */
+  durationMs: number | null;
   status: ScanStatus;
   uploadStatus: ScanUploadStatus;
   transcriptFiles: number | null;
@@ -439,12 +446,26 @@ export interface ScanLogList {
   truncated: boolean;
 }
 
-/** Scans that started on `from`..`to` (ISO dates, inclusive). */
-export function fetchScanLogs(from: string, to: string): Promise<ScanLogList> {
-  const params = new URLSearchParams({ from, to });
-  return request<ScanLogList>(`/scan-logs?${params.toString()}`);
+/**
+ * Whose scans: `team` is every scan (`/api/v1/admin/claude-usage`, super_admin
+ * only); `mine` is the caller's own (`/api/v1/claude-usage/me`, any signed-in
+ * account, ADR-107) — scoped by the session server-side, with error text cut
+ * down to its first line and paths removed.
+ */
+export type ScanLogScope = "team" | "mine";
+
+function scanLogsUrl(scope: ScanLogScope, path: string): string {
+  return scope === "team"
+    ? `${BACKEND_URL}/api/v1/admin/claude-usage/scan-logs${path}`
+    : `${BACKEND_URL}/api/v1/claude-usage/me/scan-logs${path}`;
 }
 
-export function fetchScanLogDetail(id: string): Promise<ScanLogDetail> {
-  return request<ScanLogDetail>(`/scan-logs/${encodeURIComponent(id)}`);
+/** Scans that started on `from`..`to` (ISO dates, inclusive). */
+export function fetchScanLogs(from: string, to: string, scope: ScanLogScope = "team"): Promise<ScanLogList> {
+  const params = new URLSearchParams({ from, to });
+  return requestAt<ScanLogList>(scanLogsUrl(scope, `?${params.toString()}`));
+}
+
+export function fetchScanLogDetail(id: string, scope: ScanLogScope = "team"): Promise<ScanLogDetail> {
+  return requestAt<ScanLogDetail>(scanLogsUrl(scope, `/${encodeURIComponent(id)}`));
 }

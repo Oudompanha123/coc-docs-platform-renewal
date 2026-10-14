@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { PasswordField } from "./FormField";
-import { LockIcon } from "./icons";
+import { Button } from "@/components/ui/button";
 import { AuthApiError, changePassword } from "@/lib/auth/api";
 import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
 
@@ -92,7 +92,6 @@ export function ChangePasswordForm({
           value={currentPassword}
           onChange={setCurrentPassword}
           placeholder="Enter your current password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="current-password"
           error={errors.currentPassword}
         />
@@ -102,7 +101,6 @@ export function ChangePasswordForm({
         value={newPassword}
         onChange={setNewPassword}
         placeholder="Create a new password"
-        icon={<LockIcon className="h-4 w-4" />}
         autoComplete="new-password"
         error={errors.newPassword}
       />
@@ -111,7 +109,6 @@ export function ChangePasswordForm({
         value={confirmPassword}
         onChange={setConfirmPassword}
         placeholder="Confirm your new password"
-        icon={<LockIcon className="h-4 w-4" />}
         autoComplete="new-password"
         error={errors.confirmPassword}
       />
@@ -123,21 +120,16 @@ export function ChangePasswordForm({
       )}
 
       <div className="flex justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-dash-ink transition-colors hover:bg-page"
-        >
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-          className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        </Button>
+        {/* Gains a visible focus ring and a hover state, neither of which it
+            had: this pair was written without the `focus-visible:` classes
+            every other button in the area carries, so it was unreachable to
+            see by keyboard. Both come from the shared variant now (ADR-104). */}
+        <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting} size="sm">
           {isSubmitting ? "Saving…" : "Save password"}
-        </button>
+        </Button>
       </div>
     </form>
   );

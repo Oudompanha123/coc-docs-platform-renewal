@@ -42,3 +42,37 @@ if (domWindow) {
     Object.defineProperty(globalThis, "Storage", { configurable: true, writable: true, value: domWindow.Storage });
   }
 }
+
+/**
+ * What Radix's Select needs from a browser that jsdom does not implement
+ * (ADR-104 r2.10): pointer capture, used when the trigger opens on pointer
+ * down, and `scrollIntoView`, used to bring the chosen item into view. No-ops
+ * are faithful enough — jsdom has no layout to capture or scroll. Only filled
+ * in where missing, so a test can still spy on or replace them.
+ */
+if (typeof Element !== "undefined") {
+  const proto = Element.prototype as unknown as Record<string, unknown>;
+  if (typeof proto.hasPointerCapture !== "function") proto.hasPointerCapture = () => false;
+  if (typeof proto.setPointerCapture !== "function") proto.setPointerCapture = () => {};
+  if (typeof proto.releasePointerCapture !== "function") proto.releasePointerCapture = () => {};
+  if (typeof proto.scrollIntoView !== "function") proto.scrollIntoView = () => {};
+}
+
+/**
+ * Layout stubs ProseMirror needs (the legal pages' RichTextEditor, ADR-107).
+ *
+ * <p>jsdom does no layout, so it leaves `getClientRects` off Range and Text
+ * nodes. ProseMirror calls it to scroll the selection into view after every
+ * edit and throws without it. An empty rect list is what an unrendered node
+ * would report anyway, so nothing the tests assert depends on it.
+ */
+if (typeof Range !== "undefined") {
+  const emptyRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
+  const zeroRect = () => ({ x: 0, y: 0, top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0, toJSON: () => ({}) }) as DOMRect;
+  if (!Range.prototype.getClientRects) Range.prototype.getClientRects = emptyRects;
+  if (!Range.prototype.getBoundingClientRect) Range.prototype.getBoundingClientRect = zeroRect;
+  for (const proto of [Text.prototype, Node.prototype] as unknown as { getClientRects?: () => DOMRectList }[]) {
+    if (!proto.getClientRects) proto.getClientRects = emptyRects;
+  }
+  if (!document.elementFromPoint) document.elementFromPoint = () => null;
+}

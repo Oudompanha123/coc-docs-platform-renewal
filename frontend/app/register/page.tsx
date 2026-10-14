@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { CircleAlert } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { LegalLink } from "@/components/auth/LegalLink";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
-import { LockIcon, MailIcon, PersonIcon, PlusIcon, ShieldIcon } from "@/components/auth/icons";
+import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
+import { ChevronLeftIcon, ClockIcon } from "@/components/layout/icons";
 import { Spinner } from "@/components/layout/Spinner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AuthApiError,
   EmailAlreadyRegisteredError,
@@ -123,7 +128,7 @@ export default function RegisterPage() {
     else if (password && confirmPassword && password !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";
     }
-    if (!agree) next.agree = "You must agree to the Privacy Policy.";
+    if (!agree) next.agree = "You must agree to the Terms of Service and Privacy Policy.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -204,21 +209,20 @@ export default function RegisterPage() {
   if (step === "code") {
     return (
       <AuthShell
-        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        icon={<ShieldIcon className="size-5" />}
         heading="Verify Your Email"
-        subheading="Enter the 6-digit code we emailed you to finish creating your account."
+        subheading={
+          <>
+            We&apos;ve sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>. Enter it
+            below to finish creating your account.
+          </>
+        }
       >
-        <h1 className="text-3xl font-extrabold text-ink">Verify Your Email</h1>
-        <p className="mt-2 text-sm text-muted">
-          We&apos;ve sent a 6-digit code to <span className="font-semibold text-ink">{email}</span>. Enter it below to
-          finish creating your account.
-        </p>
-
-        <div className="mt-6">
+        <div className="mb-6">
           <Stepper steps={STEPS} currentIndex={1} />
         </div>
 
-        <form className="mt-7 space-y-6" onSubmit={handleVerify} noValidate>
+        <form className="grid gap-4" onSubmit={handleVerify} noValidate>
           <div>
             <OtpCodeInput
               ref={codeInputRef}
@@ -240,28 +244,22 @@ export default function RegisterPage() {
               <p
                 id="register-code-error"
                 role="alert"
-                className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+                className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
               >
-                <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7.5v5.5M12 16.5h.01" strokeLinecap="round" />
-                </svg>
+                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{codeError}</span>
               </p>
             ) : (
-              <p id="register-code-hint" className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
+              <p id="register-code-hint" className="text-muted-foreground mt-3 flex items-center justify-between gap-3 text-xs">
                 <span className="flex items-center gap-1.5 whitespace-nowrap">
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <ClockIcon className="h-3.5 w-3.5" />
                   {expiresIn > 0 ? (
                     <>
                       Code expires in{" "}
-                      <span className="font-semibold tabular-nums text-ink">{minutesSeconds(expiresIn)}</span>
+                      <span className="text-foreground font-medium tabular-nums">{minutesSeconds(expiresIn)}</span>
                     </>
                   ) : (
-                    <span className="font-semibold text-red-600">Code expired — send a new one below</span>
+                    <span className="text-destructive font-medium">Code expired — send a new one below</span>
                   )}
                 </span>
                 <span className="whitespace-nowrap">Submits automatically</span>
@@ -269,40 +267,41 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <button
+          <Button shape="pill"
             type="submit"
             disabled={isVerifying}
             aria-busy={isVerifying}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full"
           >
             {isVerifying && <Spinner />}
             {isVerifying ? "Verifying…" : "Verify Email"}
-          </button>
+          </Button>
         </form>
 
-        <div className="mt-5 rounded-xl border border-border bg-page px-4 py-3 text-center text-sm text-muted">
+        <div className="border-surface-border bg-muted-surface text-muted-foreground mt-5 rounded-md border px-4 py-3 text-center text-sm">
           Didn&apos;t get a code? Check your spam folder, or{" "}
-          <button
+          <Button shape="pill"
             type="button"
+            variant="link"
+            size="inline"
             onClick={handleResend}
             disabled={isResending || resendCooldown > 0}
-            className="font-semibold text-brand-purple hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
           >
             {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : isResending ? "Resending…" : "Resend code"}
-          </button>
+          </Button>
         </div>
 
-        <button
+        <Button shape="pill"
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => setStep("form")}
           disabled={isVerifying}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 w-full"
         >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ChevronLeftIcon className="h-4 w-4" />
           Wrong email? Go back
-        </button>
+        </Button>
       </AuthShell>
     );
   }
@@ -310,69 +309,60 @@ export default function RegisterPage() {
   if (step === "done") {
     return (
       <AuthShell
-        icon={<ShieldIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
+        icon={<ShieldIcon className="size-5" />}
         heading="Registration Received"
         subheading="An administrator will review your application before you can sign in."
       >
-        <h1 className="text-3xl font-extrabold text-ink">Registration Received</h1>
-
-        <div className="mt-6">
+        <div className="mb-6">
           <Stepper steps={STEPS} currentIndex={2} />
         </div>
 
-        <div className="mt-6 rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="alert">
+        <div
+          className="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+          role="alert"
+        >
           {doneMessage}
         </div>
-        <Link
-          href="/login"
-          className="mt-6 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          Go to Login
-        </Link>
+        <Button shape="pill" asChild className="w-full">
+          <Link href="/login">Go to Login</Link>
+        </Button>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      icon={<PersonIcon className="h-6 w-6 text-brand-purple md:h-7 md:w-7" />}
-      badge={<PlusIcon className="h-3.5 w-3.5" />}
-      heading="Create Account"
-      subheading="Join Coc Docs Platform today and start writing, organizing, and sharing documentation with your team."
-      formPanelPaddingY="md:py-10"
-      formPanelPaddingX="px-0"
+      icon={<PersonIcon className="size-5" />}
+      heading="Register"
+      subheading="Join Coc Docs Platform and start writing, organising and sharing documentation with your team."
     >
-      <h1 className="px-8 text-3xl font-extrabold text-ink md:px-14">Register</h1>
-      <p className="mt-2 px-8 text-sm text-muted md:px-14">Create your account</p>
-
-      <div className="mt-6 px-8 md:px-14">
+      <div className="mb-6">
         <Stepper steps={STEPS} currentIndex={0} />
       </div>
 
       {feedback && (
         <div
           role="alert"
-          className={`mx-8 mt-4 rounded-[10px] border px-4 py-3 text-sm md:mx-14 ${
+          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
             feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-700"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-destructive/30 bg-destructive/5 text-destructive"
           }`}
         >
           {feedback.message}
         </div>
       )}
 
-      <form
-        className="no-scrollbar-arrows mt-6 max-h-[760px] space-y-5 overflow-y-auto px-8 md:px-14"
-        onSubmit={handleSubmit}
-        noValidate
-      >
+      {/* Was `max-h-[760px] overflow-y-auto px-8 md:px-14`: a scroll container
+          and horizontal padding that belonged to the split panel this form
+          used to sit inside. With the panel gone they were a stray scrollbar
+          and an inset that pushed the fields off the column's own edge. */}
+      <form className="grid gap-4" onSubmit={handleSubmit} noValidate>
         <FormField
           label="Full Name"
           value={fullName}
           onChange={setFullName}
           placeholder="Enter your full name"
-          icon={<PersonIcon className="h-4 w-4" />}
           autoComplete="name"
           error={errors.fullName}
         />
@@ -383,7 +373,6 @@ export default function RegisterPage() {
           value={email}
           onChange={setEmail}
           placeholder="Enter your email"
-          icon={<MailIcon className="h-4 w-4" />}
           autoComplete="email"
           error={errors.email}
         />
@@ -393,7 +382,6 @@ export default function RegisterPage() {
           value={password}
           onChange={setPassword}
           placeholder="Create a password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="new-password"
           error={errors.password}
         />
@@ -403,55 +391,39 @@ export default function RegisterPage() {
           value={confirmPassword}
           onChange={setConfirmPassword}
           placeholder="Confirm your password"
-          icon={<LockIcon className="h-4 w-4" />}
           autoComplete="new-password"
           error={errors.confirmPassword}
         />
 
         <div>
           <div className="flex items-start gap-2">
-            <input
+            <Checkbox
               id="agree-terms"
-              type="checkbox"
               checked={agree}
               onChange={(e) => setAgree(e.target.checked)}
               aria-describedby={errors.agree ? "agree-terms-error" : undefined}
-              className="mt-0.5 h-4 w-4 rounded border-border text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+              className="mt-0.5"
             />
-            <label htmlFor="agree-terms" className="text-sm text-muted">
-              I agree to the{" "}
-              {/* New tab: losing the in-progress registration form to a full
-                  navigation would be worse than the extra tab. */}
-              <Link
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-brand-purple hover:underline"
-              >
-                Privacy Policy
-              </Link>
+            <label htmlFor="agree-terms" className="text-muted-foreground text-sm">
+              I agree to the <LegalLink href="/terms">Terms of Service</LegalLink> and{" "}
+              <LegalLink href="/privacy">Privacy Policy</LegalLink>
             </label>
           </div>
           {errors.agree && (
-            <p id="agree-terms-error" role="alert" className="mt-1.5 text-xs text-red-600">
+            <p id="agree-terms-error" role="alert" className="text-destructive mt-1.5 text-xs">
               {errors.agree}
             </p>
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          aria-busy={isSubmitting}
-          className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-3 font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button shape="pill" type="submit" disabled={isSubmitting} aria-busy={isSubmitting} className="w-full">
           {isSubmitting ? "Submitting…" : "Continue"}
-        </button>
+        </Button>
       </form>
 
-      <p className="mt-6 px-8 text-center text-sm text-muted md:px-14">
+      <p className="text-muted-foreground mt-6 text-center text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-brand-purple hover:underline">
+        <Link href="/login" className="text-foreground font-medium underline underline-offset-4">
           Login
         </Link>
       </p>

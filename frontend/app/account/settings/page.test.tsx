@@ -30,6 +30,7 @@ vi.mock("@/components/account/NotificationsCard", () => ({ NotificationsCard: ()
 vi.mock("@/components/account/ConnectedAccountsCard", () => ({
   ConnectedAccountsCard: () => <div>Connected accounts content</div>,
 }));
+vi.mock("@/components/account/PasswordSecurityCard", () => ({ PasswordSecurityCard: () => <div>Password and 2FA content</div> }));
 vi.mock("@/components/account/SecurityCard", () => ({ SecurityCard: () => <div>Security content</div> }));
 vi.mock("@/components/account/SessionsCard", () => ({ SessionsCard: () => <div>Sessions content</div> }));
 vi.mock("@/components/account/ClaudeUsageCard", () => ({ ClaudeUsageCard: () => <div>Claude Usage content</div> }));
@@ -75,8 +76,8 @@ describe("AccountSettingsPage — tab behavior", () => {
     render(<AccountSettingsPage />);
 
     expect(screen.getByRole("tabpanel", { name: "Account" })).toBeVisible();
+    expect(screen.getByRole("tabpanel", { name: "Account" })).not.toHaveTextContent("Password and 2FA content");
     expect(panelById("security")).not.toBeVisible();
-    expect(panelById("sessions")).not.toBeVisible();
   });
 
   it("switching tabs shows only the clicked section and updates the hash (AC3)", async () => {
@@ -103,6 +104,27 @@ describe("AccountSettingsPage — tab behavior", () => {
     render(<AccountSettingsPage />);
 
     expect(screen.getByRole("tabpanel", { name: "Security" })).toBeVisible();
+  });
+
+  it("the Security tab holds the sign-in method, then Password & 2FA, then Sessions", async () => {
+    render(<AccountSettingsPage />);
+    await userEvent.click(screen.getAllByRole("tab", { name: "Security" })[0]!);
+
+    const panel = screen.getByRole("tabpanel", { name: "Security" });
+    expect(panel).toBeVisible();
+    const text = panel.textContent ?? "";
+    expect(text.indexOf("Security content")).toBeLessThan(text.indexOf("Password and 2FA content"));
+    expect(text.indexOf("Password and 2FA content")).toBeLessThan(text.indexOf("Sessions content"));
+    expect(screen.queryByRole("tab", { name: "Password & 2FA" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Sessions" })).not.toBeInTheDocument();
+  });
+
+  it.each(["#password-2fa", "#sessions"])("an old %s link opens the Security tab, and the URL says so", (hash) => {
+    window.location.hash = hash;
+    render(<AccountSettingsPage />);
+
+    expect(screen.getByRole("tabpanel", { name: "Security" })).toBeVisible();
+    expect(window.location.hash).toBe("#security");
   });
 
   it("rewrites the legacy #profile hash to Account (AC3)", () => {

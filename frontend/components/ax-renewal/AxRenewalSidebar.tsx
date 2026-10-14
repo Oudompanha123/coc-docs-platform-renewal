@@ -8,7 +8,7 @@ import { ChevronDownIcon, MoonIcon, SunIcon, XIcon } from "@/components/layout/i
 import { ResizeHandle } from "@/components/ax-renewal/ResizeHandle";
 import { confirmDiscardUnsaved } from "@/lib/ax-renewal/unsavedChanges";
 import { UserAvatar } from "@/components/layout/UserAvatar";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { applyTheme, getResolvedTheme, getStoredTheme } from "@/lib/theme";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
@@ -60,7 +60,7 @@ export function AxRenewalSidebar({
   useEffect(() => {
     const stored = getStoredTheme();
     applyTheme(stored);
-    setDarkMode(stored === "dark");
+    setDarkMode(getResolvedTheme() === "dark");
   }, []);
 
   function toggleTheme() {
@@ -94,9 +94,9 @@ export function AxRenewalSidebar({
 
   const content = (
     <div className="flex h-full flex-col bg-sidebar">
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3.5">
+      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
         <div className="min-w-0">
-          <h1 className="text-xs font-bold uppercase tracking-wider text-dash-ink">Explorer</h1>
+          <h1 className="text-xs font-medium text-foreground">Explorer</h1>
           <p className="mt-1 truncate font-mono text-xs text-sidebar-muted" title={headerSubtitle}>
             {headerSubtitle}
           </p>
@@ -107,7 +107,7 @@ export function AxRenewalSidebar({
             onClick={toggleTheme}
             aria-label="Toggle dark mode"
             aria-pressed={darkMode}
-            className="shrink-0 rounded-xl bg-brand-purple/10 p-2 text-brand-purple transition-colors hover:bg-sidebar-hover hover:text-dash-ink"
+            className="shrink-0 rounded-lg p-2 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-foreground"
           >
             {darkMode ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
           </button>
@@ -115,7 +115,7 @@ export function AxRenewalSidebar({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded-[10px] p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-dash-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue lg:hidden"
+            className="rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           >
             <XIcon className="h-5 w-5" />
           </button>
@@ -134,19 +134,19 @@ export function AxRenewalSidebar({
               type="button"
               onClick={() => toggleGroup(group.label)}
               aria-expanded={isOpen}
-              className="flex w-full items-center gap-1.5 rounded-[10px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-purple transition-colors"
+              className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-foreground transition-colors"
             >
               <ChevronDownIcon
                 className={`h-[17px] w-[17px] shrink-0 transition-transform ${isOpen ? "" : "-rotate-90"}`}
               />
-              <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-brand-purple to-brand-blue text-white">
+              <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
                 <group.icon className="h-3 w-3" />
               </span>
               <span className="truncate">{group.label}</span>
               {group.badge && (
                 <span
                   className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-                    isGroupComplete(group.badge) ? "bg-brand-purple/20 text-brand-purple" : "bg-page text-muted"
+                    isGroupComplete(group.badge) ? "bg-secondary text-foreground" : "bg-muted-surface text-muted-foreground"
                   }`}
                 >
                   {group.badge}
@@ -163,22 +163,22 @@ export function AxRenewalSidebar({
               {group.items.map((sub) => {
                 const subActive = active === sub.key;
                 const href = `/ax-renewal?project=${projectId ?? ""}&section=${sub.key}`;
-                // Active is a solid full-width gradient pill (matching the
-                // reference), not the previous thin left-border stripe —
-                // this is the one row style that carries its own icon color
-                // (white) instead of the default muted tone.
-                const rowClasses = `flex items-center gap-2 rounded-[10px] py-1.5 pl-3 pr-2.5 text-[13px] transition-colors ${
+                // Active is a tinted full-width row (ADR-104: no filled pill, no
+                // shadow), not the previous thin left-border stripe —
+                // the one row style that carries the full-strength text colour
+                // instead of the default muted tone.
+                const rowClasses = `flex h-8 items-center gap-2 rounded-lg pl-3 pr-2.5 text-[13px] transition-colors ${
                   sub.locked
                     ? "cursor-not-allowed text-sidebar-muted/40"
                     : subActive
-                      ? "bg-gradient-to-r from-brand-purple to-brand-blue font-semibold text-white shadow-md"
-                      : "text-sidebar-muted hover:bg-sidebar-hover hover:text-dash-ink"
+                      ? "bg-sidebar-hover font-semibold text-foreground"
+                      : "text-sidebar-muted hover:bg-sidebar-hover hover:text-foreground"
                 }`;
                 return sub.locked ? (
                   <div key={sub.key} aria-disabled="true" title={lockedReason} className={rowClasses}>
                     <sub.icon className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{sub.label}</span>
-                    <span className="ml-auto shrink-0 rounded-full bg-page px-2 py-0.5 text-[10px] text-muted">
+                    <span className="ml-auto shrink-0 rounded-full bg-muted-surface px-2 py-0.5 text-[10px] text-muted-foreground">
                       locked
                     </span>
                   </div>
@@ -212,7 +212,7 @@ export function AxRenewalSidebar({
                         />
                       ))}
                     {sub.count != null && (
-                      <span className="ml-auto shrink-0 rounded-full bg-danger px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white">
+                      <span className="ml-auto shrink-0 rounded-full bg-destructive px-1.5 py-0.5 font-mono text-[10px] font-semibold text-destructive-foreground">
                         {sub.count}
                       </span>
                     )}
@@ -241,7 +241,7 @@ export function AxRenewalSidebar({
           className={`h-8 w-8 shrink-0 ax-renewal-avatar ${AVATAR_GRADIENTS.purple}`}
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-dash-ink">{currentUser?.name ?? "Guest"}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{currentUser?.name ?? "Guest"}</p>
           <p className="truncate text-xs text-sidebar-muted">{currentUser?.role ?? ""}</p>
         </div>
       </div>

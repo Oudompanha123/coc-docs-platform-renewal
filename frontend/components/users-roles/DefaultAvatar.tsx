@@ -10,7 +10,7 @@ export function DefaultAvatar({ className = "h-11 w-11", label }: { className?: 
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand-purple/15 to-brand-blue/15 ring-1 ring-brand-purple/20 ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-secondary to-secondary ring-1 ring-ring/20 ${className}`}
     >
       <svg viewBox="0 0 40 40" className="h-full w-full" aria-hidden="true">
         <circle cx="20" cy="15.5" r="6.5" className="fill-brand-purple/45" />

@@ -33,9 +33,12 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }));
   }
 
-  it("links the agreement text to the real /privacy page, in a new tab", () => {
+  it("links the agreement text to both /terms and /privacy, in new tabs", () => {
     render(<RegisterPage />);
 
+    const terms = screen.getByRole("link", { name: "Terms of Service" });
+    expect(terms).toHaveAttribute("href", "/terms");
+    expect(terms).toHaveAttribute("target", "_blank");
     const privacy = screen.getByRole("link", { name: "Privacy Policy" });
     expect(privacy).toHaveAttribute("href", "/privacy");
     expect(privacy).toHaveAttribute("target", "_blank");
@@ -64,7 +67,7 @@ describe("RegisterPage", () => {
     expect(await screen.findByText("Enter your full name.")).toBeInTheDocument();
     expect(screen.getByText("Enter your email.")).toBeInTheDocument();
     expect(screen.getByText("Create a password.")).toBeInTheDocument();
-    expect(screen.getByText("You must agree to the Privacy Policy.")).toBeInTheDocument();
+    expect(screen.getByText("You must agree to the Terms of Service and Privacy Policy.")).toBeInTheDocument();
     expect(register).not.toHaveBeenCalled();
   });
 

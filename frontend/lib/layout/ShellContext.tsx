@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type PageHeader = {
   title: string;
@@ -14,13 +14,67 @@ type ShellContextValue = {
   mobileNavOpen: boolean;
   openMobileNav: () => void;
   closeMobileNav: () => void;
+  /** Desktop only: the sidebar folded to its icon rail (ADR-104 r2.9). */
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  /** Desktop only: the expanded sidebar's width in px, set by dragging its
+   *  edge (ADR-104 r2.12). Always within SIDEBAR_MIN/MAX_WIDTH. */
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
 };
+
+export const SIDEBAR_DEFAULT_WIDTH = 256;
+export const SIDEBAR_MIN_WIDTH = 208;
+export const SIDEBAR_MAX_WIDTH = 400;
+
+export function clampSidebarWidth(width: number): number {
+  return Math.round(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width)));
+}
+
+/** A per-viewer convenience, so browser storage rather than anything shared. */
+const SIDEBAR_STORAGE_KEY = "coc-docs-sidebar-collapsed";
+const SIDEBAR_WIDTH_STORAGE_KEY = "coc-docs-sidebar-width";
 
 const ShellContext = createContext<ShellContextValue | null>(null);
 
 export function ShellProvider({ children }: { children: ReactNode }) {
   const [header, setHeaderState] = useState<PageHeader>({ title: "", subtitle: "" });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Starts expanded on the server and the first client render alike, then
+  // picks up the stored choice — reading storage during render would make the
+  // two disagree and fail hydration.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidthState] = useState(SIDEBAR_DEFAULT_WIDTH);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1") setSidebarCollapsed(true);
+      const storedWidth = Number(window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+      if (storedWidth > 0) setSidebarWidthState(clampSidebarWidth(storedWidth));
+    } catch {
+      // Storage blocked (private window, site data off): stay expanded.
+    }
+  }, []);
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // Not remembered this time; the toggle itself still works.
+      }
+      return next;
+    });
+  }, []);
+
+  const setSidebarWidth = useCallback((width: number) => {
+    const next = clampSidebarWidth(width);
+    setSidebarWidthState(next);
+    try {
+      window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(next));
+    } catch {
+      // Not remembered this time; the drag itself still works.
+    }
+  }, []);
 
   // Bails out when the incoming header is the same title/subtitle/icon as
   // the current one. Without this, a page whose own re-render recreates its
@@ -42,8 +96,18 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   // unrelated reason) does not hand every useShell() consumer a new object
   // reference and force them all to re-render regardless.
   const value = useMemo(
-    () => ({ header, setHeader, mobileNavOpen, openMobileNav, closeMobileNav }),
-    [header, mobileNavOpen, setHeader, openMobileNav, closeMobileNav],
+    () => ({
+      header,
+      setHeader,
+      mobileNavOpen,
+      openMobileNav,
+      closeMobileNav,
+      sidebarCollapsed,
+      toggleSidebar,
+      sidebarWidth,
+      setSidebarWidth,
+    }),
+    [header, mobileNavOpen, setHeader, openMobileNav, closeMobileNav, sidebarCollapsed, toggleSidebar, sidebarWidth, setSidebarWidth],
   );
 
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>;

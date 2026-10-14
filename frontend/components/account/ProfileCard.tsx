@@ -3,8 +3,11 @@
 import { useState, type ChangeEvent } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { UserAvatar } from "@/components/layout/UserAvatar";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { removeAvatar, updateProfile, uploadAvatar } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { cn } from "@/lib/utils";
 
 const ROLE_LABELS: Record<string, string> = {
   guest: "Guest",
@@ -127,21 +130,21 @@ export function ProfileCard({
   const roleLabel = user?.role ? (ROLE_LABELS[user.role] ?? user.role) : "—";
 
   return (
-    <section id="account" className="scroll-mt-24 rounded-[10px] border border-border bg-white p-6 shadow-sm">
-      <h2 className="text-base font-bold text-dash-ink">Account</h2>
-      <p className="mt-0.5 text-sm text-muted">Your account details on Coc Docs Platform.</p>
+    <section id="account" className="scroll-mt-24 rounded-xl border border-surface-border bg-card p-5">
+      <h2 className="text-base font-semibold text-foreground">Account</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">Your account details on Coc Docs Platform.</p>
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-b border-surface-border pb-4">
         <div className="flex items-center gap-4">
           <UserAvatar
             avatarUrl={user?.avatarUrl ?? null}
             initials={initials}
             name={savedName}
-            className={`h-16 w-16 text-lg ${AVATAR_GRADIENTS.purple}`}
+            className={`size-12 text-base ${AVATAR_GRADIENTS.purple}`}
           />
           <div className="min-w-0">
-            <p className="truncate text-base font-bold text-dash-ink">{savedName || "—"}</p>
-            <p className="truncate text-sm text-muted">{user?.email ?? "—"}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{savedName || "—"}</p>
+            <p className="truncate text-sm text-muted-foreground">{user?.email ?? "—"}</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -151,9 +154,13 @@ export function ProfileCard({
           <label
             aria-disabled="true"
             title="Photo upload is not available yet"
-            className="cursor-not-allowed rounded-full border border-border px-3.5 py-1.5 text-sm font-semibold text-dash-ink opacity-50"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "cursor-not-allowed opacity-50")}
           >
             {avatarBusy ? "Uploading…" : "Change photo"}
+            {/* A file picker hidden behind its own label — `sr-only`, so none
+                of Input's border, padding or focus styling would ever be seen.
+                ADR-104 decision 7's escape hatch. */}
+            {/* eslint-disable-next-line react/forbid-elements */}
             <input
               type="file"
               aria-label="Upload profile photo"
@@ -163,78 +170,75 @@ export function ProfileCard({
               onChange={(e) => void handleAvatarChange(e)}
             />
           </label>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => void handleRemoveAvatar()}
             disabled={avatarBusy || !user?.avatarUrl}
             title={user?.avatarUrl ? undefined : "No photo to remove"}
-            className="rounded-full border border-border px-3.5 py-1.5 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
           >
             Remove
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-xs font-semibold text-muted">Display name</span>
-          <input
+          <span className="text-xs font-medium text-muted-foreground">Display name</span>
+          <Input
             value={displayName}
             maxLength={50}
             onChange={(e) => {
               setDisplayName(e.target.value);
               setFieldError(null);
             }}
-            className="mt-1.5 w-full rounded-xl border border-border px-3 py-2 text-sm text-dash-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple"
+            className="mt-1.5"
           />
-          {fieldError && <p className="mt-1 text-xs font-semibold text-danger">{fieldError}</p>}
+          {fieldError && <p className="mt-1 text-xs font-medium text-danger">{fieldError}</p>}
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold text-muted">Email</span>
-          <input
+          <span className="text-xs font-medium text-muted-foreground">Email</span>
+          <Input
             value={user?.email ?? ""}
             disabled
             readOnly
-            className="mt-1.5 w-full cursor-not-allowed rounded-xl border border-border bg-page px-3 py-2 text-sm text-muted"
+            className="mt-1.5 cursor-not-allowed bg-muted-surface text-muted-foreground"
           />
-          <p className="mt-1 text-xs text-muted">Linked to your Google sign-in. Can&apos;t be changed here.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Linked to your Google sign-in. Can&apos;t be changed here.</p>
         </label>
 
         <div>
-          <span className="text-xs font-semibold text-muted">Role</span>
-          <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-page px-3 py-2 text-sm font-semibold text-dash-ink">
+          <span className="text-xs font-medium text-muted-foreground">Role</span>
+          <div className="mt-1.5 flex h-9 items-center gap-2 rounded-full bg-muted-surface px-4 text-sm font-medium text-foreground">
             {roleLabel}
           </div>
-          <p className="mt-1 text-xs text-muted">Only an admin can change your role.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Only an admin can change your role.</p>
         </div>
 
         <div>
-          <span className="text-xs font-semibold text-muted">Department</span>
-          <div className="mt-1.5 rounded-xl border border-border bg-page px-3 py-2 text-sm text-dash-ink">
+          <span className="text-xs font-medium text-muted-foreground">Department</span>
+          <div className="mt-1.5 flex h-9 items-center rounded-full bg-muted-surface px-4 text-sm text-foreground">
             {department ?? "—"}
           </div>
-          <p className="mt-1 text-xs text-muted">From HRMS KOSIGN.</p>
+          <p className="mt-1 text-xs text-muted-foreground">From HRMS KOSIGN.</p>
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
-        <button
+      <div className="mt-4 flex justify-end gap-2 border-t border-surface-border pt-4">
+        <Button
           type="button"
+          variant="outline"
+          size="default"
           onClick={handleCancel}
           disabled={!dirty || saving}
-          className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-dash-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={!dirty || saving}
-          className="rounded-xl bg-gradient-to-r from-brand-purple to-brand-blue px-4 py-2 text-sm font-semibold text-white shadow transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        </Button>
+        <Button type="button" size="default" onClick={() => void handleSave()} disabled={!dirty || saving}>
           {saving ? "Saving…" : "Save changes"}
-        </button>
+        </Button>
       </div>
     </section>
   );

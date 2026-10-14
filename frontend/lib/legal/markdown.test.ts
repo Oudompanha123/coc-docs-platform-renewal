@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isAllowedLinkHref,
   isMarkdownEmpty,
+  markdownOutline,
   markdownWordCount,
   parseInline,
   parseMarkdown,
@@ -51,15 +52,16 @@ describe("parseMarkdown", () => {
     expect(doc[1]).toEqual({ kind: "paragraph", spans: [{ text: "Second" }] });
   });
 
-  it("parses heading levels 3 and 4", () => {
-    const doc = parseMarkdown("### H3\n#### H4");
+  it("parses heading levels 2, 3 and 4 — ## is a section", () => {
+    const doc = parseMarkdown("## H2\n### H3\n#### H4");
     expect(doc).toEqual([
+      { kind: "heading", level: 2, spans: [{ text: "H2" }] },
       { kind: "heading", level: 3, spans: [{ text: "H3" }] },
       { kind: "heading", level: 4, spans: [{ text: "H4" }] },
     ]);
   });
 
-  it("does not treat level 1/2 headings specially (not in the whitelist) — renders as a paragraph", () => {
+  it("does not treat a level 1 heading specially (not in the whitelist) — renders as a paragraph", () => {
     const doc = parseMarkdown("# Not a real heading here");
     expect(doc).toEqual([{ kind: "paragraph", spans: [{ text: "# Not a real heading here" }] }]);
   });
@@ -137,6 +139,23 @@ describe("parseMarkdown", () => {
 
   it("an empty string parses to an empty doc", () => {
     expect(parseMarkdown("")).toEqual([]);
+  });
+});
+
+describe("markdownOutline", () => {
+  it("lists every ## heading in order with a unique anchor, ignoring ### and ####", () => {
+    expect(markdownOutline("## Acceptable Use\n\ntext\n\n### Sub\n\n## Contact\n\n## Contact")).toEqual([
+      { id: "acceptable-use", title: "Acceptable Use" },
+      { id: "contact", title: "Contact" },
+      { id: "contact-2", title: "Contact" },
+    ]);
+  });
+
+  it("uses the heading's text without its markup, and falls back for a heading with no letters", () => {
+    expect(markdownOutline("## **Bold** title\n\n## ???")).toEqual([
+      { id: "bold-title", title: "Bold title" },
+      { id: "section", title: "???" },
+    ]);
   });
 });
 

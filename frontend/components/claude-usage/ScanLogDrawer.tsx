@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
-import { XIcon } from "@/components/layout/icons";
+import { ChevronDownIcon, XIcon } from "@/components/layout/icons";
 import { DocsCodeBlock } from "@/components/docs/DocsCodeBlock";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
+import { ScanStageList } from "@/components/claude-usage/ScanStatusPanel";
 import {
   fetchScanLogDetail,
   type ScanLogDetail,
+  type ScanLogScope,
   type ScanLogStep,
   type ScanLogSummary,
   type ScanStepStatus,
@@ -42,9 +44,22 @@ const QUEUED_AFTER_MS = 2 * 60 * 1000;
  * error, counts and step timeline sit in Technical details, collapsed, and
  * the timeline is only fetched the first time that is opened.
  *
+ * `log` is the live row: the page passes the latest copy on every refresh, so
+ * a scan that finishes while its drawer is open shows its result in place
+ * (ADR-107). `scope` is whose scans the page reads — the timeline comes from
+ * the same place.
+ *
  * Mount with `key={log.id}` so opening another scan starts fresh.
  */
-export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: () => void }) {
+export function ScanLogDrawer({
+  log,
+  onClose,
+  scope = "team",
+}: {
+  log: ScanLogSummary;
+  onClose: () => void;
+  scope?: ScanLogScope;
+}) {
   const [closing, setClosing] = useState(false);
   const requestClose = useCallback(() => setClosing(true), []);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -69,26 +84,26 @@ export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: 
       closing={closing}
       onExited={onClose}
       placement="right"
-      className="flex h-full w-full max-w-xl flex-col border-l border-border bg-white shadow-xl"
+      className="flex h-full w-full max-w-xl flex-col border-l border-surface-border bg-card shadow-xl"
       bodyClassName="flex min-h-0 flex-1 flex-col"
     >
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="flex min-h-0 flex-1 flex-col">
-        <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+        <header className="flex items-start justify-between gap-4 border-b border-surface-border px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h2 id={titleId} className="text-lg font-bold text-dash-ink">
+              <h2 id={titleId} className="text-lg font-semibold text-foreground">
                 Scan details
               </h2>
               <ScanStatusBadge outcome={outcome} />
             </div>
-            <p className="mt-1 break-all font-mono text-xs text-muted">{log.scanRef}</p>
+            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{log.scanRef}</p>
           </div>
           <button
             ref={closeButton}
             type="button"
             aria-label="Close"
             onClick={requestClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/50"
           >
             <XIcon className="h-5 w-5" />
           </button>
@@ -98,19 +113,27 @@ export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <Field label="User" wide>
               <span className="font-semibold">{personName(log)}</span>
-              {log.displayName && <span className="block text-xs text-muted">{log.email}</span>}
+              {log.displayName && <span className="block text-xs text-muted-foreground">{log.email}</span>}
             </Field>
-            <Field label="Scan time">{formatTimestamp(log.startedAt)}</Field>
+            <Field label="Started at">{formatTimestamp(log.startedAt)}</Field>
+            <Field label="Completed at">{log.finishedAt ? formatTimestamp(log.finishedAt) : "Not yet"}</Field>
             <Field label="Duration">{formatDuration(log.durationMs)}</Field>
-            <Field label="Status">
-              <ScanStatusBadge outcome={outcome} />
-            </Field>
             <Field label="Started by">{log.trigger === "scheduled" ? "Daily schedule" : "Manual run"}</Field>
           </dl>
 
-          {diagnosis ? <Problem diagnosis={diagnosis} outcome={outcome} person={personName(log)} /> : <Result log={log} />}
+          <div className="mt-6">
+            <ScanStageList log={log} />
+          </div>
 
-          <TechnicalDetails log={log} diagnosis={diagnosis} />
+          {outcome === "in-progress" ? (
+            <InProgress />
+          ) : diagnosis ? (
+            <Problem diagnosis={diagnosis} outcome={outcome} pc={scope === "mine" ? "your PC" : `${personName(log)}'s PC`} />
+          ) : (
+            <Result log={log} />
+          )}
+
+          <TechnicalDetails log={log} diagnosis={diagnosis} scope={scope} />
         </div>
       </div>
     </Modal>
@@ -120,9 +143,21 @@ export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: 
 function Field({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) {
   return (
     <div className={wide ? "col-span-2" : undefined}>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</dt>
-      <dd className="mt-1 break-words text-dash-ink">{children}</dd>
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="mt-1 break-words text-foreground">{children}</dd>
     </div>
+  );
+}
+
+/** Started, no result yet: say only that — never a guess at how it will end. */
+function InProgress() {
+  return (
+    <section className="mt-6 rounded-[10px] border border-border bg-brand-blue/10 px-4 py-3.5 text-sm">
+      <h3 className="font-bold text-dash-ink">Scan in progress</h3>
+      <p className="mt-1 text-dash-ink">
+        The reporter said this scan started and hasn&apos;t sent its result yet. This updates on its own when the result arrives.
+      </p>
+    </section>
   );
 }
 
@@ -132,11 +167,11 @@ function Result({ log }: { log: ScanLogSummary }) {
   return (
     <section
       className={`mt-6 rounded-[10px] border px-4 py-3.5 text-sm ${
-        uploaded ? "border-[#1f9d6b]/25 bg-[#e1f5ec] text-[#1f9d6b]" : "border-border bg-page text-dash-ink"
+        uploaded ? "border-[#1f9d6b]/25 bg-[#e1f5ec] text-[#1f9d6b]" : "border-surface-border bg-muted-surface text-foreground"
       }`}
     >
       <h3 className="font-bold">{uploaded ? "Usage uploaded successfully" : "No usage found"}</h3>
-      <p className={`mt-1 ${uploaded ? "" : "text-muted"}`}>
+      <p className={`mt-1 ${uploaded ? "" : "text-muted-foreground"}`}>
         {uploaded
           ? `${formatCount(log.newTokens)} new tokens across ${formatCount(log.daysUploaded)} day(s).`
           : "Nothing new since this PC last reported. The check-in was recorded, so nothing needs fixing."}
@@ -145,30 +180,30 @@ function Result({ log }: { log: ScanLogSummary }) {
   );
 }
 
-function Problem({ diagnosis, outcome, person }: { diagnosis: ScanDiagnosis; outcome: ScanOutcome; person: string }) {
+function Problem({ diagnosis, outcome, pc }: { diagnosis: ScanDiagnosis; outcome: ScanOutcome; pc: string }) {
   const tone = outcome === "failed" ? "border-danger/30 bg-danger/5" : "border-[#f5d896] bg-[#fffbeb]";
   const heading = outcome === "failed" ? "text-danger" : "text-[#b45309]";
   return (
     <>
-      <section className={`mt-6 rounded-[10px] border px-4 py-3.5 text-sm ${tone}`}>
-        <h3 className={`text-xs font-semibold uppercase tracking-wide ${heading}`}>Problem</h3>
-        <p className="mt-1 text-base font-bold text-dash-ink">{diagnosis.problem}</p>
-        <p className="mt-1 text-dash-ink">{diagnosis.description}</p>
+      <section className={`mt-6 rounded-xl border px-4 py-3.5 text-sm ${tone}`}>
+        <h3 className={`text-xs font-medium ${heading}`}>Problem</h3>
+        <p className="mt-1 text-base font-bold text-foreground">{diagnosis.problem}</p>
+        <p className="mt-1 text-foreground">{diagnosis.description}</p>
       </section>
 
       <section className="mt-6">
-        <h3 className="text-sm font-bold text-dash-ink">How to fix</h3>
+        <h3 className="text-sm font-bold text-foreground">How to fix</h3>
         {diagnosis.fix.some((step) => step.command) && (
-          <p className="mt-1 text-xs text-muted">Commands run in a terminal on {person}&apos;s PC.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Commands run in a terminal on {pc}.</p>
         )}
         <ol className="mt-3 space-y-4">
           {diagnosis.fix.map((step, i) => (
             <li key={step.text} className="flex gap-3 text-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-purple/10 text-xs font-bold text-brand-purple">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-foreground">
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
-                <p className="text-dash-ink">{step.text}</p>
+                <p className="text-foreground">{step.text}</p>
                 {step.command && (
                   <div className="mt-2">
                     <DocsCodeBlock code={step.command} />
@@ -183,31 +218,30 @@ function Problem({ diagnosis, outcome, person }: { diagnosis: ScanDiagnosis; out
   );
 }
 
-function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: ScanDiagnosis | null }) {
+function TechnicalDetails({
+  log,
+  diagnosis,
+  scope,
+}: {
+  log: ScanLogSummary;
+  diagnosis: ScanDiagnosis | null;
+  scope: ScanLogScope;
+}) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
-  const queuedFor = Date.parse(log.receivedAt) - Date.parse(log.finishedAt);
+  const queuedFor = log.finishedAt ? Date.parse(log.receivedAt) - Date.parse(log.finishedAt) : 0;
 
   return (
-    <section className="mt-8 border-t border-border pt-4">
+    <section className="mt-8 border-t border-surface-border pt-4">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-lg py-1 text-left text-sm font-semibold text-muted transition-colors hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+        className="flex w-full items-center justify-between rounded-lg py-1 text-left text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/50"
       >
         Technical details
-        <svg
-          viewBox="0 0 24 24"
-          className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          aria-hidden="true"
-        >
-          <path d="M6 9.5 12 15l6-5.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
@@ -217,16 +251,16 @@ function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: 
             <Field label="Failed step">{log.errorStep ? STEP_LABELS[log.errorStep] : "—"}</Field>
             <Field label="Error message" wide>
               {log.errorMessage ? (
-                <span className="block whitespace-pre-wrap break-words rounded-lg bg-page px-3 py-2 font-mono text-xs">{log.errorMessage}</span>
+                <span className="block whitespace-pre-wrap break-words rounded-lg bg-muted-surface px-3 py-2 font-mono text-xs">{log.errorMessage}</span>
               ) : (
                 "—"
               )}
             </Field>
-            <Field label="Timestamp">{formatTimestamp(log.finishedAt)}</Field>
+            <Field label="Completed at">{formatTimestamp(log.finishedAt)}</Field>
             <Field label="Received by server">
               {formatTimestamp(log.receivedAt)}
               {queuedFor > QUEUED_AFTER_MS && (
-                <span className="block text-xs text-muted">Sent later from the PC&apos;s queue — the server was unreachable at the time.</span>
+                <span className="block text-xs text-muted-foreground">Sent later from the PC&apos;s queue — the server was unreachable at the time.</span>
               )}
             </Field>
             <Field label="CLI version">{log.cliVersion ?? "—"}</Field>
@@ -236,21 +270,26 @@ function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: 
             <Field label="Duplicates removed">{formatCount(log.duplicates)}</Field>
             <Field label="New tokens">{formatCount(log.newTokens)}</Field>
           </dl>
-          <Timeline scanId={log.id} />
+          <Timeline scanId={log.id} status={log.status} scope={scope} />
         </div>
       )}
     </section>
   );
 }
 
-/** The step timeline — the one part of the drawer that needs its own request. */
-function Timeline({ scanId }: { scanId: string }) {
+/**
+ * The step timeline — the one part of the drawer that needs its own request.
+ * Fetched again when the scan's status changes, so a scan that finishes
+ * while open shows its real steps rather than the empty ones it started with.
+ */
+function Timeline({ scanId, status, scope }: { scanId: string; status: ScanLogSummary["status"]; scope: ScanLogScope }) {
   const [detail, setDetail] = useState<ScanLogDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetchScanLogDetail(scanId)
+    setError(null);
+    fetchScanLogDetail(scanId, scope)
       .then((result) => {
         if (!cancelled) setDetail(result);
       })
@@ -260,17 +299,17 @@ function Timeline({ scanId }: { scanId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [scanId]);
+  }, [scanId, status, scope]);
 
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">Process timeline</h4>
+      <h4 className="text-xs font-medium text-muted-foreground">Process timeline</h4>
       {error ? (
-        <p role="alert" className="mt-3 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <p role="alert" className="mt-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
         </p>
       ) : !detail ? (
-        <p role="status" className="mt-3 rounded-[10px] border border-border bg-page px-4 py-6 text-center text-sm text-muted">
+        <p role="status" className="mt-3 rounded-xl border border-surface-border bg-muted-surface px-4 py-6 text-center text-sm text-muted-foreground">
           Loading scan steps…
         </p>
       ) : (
@@ -288,7 +327,7 @@ const STEP_MARK: Record<ScanStepStatus, { glyph: string; ring: string; label: st
   success: { glyph: "✓", ring: "bg-[#e1f5ec] text-[#1f9d6b]", label: "Success" },
   warning: { glyph: "!", ring: "bg-[#fffbeb] text-[#b45309]", label: "Warning" },
   failed: { glyph: "✕", ring: "bg-danger/10 text-danger", label: "Failed" },
-  skipped: { glyph: "–", ring: "bg-page text-muted", label: "Not run" },
+  skipped: { glyph: "–", ring: "bg-muted-surface text-muted-foreground", label: "Not run" },
 };
 
 function TimelineStep({ step, last }: { step: ScanLogStep; last: boolean }) {
@@ -308,14 +347,14 @@ function TimelineStep({ step, last }: { step: ScanLogStep; last: boolean }) {
       </span>
       <div className="min-w-0 flex-1 pt-0.5">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <p className={`text-sm font-semibold ${step.status === "skipped" ? "text-muted" : "text-dash-ink"}`}>
+          <p className={`text-sm font-semibold ${step.status === "skipped" ? "text-muted-foreground" : "text-foreground"}`}>
             {STEP_LABELS[step.key]}
           </p>
-          {time && <span className="text-xs text-muted">{time}</span>}
+          {time && <span className="text-xs text-muted-foreground">{time}</span>}
         </div>
         <p
           className={`mt-0.5 break-words text-xs ${
-            step.status === "failed" ? "text-danger" : step.status === "warning" ? "text-[#b45309]" : "text-muted"
+            step.status === "failed" ? "text-danger" : step.status === "warning" ? "text-[#b45309]" : "text-muted-foreground"
           }`}
         >
           {step.status === "skipped" ? "Not run." : step.detail || mark.label}

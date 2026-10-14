@@ -8,8 +8,8 @@ import {
   PulseIcon,
   UsersIcon,
 } from "@/components/layout/icons";
+import { Card } from "@/components/ui/card";
 import type { StatCardData } from "@/lib/mock/overview";
-import { AVATAR_GRADIENTS } from "./tone";
 
 const STAT_ICONS = {
   document: DocumentIcon,
@@ -22,22 +22,26 @@ const STAT_ICONS = {
   barChart: BarChartIcon,
 } as const;
 
+/**
+ * One headline number — the coc-docs dashboard pattern's stat card
+ * (ADR-104 r2.7): label top-left, a small muted icon top-right, the value in
+ * tabular figures, and the trend as a quiet line under it. A flat surface with
+ * a hairline border, rather than the old gradient icon tile and lifting hover
+ * shadow — on a dashboard the number is the subject, not the card.
+ */
 export function StatCard({ data }: { data: StatCardData }) {
   const Icon = STAT_ICONS[data.icon];
-  const tileFill = AVATAR_GRADIENTS[data.tone];
+  const trendColour =
+    data.trendTone === "positive" ? "text-[#00a544] dark:text-[#4ade80]" : "text-[#c2410c] dark:text-[#fb923c]";
 
   return (
-    <div className="rounded-[10px] border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white ${tileFill}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{data.label}</p>
+    <Card className="gap-2 p-4 shadow-none transition-colors hover:border-foreground/20">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium text-muted-foreground">{data.label}</p>
+        <Icon className="size-4 shrink-0 text-muted-foreground" />
       </div>
-      <p className="mt-4 text-3xl font-bold text-dash-ink">{data.value}</p>
-      <p className={`mt-1 text-xs font-bold ${data.trendTone === "positive" ? "text-[#1f9d6b]" : "text-[#e0873c]"}`}>
-        {data.trend}
-      </p>
-    </div>
+      <p className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">{data.value}</p>
+      <p className={`text-xs font-medium ${trendColour}`}>{data.trend}</p>
+    </Card>
   );
 }
