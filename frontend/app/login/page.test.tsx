@@ -176,7 +176,7 @@ describe("LoginPage pending approval", () => {
     const notice = await screen.findByRole("alert");
     expect(notice).toHaveTextContent("Your account is pending admin approval.");
     // The amber "pending" notice, not the red error.
-    expect(notice).toHaveClass("bg-amber-50");
+    expect(notice).toHaveAttribute("data-variant", "warning");
     expect(push).not.toHaveBeenCalled();
   });
 });

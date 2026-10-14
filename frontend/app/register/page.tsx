@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { CircleAlert } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { LegalLink } from "@/components/auth/LegalLink";
 import { FormField, PasswordField } from "@/components/auth/FormField";
@@ -11,6 +10,7 @@ import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
 import { Stepper } from "@/components/auth/Stepper";
 import { ChevronLeftIcon, ClockIcon } from "@/components/layout/icons";
 import { Spinner } from "@/components/layout/Spinner";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -241,14 +241,9 @@ export default function RegisterPage() {
             />
 
             {codeError ? (
-              <p
-                id="register-code-error"
-                role="alert"
-                className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
-              >
-                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>{codeError}</span>
-              </p>
+              <Alert id="register-code-error" variant="destructive" className="mt-3">
+                {codeError}
+              </Alert>
             ) : (
               <p id="register-code-hint" className="text-muted-foreground mt-3 flex items-center justify-between gap-3 text-xs">
                 <span className="flex items-center gap-1.5 whitespace-nowrap">
@@ -317,12 +312,9 @@ export default function RegisterPage() {
           <Stepper steps={STEPS} currentIndex={2} />
         </div>
 
-        <div
-          className="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-          role="alert"
-        >
+        <Alert role="alert" variant="success" className="mb-6">
           {doneMessage}
-        </div>
+        </Alert>
         <Button shape="pill" asChild className="w-full">
           <Link href="/login">Go to Login</Link>
         </Button>
@@ -341,16 +333,13 @@ export default function RegisterPage() {
       </div>
 
       {feedback && (
-        <div
+        <Alert
           role="alert"
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
-            feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-destructive/30 bg-destructive/5 text-destructive"
-          }`}
+          variant={feedback.type === "success" ? "success" : "destructive"}
+          className="mb-4"
         >
           {feedback.message}
-        </div>
+        </Alert>
       )}
 
       {/* Was `max-h-[760px] overflow-y-auto px-8 md:px-14`: a scroll container

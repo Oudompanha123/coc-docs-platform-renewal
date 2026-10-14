@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { DocsCodeBlock } from "@/components/docs/DocsCodeBlock";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
 import { ScanStatusPanel } from "@/components/claude-usage/ScanStatusPanel";
@@ -73,9 +74,9 @@ export function MyScanStatusSection({ scanLogsHref }: { scanLogsHref?: string })
 
       {!data ? (
         loadError ? (
-          <p role="alert" className="mt-3 rounded-[10px] border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <Alert variant="destructive" className="mt-3">
             Couldn&apos;t load your scans: {loadError}
-          </p>
+          </Alert>
         ) : (
           <p role="status" className="mt-3 rounded-[10px] border border-border bg-white px-4 py-6 text-center text-sm text-muted">
             Loading your scans…

@@ -4,7 +4,8 @@ import { useState, type ReactNode } from "react";
 import type { AccountRole, AdminAccount } from "@/lib/admin/accounts";
 import type { AccountRole as EnforcedRole } from "@/lib/mock/users-roles";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { CalendarCheckIcon, ClockIcon, WarningIcon, XIcon } from "@/components/layout/icons";
+import { CalendarCheckIcon, ClockIcon, XIcon } from "@/components/layout/icons";
+import { Alert } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Modal } from "./Modal";
 import { RoleBadge } from "./RoleBadge";
@@ -62,16 +63,7 @@ function FactTile({ icon, label, value }: { icon: ReactNode; label: string; valu
 
 /** A notice above the footer: a caution about the caller's own account, or a refusal explained before it happens. */
 function Notice({ tone, children }: { tone: "caution" | "danger"; children: ReactNode }) {
-  const styles =
-    tone === "caution"
-      ? "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-      : "border-danger/30 bg-danger/10 text-danger";
-  return (
-    <p role={tone === "danger" ? "alert" : undefined} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed ${styles}`}>
-      <WarningIcon className="mt-0.5 size-3.5 shrink-0" />
-      <span>{children}</span>
-    </p>
-  );
+  return <Alert variant={tone === "caution" ? "warning" : "destructive"}>{children}</Alert>;
 }
 
 export function AccountDetailModal({

@@ -9,6 +9,7 @@ import { AttendanceDepartmentSelect } from "@/components/attendance/AttendanceDe
 import { AttendanceRangeToggle, type AttendanceRange } from "@/components/attendance/AttendanceRangeToggle";
 import { AttendanceStatCard } from "@/components/attendance/AttendanceStatCard";
 import { AttendanceTable } from "@/components/attendance/AttendanceTable";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { fetchAttendanceReports, type HrmsAttendanceReport } from "@/lib/admin/attendance";
 import { downloadAttendanceXlsx } from "@/lib/attendance/export-attendance";
@@ -136,13 +137,17 @@ function AttendancePageInner() {
         {loading && <LoadingSkeleton />}
 
         {!loading && loadError && (
-          <div role="alert" className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-6 text-center">
-            <WarningIcon className="size-5 text-danger" />
-            <p className="text-sm font-medium text-danger">{loadError}</p>
-            <Button type="button" variant="destructiveOutline" size="sm" onClick={() => void load()}>
-              Retry
-            </Button>
-          </div>
+          <Alert
+            variant="destructive"
+            className="font-medium"
+            action={
+              <Button type="button" variant="destructiveOutline" size="sm" onClick={() => void load()}>
+                Retry
+              </Button>
+            }
+          >
+            {loadError}
+          </Alert>
         )}
 
         {!loading && !loadError && reports && reports.length === 0 && (

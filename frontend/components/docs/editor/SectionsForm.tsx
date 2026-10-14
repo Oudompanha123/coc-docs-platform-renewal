@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ui/confirm";
 import { FormField } from "./FormField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ export function SectionsForm({
   value: SectionsContent;
   onChange: (next: SectionsContent) => void;
 }) {
+  const confirm = useConfirm();
   function set<K extends keyof SectionsContent>(key: K, val: SectionsContent[K]) {
     onChange({ ...value, [key]: val });
   }
@@ -21,8 +23,8 @@ export function SectionsForm({
     onChange({ ...value, sections });
   }
 
-  function removeSection(index: number) {
-    if (!window.confirm("Remove this section?")) return;
+  async function removeSection(index: number) {
+    if (!(await confirm({ title: "Remove this section?", confirmLabel: "Remove", destructive: true }))) return;
     onChange({ ...value, sections: value.sections.filter((_, i) => i !== index) });
   }
 

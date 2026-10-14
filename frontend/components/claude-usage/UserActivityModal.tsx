@@ -3,6 +3,7 @@
 import { Skeleton, SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
+import { Alert } from "@/components/ui/alert";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "@/components/layout/icons";
@@ -209,9 +210,9 @@ export function UserActivityModal({
             />
 
             {error && (
-              <div role="alert" className="mt-6 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              <Alert variant="destructive" className="mt-6">
                 {error}
-              </div>
+              </Alert>
             )}
 
             {!activity && !error && range && (

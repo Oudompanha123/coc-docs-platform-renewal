@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
@@ -228,11 +229,11 @@ export function StackMoveSection({
         </p>
 
         {isSuggestion && (
-          <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
+          <Alert variant="info" className="mt-3">
             Rows below are a starting point built from what <strong>Run analysis</strong> found on the
             Codebase/Findings tabs — nothing is saved yet. Edit or remove any of them, then{" "}
             <strong>Save stack move</strong>.
-          </p>
+          </Alert>
         )}
 
         {rows.length === 0 && (
@@ -242,7 +243,7 @@ export function StackMoveSection({
           </p>
         )}
 
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <Alert variant="destructive" className="mt-3">{error}</Alert>}
 
         {canEdit && (
           <div className="mt-3 flex items-center justify-between gap-3">

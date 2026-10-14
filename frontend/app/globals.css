@@ -1791,3 +1791,27 @@ select:autofill {
     opacity: 0.35;
   }
 }
+
+/* AlertDialog (components/ui/alert-dialog.tsx): the dim fades in, the panel
+   rises a few pixels and scales up from 98% — quick, so a confirmation never
+   feels like it is in the way. */
+@keyframes alert-dialog-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* Only the lift and the scale animate. The centring is Tailwind v4's
+   `-translate-x-1/2 -translate-y-1/2`, which sets the separate `translate`
+   property; animating `transform: translate(-50%, -50%)` here as well added a
+   second -50% for the length of the animation, so the dialog opened up and
+   to the left and then jumped to the centre. `transform` and `translate`
+   compose, so this one leaves the centring alone. */
+@keyframes alert-dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="alert-dialog-overlay"],
+  [data-slot="alert-dialog-content"] {
+    animation: none !important;
+  }
+}

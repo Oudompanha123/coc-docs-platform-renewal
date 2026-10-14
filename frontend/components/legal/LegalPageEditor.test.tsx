@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LegalPageEditor } from "./LegalPageEditor";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 import type { LegalVersionMeta, LegalVersionSummary } from "@/lib/legal/legal-api";
 
@@ -65,7 +66,11 @@ const LIVE: LegalVersionSummary = {
 };
 
 function renderEditor(props: Partial<Parameters<typeof LegalPageEditor>[0]> = {}) {
-  return render(<LegalPageEditor slug="terms" pageName="Terms of Service" canEdit {...props} />);
+  return render(
+    <ConfirmProvider>
+      <LegalPageEditor slug="terms" pageName="Terms of Service" canEdit {...props} />
+    </ConfirmProvider>,
+  );
 }
 
 beforeEach(() => {
@@ -246,7 +251,11 @@ describe("LegalPageEditor", () => {
     fireEvent.keyDown(document, { key: "s", ctrlKey: true });
     expect(saveLegalDraft).not.toHaveBeenCalled();
 
-    rerender(<LegalPageEditor slug="terms" pageName="Terms of Service" canEdit active />);
+    rerender(
+      <ConfirmProvider>
+        <LegalPageEditor slug="terms" pageName="Terms of Service" canEdit active />
+      </ConfirmProvider>,
+    );
     await act(async () => {
       fireEvent.keyDown(document, { key: "s", ctrlKey: true });
     });

@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import {
@@ -12,7 +13,6 @@ import {
   LoaderCircle,
   RotateCw,
   Send,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -321,43 +321,22 @@ export function LegalNoticeBar({
   onReload: () => void;
 }) {
   if (!notice) return null;
-  const error = notice.kind === "error";
   return (
-    <div
-      role={error ? "alert" : "status"}
-      className={`mt-3 flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm ${
-        error
-          ? "border-danger/30 bg-danger/10 text-danger"
-          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-      }`}
+    <Alert
+      variant={notice.kind === "error" ? "destructive" : "success"}
+      className="mt-3"
+      onDismiss={onDismiss}
+      action={
+        notice.conflict ? (
+          <Button type="button" variant="outline" size="sm" className="h-7" onClick={onReload}>
+            <RotateCw className="size-3.5" aria-hidden="true" />
+            Reload
+          </Button>
+        ) : undefined
+      }
     >
-      {error ? (
-        <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      ) : (
-        <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      )}
-      <span className="min-w-0 flex-1">{notice.message}</span>
-      {notice.conflict && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="-my-1 h-7"
-          onClick={onReload}
-        >
-          <RotateCw className="size-3.5" aria-hidden="true" />
-          Reload
-        </Button>
-      )}
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="-mr-1 flex size-6 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100"
-      >
-        <X className="size-3.5" aria-hidden="true" />
-      </button>
-    </div>
+      {notice.message}
+    </Alert>
   );
 }
 
@@ -484,36 +463,6 @@ export function LegalPublishDialog({
   );
 }
 
-/** Restoring over unsaved edits replaces them — asked once, in the app's own dialog. */
-export function LegalRestoreDialog({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <Modal
-      title="Replace your unsaved changes?"
-      onClose={onCancel}
-      ariaLabel="Replace your unsaved changes"
-    >
-      <p className="text-sm text-muted-foreground">
-        Restoring copies that version into your draft. The edits you
-        haven&apos;t saved will be lost. The live page doesn&apos;t change until
-        you publish.
-      </p>
-      <ModalFooter>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Keep editing
-        </Button>
-        <Button type="button" variant="destructive" onClick={onConfirm}>
-          Restore anyway
-        </Button>
-      </ModalFooter>
-    </Modal>
-  );
-}
 
 /** A past version, full screen, clearly marked as not the draft. Esc closes it. */
 export function LegalVersionPreview({

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { TrashIcon } from "@/components/layout/icons";
-import { Modal, ModalFooter } from "./Modal";
-import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm";
 import type { ManagedAccount } from "@/lib/mock/users-roles";
 import { Input } from "@/components/ui/input";
 
@@ -44,21 +43,16 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
 
   if (isLastActiveSuperAdmin || isSelf) {
     return (
-      <Modal title="Can't delete this account" onClose={onClose}>
-        <p className="text-sm text-foreground">
-          {isSelf
+      <ConfirmDialog
+        notice
+        title="Can't delete this account"
+        description={
+          isSelf
             ? "You cannot delete your own account. Ask another Super Admin to do it."
-            : "This is the last remaining Super Admin. Promote another account to Super Admin first."}
-        </p>
-        <ModalFooter>
-          <Button
-            type="button"
-            onClick={onClose}
-          >
-            OK
-          </Button>
-        </ModalFooter>
-      </Modal>
+            : "This is the last remaining Super Admin. Promote another account to Super Admin first."
+        }
+        onCancel={onClose}
+      />
     );
   }
 
@@ -67,13 +61,22 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
   const confirmed = typed.trim().toLowerCase() === account.email.toLowerCase();
 
   return (
-    <Modal onClose={onClose}>
-      <div className="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger">
-        <TrashIcon className="size-5" />
-      </div>
-      <h2 className="mt-3 text-base font-semibold text-foreground">Delete Account?</h2>
-
-      <div className="mt-4 flex items-center gap-3 rounded-lg border border-surface-border bg-muted-surface px-3 py-2">
+    <ConfirmDialog
+      icon={<TrashIcon />}
+      title="Delete Account?"
+      description={
+        <>
+          This removes the account permanently. Their sessions end immediately and they cannot sign in again.
+          <strong className="font-semibold text-foreground"> This cannot be undone.</strong>
+        </>
+      }
+      confirmLabel="Delete permanently"
+      destructive
+      confirmDisabled={!confirmed}
+      onConfirm={onConfirm}
+      onCancel={onClose}
+    >
+      <div className="flex items-center gap-3 rounded-lg border border-surface-border bg-muted-surface px-3 py-2">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
           {initialsFor(account.name)}
         </div>
@@ -82,22 +85,16 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
           <p className="truncate text-xs text-muted-foreground">{account.email}</p>
         </div>
       </div>
-
-      <p className="mt-4 text-sm text-muted-foreground">
-        This removes the account permanently. Their sessions end immediately and they cannot sign in again.
-        <strong className="font-semibold text-foreground"> This cannot be undone.</strong>
-      </p>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-3 text-sm text-muted-foreground">
         Pages they wrote stay published, and the audit trail keeps their email against everything they did.
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
         To keep the account but block access, use <strong className="font-semibold text-foreground">Deactivate</strong>{" "}
         instead — that one can be reversed.
       </p>
-
-      <label className="mt-5 block">
+      <label className="mt-4 block">
         <span className="text-sm font-medium text-foreground">
-          Type <span className="font-mono text-danger">{account.email}</span> to confirm
+          Type <span className="font-mono text-destructive">{account.email}</span> to confirm
         </span>
         <Input
           type="text"
@@ -109,24 +106,6 @@ export function DeleteModal({ account, isLastActiveSuperAdmin, isSelf, onClose, 
           className="mt-1.5"
         />
       </label>
-
-      <ModalFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={onConfirm}
-          disabled={!confirmed}
-        >
-          Delete permanently
-        </Button>
-      </ModalFooter>
-    </Modal>
+    </ConfirmDialog>
   );
 }

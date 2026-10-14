@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ScaleIcon } from "@/components/layout/icons";
@@ -31,6 +33,8 @@ const TABS: { key: Tab; label: string }[] = [
 export default function LegalPagesAdminPage() {
   const { user } = useSession();
   const canEdit = canEditLegalPages(user?.role);
+  const confirm = useConfirm();
+  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<Tab>("terms");
   const [dirty, setDirty] = useState<Record<Tab, boolean>>({
@@ -57,19 +61,26 @@ export default function LegalPagesAdminPage() {
       e.returnValue = "";
     }
     // In-app navigation (a sidebar link) doesn't fire beforeunload in the App
-    // Router, so same-tab link clicks are caught in the capture phase.
+    // Router, so same-tab link clicks are caught in the capture phase. The
+    // click is always stopped, then asked about in the app's dialog; "Leave"
+    // navigates. (beforeunload above must stay the browser's own prompt.)
     function onClick(e: MouseEvent) {
       const anchor = (e.target as HTMLElement | null)?.closest?.("a");
-      if (!anchor || anchor.target === "_blank" || !anchor.getAttribute("href"))
-        return;
-      if (
-        !window.confirm(
-          "You have unsaved changes on the legal pages. Leave without saving?",
-        )
-      ) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
+      const href = anchor?.getAttribute("href");
+      if (!anchor || anchor.target === "_blank" || !href || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      void confirm({
+        title: "Leave without saving?",
+        description: "You have unsaved changes on the legal pages.",
+        confirmLabel: "Leave",
+        cancelLabel: "Stay",
+        destructive: true,
+      }).then((leave) => {
+        if (!leave) return;
+        if (href.startsWith("/")) router.push(href);
+        else window.location.assign(href);
+      });
     }
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("click", onClick, true);
@@ -77,7 +88,7 @@ export default function LegalPagesAdminPage() {
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onClick, true);
     };
-  }, [anyDirty]);
+  }, [anyDirty, confirm, router]);
 
   return (
     <AppShell

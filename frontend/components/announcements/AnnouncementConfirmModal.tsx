@@ -1,8 +1,6 @@
 "use client";
 
-import { Modal, ModalFooter } from "@/components/users-roles/Modal";
-import { Spinner } from "@/components/layout/Spinner";
-import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm";
 
 export type AnnouncementAction = "publish" | "unpublish" | "delete";
 
@@ -30,7 +28,8 @@ const COPY: Record<AnnouncementAction, { title: string; body: string; confirm: s
 /**
  * One confirmation for the three list actions that change what readers see
  * (ADR-098). Each says plainly what happens to the bell, since that is the
- * part an admin cannot see from the admin page.
+ * part an admin cannot see from the admin page. An alert dialog (ADR-104
+ * r2.16): held open while the request runs, its error shown inside it.
  */
 export function AnnouncementConfirmModal({
   action,
@@ -50,28 +49,17 @@ export function AnnouncementConfirmModal({
 }) {
   const copy = COPY[action];
   return (
-    <Modal title={copy.title} onClose={busy ? () => {} : onClose}>
-      <p className="rounded-xl border border-surface-border bg-muted-surface px-3 py-2.5 text-sm font-semibold text-foreground">
-        {title}
-      </p>
-      <p className="mt-3 text-sm text-muted-foreground">{copy.body}</p>
-      {error && (
-        <p role="alert" className="mt-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
-      <ModalFooter>
-        <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-          Cancel
-        </Button>
-        {/* The Button primitive, not hand-written: its `text-white` on
-            `bg-primary` drew white-on-white in dark mode, where the primary
-            turns near-white. */}
-        <Button type="button" variant={copy.danger ? "destructive" : "default"} onClick={onConfirm} disabled={busy}>
-          {busy && <Spinner />}
-          {copy.confirm}
-        </Button>
-      </ModalFooter>
-    </Modal>
+    <ConfirmDialog
+      title={copy.title}
+      description={copy.body}
+      confirmLabel={copy.confirm}
+      destructive={copy.danger}
+      busy={busy}
+      error={error}
+      onConfirm={onConfirm}
+      onCancel={onClose}
+    >
+      <p className="rounded-xl border border-surface-border bg-muted-surface px-3 py-2.5 text-sm font-semibold text-foreground">{title}</p>
+    </ConfirmDialog>
   );
 }

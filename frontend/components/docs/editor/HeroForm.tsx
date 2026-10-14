@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ui/confirm";
 import { useState } from "react";
 import { FormField } from "./FormField";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const DOWNLOAD_OS_PLACEHOLDER: Record<HeroDownloadOs, string> = {
 const DOWNLOAD_URL_ERROR = "Must be an https:// URL or a path starting with /.";
 
 export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (next: HeroContent) => void }) {
+  const confirm = useConfirm();
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   // What the admin is currently typing per OS, kept apart from `value.downloadButtons`
@@ -85,8 +87,8 @@ export function HeroForm({ value, onChange }: { value: HeroContent; onChange: (n
     onChange({ ...value, features });
   }
 
-  function removeFeature(index: number) {
-    if (!window.confirm("Remove this feature card?")) return;
+  async function removeFeature(index: number) {
+    if (!(await confirm({ title: "Remove this feature card?", confirmLabel: "Remove", destructive: true }))) return;
     onChange({ ...value, features: value.features.filter((_, i) => i !== index) });
   }
 

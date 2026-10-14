@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
@@ -251,9 +252,9 @@ export function DatabaseSection({
           )}
 
           {connectError && (
-            <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <Alert variant="destructive" className="mt-3">
               {connectError}
-            </p>
+            </Alert>
           )}
         </div>
       </div>
@@ -356,28 +357,28 @@ export function DatabaseSection({
           )}
 
           {changesError && (
-            <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <Alert variant="destructive" className="mt-3">
               {changesError}
-            </p>
+            </Alert>
           )}
 
           {!connection && changes.length === 0 && confirmation == null && (
-            <p className="mt-4 rounded-xl border border-surface-border bg-muted-surface px-3 py-2 text-xs text-muted-foreground">
+            <Alert variant="default" className="mt-4">
               If this renewal doesn&apos;t use a database at all, you don&apos;t need to fill anything in above —
               confirm this section as-is to record <strong>No database required</strong>, rather than leaving it
               pending.
-            </p>
+            </Alert>
           )}
           {!connection && changes.length === 0 && confirmation != null && (
-            <p className="mt-4 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
+            <Alert variant="success" className="mt-4">
               Confirmed as <strong>No database required</strong> — this renewal doesn&apos;t use a database.
-            </p>
+            </Alert>
           )}
 
           {confirmError && (
-            <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <Alert variant="destructive" className="mt-4">
               {confirmError}
-            </p>
+            </Alert>
           )}
 
           <ConfirmationBar

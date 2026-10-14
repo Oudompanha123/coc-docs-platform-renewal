@@ -138,7 +138,8 @@ describe("LegalHistoryPanel", () => {
     expect(onPreview).not.toHaveBeenCalled();
   });
 
-  it("Restore asks for confirmation, then calls onRestore with the version id", async () => {
+  it("Restore hands the version id to the editor, which asks before restoring — the panel doesn't ask too", async () => {
+    const native = vi.spyOn(window, "confirm");
     const user = userEvent.setup();
     const onRestore = vi.fn();
     fetchLegalVersions.mockResolvedValue([version()]);
@@ -146,20 +147,8 @@ describe("LegalHistoryPanel", () => {
 
     await user.click(await screen.findByRole("button", { name: "Restore as draft" }));
 
-    expect(window.confirm).toHaveBeenCalled();
     expect(onRestore).toHaveBeenCalledWith("v1");
-  });
-
-  it("does not restore when the confirmation is declined", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    const user = userEvent.setup();
-    const onRestore = vi.fn();
-    fetchLegalVersions.mockResolvedValue([version()]);
-    renderPanel({ onRestore });
-
-    await user.click(await screen.findByRole("button", { name: "Restore as draft" }));
-
-    expect(onRestore).not.toHaveBeenCalled();
+    expect(native).not.toHaveBeenCalled();
   });
 
   it("hides the Restore button when canRestore is false (admin, not super_admin)", async () => {

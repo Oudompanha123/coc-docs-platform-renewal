@@ -1,6 +1,7 @@
 "use client";
 
 import type { RoleDetail } from "@/lib/admin/accounts";
+import { Alert } from "@/components/ui/alert";
 import { RoleBadge } from "./RoleBadge";
 
 /**
@@ -40,9 +41,7 @@ export function RolesTab({
   if (error) {
     return (
       <div className="p-5">
-        <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">
-          {error}
-        </p>
+        <Alert variant="destructive">{error}</Alert>
       </div>
     );
   }

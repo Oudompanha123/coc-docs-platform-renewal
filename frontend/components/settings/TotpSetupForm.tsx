@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { CodeField, PasswordField } from "@/components/auth/FormField";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AuthApiError, disableMfa, startMfaSetup, verifyMfaSetup, type MfaSetupMaterial } from "@/lib/auth/api";
 
@@ -80,9 +81,7 @@ export function TotpSetupWizard({
   if (loadError) {
     return (
       <div className="mt-4 max-w-sm space-y-3">
-        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
-          {loadError}
-        </p>
+        <Alert variant="destructive">{loadError}</Alert>
         <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-foreground">
           Cancel
         </Button>
