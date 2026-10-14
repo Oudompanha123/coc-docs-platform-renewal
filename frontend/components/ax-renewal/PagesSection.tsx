@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
@@ -145,10 +146,10 @@ export function PagesSection({
       </p>
 
       {isSuggestion && (
-        <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
+        <Alert variant="info" className="mt-3">
           Old routes and notes below are pages <strong>Run analysis</strong> actually detected — nothing is saved
           yet. Fill in a new route for each, remove any that don&apos;t belong, then <strong>Save pages</strong>.
-        </p>
+        </Alert>
       )}
 
       <div className="mt-4 space-y-2">
@@ -204,7 +205,7 @@ export function PagesSection({
         </Button>
       )}
 
-      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+      {error && <Alert variant="destructive" className="mt-3">{error}</Alert>}
 
       {canEdit && (
         <div className="mt-3 flex items-center justify-between gap-3">

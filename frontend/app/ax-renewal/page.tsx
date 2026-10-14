@@ -1,10 +1,11 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useGuardedRouter } from "@/lib/ax-renewal/unsavedChanges";
-import { ChevronLeftIcon, ChevronRightIcon, GlobeIcon, PlugIcon, WarningIcon } from "@/components/layout/icons";
+import { ChevronLeftIcon, ChevronRightIcon, GlobeIcon, PlugIcon } from "@/components/layout/icons";
 import { AiEnginePanel } from "@/components/ax-renewal/AiEnginePanel";
 import { ArchitectureSection } from "@/components/ax-renewal/ArchitectureSection";
 import { ModuleCouplingDiagram, SystemContextDiagram } from "@/components/ax-renewal/ArchitectureDiagrams";
@@ -133,20 +134,16 @@ export default function AxRenewalPage() {
       {detail && active != null && picker}
 
       {loadError && (
-        <div role="alert" className="flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3">
-          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
-          <p className="text-sm font-medium text-danger">{loadError}</p>
-        </div>
+        <Alert variant="destructive" className="font-medium">
+          {loadError}
+        </Alert>
       )}
 
       {viewingAsSuperAdminOnly && (
-        <div role="status" className="flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
-          <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
-          <p className="text-sm text-foreground">
-            You&rsquo;re not a member of this project. You can open it because you&rsquo;re a Super Admin; its members
-            are listed under <strong className="font-semibold">Workspace → Members</strong>.
-          </p>
-        </div>
+        <Alert variant="default">
+          You&rsquo;re not a member of this project. You can open it because you&rsquo;re a Super Admin; its members
+          are listed under <strong className="font-semibold">Workspace → Members</strong>.
+        </Alert>
       )}
 
       {detail && active == null && <NoTabOpenState />}
@@ -275,13 +272,10 @@ export default function AxRenewalPage() {
 /** The honest "no model connected" disclaimer, shared by every Understand panel that reads the analysis. */
 function NoModelBanner() {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-surface-border bg-secondary px-4 py-3">
-      <WarningIcon className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
-      <p className="text-sm text-foreground">
-        No AI model is connected on this deployment yet — this is a keyword-matched placeholder, not a real reading
-        of the attached source.
-      </p>
-    </div>
+    <Alert variant="default">
+      No AI model is connected on this deployment yet — this is a keyword-matched placeholder, not a real reading
+      of the attached source.
+    </Alert>
   );
 }
 
@@ -1292,7 +1286,7 @@ function OutputPanel({
           />
         </div>
 
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <Alert variant="destructive" className="mt-3 text-xs font-medium">{error}</Alert>}
 
         {canEdit && (
           <div className="mt-3 flex justify-end">
@@ -1643,7 +1637,7 @@ function ImplementationPanel({
           </div>
         )}
 
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <Alert variant="destructive" className="mt-3 text-xs font-medium">{error}</Alert>}
 
         {/* Every earlier run too (ADR-078), read-only. Re-read whenever the
             latest run starts, changes status or is replaced. */}
@@ -1834,18 +1828,12 @@ function RunLocallyPanel({
             never a guessed diagnosis; see runLocallyGuidance's own doc
             comment for the exact patterns and the honest fallback. */}
         {guidance && (
-          <p
-            role={guidance.tone === "error" ? "alert" : undefined}
-            className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
-              guidance.tone === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : guidance.tone === "error"
-                  ? "border-danger/30 bg-danger/10 text-danger"
-                  : "border-surface-border bg-secondary text-foreground"
-            }`}
+          <Alert
+            variant={guidance.tone === "success" ? "success" : guidance.tone === "error" ? "destructive" : "default"}
+            className="mt-3 text-xs"
           >
             {guidance.message}
-          </p>
+          </Alert>
         )}
 
         {/* AI Error Assistant, phase 1 (ADR-062) — offered only once there is
@@ -1887,14 +1875,14 @@ function RunLocallyPanel({
               </div>
             )}
             {explainError && (
-              <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+              <Alert variant="destructive" className="mt-2 text-xs font-medium">
                 {explainError}
-              </p>
+              </Alert>
             )}
             {fixError && (
-              <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+              <Alert variant="destructive" className="mt-2 text-xs font-medium">
                 {fixError}
-              </p>
+              </Alert>
             )}
           </div>
         )}
@@ -1921,7 +1909,7 @@ function RunLocallyPanel({
         </pre>
       )}
 
-      {error && <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">{error}</p>}
+      {error && <Alert variant="destructive" className="font-medium">{error}</Alert>}
     </div>
   );
 }

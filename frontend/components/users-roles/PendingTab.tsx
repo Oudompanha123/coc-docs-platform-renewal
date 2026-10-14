@@ -6,6 +6,7 @@ import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Spinner } from "@/components/layout/Spinner";
 import { Check, Shield } from "lucide-react";
 import { ROLE_HINTS, ROLE_LABELS, ROLE_ORDER } from "@/lib/mock/users-roles";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DefaultAvatar } from "./DefaultAvatar";
 import { FilterDropdown, type FilterOption } from "./FilterDropdown";
@@ -76,9 +77,7 @@ export function PendingTab({
   if (error) {
     return (
       <div className="p-5">
-        <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">
-          {error}
-        </p>
+        <Alert variant="destructive">{error}</Alert>
       </div>
     );
   }

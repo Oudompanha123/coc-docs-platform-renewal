@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { XIcon } from "@/components/layout/icons";
@@ -72,10 +73,9 @@ export function LegalHistoryPanel<T = LegalDocumentContent>({
     }
   }
 
+  // The editor asks before restoring (it knows whether there are unsaved
+  // edits to warn about), so the panel doesn't ask a second time.
   function handleRestore(id: string) {
-    if (!window.confirm("Restore this version into your current draft? This replaces your draft's content — you'll still need to Publish to make it live.")) {
-      return;
-    }
     onRestore(id);
   }
 
@@ -90,7 +90,7 @@ export function LegalHistoryPanel<T = LegalDocumentContent>({
         </div>
 
         <div className="p-5">
-          {error && <p className="mb-3 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
+          {error && <Alert variant="destructive" className="mb-3">{error}</Alert>}
           {!versions && !error && <SkeletonGroup label="Loading history"><SkeletonList rows={3} avatar={false} /></SkeletonGroup>}
           {versions && versions.length === 0 && <p className="text-sm text-muted-foreground">Nothing published yet.</p>}
 

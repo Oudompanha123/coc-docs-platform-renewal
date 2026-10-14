@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CircleAlert } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
@@ -11,6 +10,7 @@ import { DocumentIcon, GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { ChevronLeftIcon } from "@/components/layout/icons";
 import { LoadingDim } from "@/components/layout/LoadingDim";
 import { Spinner } from "@/components/layout/Spinner";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMinimumDisplay } from "@/lib/layout/useMinimumDisplay";
@@ -41,6 +41,11 @@ import { offerToSaveCredential, readFilledCredentials } from "@/lib/auth/browser
  *  is no successful login to return an account from). */
 function postLoginDestination(account: AuthenticatedAccount): string {
   return landingPathFor(account);
+}
+
+/** A "pending approval" refusal reads as a warning, not an error. */
+function feedbackVariant(type: "success" | "error" | "pending"): "success" | "warning" | "destructive" {
+  return type === "success" ? "success" : type === "pending" ? "warning" : "destructive";
 }
 
 /**
@@ -342,17 +347,9 @@ function LoginForm() {
         }
       >
         {feedback && (
-          <div
-            role="alert"
-            className={`mb-4 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : feedback.type === "pending"
-                ? "border-amber-200 bg-amber-50 text-amber-900"
-                : "border-destructive/30 bg-destructive/5 text-destructive"
-              }`}
-          >
+          <Alert role="alert" variant={feedbackVariant(feedback.type)} className="mb-4">
             {feedback.message}
-          </div>
+          </Alert>
         )}
 
         {isRedirecting ? (
@@ -379,14 +376,9 @@ function LoginForm() {
               />
 
               {otpError ? (
-                <p
-                  id="login-otp-error"
-                  role="alert"
-                  className="border-destructive/30 bg-destructive/5 text-destructive mt-3 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
-                >
-                  <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                  <span>{otpError}</span>
-                </p>
+                <Alert id="login-otp-error" variant="destructive" className="mt-3">
+                  {otpError}
+                </Alert>
               ) : (
                 <p
                   id="login-otp-hint"
@@ -454,17 +446,9 @@ function LoginForm() {
       }
     >
       {feedback && (
-        <div
-          role="alert"
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${feedback.type === "success"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-            : feedback.type === "pending"
-              ? "border-amber-200 bg-amber-50 text-amber-900"
-              : "border-destructive/30 bg-destructive/5 text-destructive"
-            }`}
-        >
+        <Alert role="alert" variant={feedbackVariant(feedback.type)} className="mb-4">
           {feedback.message}
-        </div>
+        </Alert>
       )}
 
       {isRedirecting ? (

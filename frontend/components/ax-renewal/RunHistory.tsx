@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import {
@@ -72,7 +73,7 @@ export function RunHistory({ projectId, refreshKey }: { projectId: string; refre
       <h4 className="text-sm font-semibold text-foreground">History</h4>
       <p className="mt-1 text-xs text-muted-foreground">Every build, error fix and UI change on this project, newest first.</p>
 
-      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+      {error && <Alert variant="destructive" className="mt-3">{error}</Alert>}
       {!error && runs === null && <SkeletonGroup label="Loading runs" className="mt-3"><SkeletonList rows={3} avatar={false} /></SkeletonGroup>}
       {!error && runs !== null && runs.length === 0 && (
         <p className="mt-3 text-xs text-muted-foreground">No runs yet — the first build will appear here.</p>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TrashIcon, UserPlusIcon } from "@/components/layout/icons";
 import { addMember, removeMember, type AxRenewalMember } from "@/lib/ax-renewal/api";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { inputBaseClass } from "@/components/ui/input";
 
@@ -146,7 +147,7 @@ export function MembersPanel({
           </form>
         )}
 
-        {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+        {error && <Alert variant="destructive" className="mt-3">{error}</Alert>}
       </div>
     </div>
   );

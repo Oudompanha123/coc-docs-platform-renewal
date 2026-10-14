@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { FormField } from "@/components/auth/FormField";
 import { LockIcon } from "@/components/auth/icons";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AuthApiError, forgotPassword } from "@/lib/auth/api";
 import { emailViolations, isEmailAcceptable } from "@/lib/auth/emailPolicy";
@@ -77,16 +78,13 @@ export default function ForgotPasswordPage() {
       subheading="No worries. Enter the email you signed up with and we'll send you a link to reset your password."
     >
       {feedback && (
-        <div
+        <Alert
           role="alert"
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
-            feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-destructive/30 bg-destructive/5 text-destructive"
-          }`}
+          variant={feedback.type === "success" ? "success" : "destructive"}
+          className="mb-4"
         >
           {feedback.message}
-        </div>
+        </Alert>
       )}
 
       <form className="grid gap-4" onSubmit={handleSubmit} noValidate>

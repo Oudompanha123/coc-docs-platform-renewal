@@ -210,16 +210,6 @@
     font-family: var(--font-heading);
     font-synthesis-weight: none;
   }
-
-  /* Admin /legal-pages form tokens (from feature/legal-pages-admin-editor),
-     on the neutral palette: the branch introduced them brand-tinted
-     (#f8f7ff, #e8eaf1), which the r2.0 repaint retired everywhere else. */
-  --color-legal-label: #737373;
-  --color-legal-helper: #a1a1a1;
-  --color-legal-divider: #f0f0f0;
-  --color-legal-card-border: #e5e5e5;
-  --color-legal-status-border: #d4d4d4;
-  --color-legal-status-bg-selected: #f5f5f5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -406,30 +396,6 @@
    dark palette (#332e4d for hairlines, #2a2545 for a dark purple-tinted
    surface) for consistency with the rest of its dark mode rather than
    inventing new ones. */
-:root[data-theme="dark"] [data-shell="admin"] .text-legal-label {
-  color: #9ca3af;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .text-legal-helper {
-  color: #6b7280;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .divide-legal-divider {
-  border-color: #332e4d;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .border-legal-card-border {
-  border-color: #332e4d;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .border-legal-status-border {
-  border-color: #332e4d;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .bg-legal-status-bg-selected {
-  background-color: #2a2545;
-}
-
 /* The header's bell/mail icon buttons (MemberHeader.tsx) are the only
    current user of this opacity variant — easy to miss since plain
    .text-ink is covered above but an opacity-suffixed class is its own,
@@ -1789,5 +1755,29 @@ select:autofill {
        the system not to animate. */
     width: 100%;
     opacity: 0.35;
+  }
+}
+
+/* AlertDialog (components/ui/alert-dialog.tsx): the dim fades in, the panel
+   rises a few pixels and scales up from 98% — quick, so a confirmation never
+   feels like it is in the way. */
+@keyframes alert-dialog-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* Only the lift and the scale animate. The centring is Tailwind v4's
+   `-translate-x-1/2 -translate-y-1/2`, which sets the separate `translate`
+   property; animating `transform: translate(-50%, -50%)` here as well added a
+   second -50% for the length of the animation, so the dialog opened up and
+   to the left and then jumped to the centre. `transform` and `translate`
+   compose, so this one leaves the centring alone. */
+@keyframes alert-dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="alert-dialog-overlay"],
+  [data-slot="alert-dialog-content"] {
+    animation: none !important;
   }
 }

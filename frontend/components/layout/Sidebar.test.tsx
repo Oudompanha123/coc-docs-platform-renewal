@@ -232,7 +232,7 @@ describe("Sidebar — kebab menu integration", () => {
     await user.click(screen.getAllByRole("button", { name: "More options for Jex3.0" })[0]!);
     await user.click(screen.getByRole("menuitem", { name: /Delete/ }));
 
-    expect(screen.getByRole("dialog", { name: "Delete Jex3.0?" })).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog", { name: "Delete Jex3.0?" })).toBeInTheDocument();
     await user.type(screen.getByRole("textbox"), "Jex3.0");
     await user.click(screen.getByRole("button", { name: "Delete" }));
 

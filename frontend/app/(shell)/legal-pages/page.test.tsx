@@ -1,9 +1,13 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ConfirmProvider } from "@/components/ui/confirm";
 import { ShellProvider } from "@/lib/layout/ShellContext";
 
 const { sessionRole } = vi.hoisted(() => ({ sessionRole: { current: "super_admin" as string | undefined } }));
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
 vi.mock("@/lib/auth/SessionProvider", () => ({
   useSession: () => ({ user: { role: sessionRole.current } }),
 }));
@@ -24,9 +28,11 @@ import LegalPagesAdminPage from "./page";
 
 function renderPage() {
   return render(
-    <ShellProvider>
-      <LegalPagesAdminPage />
-    </ShellProvider>,
+    <ConfirmProvider>
+      <ShellProvider>
+        <LegalPagesAdminPage />
+      </ShellProvider>
+    </ConfirmProvider>,
   );
 }
 
@@ -64,18 +70,39 @@ describe("LegalPagesAdminPage", () => {
     expect(screen.getByRole("tab", { name: /Privacy Policy/ })).toContainElement(screen.getByRole("img", { name: "unsaved changes" }));
   });
 
-  it("asks before following an in-app link while anything is unsaved", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("asks in the app's dialog before following an in-app link while anything is unsaved, and goes on Leave", async () => {
+    const native = vi.spyOn(window, "confirm");
+    const user = userEvent.setup();
     renderPage();
     act(() => termsDirtySetter.current(true));
     const link = document.createElement("a");
     link.href = "/overview";
+    link.setAttribute("href", "/overview");
     link.textContent = "Overview";
     document.body.appendChild(link);
-    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
-    link.dispatchEvent(event);
-    expect(window.confirm).toHaveBeenCalledWith("You have unsaved changes on the legal pages. Leave without saving?");
-    expect(event.defaultPrevented).toBe(true);
+
+    await user.click(link);
+    expect(screen.getByRole("alertdialog", { name: "Leave without saving?" })).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Leave" }));
+    expect(push).toHaveBeenCalledWith("/overview");
+    expect(native).not.toHaveBeenCalled();
+    link.remove();
+  });
+
+  it("Stay keeps you on the page", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    act(() => termsDirtySetter.current(true));
+    const link = document.createElement("a");
+    link.setAttribute("href", "/overview");
+    link.textContent = "Overview";
+    document.body.appendChild(link);
+
+    await user.click(link);
+    await user.click(screen.getByRole("button", { name: "Stay" }));
+    expect(push).not.toHaveBeenCalled();
     link.remove();
   });
 

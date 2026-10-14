@@ -1,5 +1,7 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
+import { useConfirm } from "@/components/ui/confirm";
 import { useEffect, useState } from "react";
 import { Eye, Pencil } from "lucide-react";
 import { SkeletonForm, SkeletonGroup } from "@/components/ui/skeleton";
@@ -10,7 +12,6 @@ import {
   LegalModeSwitch,
   LegalNoticeBar,
   LegalPublishDialog,
-  LegalRestoreDialog,
   LegalVersionPreview,
 } from "./LegalEditorChrome";
 import { LegalHistoryPanel } from "./LegalHistoryPanel";
@@ -53,6 +54,7 @@ export function LegalPageEditor({
   active?: boolean;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const confirm = useConfirm();
   const livePath = `/${slug}`;
   const editor = useLegalEditor<LegalDocumentContent>({
     slug,
@@ -70,7 +72,6 @@ export function LegalPageEditor({
   );
   const [showPublish, setShowPublish] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [pendingRestore, setPendingRestore] = useState<string | null>(null);
   const [previewVersion, setPreviewVersion] =
     useState<LegalVersionMeta<LegalDocumentContent> | null>(null);
 
@@ -103,21 +104,28 @@ export function LegalPageEditor({
     if (await editor.publish(note)) setShowPublish(false);
   }
 
+  // One question before restoring, worded for whether there are unsaved
+  // edits to lose (the history panel no longer asks a second time).
   async function restore(versionId: string) {
-    setPendingRestore(null);
+    const ok = await confirm({
+      title: unsaved ? "Replace your unsaved changes?" : "Restore this version?",
+      description: unsaved
+        ? "Restoring copies that version into your draft, and the edits you haven't saved will be lost. The live page doesn't change until you publish."
+        : "It replaces your draft's content. The live page doesn't change until you publish.",
+      confirmLabel: unsaved ? "Restore anyway" : "Restore",
+      destructive: unsaved,
+    });
+    if (!ok) return;
     if (await editor.restore(versionId)) setShowHistory(false);
   }
 
   return (
     <div className="mx-auto max-w-[960px]">
       {!canEdit && (
-        <div
-          role="alert"
-          className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
-        >
+        <Alert variant="warning" role="alert" className="mb-4">
           Only Super Admins can edit legal pages. You can read the draft and its
           history.
-        </div>
+        </Alert>
       )}
 
       <LegalEditorToolbar
@@ -223,17 +231,8 @@ export function LegalPageEditor({
           slug={slug}
           onClose={() => setShowHistory(false)}
           onPreview={setPreviewVersion}
-          onRestore={(id) =>
-            unsaved ? setPendingRestore(id) : void restore(id)
-          }
+          onRestore={(id) => void restore(id)}
           canRestore={canEdit}
-        />
-      )}
-
-      {pendingRestore && (
-        <LegalRestoreDialog
-          onConfirm={() => void restore(pendingRestore)}
-          onCancel={() => setPendingRestore(null)}
         />
       )}
 

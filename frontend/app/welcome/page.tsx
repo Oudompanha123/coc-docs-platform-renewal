@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
-import { ReportsNavDropdown } from "@/components/welcome/ReportsNavDropdown";
 import { ScrollReveal } from "@/components/welcome/ScrollReveal";
 import { GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { TONE_STYLES } from "@/components/dashboard/tone";
@@ -213,7 +212,6 @@ export default function WelcomePage() {
               {HOME_LINK.label}
             </a>
             <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={setAuthGate} />
-            <ReportsNavDropdown onRequireAuth={setAuthGate} />
           </nav>
 
           <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useSearchParams } from "next/navigation";
@@ -367,54 +368,63 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             one line in the workspace whose whole job is to be honest about
             what the assistant can do (ADR-043). */}
         {engine?.connected && useModel ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-            <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              Local model in use —{" "}
-              <span className="font-semibold">
-                {engine.readsSource ? "reads your source" : "reads the manifest only"}
-              </span>
+          <Alert
+            variant="success"
+            icon={<SparklesIcon />}
+            className="mx-4 mt-3 w-auto text-xs"
+            action={
+              <button
+                type="button"
+                onClick={() => setUseModel(false)}
+                // "Stop using it", not "disconnect": the path in .env.local is
+                // untouched and the backend could still run it. All this does is
+                // stop asking, which is the only thing a web page honestly can do.
+                title="Run the keyword analysis instead. The configured model stays configured."
+                className="shrink-0 rounded-xl border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+              >
+                stop using
+              </button>
+            }
+          >
+            Local model in use —{" "}
+            <span className="font-semibold">
+              {engine.readsSource ? "reads your source" : "reads the manifest only"}
             </span>
-            <button
-              type="button"
-              onClick={() => setUseModel(false)}
-              // "Stop using it", not "disconnect": the path in .env.local is
-              // untouched and the backend could still run it. All this does is
-              // stop asking, which is the only thing a web page honestly can do.
-              title="Run the keyword analysis instead. The configured model stays configured."
-              className="ml-auto shrink-0 rounded-xl border border-emerald-400 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
-            >
-              stop using
-            </button>
-          </div>
+          </Alert>
         ) : engine?.connected ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-            <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              A model is available — <span className="font-semibold">not using it here</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setUseModel(true)}
-              className="ml-auto shrink-0 rounded-xl border border-slate-400 px-2.5 py-0.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-            >
-              use it
-            </button>
-          </div>
+          <Alert
+            variant="default"
+            icon={<SparklesIcon />}
+            className="mx-4 mt-3 w-auto text-xs"
+            action={
+              <button
+                type="button"
+                onClick={() => setUseModel(true)}
+                className="shrink-0 rounded-xl border border-surface-border px-2.5 py-0.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted-surface"
+              >
+                use it
+              </button>
+            }
+          >
+            A model is available — <span className="font-semibold">not using it here</span>
+          </Alert>
         ) : engine ? (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <SparklesIcon className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              No model connected — <span className="font-semibold">fixed commands only</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => onOpenTab("ai-engine")}
-              className="ml-auto shrink-0 rounded-xl border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
-            >
-              connect
-            </button>
-          </div>
+          <Alert
+            variant="warning"
+            icon={<SparklesIcon />}
+            className="mx-4 mt-3 w-auto text-xs"
+            action={
+              <button
+                type="button"
+                onClick={() => onOpenTab("ai-engine")}
+                className="shrink-0 rounded-xl border border-amber-400 px-2.5 py-0.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              >
+                connect
+              </button>
+            }
+          >
+            No model connected — <span className="font-semibold">fixed commands only</span>
+          </Alert>
         ) : null}
         {mode === "chat" && (
           <p className="border-b border-surface-border bg-card px-4 py-2 text-xs italic text-muted-foreground">
@@ -497,16 +507,10 @@ export function AxAssistantPanel({ width = 360, onResizeStart = () => {}, isResi
             </>
           )}
           {note && (
-            <p
-              className={`rounded-r-md border-l-4 px-3 py-2 font-mono text-xs ${
-                note.tone === "applied"
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                  : "border-amber-500 bg-amber-50 text-amber-800"
-              }`}
-            >
+            <Alert variant={note.tone === "applied" ? "success" : "warning"} className="font-mono text-xs">
               {note.tone === "applied" ? "applied — " : "not applied — "}
               {note.text}
-            </p>
+            </Alert>
           )}
         </div>
 

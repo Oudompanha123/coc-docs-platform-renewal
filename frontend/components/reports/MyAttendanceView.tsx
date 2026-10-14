@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DownloadIcon, WarningIcon } from "@/components/layout/icons";
+import { DownloadIcon } from "@/components/layout/icons";
+import { Alert } from "@/components/ui/alert";
 import { AttendanceDateNav } from "@/components/attendance/AttendanceDateNav";
 import { MyAttendanceRecord } from "@/components/reports/MyAttendanceRecord";
 import { Button } from "@/components/ui/button";
@@ -75,16 +76,16 @@ export function MyAttendanceView() {
       {loading && <LoadingSkeleton />}
 
       {!loading && loadError && (
-        <div
-          role="alert"
-          className="flex flex-col items-center gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-6 text-center"
+        <Alert
+          variant="destructive"
+          action={
+            <Button type="button" variant="destructiveOutline" size="sm" onClick={() => void load()}>
+              Retry
+            </Button>
+          }
         >
-          <WarningIcon className="size-5 text-danger" />
-          <p className="text-sm font-medium text-danger">{loadError}</p>
-          <Button type="button" variant="destructiveOutline" size="sm" onClick={() => void load()}>
-            Retry
-          </Button>
-        </div>
+          {loadError}
+        </Alert>
       )}
 
       {!loading && !loadError && report && (

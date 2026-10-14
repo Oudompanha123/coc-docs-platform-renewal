@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { NavItem } from "./nav-config";
 
 /** The same base rule `NavService.slugify` applies server-side (lowercase,
@@ -48,6 +48,7 @@ export function SidebarRenameRow({
   // side effect — this guards the blur handler from re-running a save (or
   // running one at all after a cancel) once that's already happened.
   const resolvedRef = useRef(false);
+  const hintId = useId();
 
   function trySave() {
     if (resolvedRef.current) return;
@@ -74,43 +75,61 @@ export function SidebarRenameRow({
   }
 
   const Icon = item.icon;
+  // Drawn for the light sidebar (ADR-104 r2.7): the row keeps a nav item's
+  // shape — 40px, rounded ends, same icon and text size — and becomes a
+  // field: page background, a visible border, the focus ring. It used to be
+  // the old navy sidebar's `bg-sidebar-hover` with white text and a navy
+  // error popup floating over the next item. The error, the URL preview and
+  // the keyboard hint now sit under the row, in the flow, so nothing covers
+  // a neighbour.
   return (
-    <div className="relative flex h-[42px] items-center gap-3 rounded-xl bg-sidebar-hover px-3 py-2.5">
-      <Icon className="h-[18px] w-[18px] shrink-0 text-white" />
-      <input
-        autoFocus
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setError(null);
-        }}
-        onFocus={(e) => e.target.select()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            trySave();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            cancel();
-          }
-        }}
-        onBlur={trySave}
-        maxLength={30}
-        aria-label={`Rename ${item.label}`}
-        aria-invalid={error != null}
-        className="min-w-0 flex-1 bg-transparent text-sm font-medium text-white outline-none"
-      />
-      {error ? (
-        <p role="alert" className="absolute left-3 top-full z-10 mt-1 rounded-lg bg-[#1f2037] px-2.5 py-1.5 text-xs text-[#f87171] shadow-lg">
-          {error}
-        </p>
-      ) : (
-        showUrlPreview && (
-          <p className="absolute left-3 top-full mt-1 truncate text-xs text-sidebar-muted">
-            URL: /docs/{previewSlug(value) || "…"}
+    <div className="py-0.5">
+      <div
+        className={`flex h-10 items-center gap-2.5 rounded-full border bg-background px-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-[3px] transition-colors ${
+          error ? "border-destructive/50 ring-destructive/15" : "border-surface-border ring-ring/30"
+        }`}
+      >
+        <Icon className="size-4 shrink-0 text-nav-muted" />
+        <input
+          autoFocus
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError(null);
+          }}
+          onFocus={(e) => e.target.select()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              trySave();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+          onBlur={trySave}
+          maxLength={30}
+          aria-label={`Rename ${item.label}`}
+          aria-invalid={error != null}
+          aria-describedby={hintId}
+          className="min-w-0 flex-1 bg-transparent text-sm text-nav-foreground outline-none selection:bg-sky-500/25 selection:text-foreground"
+        />
+        <span className={`shrink-0 text-[11px] tabular-nums ${value.length >= 30 ? "text-destructive" : "text-nav-muted"}`} aria-hidden="true">
+          {value.length}/30
+        </span>
+      </div>
+      <div id={hintId} className="px-3 pt-1 text-[11px] leading-snug">
+        {error ? (
+          <p role="alert" className="text-destructive">
+            {error}
           </p>
-        )
-      )}
+        ) : (
+          <>
+            {showUrlPreview && <p className="truncate text-nav-muted">URL: /docs/{previewSlug(value) || "…"}</p>}
+            <p className="text-nav-muted">Enter to save · Esc to cancel</p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

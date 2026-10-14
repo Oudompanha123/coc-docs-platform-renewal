@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { PasswordField } from "./FormField";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AuthApiError, changePassword } from "@/lib/auth/api";
 import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
@@ -114,9 +115,9 @@ export function ChangePasswordForm({
       />
 
       {formError && (
-        <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+        <Alert variant="destructive" className="text-xs">
           {formError}
-        </p>
+        </Alert>
       )}
 
       <div className="flex justify-end gap-2 pt-1">

@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ui/confirm";
 import { FormField } from "./FormField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import type { StepsContent } from "@/lib/docs/content-types";
 import { SimpleSelect } from "@/components/ui/select";
 
 export function StepsForm({ value, onChange }: { value: StepsContent; onChange: (next: StepsContent) => void }) {
+  const confirm = useConfirm();
   function set<K extends keyof StepsContent>(key: K, val: StepsContent[K]) {
     onChange({ ...value, [key]: val });
   }
@@ -16,8 +18,8 @@ export function StepsForm({ value, onChange }: { value: StepsContent; onChange: 
     onChange({ ...value, steps });
   }
 
-  function removeStep(index: number) {
-    if (!window.confirm("Remove this step?")) return;
+  async function removeStep(index: number) {
+    if (!(await confirm({ title: "Remove this step?", confirmLabel: "Remove", destructive: true }))) return;
     onChange({ ...value, steps: value.steps.filter((_, i) => i !== index) });
   }
 

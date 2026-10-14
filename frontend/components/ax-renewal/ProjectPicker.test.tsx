@@ -85,7 +85,7 @@ describe("ProjectPicker", () => {
       fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
 
       expect(deleteProject).not.toHaveBeenCalled();
-      const dialog = screen.getByRole("dialog", { name: "Delete project" });
+      const dialog = screen.getByRole("alertdialog", { name: "Delete project?" });
       expect(dialog).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Yes, delete" })).toBeInTheDocument();
       expect(screen.getByText(/can.?t be undone/)).toBeInTheDocument();
@@ -98,18 +98,19 @@ describe("ProjectPicker", () => {
       fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
       expect(deleteProject).not.toHaveBeenCalled();
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Delete project" })).toBeInTheDocument();
     });
 
-    it("closes on a click outside the card (the backdrop)", () => {
+    it("stays open on a click outside — an outside click isn't an answer to a delete", () => {
       renderWithOneProject();
 
       fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
-      fireEvent.click(screen.getByRole("dialog", { name: "Delete project" }));
+      fireEvent.pointerDown(document.body);
+      fireEvent.click(document.body);
 
       expect(deleteProject).not.toHaveBeenCalled();
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("alertdialog", { name: "Delete project?" })).toBeInTheDocument();
     });
 
     it("closes on Escape", () => {
@@ -119,7 +120,7 @@ describe("ProjectPicker", () => {
       fireEvent.keyDown(document, { key: "Escape" });
 
       expect(deleteProject).not.toHaveBeenCalled();
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
 
     // ADR-072: nothing of a deleted project is kept, the browser included.
@@ -203,13 +204,13 @@ describe("ProjectPicker", () => {
       );
 
       expect(screen.queryByText("Deleting…")).not.toBeInTheDocument();
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
       const freshButton = screen.getByRole("button", { name: "Delete project" });
       expect(freshButton).toBeEnabled();
 
       // And it works correctly for the new project, not stuck on the old one.
       fireEvent.click(freshButton);
-      const newDialog = screen.getByRole("dialog", { name: "Delete project" });
+      const newDialog = screen.getByRole("alertdialog", { name: "Delete project?" });
       expect(newDialog).toHaveTextContent("Another Project");
       fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
       await waitFor(() => expect(deleteProject).toHaveBeenCalledWith("p2"));
@@ -237,7 +238,7 @@ describe("ProjectPicker", () => {
       expect(await screen.findByText(/active implementation run/)).toBeInTheDocument();
       expect(onDeleted).not.toHaveBeenCalled();
       // The popup stays open on failure — there is still a "Delete project?" decision to make.
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
     });
 
     describe("the success message", () => {
@@ -343,7 +344,7 @@ describe("ProjectPicker editing a project's details", () => {
 
     await waitFor(() => expect(updateProject).toHaveBeenCalledWith("p1", "Legacy Portal v2", null));
     await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(renamed));
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("refuses a blank name without calling the server", () => {
@@ -376,7 +377,7 @@ describe("ProjectPicker editing a project's details", () => {
     fireEvent.click(screen.getByRole("button", { name: "Edit details" }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(updateProject).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Modal, ModalFooter } from "@/components/users-roles/Modal";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Radio } from "@/components/ui/radio";
 import { approveAccount, type AccountRole, type PendingAccount } from "@/lib/admin/accounts";
@@ -105,9 +106,9 @@ export function ApproveRegistrationModal({
       </fieldset>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+        <Alert variant="destructive" className="mt-4">
           {error}
-        </p>
+        </Alert>
       )}
 
       <ModalFooter>

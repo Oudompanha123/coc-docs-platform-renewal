@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { Spinner } from "@/components/layout/Spinner";
 import { XIcon } from "@/components/layout/icons";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
@@ -187,9 +188,7 @@ export function AnnouncementEditorModal({
           <AnnouncementExpiryField value={expiresAt} onChange={setExpiresAt} disabled={saving !== null} />
 
           {error && (
-            <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
+            <Alert variant="destructive">{error}</Alert>
           )}
         </div>
 

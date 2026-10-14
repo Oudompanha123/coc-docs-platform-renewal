@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ConfirmationBar } from "./ConfirmationBar";
@@ -241,14 +242,14 @@ export function ArchitectureSection({
       </p>
 
       {isSuggestion && (
-        <p className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
+        <Alert variant="default" className="mt-3 text-xs">
           Drafted from Stack move&apos;s recorded decisions and Module coupling&apos;s real findings — nothing is
           saved yet. Edit it into your own words, then <strong>Save architecture</strong>.
-        </p>
+        </Alert>
       )}
 
       {suggestionNotYetIncluded && (
-        <div className="mt-3 rounded-xl border border-surface-border bg-secondary px-3 py-2 text-xs text-foreground">
+        <Alert variant="default" className="mt-3 text-xs">
           <p>
             <strong>Stack move or Module coupling has something new</strong> since this was last saved — not
             reflected below yet:
@@ -263,7 +264,7 @@ export function ArchitectureSection({
               Add this to my summary
             </button>
           )}
-        </div>
+        </Alert>
       )}
 
       <textarea
@@ -275,7 +276,7 @@ export function ArchitectureSection({
         className={`${textareaBaseClass} mt-4 w-full resize-y`}
       />
 
-      {error && <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>}
+      {error && <Alert variant="destructive" className="mt-3 text-xs font-medium">{error}</Alert>}
 
       {canEdit && (
         <div className="mt-3 flex items-center justify-between gap-3">

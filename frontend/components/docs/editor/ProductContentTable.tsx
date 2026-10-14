@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { DocumentIcon, PlugIcon, PlusIcon, UploadIcon, XIcon } from "@/components/layout/icons";
@@ -32,6 +33,7 @@ function slugify(label: string): string {
  *  new sub-item, without adding a refetch capability every other consumer
  *  of that hook would have to carry too. */
 export function ProductContentTable({ productKey, productLabel }: { productKey: string; productLabel: string }) {
+  const confirm = useConfirm();
   // Same role floor the backend enforces on /api/v1/admin/nav/** and
   // /api/v1/admin/docs-content/**: hiding Add/Delete/Edit here is
   // presentation, not the actual control — a "user" caller who reached
@@ -118,10 +120,13 @@ export function ProductContentTable({ productKey, productLabel }: { productKey: 
   }
 
   async function handleDeleteItem(row: Row) {
-    const warning = row.hasContent
-      ? `Remove "${row.label}"? Its saved content will be permanently deleted too.`
-      : `Remove "${row.label}"?`;
-    if (!window.confirm(warning)) return;
+    const ok = await confirm({
+      title: `Remove "${row.label}"?`,
+      description: row.hasContent ? "Its saved content will be permanently deleted too." : undefined,
+      confirmLabel: "Remove",
+      destructive: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       await deleteItem(productKey, row.slug);

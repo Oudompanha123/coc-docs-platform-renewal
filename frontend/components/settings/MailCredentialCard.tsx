@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MailIcon } from "@/components/layout/icons";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SessionExpiredError } from "@/lib/auth/api";
@@ -213,21 +214,23 @@ export function MailCredentialCard() {
       {expanded && (
         <div className="mt-3 pl-12">
           {/* ADR-077 section 4.3: both halves, before anyone stores one. */}
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-            <p className="text-xs font-semibold text-foreground">Before you enter this, know what it allows</p>
-            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs text-muted-foreground">
-              <li>This app will send your attendance report as this address.</li>
-              <li>
-                It will also <strong>read this mailbox on a schedule</strong>, every 30 minutes, to find your
-                HRMS report.
-              </li>
-              <li>
-                A Google App Password is not limited to either of those. It grants full read and send on the
-                whole account.
-              </li>
-              <li>You can remove it here at any time, and revoke it in your Google account.</li>
-            </ul>
-          </div>
+          <Alert variant="warning" role="note">
+            <AlertTitle>Before you enter this, know what it allows</AlertTitle>
+            <AlertDescription>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4">
+                <li>This app will send your attendance report as this address.</li>
+                <li>
+                  It will also <strong>read this mailbox on a schedule</strong>, every 30 minutes, to find your
+                  HRMS report.
+                </li>
+                <li>
+                  A Google App Password is not limited to either of those. It grants full read and send on the
+                  whole account.
+                </li>
+                <li>You can remove it here at any time, and revoke it in your Google account.</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
 
           {canUseOauth && (
             <>

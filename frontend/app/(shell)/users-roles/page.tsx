@@ -17,6 +17,7 @@ import { AccountDetailModal } from "@/components/users-roles/AccountDetailModal"
 import { PendingTab } from "@/components/users-roles/PendingTab";
 import { RolesTab } from "@/components/users-roles/RolesTab";
 import { UsersEmptyState } from "@/components/users-roles/UsersEmptyState";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   createAccount,
@@ -511,15 +512,15 @@ function UsersRolesPageInner() {
             </div>
 
             {addedMessage && (
-              <div className="mx-5 mb-4 rounded-lg border border-green-600/30 bg-green-600/10 px-3 py-2.5 text-sm text-green-700 dark:text-green-400">
+              <Alert variant="success" className="mx-5 mb-4 w-auto">
                 {addedMessage}
-              </div>
+              </Alert>
             )}
 
             {error && (
-              <div className="mx-5 mb-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">
+              <Alert variant="destructive" className="mx-5 mb-4 w-auto">
                 {error}
-              </div>
+              </Alert>
             )}
 
             <div className="px-5 pb-5">

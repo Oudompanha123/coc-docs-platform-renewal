@@ -1,6 +1,7 @@
 "use client";
 
 import { SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
@@ -99,9 +100,9 @@ export function GeneratedChangesReview({
 
   if (loadError) {
     return (
-      <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+      <Alert variant="destructive" className="mt-3">
         {loadError}
-      </p>
+      </Alert>
     );
   }
   if (changes === null) {
@@ -153,9 +154,7 @@ export function GeneratedChangesReview({
       </div>
 
       {actionError && (
-        <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
-          {actionError}
-        </p>
+        <Alert variant="destructive">{actionError}</Alert>
       )}
 
       {canConfirm && (
@@ -173,32 +172,26 @@ export function GeneratedChangesReview({
             Against a disposable copy of this exact proposal — never the live destination.
           </p>
           {testError && (
-            <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
+            <Alert variant="destructive" className="mt-2">
               {testError}
-            </p>
+            </Alert>
           )}
           {testResult && !testResult.executed && (
-            <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <Alert variant="warning" className="mt-2">
               {testResult.note}
-            </p>
+            </Alert>
           )}
           {testResult && testResult.executed && (
-            <div
-              className={`mt-2 rounded-xl border px-3 py-2 text-xs ${
-                testResult.exitCode === 0
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-800"
-                  : "border-danger/30 bg-danger/10 text-danger"
-              }`}
-            >
-              <p className="font-semibold">
+            <Alert variant={testResult.exitCode === 0 ? "success" : "destructive"} className="mt-2">
+              <AlertTitle>
                 {testResult.exitCode === 0 ? "Tests passed" : `Tests failed (exit code ${testResult.exitCode})`}
-              </p>
+              </AlertTitle>
               {testResult.output.length > 0 && (
                 <pre className="mt-1.5 max-h-56 overflow-auto whitespace-pre-wrap break-all font-mono text-[11px]">
                   {testResult.output.join("\n")}
                 </pre>
               )}
-            </div>
+            </Alert>
           )}
         </div>
       )}
