@@ -148,6 +148,11 @@
   --color-sidebar-hover: #262626;
   --color-sidebar-muted: #a1a1a1;
   --color-danger: #e7000b;
+  /* Status tones for legal-page text colour (ADR-114). Colour stays reserved
+     for status (ADR-104 decision 2) — these are the only two the product was
+     missing, and they sit beside danger rather than inventing a new scale. */
+  --color-success: #0f7a52;
+  --color-caution: #8a5a05;
 
   /* shadcn/ui's semantic names, pointed at this product's values (ADR-104
      decision 2). These generate bg-card / text-muted-foreground / ring-ring
@@ -549,6 +554,16 @@
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-danger,
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-danger {
   color: #ff6f86;
+}
+
+/* The same lift for the other two status tones — the light values are too dark
+   to read on the dark shell (ADR-114). */
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-success {
+  color: #4fc08d;
+}
+
+:root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .text-caution {
+  color: #e0a93f;
 }
 
 :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) .border-danger {
