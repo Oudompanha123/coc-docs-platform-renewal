@@ -5,6 +5,7 @@ import { MemberHeader } from "@/components/home/MemberHeader";
 import { SettingsSideMenu } from "@/components/account/SettingsSideMenu";
 import { SettingsTabPanels } from "@/components/account/SettingsTabPanels";
 import { ProfileCard } from "@/components/account/ProfileCard";
+import { PasswordSecurityCard } from "@/components/account/PasswordSecurityCard";
 import { AppearanceCard } from "@/components/account/AppearanceCard";
 import { NotificationsCard } from "@/components/account/NotificationsCard";
 import { ConnectedAccountsCard, type HrmsLinkState } from "@/components/account/ConnectedAccountsCard";
@@ -153,6 +154,7 @@ export default function AccountSettingsPage() {
                 { id: "attendance", content: <AttendanceCard /> },
                 { id: "connected-accounts", content: <ConnectedAccountsCard state={hrmsLink} /> },
                 { id: "security", content: <SecurityCard /> },
+                { id: "password-2fa", content: <PasswordSecurityCard /> },
                 { id: "sessions", content: <SessionsCard /> },
               ]}
             />

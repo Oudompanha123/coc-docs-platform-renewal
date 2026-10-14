@@ -14,7 +14,7 @@ import {
   ReturnIcon,
   SunIcon,
 } from "@/components/layout/icons";
-import { ShieldIcon } from "@/components/auth/icons";
+import { LockIcon, ShieldIcon } from "@/components/auth/icons";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { getVisibleSettingsSections, type SettingsSectionId } from "@/lib/account/settingsSections";
 
@@ -28,6 +28,7 @@ const SECTION_LABELS: Record<SettingsSectionId, { label: string; Icon: IconCompo
   attendance: { label: "Attendance", Icon: CalendarCheckIcon },
   "connected-accounts": { label: "Connected accounts", Icon: LinkIcon },
   security: { label: "Security", Icon: ShieldIcon },
+  "password-2fa": { label: "Password & 2FA", Icon: LockIcon },
   sessions: { label: "Sessions", Icon: MonitorIcon },
 };
 

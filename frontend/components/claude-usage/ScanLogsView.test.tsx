@@ -3,9 +3,14 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ScanLogDetail, ScanLogList } from "@/lib/admin/claudeUsage";
 import { scanLog } from "@/lib/claudeUsage/scanLogs.fixture";
-import { SCAN_LOG_POLL_INTERVAL_MS, ScanLogsView } from "./ScanLogsView";
+import {
+  SCAN_LOG_ACTIVE_POLL_INTERVAL_MS,
+  SCAN_LOG_POLL_INTERVAL_MS,
+  SCAN_NOTICE_DISMISS_MS,
+  ScanLogsView,
+} from "./ScanLogsView";
 
-// req: FR-USAGE-002, ADR-099
+// req: FR-USAGE-002, ADR-099, ADR-107
 
 const { fetchScanLogs, fetchScanLogDetail } = vi.hoisted(() => ({
   fetchScanLogs: vi.fn(),
@@ -83,21 +88,29 @@ describe("ScanLogsView", () => {
 
     expect(card("Total Scans")).toBe("4");
     expect(card("Success")).toBe("1");
-    expect(card("No Usage")).toBe("1");
-    expect(card("Partial")).toBe("1");
+    expect(card("No New Usage")).toBe("1");
+    expect(card("Partial Success")).toBe("1");
     expect(card("Failed")).toBe("1");
     const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
-    expect(headers.slice(0, 5)).toEqual(["User", "Scan Time", "Status", "Result", "Duration"]);
+    expect(headers.slice(0, 7)).toEqual([
+      "User",
+      "Status",
+      "Started At",
+      "Completed At",
+      "Duration",
+      "Records",
+      "Error Summary",
+    ]);
 
     const rows = screen.getAllByRole("row").slice(1);
     expect(rows).toHaveLength(4);
     expect(within(rows[0]!).getByText("Success")).toBeInTheDocument();
-    expect(within(rows[0]!).getByText("Usage uploaded")).toBeInTheDocument();
-    expect(within(rows[0]!).getByText("15,240 tokens")).toBeInTheDocument();
-    expect(within(rows[1]!).getByText("Partial")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("118 files · 127 responses")).toBeInTheDocument();
+    expect(within(rows[0]!).getByText("8s")).toBeInTheDocument();
+    expect(within(rows[0]!).getByRole("button", { name: /View details/ })).toHaveTextContent("View details");
+    expect(within(rows[1]!).getByText("Partial Success")).toBeInTheDocument();
     expect(within(rows[1]!).getByText("Upload failed — server unreachable")).toBeInTheDocument();
-    expect(within(rows[2]!).getByText("No Usage")).toBeInTheDocument();
-    expect(within(rows[2]!).getByText("No usage found")).toBeInTheDocument();
+    expect(within(rows[2]!).getByText("No New Usage")).toBeInTheDocument();
     expect(within(rows[3]!).getByText("Failed")).toBeInTheDocument();
     expect(within(rows[3]!).getByText("Authentication failed")).toBeInTheDocument();
     expect(screen.queryByText(/rejected \(401\)/)).not.toBeInTheDocument(); // the raw error stays out of the table
@@ -107,8 +120,8 @@ describe("ScanLogsView", () => {
     fetchScanLogs.mockResolvedValue(list([noNewUsage]));
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
-    expect(card("No Usage")).toBe("1");
-    expect(card("Partial")).toBe("0");
+    expect(card("No New Usage")).toBe("1");
+    expect(card("Partial Success")).toBe("0");
     expect(card("Failed")).toBe("0");
   });
 
@@ -152,7 +165,7 @@ describe("ScanLogsView", () => {
     fireEvent.change(screen.getByLabelText("Date range"), { target: { value: "custom" } });
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
-    await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02"));
+    await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02", "team"));
   });
 
   describe("auto-refresh", () => {
@@ -184,14 +197,14 @@ describe("ScanLogsView", () => {
       fireEvent.change(screen.getByLabelText("Date range"), { target: { value: "custom" } });
       fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
       fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
-      await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02"));
+      await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02", "team"));
 
       const calls = fetchScanLogs.mock.calls.length;
       await act(async () => {
         await vi.advanceTimersByTimeAsync(SCAN_LOG_POLL_INTERVAL_MS);
       });
       expect(fetchScanLogs).toHaveBeenCalledTimes(calls + 1);
-      expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02");
+      expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02", "team");
     });
 
     it("a failed poll keeps the rows on screen and raises no error", async () => {
@@ -280,7 +293,7 @@ describe("ScanLogsView", () => {
       expect(within(drawer).getAllByText("Upload Usage / Check-in").length).toBeGreaterThan(0);
       expect(within(drawer).getByText("Loading scan steps…")).toBeInTheDocument();
       expect(fetchScanLogDetail).toHaveBeenCalledTimes(1);
-      expect(fetchScanLogDetail).toHaveBeenCalledWith("log-4");
+      expect(fetchScanLogDetail).toHaveBeenCalledWith("log-4", "team");
 
       resolve(detail);
       await within(drawer).findByText("Not run.");
@@ -295,7 +308,8 @@ describe("ScanLogsView", () => {
     it("a successful scan shows what it uploaded, with nothing to fix", async () => {
       const drawer = await openDrawerFor(scanLog());
       expect(within(drawer).getByText("Usage uploaded successfully")).toBeInTheDocument();
-      expect(within(drawer).getByText(/15,240 new tokens/)).toBeInTheDocument();
+      expect(within(drawer).getByText(/15,240 new tokens across/)).toBeInTheDocument();
+      expect(within(drawer).getByLabelText("Scan stages")).toHaveTextContent("Upload: Done");
       expect(within(drawer).queryByText("How to fix")).not.toBeInTheDocument();
     });
 
@@ -319,6 +333,226 @@ describe("ScanLogsView", () => {
       await openDrawerFor();
       fireEvent.keyDown(window, { key: "Escape" });
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
+  });
+});
+
+// req: FR-USAGE-002, ADR-107 — live scan status: in progress, results, notifications, member scope.
+describe("ScanLogsView — live scan status (ADR-107)", () => {
+  const running = scanLog({
+    id: "log-run",
+    status: "running",
+    finishedAt: null,
+    durationMs: null,
+    uploadStatus: "not-attempted",
+    transcriptFiles: null,
+    responses: null,
+    duplicates: null,
+    newTokens: null,
+    daysUploaded: null,
+  });
+  const finished = scanLog({ id: "log-run" });
+
+  beforeEach(() => {
+    fetchScanLogs.mockReset();
+    fetchScanLogDetail.mockReset();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Lets the fake clock run `ms`, flushing the poll it triggers. */
+  async function advance(ms: number) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+  }
+
+  it("a running scan is In Progress — never success — with no completion time or duration yet", async () => {
+    fetchScanLogs.mockResolvedValue(list([running]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+
+    const [row] = screen.getAllByRole("row").slice(1);
+    expect(within(row!).getByText("In Progress")).toBeInTheDocument();
+    expect(within(row!).getByText("Not yet")).toBeInTheDocument();
+    const cells = within(row!).getAllByRole("cell");
+    expect(cells[4]).toHaveTextContent("—"); // duration
+    expect(cells[5]).toHaveTextContent("—"); // records
+    expect(within(row!).queryByText("Success")).not.toBeInTheDocument();
+
+    const panel = screen.getByRole("region", { name: /Latest scan/ });
+    expect(within(panel).getByText("Scan in progress")).toBeInTheDocument();
+    expect(within(panel).getByLabelText("Scan stages")).toHaveTextContent("Scan record: Waiting");
+    expect(card("Success")).toBe("0");
+  });
+
+  it("polls faster while a scan is in progress, and back to normal once it finishes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchScanLogs.mockResolvedValue(list([running]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    expect(fetchScanLogs).toHaveBeenCalledTimes(1);
+
+    await advance(SCAN_LOG_ACTIVE_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(2);
+
+    fetchScanLogs.mockResolvedValue(list([finished]));
+    await advance(SCAN_LOG_ACTIVE_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(3);
+
+    await advance(SCAN_LOG_ACTIVE_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(3); // back to the slower pace
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(4);
+  });
+
+  it("announces a scan that finishes while the page is open — once, and not what was there on load", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchScanLogs.mockResolvedValue(list([running, failed]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    const live = screen.getByLabelText("Scan notifications");
+    expect(live).toHaveAttribute("aria-live", "polite");
+    expect(live).toBeEmptyDOMElement(); // nothing on first load
+
+    fetchScanLogs.mockResolvedValue(list([finished, failed]));
+    await advance(SCAN_LOG_ACTIVE_POLL_INTERVAL_MS);
+    expect(within(live).getByText("Scan succeeded — Sreyly: 15,240 new tokens uploaded")).toBeInTheDocument();
+    expect(within(live).getAllByRole("status")).toHaveLength(1);
+    fireEvent.click(within(live).getByRole("button", { name: "Dismiss notification" }));
+    expect(live).toBeEmptyDOMElement();
+
+    // The same result on the next poll is not news: nothing comes back.
+    fetchScanLogs.mockResolvedValue(list([{ ...finished }, { ...failed, receivedAt: new Date().toISOString() }]));
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(3);
+    expect(live).toBeEmptyDOMElement();
+  });
+
+  it("announces a failure in plain words, and the notification opens its details", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchScanLogs.mockResolvedValue(list([scanLog()]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+
+    fetchScanLogs.mockResolvedValue(list([authFailed, scanLog()]));
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    const live = screen.getByLabelText("Scan notifications");
+    expect(within(live).getByText("Scan failed — Vanna: Authentication failed")).toBeInTheDocument();
+    expect(within(live).queryByText(/rejected \(401\)/)).not.toBeInTheDocument();
+
+    fireEvent.click(within(live).getByRole("button", { name: "View details" }));
+    expect(within(screen.getByRole("dialog")).getByText("Your Claude Usage login has expired or is invalid.")).toBeInTheDocument();
+  });
+
+  it("a notification dismisses itself", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchScanLogs.mockResolvedValue(list([]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    fetchScanLogs.mockResolvedValue(list([scanLog()]));
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    expect(within(screen.getByLabelText("Scan notifications")).getAllByRole("status")).toHaveLength(1);
+
+    fetchScanLogs.mockResolvedValue(list([scanLog()]));
+    await advance(SCAN_NOTICE_DISMISS_MS);
+    expect(screen.getByLabelText("Scan notifications")).toBeEmptyDOMElement();
+  });
+
+  it("the open drawer follows its scan from In Progress to its result", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchScanLogs.mockResolvedValue(list([running]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    fireEvent.click(screen.getAllByRole("row")[1]!);
+    const drawer = screen.getByRole("dialog");
+    expect(within(drawer).getByRole("heading", { name: "Scan in progress" })).toBeInTheDocument();
+
+    fetchScanLogs.mockResolvedValue(list([finished]));
+    await advance(SCAN_LOG_ACTIVE_POLL_INTERVAL_MS);
+    expect(within(drawer).getByText("Usage uploaded successfully")).toBeInTheDocument();
+    expect(within(drawer).queryByRole("heading", { name: "Scan in progress" })).not.toBeInTheDocument();
+  });
+
+  it("a start whose result never came is Failed — 'No result received' — not left In Progress", async () => {
+    fetchScanLogs.mockResolvedValue(list([{ ...running, status: "incomplete" }]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    const [row] = screen.getAllByRole("row").slice(1);
+    expect(within(row!).getByText("Failed")).toBeInTheDocument();
+    expect(within(row!).getByText("No result received")).toBeInTheDocument();
+    expect(screen.getByLabelText("Scan stages")).toHaveTextContent("Scan record: Failed");
+  });
+
+  it("scanned but couldn't upload: Partial Success, and the stages say which part failed", async () => {
+    fetchScanLogs.mockResolvedValue(list([failed]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    const stages = screen.getByLabelText("Scan stages");
+    expect(stages).toHaveTextContent("Scan: Done");
+    expect(stages).toHaveTextContent("Upload: Failed");
+    expect(stages).toHaveTextContent("Scan record: Done");
+    expect(screen.getByRole("region", { name: /Latest scan/ })).toHaveTextContent("Partial Success");
+  });
+
+  it("no scan in the range: No Recent Scan, and the empty state", async () => {
+    fetchScanLogs.mockResolvedValue(list([]));
+    render(<ScanLogsView />);
+    await screen.findByText("No scan logs yet");
+    const panel = screen.getByRole("region", { name: /Latest scan/ });
+    expect(within(panel).getByText("No Recent Scan")).toBeInTheDocument();
+    expect(within(panel).queryByLabelText("Scan stages")).not.toBeInTheDocument();
+  });
+
+  it("shows when it last heard from the server, and a failed refresh backs off instead of hammering", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    fetchScanLogs.mockResolvedValueOnce(list([scanLog()])).mockRejectedValue(new Error("Couldn't reach the server."));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    expect(screen.getByText(/Last updated: \d/)).toBeInTheDocument();
+
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(2);
+    expect(screen.getByText(/Couldn.t refresh — retrying/)).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2); // the rows stay
+
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(2); // waiting twice as long now
+    await advance(SCAN_LOG_POLL_INTERVAL_MS);
+    expect(fetchScanLogs).toHaveBeenCalledTimes(3);
+  });
+
+  describe("a member's own scans (scope mine)", () => {
+    it("reads the self-service endpoint, with no User column, filter or Dashboard tab", async () => {
+      fetchScanLogs.mockResolvedValue(list([scanLog()]));
+      render(<ScanLogsView scope="mine" />);
+      await screen.findByText("Scan history");
+
+      expect(screen.getByRole("heading", { name: "My Scan Logs" })).toBeInTheDocument();
+      expect(fetchScanLogs.mock.calls[0]![2]).toBe("mine");
+      expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).not.toContain("User");
+      expect(screen.queryByLabelText("User")).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Dashboard" })).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Scan Logs" })).toBeInTheDocument();
+    });
+
+    it("the drawer's timeline comes from the same endpoint, and fixes are for 'your PC'", async () => {
+      fetchScanLogs.mockResolvedValue(list([authFailed]));
+      fetchScanLogDetail.mockResolvedValue({ summary: authFailed, steps: [] });
+      render(<ScanLogsView scope="mine" />);
+      await screen.findByText("Scan history");
+      fireEvent.click(screen.getAllByRole("row")[1]!);
+      const drawer = screen.getByRole("dialog");
+      expect(within(drawer).getByText("Commands run in a terminal on your PC.")).toBeInTheDocument();
+      fireEvent.click(within(drawer).getByRole("button", { name: "Technical details" }));
+      await waitFor(() => expect(fetchScanLogDetail).toHaveBeenCalledWith("log-4", "mine"));
+    });
+
+    it("an empty history says what to do on their own PC", async () => {
+      fetchScanLogs.mockResolvedValue(list([]));
+      render(<ScanLogsView scope="mine" />);
+      expect(await screen.findByText(/once claude-team-usage runs on your PC/)).toBeInTheDocument();
     });
   });
 });

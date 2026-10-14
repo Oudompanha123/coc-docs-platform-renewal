@@ -6,9 +6,11 @@ import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, WarningIcon, XI
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
 import { ScanLogDrawer } from "@/components/claude-usage/ScanLogDrawer";
 import { ScanLogTable } from "@/components/claude-usage/ScanLogTable";
+import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
+import { ScanStatusPanel } from "@/components/claude-usage/ScanStatusPanel";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { Pagination } from "@/components/users-roles/Pagination";
-import { fetchScanLogs, type ScanLogList, type ScanLogSummary } from "@/lib/admin/claudeUsage";
+import { fetchScanLogs, type ScanLogList, type ScanLogScope, type ScanLogSummary } from "@/lib/admin/claudeUsage";
 import {
   filterLogs,
   formatScanTime,
@@ -16,15 +18,24 @@ import {
   peopleIn,
   personKey,
   personName,
+  pollInterval,
   presetRange,
+  scanNotices,
+  scanOutcome,
   summarize,
   type RangePreset,
+  type ScanNotice,
   type StatusFilter,
 } from "@/lib/claudeUsage/scanLogs";
 import { useVisiblePolling } from "@/lib/claudeUsage/useVisiblePolling";
 
-/** How often an open, visible Scan Logs page re-reads the range. */
-export const SCAN_LOG_POLL_INTERVAL_MS = 15_000;
+export { SCAN_LOG_ACTIVE_POLL_INTERVAL_MS, SCAN_LOG_MAX_POLL_INTERVAL_MS, SCAN_LOG_POLL_INTERVAL_MS } from "@/lib/claudeUsage/scanLogs";
+
+/** How long a status notification stays on screen. */
+export const SCAN_NOTICE_DISMISS_MS = 8_000;
+/** At most this many notifications at once — the newest win. */
+const MAX_NOTICES = 3;
+
 
 const TITLE_ICON = <DocumentIcon className="hidden h-8 w-8 shrink-0 text-brand-purple sm:block" />;
 
@@ -42,8 +53,8 @@ const FIELD =
 /**
  * `/claude-usage/monitoring` — Scan Logs (ADR-099): every `claude-team-usage scan`
  * the team's PCs ran, how each ended, and — for one that didn't fully work —
- * the problem and how to fix it, in a side drawer. Admin only, like the rest
- * of `/claude-usage`.
+ * the problem and how to fix it, in a side drawer. Team-wide for a
+ * super_admin; every other role sees only their own scans (ADR-107).
  *
  * The date range is fetched from the server; person, status and search
  * filter the loaded rows here, like Users & Roles. The summary cards count
@@ -55,9 +66,21 @@ const FIELD =
  * history of every scan behind them.
  *
  * Re-reads the range every SCAN_LOG_POLL_INTERVAL_MS while the tab is
- * visible, so a scan run with the page open shows up on its own.
+ * visible, so a scan run with the page open shows up on its own — every
+ * SCAN_LOG_ACTIVE_POLL_INTERVAL_MS while a scan in view is in progress, and
+ * backing off to SCAN_LOG_MAX_POLL_INTERVAL_MS while refreshes fail. There is
+ * no push channel for scan events; polling the same endpoint is the honest
+ * substitute, and nothing is shown that the server didn't return (ADR-107).
+ *
+ * A scan that starts or finishes while the page is open is announced once —
+ * a short notification, also read out by screen readers. "Once" is per scan
+ * and outcome: the same result coming back on the next poll is not news.
+ *
+ * `scope`: `team` is every scan (super_admin); `mine` is the viewer's own,
+ * from the self-service endpoint, for every other role (ADR-107).
  */
-export function ScanLogsView() {
+export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
+  const team = scope === "team";
   const [preset, setPreset] = useState<RangePreset>("7d");
   const [custom, setCustom] = useState(() => presetRange("7d") ?? { from: isoDate(new Date()), to: isoDate(new Date()) });
   const [person, setPerson] = useState("all");
@@ -70,6 +93,9 @@ export function ScanLogsView() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<ScanLogSummary | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [pollFailures, setPollFailures] = useState(0);
+  const [notices, setNotices] = useState<ScanNotice[]>([]);
 
   const range = preset === "custom" ? custom : presetRange(preset)!;
   const rangeInvalid = range.from > range.to;
@@ -78,6 +104,11 @@ export function ScanLogsView() {
   // range changes must not overwrite the new range's rows.
   const latestRequest = useRef(0);
   const inFlight = useRef(false);
+  // Every `${id}:${outcome}` already on screen or announced — what keeps a
+  // poll from announcing the same change twice.
+  const seenOutcomes = useRef(new Set<string>());
+  /** The rows on screen, for comparing a fresh read against without a state updater doing side effects. */
+  const shown = useRef<ScanLogList | null>(null);
 
   /**
    * `background` is the auto-refresh: it never shows "Refreshing…", skips a
@@ -91,13 +122,29 @@ export function ScanLogsView() {
       inFlight.current = true;
       if (!background) setLoading(true);
       try {
-        const next = await fetchScanLogs(range.from, range.to);
+        const next = await fetchScanLogs(range.from, range.to, scope);
         if (request !== latestRequest.current) return;
+        const prev = shown.current;
         // Same rows as before (the usual poll): keep the old object, so nothing re-renders.
-        setData((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+        if (!prev || JSON.stringify(prev) !== JSON.stringify(next)) {
+          // News only within the same range: a new range's rows were simply never seen.
+          const sameRange = prev !== null && prev.from === next.from && prev.to === next.to;
+          const fresh = sameRange ? scanNotices(prev.logs, next.logs, seenOutcomes.current) : [];
+          for (const log of next.logs) seenOutcomes.current.add(`${log.id}:${scanOutcome(log)}`);
+          if (fresh.length) setNotices((current) => [...current, ...fresh].slice(-MAX_NOTICES));
+          shown.current = next;
+          setData(next);
+        }
         setLoadError(null);
+        setLastUpdated(new Date());
+        setPollFailures(0);
       } catch (err) {
-        if (request !== latestRequest.current || background) return;
+        if (request !== latestRequest.current) return;
+        if (background) {
+          // Keep the rows; say the refresh failed, and slow down until one works.
+          setPollFailures((n) => n + 1);
+          return;
+        }
         setLoadError(err instanceof Error ? err.message : "Couldn't load scan logs.");
       } finally {
         if (request === latestRequest.current) {
@@ -106,7 +153,7 @@ export function ScanLogsView() {
         }
       }
     },
-    [range.from, range.to, rangeInvalid],
+    [range.from, range.to, rangeInvalid, scope],
   );
 
   useEffect(() => {
@@ -115,7 +162,8 @@ export function ScanLogsView() {
 
   // A `claude-team-usage scan` posts its log on its own; show it without a manual Refresh.
   const pollLogs = useCallback(() => load({ background: true }), [load]);
-  useVisiblePolling(pollLogs, SCAN_LOG_POLL_INTERVAL_MS, !rangeInvalid);
+  const anyRunning = useMemo(() => (data?.logs ?? []).some((l) => l.status === "running"), [data]);
+  useVisiblePolling(pollLogs, pollInterval(pollFailures, anyRunning), !rangeInvalid);
 
   // Any filter change starts again at page 1, or a narrower result can leave the table on an empty page.
   useEffect(() => setPage(1), [preset, custom, person, status, search]);
@@ -139,14 +187,23 @@ export function ScanLogsView() {
   }
 
   const closeDetail = useCallback(() => setSelected(null), []);
+  const dismissNotice = useCallback((key: string) => setNotices((current) => current.filter((n) => n.key !== key)), []);
+  // The open drawer follows its row: a scan that finishes while open shows its result.
+  const selectedLog = selected ? (logs.find((l) => l.id === selected.id) ?? selected) : null;
+  const runningCount = useMemo(() => personLogs.filter((l) => l.status === "running").length, [personLogs]);
+  const visibleNotices = person === "all" ? notices : notices.filter((n) => personKey(n.log) === person);
 
   return (
     <AppShell
-      pageTitle="Scan Logs"
-      pageSubtitle="View and monitor Claude usage scan activities from all users."
+      pageTitle={team ? "Scan Logs" : "My Scan Logs"}
+      pageSubtitle={
+        team
+          ? "View and monitor Claude usage scan activities from all users."
+          : "See how each of your Claude usage scans went, and how to fix one that didn't."
+      }
       titleIcon={TITLE_ICON}
     >
-      <ClaudeUsageTabs />
+      <ClaudeUsageTabs showDashboard={team} />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <div className="flex flex-wrap items-center gap-2">
@@ -180,20 +237,23 @@ export function ScanLogsView() {
             </>
           )}
         </div>
-        <SelectField label="User" value={person} onChange={setPerson}>
-          <option value="all">All users</option>
-          {people.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.name}
-            </option>
-          ))}
-        </SelectField>
+        {team && (
+          <SelectField label="User" value={person} onChange={setPerson}>
+            <option value="all">All users</option>
+            {people.map((p) => (
+              <option key={p.key} value={p.key}>
+                {p.name}
+              </option>
+            ))}
+          </SelectField>
+        )}
         <SelectField label="Status" value={status} onChange={(v) => setStatus(v as StatusFilter)}>
           <option value="all">All statuses</option>
+          <option value="in-progress">In Progress</option>
           <option value="success">Success</option>
-          <option value="partial">Partial</option>
+          <option value="no-usage">No New Usage</option>
+          <option value="partial">Partial Success</option>
           <option value="failed">Failed</option>
-          <option value="no-usage">No Usage</option>
         </SelectField>
         <div className="relative w-full lg:w-[280px]">
           <svg
@@ -212,7 +272,7 @@ export function ScanLogsView() {
             aria-label="Search scan logs"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search user, scan ID, or error..."
+            placeholder={team ? "Search user, scan ID, or error..." : "Search scan ID or error..."}
             className={`${FIELD} w-full pl-10 pr-4 placeholder:text-muted`}
           />
         </div>
@@ -247,6 +307,14 @@ export function ScanLogsView() {
         </p>
       ) : data ? (
         <>
+          <ScanStatusPanel
+            log={summary.last}
+            lastUpdated={lastUpdated}
+            refreshFailed={pollFailures > 0}
+            showPerson={team}
+            runningCount={runningCount}
+          />
+
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <UsageStatCard
               icon={BarChartIcon}
@@ -256,8 +324,8 @@ export function ScanLogsView() {
               note={summary.last ? `Last: ${formatScanTime(summary.last.startedAt)} · ${personName(summary.last)}` : rangeNote(preset, range)}
             />
             <UsageStatCard icon={CheckCircleIcon} label="Success" value={summary.success.toLocaleString("en-US")} tone="green" note="Usage uploaded" />
-            <UsageStatCard icon={ClockIcon} label="No Usage" value={summary["no-usage"].toLocaleString("en-US")} tone="blue" note="Nothing new to upload" />
-            <UsageStatCard icon={WarningIcon} label="Partial" value={summary.partial.toLocaleString("en-US")} tone="orange" note="Retried by the next scan" />
+            <UsageStatCard icon={ClockIcon} label="No New Usage" value={summary["no-usage"].toLocaleString("en-US")} tone="blue" note="Nothing new to upload" />
+            <UsageStatCard icon={WarningIcon} label="Partial Success" value={summary.partial.toLocaleString("en-US")} tone="orange" note="Retried by the next scan" />
             <UsageStatCard icon={XIcon} label="Failed" value={summary.failed.toLocaleString("en-US")} tone="red" note="Needs a fix on the PC" />
           </div>
 
@@ -276,7 +344,9 @@ export function ScanLogsView() {
 
             {logs.length === 0 ? (
               <EmptyState title="No scan logs yet">
-                Scan activity will appear here when users run Claude Usage.
+                {team
+                  ? "Scan activity will appear here when users run Claude Usage."
+                  : "Your scans will appear here once claude-team-usage runs on your PC."}
                 {preset !== "30d" && " Try a wider date range if you expected scans here."}
               </EmptyState>
             ) : filtered.length === 0 ? (
@@ -290,7 +360,7 @@ export function ScanLogsView() {
             ) : (
               <>
                 <div className="border-t border-border">
-                  <ScanLogTable logs={visible} onView={setSelected} />
+                  <ScanLogTable logs={visible} onView={setSelected} showUser={team} />
                 </div>
                 <Pagination
                   total={filtered.length}
@@ -305,8 +375,81 @@ export function ScanLogsView() {
         </>
       ) : null}
 
-      {selected && <ScanLogDrawer key={selected.id} log={selected} onClose={closeDetail} />}
+      {selectedLog && <ScanLogDrawer key={selectedLog.id} log={selectedLog} onClose={closeDetail} scope={scope} />}
+
+      <ScanNoticeStack notices={visibleNotices} onDismiss={dismissNotice} onView={setSelected} />
     </AppShell>
+  );
+}
+
+/**
+ * Status notifications, bottom right (ADR-107). The live region is always in
+ * the page, so a screen reader hears each one as it is added; each dismisses
+ * itself after SCAN_NOTICE_DISMISS_MS, and its timer is cleared on unmount.
+ */
+function ScanNoticeStack({
+  notices,
+  onDismiss,
+  onView,
+}: {
+  notices: ScanNotice[];
+  onDismiss: (key: string) => void;
+  onView: (log: ScanLogSummary) => void;
+}) {
+  return (
+    <div
+      aria-live="polite"
+      aria-label="Scan notifications"
+      className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-stretch gap-2 sm:inset-x-auto sm:right-6 sm:w-96"
+    >
+      {notices.map((notice) => (
+        <ScanNoticeToast key={notice.key} notice={notice} onDismiss={onDismiss} onView={onView} />
+      ))}
+    </div>
+  );
+}
+
+function ScanNoticeToast({
+  notice,
+  onDismiss,
+  onView,
+}: {
+  notice: ScanNotice;
+  onDismiss: (key: string) => void;
+  onView: (log: ScanLogSummary) => void;
+}) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => onDismiss(notice.key), SCAN_NOTICE_DISMISS_MS);
+    return () => window.clearTimeout(timer);
+  }, [notice.key, onDismiss]);
+
+  return (
+    <div role="status" className="pointer-events-auto rounded-xl border border-border bg-white p-3 shadow-lg">
+      <div className="flex items-start gap-3">
+        <ScanStatusBadge outcome={notice.outcome} />
+        <p className="min-w-0 flex-1 pt-0.5 text-sm text-dash-ink">{notice.message}</p>
+        <button
+          type="button"
+          aria-label="Dismiss notification"
+          onClick={() => onDismiss(notice.key)}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted hover:bg-page hover:text-dash-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-purple/15"
+        >
+          <XIcon className="h-4 w-4" />
+        </button>
+      </div>
+      {notice.outcome !== "in-progress" && (
+        <button
+          type="button"
+          onClick={() => {
+            onView(notice.log);
+            onDismiss(notice.key);
+          }}
+          className="mt-1.5 text-xs font-semibold text-brand-purple hover:underline"
+        >
+          View details
+        </button>
+      )}
+    </div>
   );
 }
 
