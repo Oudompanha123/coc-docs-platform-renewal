@@ -118,20 +118,27 @@ describe("middleware — product slug redirects", () => {
 });
 
 describe("middleware — Store routes (ADR-108)", () => {
-  it("serves /store-<number> from the internal app-page route, keeping the URL, with no product lookup", async () => {
+  it("308-redirects the earlier /store-<number> to /store/app-<number>, with no product lookup", async () => {
     const response = await middleware(request("/store-3"));
 
-    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/store/3");
-    expect(response.headers.get("location")).toBeNull();
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/store/app-3");
     expect(fetchNavStructure).not.toHaveBeenCalled();
     expect(fetchCurrentKeyForOldSlug).not.toHaveBeenCalled();
   });
 
-  it("308-redirects the internal /store/<number> to its public URL, so each app has one address", async () => {
+  it("308-redirects the earlier /store/<number> to /store/app-<number>", async () => {
     const response = await middleware(request("/store/12"));
 
     expect(response.status).toBe(308);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/store-12");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/store/app-12");
+  });
+
+  it("serves /store/app-<number> as the page route itself", async () => {
+    const response = await middleware(request("/store/app-7"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
   });
 
   it("passes the /store listing straight through as a static route", async () => {

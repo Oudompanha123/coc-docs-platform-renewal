@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { buttonVariants } from "@/components/ui/button";
 import { StoreAppDetail } from "@/components/store/StoreAppDetail";
+import { NextVersionDialog } from "@/components/store/NextVersionDialog";
 import { StoreAppForm } from "@/components/store/StoreAppForm";
 import { StoreShell } from "@/components/store/StoreShell";
 import { useSession } from "@/lib/auth/SessionProvider";
-import { STORE_HREF, StoreNotFoundError, fetchStoreApp, type StoreApp } from "@/lib/store/store-api";
+import { STORE_HREF, StoreNotFoundError, fetchStoreApp, storeAppNumber, type StoreApp } from "@/lib/store/store-api";
 
 type State =
   | { status: "loading" }
@@ -16,26 +18,25 @@ type State =
   | { status: "ready"; app: StoreApp };
 
 /**
- * One app's page — `/store-<number>` in the browser (ADR-108).
- *
- * This file sits at `store/[number]` because a Next.js segment cannot be
- * `store-[number]`; `middleware.ts` rewrites `/store-3` here and redirects
- * `/store/3` back to `/store-3`, so the dash form is the only address users
- * see. `[number]` is read from the matched route, not the browser path.
+ * One app's page — `/store/app-<number>` (ADR-108, ADR-111): its
+ * information, its builds per platform, and for an admin Edit App info and
+ * Next version. `middleware.ts` redirects the earlier `/store-3` and
+ * `/store/3` forms here.
  *
  * What a caller may see is the backend's answer: a user gets a public app
- * with builds or "not available"; an admin gets any app.
+ * or "not available"; an admin gets any app.
  */
 export default function StoreAppPage() {
-  const params = useParams<{ number: string }>();
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
   const { user } = useSession();
   const canManage = user?.role === "admin" || user?.role === "super_admin";
-  const raw = params?.number ?? "";
-  const number = /^\d+$/.test(raw) ? Number(raw) : null;
+  const number = storeAppNumber(params?.slug ?? "");
 
   const [state, setState] = useState<State>({ status: "loading" });
   const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (number === null) {
@@ -67,21 +68,17 @@ export default function StoreAppPage() {
     <StoreShell>
       {state.status === "loading" && (
         <div aria-busy="true" className="space-y-6">
-          <div className="h-5 w-24 animate-pulse rounded-full bg-gray-100" />
-          <div className="h-40 animate-pulse rounded-3xl bg-gray-100" />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="h-56 animate-pulse rounded-2xl bg-gray-100" />
-            <div className="h-56 animate-pulse rounded-2xl bg-gray-100" />
-          </div>
+          <div className="h-5 w-24 animate-pulse rounded-full bg-muted-surface/60" />
+          <div className="h-80 max-w-3xl animate-pulse rounded-xl bg-muted-surface/60" />
         </div>
       )}
 
       {(state.status === "missing" || state.status === "error") && (
-        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border px-6 py-16 text-center">
-          <p className="text-lg font-bold text-ink">
+        <div className="flex flex-col items-center rounded-xl border border-dashed border-surface-border px-6 py-16 text-center">
+          <p className="text-lg font-semibold text-foreground">
             {state.status === "missing" ? "App not available" : "Couldn't load this app"}
           </p>
-          <p role="alert" className="mt-1 max-w-md text-sm text-muted">
+          <p role="alert" className="mt-1 max-w-md text-sm text-muted-foreground">
             {state.message}
           </p>
           <div className="mt-6 flex gap-2">
@@ -89,14 +86,14 @@ export default function StoreAppPage() {
               <button
                 type="button"
                 onClick={load}
-                className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-ink hover:bg-page"
+                className={buttonVariants({ variant: "outline" })}
               >
                 Try again
               </button>
             )}
             <Link
               href={STORE_HREF}
-              className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow hover:opacity-90"
+              className={buttonVariants()}
             >
               Back to the Store
             </Link>
@@ -108,9 +105,17 @@ export default function StoreAppPage() {
         <StoreAppDetail
           app={state.app}
           canManage={canManage}
-          onChanged={(app) => setState({ status: "ready", app })}
+          notice={notice}
+          onChanged={(app, message) => {
+            setState({ status: "ready", app });
+            setNotice(message ?? null);
+          }}
           onDeleted={() => router.replace(STORE_HREF)}
           onEdit={() => setEditing(true)}
+          onNextVersion={() => {
+            setNotice(null);
+            setUploading(true);
+          }}
         />
       )}
 
@@ -119,6 +124,17 @@ export default function StoreAppPage() {
           app={state.app}
           onSaved={(app) => setState({ status: "ready", app })}
           onClose={() => setEditing(false)}
+        />
+      )}
+
+      {uploading && state.status === "ready" && (
+        <NextVersionDialog
+          app={state.app}
+          onUploaded={(app, summary) => {
+            setState({ status: "ready", app });
+            setNotice(summary);
+          }}
+          onClose={() => setUploading(false)}
         />
       )}
     </StoreShell>

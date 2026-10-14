@@ -1,93 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { PlatformIcon } from "@/components/store/PlatformIcon";
-import { AppLogo } from "@/components/store/AppLogo";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { AppIconPicker, iconProblem } from "@/components/store/AppIconPicker";
 import { StoreDialog } from "@/components/store/StoreDialog";
-import {
-  EMPTY_RELEASE,
-  INPUT_CLASS,
-  LABEL_CLASS,
-  ReleaseFields,
-  UploadProgress,
-  releaseProblem,
-  type ReleaseDraft,
-} from "@/components/store/ReleaseFields";
-import {
-  PLATFORM_LABELS,
-  createStoreApp,
-  updateStoreApp,
-  uploadStoreLogo,
-  suggestFromFileName,
-  uploadStoreRelease,
-  type StoreApp,
-  type StorePlatform,
-} from "@/lib/store/store-api";
+import { ERROR_CLASS, INPUT_CLASS, LABEL_CLASS } from "@/components/store/form-styles";
+import { createStoreApp, findSameApp, STORE_CATEGORIES, storeAppHref, updateStoreApp, uploadStoreLogo, type StoreApp, type StoreCategory } from "@/lib/store/store-api";
 
 const TITLE_ID = "store-app-form-title";
-const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 /**
- * Add an app (with its first build) or edit one. Admin only — the page shows
- * it to admins, and the backend refuses everyone else regardless.
+ * "Add New App" and "Edit App info": the app icon and name, plus an optional
+ * description, its platform (Mobile or PC, ADR-112) and its visibility.
+ * Within that, each build is filed under the platform of its file (ADR-111).
  *
- * Adding is three requests — the app, its logo, its first build — because a
- * file is sent as the raw request body (see AdminStoreController). If a later
- * step fails the app already exists, so the dialog switches to editing it and
- * says what is left to do, rather than offering to create it a second time.
+ * Adding is two requests — the app, then its icon — because the icon is sent
+ * as the raw request body (see AdminStoreController). If the icon step fails
+ * the app already exists, so the dialog switches to editing it and says what
+ * is left to do, rather than offering to create it a second time.
  */
 export function StoreAppForm({
   app: initialApp,
+  existingApps = [],
   onSaved,
   onClose,
 }: {
   /** Absent when adding. */
   app?: StoreApp;
+  /** Every app already on the Store, so a name that is taken is caught here; the backend refuses it too (409). */
+  existingApps?: StoreApp[];
   onSaved: (app: StoreApp) => void;
   onClose: () => void;
 }) {
   const [app, setApp] = useState<StoreApp | undefined>(initialApp);
   const [name, setName] = useState(initialApp?.name ?? "");
   const [description, setDescription] = useState(initialApp?.description ?? "");
-  const [platform, setPlatform] = useState<StorePlatform>(initialApp?.platform ?? "android");
-  const [isPublic, setIsPublic] = useState(initialApp?.isPublic ?? false);
-  const [logo, setLogo] = useState<File | null>(null);
-  const [release, setRelease] = useState<ReleaseDraft>(EMPTY_RELEASE);
+  const [category, setCategory] = useState<StoreCategory>(initialApp?.category ?? "mobile");
+  const [isPublic, setIsPublic] = useState(initialApp?.isPublic ?? true);
+  const [icon, setIcon] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Set once the admin types a name, so choosing a file never overwrites it.
-  const [nameTouched, setNameTouched] = useState(false);
-
   const adding = !initialApp;
-
-  /**
-   * Choosing the install file fills in what the admin has left blank: the
-   * file name, exactly as uploaded, as the app's name — so
-   * `COC-Workbench-Setup-1.2.1.exe` is what the Store shows — and the
-   * version found in it. Anything already typed is kept.
-   */
-  function changeRelease(next: ReleaseDraft) {
-    if (next.file && next.file !== release.file) {
-      const suggestion = suggestFromFileName(next.file.name);
-      if (!nameTouched && !app) setName(suggestion.name);
-      if (!next.version.trim() && suggestion.version) next = { ...next, version: suggestion.version };
-    }
-    setRelease(next);
-  }
-  // The first build is part of adding an app; once the app exists (or when
-  // editing), builds are uploaded from its detail view instead.
-  const needsRelease = adding && !(app && app.releases.length > 0);
+  const hasBuilds = !!app?.builds.some((b) => !b.removedAt);
+  const sameApp = adding && !app ? findSameApp(existingApps, name) : null;
 
   function check(): string | null {
-    if (!name.trim()) return "Enter the app's name.";
-    if (name.trim().length > 80) return "The name must be 80 characters or fewer.";
-    if (logo && !LOGO_TYPES.includes(logo.type)) return "The logo must be a PNG, JPEG or WebP image.";
-    if (logo && logo.size > MAX_LOGO_BYTES) return "The logo must be 2 MB or smaller.";
-    if (needsRelease) return releaseProblem(release, platform);
-    return null;
+    if (sameApp) return `${sameApp.name} is already on the Store.`;
+    if (!name.trim()) return "Enter your app name.";
+    if (name.trim().length > 80) return "The app name must be 80 characters or fewer.";
+    return iconProblem(icon);
   }
 
   async function submit(e: React.FormEvent) {
@@ -101,21 +64,13 @@ export function StoreAppForm({
     setBusy(true);
     let saved = app;
     try {
-      const input = { name: name.trim(), description: description.trim(), platform, isPublic };
+      const input = { name: name.trim(), description: description.trim(), category, isPublic };
       saved = saved ? await updateStoreApp(saved.id, input) : await createStoreApp(input);
       setApp(saved);
-      if (logo) {
-        saved = await uploadStoreLogo(saved.id, logo);
+      if (icon) {
+        saved = await uploadStoreLogo(saved.id, icon);
         setApp(saved);
-        setLogo(null);
-      }
-      if (needsRelease && release.file) {
-        setProgress(0);
-        saved = await uploadStoreRelease(
-          saved.id,
-          { version: release.version.trim(), environment: release.environment, notes: release.notes.trim(), file: release.file },
-          setProgress,
-        );
+        setIcon(null);
       }
       onSaved(saved);
       onClose();
@@ -130,67 +85,71 @@ export function StoreAppForm({
       }
     } finally {
       setBusy(false);
-      setProgress(null);
     }
   }
 
   return (
-    <StoreDialog titleId={TITLE_ID} onClose={onClose} busy={busy}>
+    <StoreDialog titleId={TITLE_ID} onClose={onClose} busy={busy} maxWidth="max-w-[520px]">
       <form onSubmit={submit} noValidate>
-        <div className="border-b border-border px-6 pb-4 pt-6">
-          <h2 id={TITLE_ID} className="text-lg font-bold text-ink">
-            {adding ? "Add an app" : `Edit ${initialApp.name}`}
+        <div className="px-6 pb-2 pt-8 text-center">
+          <h2 id={TITLE_ID} className="font-heading text-2xl font-semibold text-foreground">
+            {adding ? "Add New App" : "Edit App info"}
           </h2>
-          <p className="mt-1 text-sm text-muted">
-            {adding
-              ? "Choose the install file and its name and version are filled in for you. More builds can be added from the app's page."
-              : "Change how this app is presented. Builds are managed on the app's page."}
+          <p className="mt-1 text-sm text-muted-foreground">
+            {adding ? "Hey there! Let's get started." : "Change how this app appears on the Store."}
           </p>
         </div>
 
         <div className="space-y-5 px-6 py-5">
-          <div className="flex items-start gap-4">
-            <AppLogo
-              app={{ name: name || "?", logoUrl: logo ? null : (app?.logoUrl ?? null) }}
-              className="h-16 w-16 text-2xl"
-            />
-            <div className="min-w-0 flex-1">
-              <label htmlFor="store-app-logo" className={LABEL_CLASS}>
-                Logo <span className="font-normal text-muted">(PNG, JPEG or WebP, up to 2 MB)</span>
-              </label>
-              <input
-                id="store-app-logo"
-                type="file"
-                accept={LOGO_TYPES.join(",")}
-                onChange={(e) => setLogo(e.target.files?.[0] ?? null)}
-                disabled={busy}
-                className="block w-full text-sm text-muted file:mr-3 file:rounded-xl file:border-0 file:bg-brand-purple/10 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-purple hover:file:bg-brand-purple/20"
-              />
-              {logo && <p className="mt-1 truncate text-xs text-muted">{logo.name}</p>}
-            </div>
-          </div>
+          <AppIconPicker currentUrl={app?.logoUrl ?? null} file={icon} disabled={busy} onChange={setIcon} />
 
           <div>
             <label htmlFor="store-app-name" className={LABEL_CLASS}>
-              Name
+              App Name
             </label>
             <input
               id="store-app-name"
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameTouched(true);
-              }}
+              onChange={(e) => setName(e.target.value)}
               maxLength={80}
               disabled={busy}
-              placeholder="e.g. COC-Workbench-Setup-1.2.1.exe"
+              placeholder="Enter your app name"
+              autoComplete="off"
               className={INPUT_CLASS}
             />
           </div>
 
+          <fieldset disabled={busy || hasBuilds}>
+            <legend className={LABEL_CLASS}>Platform</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {STORE_CATEGORIES.map((c) => (
+                <label
+                  key={c.value}
+                  className={`flex cursor-pointer flex-col rounded-xl border px-4 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 ${
+                    category === c.value ? "border-primary bg-muted-surface" : "border-surface-border"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="store-app-category"
+                    value={c.value}
+                    checked={category === c.value}
+                    onChange={() => setCategory(c.value)}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-medium text-foreground">{c.label}</span>
+                  <span className="text-xs text-muted-foreground">{c.hint}</span>
+                </label>
+              ))}
+            </div>
+            {hasBuilds && (
+              <p className="mt-1 text-xs text-muted-foreground">Remove this app's builds to change its platform.</p>
+            )}
+          </fieldset>
+
           <div>
             <label htmlFor="store-app-description" className={LABEL_CLASS}>
-              Description <span className="font-normal text-muted">(optional)</span>
+              Description <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
             <textarea
               id="store-app-description"
@@ -204,42 +163,12 @@ export function StoreAppForm({
             />
           </div>
 
-          <fieldset>
-            <legend className={LABEL_CLASS}>
-              Platform {!adding && <span className="font-normal text-muted">(fixed once the app is added)</span>}
-            </legend>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {(Object.keys(PLATFORM_LABELS) as StorePlatform[]).map((p) => (
-                <label
-                  key={p}
-                  className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
-                    platform === p
-                      ? "border-brand-purple bg-brand-purple/10 text-brand-purple"
-                      : "border-border text-muted hover:bg-page"
-                  } ${app ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
-                >
-                  <input
-                    type="radio"
-                    name="store-app-platform"
-                    value={p}
-                    checked={platform === p}
-                    onChange={() => setPlatform(p)}
-                    disabled={busy || !!app}
-                    className="sr-only"
-                  />
-                  <PlatformIcon platform={p} className="h-4 w-4" />
-                  {PLATFORM_LABELS[p]}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-surface-border px-4 py-3">
             <div>
-              <p id="store-app-visibility-label" className="text-sm font-semibold text-ink">
+              <p id="store-app-visibility-label" className="text-sm font-medium text-foreground">
                 {isPublic ? "Public" : "Private"}
               </p>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted-foreground">
                 {isPublic ? "Every signed-in user can see and download it." : "Only admins can see it."}
               </p>
             </div>
@@ -250,48 +179,44 @@ export function StoreAppForm({
               aria-labelledby="store-app-visibility-label"
               onClick={() => setIsPublic(!isPublic)}
               disabled={busy}
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple ${
-                isPublic ? "bg-brand-purple" : "bg-gray-300"
+              className={`relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+                isPublic ? "bg-primary" : "bg-muted-surface"
               }`}
             >
               <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${isPublic ? "left-[22px]" : "left-0.5"}`}
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-all ${isPublic ? "left-[22px]" : "left-0.5"}`}
               />
             </button>
           </div>
 
-          {needsRelease && (
-            <div className="rounded-2xl border border-border bg-page/60 p-4">
-              <p className="mb-3 text-sm font-bold text-ink">First build</p>
-              <ReleaseFields idPrefix="store-app-release" draft={release} platform={platform} disabled={busy} onChange={changeRelease} />
+          {sameApp && (
+            <div role="status" className="rounded-xl border border-surface-border bg-muted-surface/40 px-4 py-3 text-sm">
+              <p className="font-medium text-foreground">{sameApp.name} is already on the Store.</p>
+              <p className="mt-1 text-muted-foreground">To add a new build of it, open it and choose Next version.</p>
+              <Link
+                href={storeAppHref(sameApp.number)}
+                onClick={onClose}
+                className="mt-3 inline-flex h-9 items-center rounded-control bg-primary px-4 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Open {sameApp.name}
+              </Link>
             </div>
           )}
 
-          {progress !== null && <UploadProgress fraction={progress} />}
-
           {error && (
-            <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-sm font-medium text-danger">
+            <p role="alert" className={ERROR_CLASS}>
               {error}
             </p>
           )}
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-page disabled:opacity-60"
-          >
+        <div className="flex flex-col-reverse gap-2 border-t border-surface-border px-6 py-4 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-full bg-gradient-to-r from-brand-purple to-brand-blue px-5 py-2 text-sm font-semibold text-white shadow transition-all hover:opacity-90 active:scale-[0.97] disabled:opacity-60"
-          >
-            {busy ? "Saving…" : adding && !app ? "Add app" : "Save"}
-          </button>
+          </Button>
+          <Button type="submit" disabled={busy || !name.trim()}>
+            {busy ? "Saving…" : adding && !app ? "Add App" : "Save"}
+          </Button>
         </div>
       </form>
     </StoreDialog>

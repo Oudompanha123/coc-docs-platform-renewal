@@ -62,28 +62,20 @@ function productKeyCandidate(segments: string[]): { key: string; index: number }
   return null;
 }
 
-/** `/store-<number>` — a Store app's page, as the browser shows it (ADR-108). */
-const STORE_APP_PAGE = /^\/store-(\d+)\/?$/;
-/** The internal route that page is served from. */
-const STORE_APP_ROUTE = /^\/store\/(\d+)\/?$/;
+/**
+ * Earlier addresses of a Store app's page — `/store-<number>` and
+ * `/store/<number>`. The page now lives at `/store/app-<number>`
+ * (`app/(member)/store/[slug]`); these redirect there so old links work.
+ */
+const STORE_APP_LEGACY = /^\/store(?:-|\/)(\d+)\/?$/;
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  // Store app pages, ahead of the product-key logic below: `/store-3` is one
-  // top-level segment, so it would otherwise be looked up as a product key
-  // and land on `(shell)/[productKey]`. A Next.js segment cannot be half
-  // literal, half dynamic (`store-[number]`), so the page lives at
-  // `app/(member)/store/[number]` and is reached by rewrite; the URL stays
-  // `/store-3`. The internal path redirects to it, so each app has one URL.
-  const storePage = STORE_APP_PAGE.exec(request.nextUrl.pathname);
-  if (storePage) {
+  // Ahead of the product-key logic below: `/store-3` is one top-level
+  // segment, so it would otherwise be looked up as a product key.
+  const legacy = STORE_APP_LEGACY.exec(request.nextUrl.pathname);
+  if (legacy) {
     const url = request.nextUrl.clone();
-    url.pathname = `/store/${storePage[1]}`;
-    return NextResponse.rewrite(url);
-  }
-  const storeRoute = STORE_APP_ROUTE.exec(request.nextUrl.pathname);
-  if (storeRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/store-${storeRoute[1]}`;
+    url.pathname = `/store/app-${legacy[1]}`;
     return NextResponse.redirect(url, 308);
   }
 

@@ -84,7 +84,7 @@ export function StoreDialog({
           onClick={onClose}
           disabled={busy}
           aria-label="Close"
-          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-black/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple disabled:opacity-40"
+          className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted-surface hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed"
         >
           <XIcon className="h-4 w-4" />
         </button>

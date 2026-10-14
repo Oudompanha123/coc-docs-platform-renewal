@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { IconTemplate } from "@/components/store/AppIconPicker";
 import { absoluteUrl, type StoreApp } from "@/lib/store/store-api";
 
 /**
- * An app's logo, or — with no logo, or one that fails to load — its first
- * letter on the brand gradient, so a card never shows a broken image.
+ * An app's icon, or — with no icon, or one that fails to load — the app-icon
+ * template grid, so a card never shows a broken image.
  */
-export function AppLogo({ app, className = "h-14 w-14 text-xl" }: { app: Pick<StoreApp, "name" | "logoUrl">; className?: string }) {
+export function AppLogo({ app, className = "h-14 w-14" }: { app: Pick<StoreApp, "name" | "logoUrl">; className?: string }) {
   const [failed, setFailed] = useState(false);
 
   if (app.logoUrl && !failed) {
@@ -17,16 +18,13 @@ export function AppLogo({ app, className = "h-14 w-14 text-xl" }: { app: Pick<St
         src={absoluteUrl(app.logoUrl)}
         alt=""
         onError={() => setFailed(true)}
-        className={`${className} shrink-0 rounded-2xl border border-border bg-white object-cover`}
+        className={`${className} shrink-0 rounded-[22%] border border-surface-border bg-background object-cover`}
       />
     );
   }
   return (
-    <span
-      aria-hidden="true"
-      className={`${className} flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-blue font-bold text-white`}
-    >
-      {app.name.trim().charAt(0).toUpperCase() || "?"}
+    <span aria-hidden="true" className={`${className} block shrink-0 overflow-hidden rounded-[22%] border border-surface-border`}>
+      <IconTemplate className="h-full w-full" />
     </span>
   );
 }
