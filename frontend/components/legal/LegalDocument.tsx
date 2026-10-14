@@ -1,45 +1,29 @@
 import { MarkdownView } from "./MarkdownView";
-import { formatLegalDate, type LegalDocumentContent } from "@/lib/legal/legal-document";
+import { formatLegalDate, legalDocReadMinutes, type LegalDocumentContent } from "@/lib/legal/legal-document";
 
 /**
- * The full-document Apple-style preview (task spec §F / "legal-document-
- * content-mockup.png"): content area only — the mockup's own annotation is
- * "site header & footer stay as they are", so this renders nothing outside
- * the 680px column (no back-link, no page `<html>` chrome). The admin page
- * (Preview mode, pre-publish check, History "Preview") wraps this in
- * whatever chrome that context needs.
+ * A legal page as readers see it — the public `/terms` and `/privacy`, the
+ * editor's Preview and History's preview all render this, so what an editor
+ * previews is exactly what goes live. Title and subtitle, the body (its `##`
+ * headings carry anchor ids, so `/terms#contact` still links to a section),
+ * and the last-updated byline. Content area only; the caller adds any chrome.
  */
 export function LegalDocument({ content }: { content: LegalDocumentContent }) {
   return (
-    <div className="mx-auto max-w-[680px] px-6 py-10">
-      <h1 className="text-center text-[44px] font-semibold leading-tight text-foreground">{content.title}</h1>
-      {content.subtitle && <p className="mt-2 text-center text-[15px] text-muted-foreground">{content.subtitle}</p>}
-      {content.status === "draft" && (
-        <div className="mt-4 flex justify-center">
-          <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
-            Sample text — replace with approved legal content
-          </span>
-        </div>
-      )}
+    <article className="mx-auto max-w-[720px] px-6 py-10 sm:py-14">
+      <header className="text-center">
+        <h1 className="text-[34px] font-semibold leading-tight tracking-tight text-foreground sm:text-[44px]">{content.title}</h1>
+        {content.subtitle && <p className="mt-2 text-[15px] text-muted-foreground">{content.subtitle}</p>}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Updated {formatLegalDate(content.lastUpdated)} · {legalDocReadMinutes(content)} min read
+        </p>
+      </header>
 
-      <hr className="mt-8 border-surface-border" />
+      <MarkdownView source={content.body} variant="document" className="mt-10 space-y-3.5" />
 
-      <div className="mt-8 space-y-8">
-        {content.sections.map((section) => (
-          <section key={section.id} id={section.id}>
-            <h2 className="text-[21px] font-semibold text-foreground">{section.title}</h2>
-            <div className="mt-2.5 space-y-3">
-              <MarkdownView source={section.body} variant="document" />
-            </div>
-          </section>
-        ))}
-      </div>
-
-      {content.endNote && <MarkdownView source={content.endNote} variant="document-note" className="mt-10 space-y-1" />}
-
-      <p className="mt-4 text-[13px] text-muted-foreground">
+      <p className="mt-10 border-t border-surface-border pt-4 text-[13px] text-muted-foreground">
         Last updated by {content.updatedBy} on {formatLegalDate(content.lastUpdated)}
       </p>
-    </div>
+    </article>
   );
 }

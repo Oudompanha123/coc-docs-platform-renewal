@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonStatCards, SkeletonTable } from "@/components/ui/skeleton";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -225,9 +226,10 @@ export function AdminClaudeUsageView() {
       )}
 
       {loading ? (
-        <p className="mt-4 rounded-xl border border-surface-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          Loading Claude usage…
-        </p>
+        <SkeletonGroup label="Loading Claude usage" className="mt-4">
+          <SkeletonStatCards />
+          <SkeletonTable className="mt-4" rows={8} columns={5} />
+        </SkeletonGroup>
       ) : (
         <>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

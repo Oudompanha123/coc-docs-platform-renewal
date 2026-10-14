@@ -1,10 +1,11 @@
-import { parseMarkdown, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
+import { markdownOutline, parseMarkdown, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
 
 type Variant = "inline" | "document" | "document-note";
 
 type VariantStyle = {
   text: string;
   link: string;
+  heading2: string;
   heading3: string;
   heading4: string;
   marker: string;
@@ -20,6 +21,7 @@ const STYLES: Record<Variant, VariantStyle> = {
   inline: {
     text: "text-sm leading-relaxed text-foreground",
     link: "font-semibold text-foreground hover:underline",
+    heading2: "text-lg font-bold text-foreground",
     heading3: "text-base font-bold text-foreground",
     heading4: "text-sm font-bold text-foreground",
     marker: "bg-primary",
@@ -30,6 +32,7 @@ const STYLES: Record<Variant, VariantStyle> = {
   document: {
     text: "text-[14.5px] leading-[1.62] text-foreground",
     link: "text-foreground underline underline-offset-4 hover:text-muted-foreground",
+    heading2: "scroll-mt-24 pt-6 text-[21px] font-semibold text-foreground first:pt-0",
     heading3: "text-lg font-semibold text-foreground",
     heading4: "text-base font-semibold text-foreground",
     marker: "bg-foreground",
@@ -43,6 +46,7 @@ const STYLES: Record<Variant, VariantStyle> = {
   "document-note": {
     text: "text-[13px] italic leading-relaxed text-muted-foreground",
     link: "text-foreground underline underline-offset-4 hover:text-muted-foreground",
+    heading2: "text-lg font-semibold italic text-muted-foreground",
     heading3: "text-base font-semibold italic text-muted-foreground",
     heading4: "text-sm font-semibold italic text-muted-foreground",
     marker: "bg-muted-foreground",
@@ -74,16 +78,25 @@ export function MarkdownView({
 }) {
   const blocks = parseMarkdown(source);
   const style = STYLES[variant];
+  // Each `##` gets the anchor `markdownOutline` gives it, in the same order.
+  const anchors = markdownOutline(source).map((e) => e.id);
+  let h2 = 0;
   return (
     <div className={className}>
       {blocks.map((block, i) => (
-        <Block key={i} node={block} bulletStyle={bulletStyle} style={style} />
+        <Block
+          key={i}
+          node={block}
+          bulletStyle={bulletStyle}
+          style={style}
+          anchor={block.kind === "heading" && block.level === 2 ? anchors[h2++] : undefined}
+        />
       ))}
     </div>
   );
 }
 
-function Block({ node, bulletStyle, style }: { node: MdBlock; bulletStyle: "circle" | "check"; style: VariantStyle }) {
+function Block({ node, bulletStyle, style, anchor }: { node: MdBlock; bulletStyle: "circle" | "check"; style: VariantStyle; anchor?: string }) {
   switch (node.kind) {
     case "paragraph":
       return (
@@ -92,9 +105,10 @@ function Block({ node, bulletStyle, style }: { node: MdBlock; bulletStyle: "circ
         </p>
       );
     case "heading": {
-      const Tag = node.level === 3 ? "h3" : "h4";
+      const Tag = node.level === 2 ? "h2" : node.level === 3 ? "h3" : "h4";
+      const cls = node.level === 2 ? style.heading2 : node.level === 3 ? style.heading3 : style.heading4;
       return (
-        <Tag className={node.level === 3 ? style.heading3 : style.heading4}>
+        <Tag id={anchor} className={cls}>
           <Spans spans={node.spans} style={style} />
         </Tag>
       );

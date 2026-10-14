@@ -1,5 +1,6 @@
 "use client";
 
+import { Skeleton, SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
 import { Pagination } from "@/components/users-roles/Pagination";
@@ -26,6 +27,7 @@ import {
   type ActivityPreset,
 } from "@/lib/claudeUsage/activity";
 import { formatCost, formatTokens, modelDisplayName } from "@/lib/claudeUsage/format";
+import { DatePicker } from "@/components/ui/date-picker";
 import { SimpleSelect } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -213,9 +215,17 @@ export function UserActivityModal({
             )}
 
             {!activity && !error && range && (
-              <p className="mt-6 rounded-xl border border-surface-border px-4 py-8 text-center text-sm text-muted-foreground">
-                Loading activity…
-              </p>
+              <SkeletonGroup label="Loading activity" className="mt-6">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div key={i} className="rounded-xl border border-surface-border p-3">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="mt-2 h-6 w-20" />
+                    </div>
+                  ))}
+                </div>
+                <SkeletonTable className="mt-4" rows={5} />
+              </SkeletonGroup>
             )}
 
             {activity && activity.days.length === 0 && (
@@ -460,8 +470,6 @@ function Filters({
   projectOptions: string[];
   onProject: (project: string | null) => void;
 }) {
-  const inputClass =
-    "rounded-lg border border-surface-border bg-card px-2.5 py-1.5 text-sm text-foreground focus:outline-none focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/50";
   return (
     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div role="group" aria-label="Date range" className="flex flex-wrap gap-1.5">
@@ -485,22 +493,21 @@ function Filters({
       <div className="flex flex-wrap items-center gap-2">
         {preset === "custom" && (
           <>
-            <input
-              type="date"
+            <DatePicker
               aria-label="From"
               value={custom.from}
-              max={today}
-              onChange={(e) => onCustom({ ...custom, from: e.target.value })}
-              className={inputClass}
+              max={custom.to || today}
+              onChange={(from) => onCustom({ ...custom, from })}
+              className="h-9"
             />
             <span className="text-sm text-muted-foreground">to</span>
-            <input
-              type="date"
+            <DatePicker
               aria-label="To"
               value={custom.to}
+              min={custom.from}
               max={today}
-              onChange={(e) => onCustom({ ...custom, to: e.target.value })}
-              className={inputClass}
+              onChange={(to) => onCustom({ ...custom, to })}
+              className="h-9"
             />
           </>
         )}

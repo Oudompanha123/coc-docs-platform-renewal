@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PanelLeft } from "lucide-react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { applyTheme, getResolvedTheme, getStoredTheme } from "@/lib/theme";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useNotifications } from "@/lib/notify/useNotifications";
@@ -45,7 +45,7 @@ type MenuKey = "notifications" | "mail" | "user";
 
 /** Same panel container the Users & Roles ⋯ menu uses: rounded-xl border
  *  border-surface-border bg-card shadow-lg, with hover:bg-accent on each item. */
-const PANEL_CLASSES = "absolute right-0 z-20 mt-2 overflow-hidden rounded-lg border border-surface-border bg-popover text-popover-foreground shadow-md";
+const PANEL_CLASSES = "absolute right-0 z-50 mt-2 overflow-hidden rounded-lg border border-surface-border bg-popover text-popover-foreground shadow-md";
 
 function CountBadge({
   count,
@@ -187,7 +187,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   useEffect(() => {
     const stored = getStoredTheme();
     applyTheme(stored);
-    setDarkMode(stored === "dark");
+    setDarkMode(getResolvedTheme() === "dark");
   }, []);
 
   /**
@@ -246,20 +246,26 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         >
           <MenuIcon className="size-4" />
         </button>
-        {/* Desktop: folds the sidebar to its icon rail and back — shadcn's
-            SidebarTrigger, with the same panel glyph (ADR-104 r2.9). Below lg
-            the sidebar is a drawer, opened by the menu button above. */}
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!sidebarCollapsed}
-          aria-controls="admin-sidebar"
-          className="-ml-1 hidden size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
-        >
-          <PanelLeft className="size-4" aria-hidden="true" />
-        </button>
-        <span aria-hidden="true" className="mr-1 hidden h-4 w-px bg-surface-border lg:block" />
+        {/* Desktop: unfolds the sidebar from its icon rail — shadcn's
+            SidebarTrigger, with the same panel glyph (ADR-104 r2.9). Only
+            while folded: expanded, the button sits in the sidebar's own
+            header, beside the logo (r2.12). Below lg the sidebar is a
+            drawer, opened by the menu button above. */}
+        {sidebarCollapsed && (
+          <>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label="Expand sidebar"
+              aria-expanded={false}
+              aria-controls="admin-sidebar"
+              className="-ml-1 hidden size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+            >
+              <PanelLeft className="size-4" aria-hidden="true" />
+            </button>
+            <span aria-hidden="true" className="mr-1 hidden h-4 w-px bg-surface-border lg:block" />
+          </>
+        )}
         {titleIcon}
         <div className="min-w-0">
           <h1 className="truncate text-lg leading-tight font-semibold text-foreground">{title}</h1>

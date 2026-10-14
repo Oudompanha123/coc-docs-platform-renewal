@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonCard, SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { MyScanStatusSection } from "@/components/claude-usage/MyScanStatusSection";
 import { MyUsageHistoryChart } from "@/components/claude-usage/MyUsageHistoryChart";
@@ -239,9 +240,13 @@ export function MyClaudeUsageSection({ scanLogsHref }: { scanLogsHref?: string }
       )}
 
       {loading ? (
-        <p className="rounded-xl border border-surface-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          Loading your Claude usage…
-        </p>
+        <SkeletonGroup label="Loading your Claude usage">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <SkeletonCard className="lg:col-span-2" />
+            <SkeletonCard />
+          </div>
+          <SkeletonTable className="mt-4" rows={5} />
+        </SkeletonGroup>
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-3">

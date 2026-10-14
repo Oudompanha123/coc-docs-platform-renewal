@@ -8,7 +8,7 @@ import { ChevronDownIcon, MoonIcon, SunIcon, XIcon } from "@/components/layout/i
 import { ResizeHandle } from "@/components/ax-renewal/ResizeHandle";
 import { confirmDiscardUnsaved } from "@/lib/ax-renewal/unsavedChanges";
 import { UserAvatar } from "@/components/layout/UserAvatar";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { applyTheme, getResolvedTheme, getStoredTheme } from "@/lib/theme";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { useAxRenewalProjectContext } from "@/lib/ax-renewal/AxRenewalProjectContext";
@@ -60,7 +60,7 @@ export function AxRenewalSidebar({
   useEffect(() => {
     const stored = getStoredTheme();
     applyTheme(stored);
-    setDarkMode(stored === "dark");
+    setDarkMode(getResolvedTheme() === "dark");
   }, []);
 
   function toggleTheme() {

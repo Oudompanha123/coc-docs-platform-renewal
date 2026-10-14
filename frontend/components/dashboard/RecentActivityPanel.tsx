@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { fetchRecentActivity, type ActivityEntry } from "@/lib/docs/activity-api";
@@ -58,7 +59,7 @@ export function RecentActivityPanel() {
         </div>
         <div className={`mt-1 divide-y divide-surface-border px-4 ${RECENT_PANEL_LIST_HEIGHT}`}>
           {entries === null ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
+            <SkeletonGroup label="Loading recent activity"><SkeletonList rows={5} /></SkeletonGroup>
           ) : entries.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">No recent activity yet</p>
           ) : (

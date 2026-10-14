@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { LegalLink } from "@/components/auth/LegalLink";
 import { FormField, PasswordField } from "@/components/auth/FormField";
 import { OtpCodeInput } from "@/components/auth/OtpCodeInput";
 import { PersonIcon, ShieldIcon } from "@/components/auth/icons";
@@ -127,7 +128,7 @@ export default function RegisterPage() {
     else if (password && confirmPassword && password !== confirmPassword) {
       next.confirmPassword = "Passwords don't match.";
     }
-    if (!agree) next.agree = "You must agree to the Privacy Policy.";
+    if (!agree) next.agree = "You must agree to the Terms of Service and Privacy Policy.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -404,17 +405,8 @@ export default function RegisterPage() {
               className="mt-0.5"
             />
             <label htmlFor="agree-terms" className="text-muted-foreground text-sm">
-              I agree to the{" "}
-              {/* New tab: losing the in-progress registration form to a full
-                  navigation would be worse than the extra tab. */}
-              <Link
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-foreground font-medium underline underline-offset-4"
-              >
-                Privacy Policy
-              </Link>
+              I agree to the <LegalLink href="/terms">Terms of Service</LegalLink> and{" "}
+              <LegalLink href="/privacy">Privacy Policy</LegalLink>
             </label>
           </div>
           {errors.agree && (

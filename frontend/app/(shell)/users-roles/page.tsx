@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonTable } from "@/components/ui/skeleton";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
@@ -522,6 +523,7 @@ function UsersRolesPageInner() {
             )}
 
             <div className="px-5 pb-5">
+              {loading && <SkeletonTable rows={8} columns={5} />}
               {!loading && (
                 <div className="animate-entrance">
                   {filtered.length === 0 ? (

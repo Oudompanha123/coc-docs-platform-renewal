@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonForm, SkeletonGroup } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -69,7 +70,9 @@ export default function ContentEditPage() {
         pageSubtitle="Loading…"
         titleIcon={<DocumentIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
       >
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <SkeletonGroup label="Loading content" className="rounded-xl border border-surface-border bg-card p-6">
+          <SkeletonForm fields={5} />
+        </SkeletonGroup>
       </AppShell>
     );
   }

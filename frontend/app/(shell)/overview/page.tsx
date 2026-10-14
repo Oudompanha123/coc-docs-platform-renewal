@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonCard, SkeletonGroup, SkeletonList, SkeletonStatCards } from "@/components/ui/skeleton";
 import { AppShell } from "@/components/layout/AppShell";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { DocumentRow } from "@/components/dashboard/DocumentRow";
@@ -18,7 +19,17 @@ export default function OverviewPage() {
       pageSubtitle="Your documentation workspace at a glance"
       titleIcon={<HomeIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
     >
-      {productStats.status === "loading" && <p className="mt-6 text-sm text-muted-foreground">Loading your workspace…</p>}
+      {productStats.status === "loading" && (
+        <SkeletonGroup label="Loading your workspace">
+          <SkeletonStatCards count={5} className="md:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5" />
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
+            <div className="rounded-xl border border-surface-border bg-card px-4 py-4">
+              <SkeletonList rows={5} />
+            </div>
+            <SkeletonCard lines={5} />
+          </div>
+        </SkeletonGroup>
+      )}
 
       {productStats.status === "error" && (
         <div className="mt-6 rounded-xl border border-surface-border bg-card p-4">

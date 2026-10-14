@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { fetchAuditTrail, type AxRenewalAuditEntry } from "@/lib/ax-renewal/api";
 import { TagIcon } from "@/components/layout/icons";
@@ -50,7 +51,7 @@ export function AuditTrailPanel({ projectId }: { projectId: string }) {
         </p>
       )}
 
-      {!error && entries == null && <p className="p-4 text-sm text-muted-foreground">Loading…</p>}
+      {!error && entries == null && <SkeletonGroup label="Loading audit trail" className="p-4"><SkeletonList rows={4} /></SkeletonGroup>}
 
       {!error && entries != null && entries.length === 0 && (
         <p className="p-4 text-sm text-muted-foreground">Nothing recorded for this project yet.</p>

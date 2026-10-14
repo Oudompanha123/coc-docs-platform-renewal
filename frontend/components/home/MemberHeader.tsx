@@ -28,7 +28,7 @@ import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
 import { MemberThemeSync } from "@/components/home/MemberThemeSync";
-import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
 type MenuKey = "bell" | "mail" | "user";
@@ -167,7 +167,7 @@ export function MemberHeader({
   // only what makes the button itself reflect that choice, same split
   // Topbar.tsx uses for the admin shell's own toggle.
   useEffect(() => {
-    setDarkMode(getStoredTheme() === "dark");
+    setDarkMode(getResolvedTheme() === "dark");
   }, []);
 
   function toggleTheme() {

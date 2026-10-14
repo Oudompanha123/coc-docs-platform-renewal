@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { LinkIcon } from "@/components/layout/icons";
 
 export type HrmsLinkState =
@@ -27,7 +28,7 @@ export function ConnectedAccountsCard({ state }: { state: HrmsLinkState }) {
       <p className="mt-0.5 text-sm text-muted-foreground">Accounts linked to your profile.</p>
 
       <div className="mt-4">
-        {state.kind === "loading" && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {state.kind === "loading" && <SkeletonGroup label="Loading connected accounts"><SkeletonList rows={2} /></SkeletonGroup>}
         {state.kind === "error" && <p className="text-sm text-danger">{state.message}</p>}
 
         {state.kind === "linked" && (

@@ -252,7 +252,7 @@ export default function WelcomePage() {
             className="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-foreground/[0.03] blur-3xl"
           />
 
-          <div className="animate-entrance relative mx-auto max-w-3xl text-center">
+          <div className="animate-hero-entrance relative mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-muted-surface px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               <SparklesIcon className="h-3 w-3" />
               Now tracking documentation coverage
@@ -287,7 +287,7 @@ export default function WelcomePage() {
             </div>
           </div>
 
-          <div className="animate-entrance relative mx-auto mt-12 max-w-4xl [animation-delay:120ms]">
+          <div className="animate-hero-entrance relative mx-auto mt-12 max-w-4xl [animation-delay:40ms]">
             <DashboardPreview />
           </div>
         </section>

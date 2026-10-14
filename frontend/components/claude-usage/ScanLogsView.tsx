@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonStatCards, SkeletonTable } from "@/components/ui/skeleton";
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, WarningIcon, XIcon } from "@/components/layout/icons";
@@ -10,7 +11,7 @@ import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
 import { ScanStatusPanel } from "@/components/claude-usage/ScanStatusPanel";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
 import { Button } from "@/components/ui/button";
-import { inputBaseClass } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { SearchInput } from "@/components/ui/search-input";
 import { SimpleSelect } from "@/components/ui/select";
 import { RefreshCw } from "lucide-react";
@@ -52,7 +53,6 @@ const RANGE_OPTIONS: { value: RangePreset; label: string }[] = [
 ];
 
 /** The shared pill field (ADR-104), sized to its content rather than full width. */
-const FIELD = `${inputBaseClass} h-9 w-auto`;
 
 /**
  * `/claude-usage/monitoring` — Scan Logs (ADR-099): every `claude-team-usage scan`
@@ -235,23 +235,21 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
           </SelectField>
           {preset === "custom" && (
             <>
-              <input
-                type="date"
+              <DatePicker
                 aria-label="From"
                 value={custom.from}
                 max={custom.to}
-                onChange={(e) => e.target.value && setCustom({ ...custom, from: e.target.value })}
-                className={FIELD}
+                onChange={(from) => setCustom({ ...custom, from })}
+                className="h-9"
               />
               <span className="text-sm text-muted-foreground">to</span>
-              <input
-                type="date"
+              <DatePicker
                 aria-label="To"
                 value={custom.to}
                 min={custom.from}
                 max={isoDate(new Date())}
-                onChange={(e) => e.target.value && setCustom({ ...custom, to: e.target.value })}
-                className={FIELD}
+                onChange={(to) => setCustom({ ...custom, to })}
+                className="h-9"
               />
             </>
           )}
@@ -311,9 +309,10 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
       )}
 
       {loading && !data ? (
-        <p role="status" className="mt-4 rounded-xl border border-surface-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          Loading scan logs…
-        </p>
+        <SkeletonGroup label="Loading scan logs" className="mt-4">
+          <SkeletonStatCards count={5} className="xl:grid-cols-5" />
+          <SkeletonTable className="mt-4" rows={8} columns={6} />
+        </SkeletonGroup>
       ) : data ? (
         <>
           <ScanStatusPanel

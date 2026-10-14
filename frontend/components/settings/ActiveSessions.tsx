@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { PulseIcon } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ export function ActiveSessions() {
         <p className="text-sm font-medium text-foreground">Active sessions</p>
       </div>
       <div className="mt-3 divide-y divide-surface-border">
-        {loading && <p className="py-3 text-xs text-muted-foreground">Loading your sessions…</p>}
+        {loading && <SkeletonGroup label="Loading your sessions"><SkeletonList rows={2} /></SkeletonGroup>}
         {error && <p className="py-3 text-xs text-danger">{error}</p>}
         {!loading && !error && sessions.length === 0 && (
           <p className="py-3 text-xs text-muted-foreground">No other sessions.</p>

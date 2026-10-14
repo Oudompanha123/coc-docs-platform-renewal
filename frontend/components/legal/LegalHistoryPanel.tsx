@@ -1,9 +1,10 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { XIcon } from "@/components/layout/icons";
 import { fetchLegalVersion, fetchLegalVersions, type LegalSlug, type LegalVersionMeta, type LegalVersionSummary } from "@/lib/legal/legal-api";
-import type { LegalContent } from "@/lib/legal/content-types";
+import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -18,7 +19,7 @@ function formatWhen(iso: string | null): string {
  * design), so this is new. Escape/backdrop-click to close, same house style
  * `HrmsReportModal` uses for its own dialog.
  */
-export function LegalHistoryPanel<T = LegalContent>({
+export function LegalHistoryPanel<T = LegalDocumentContent>({
   slug,
   onClose,
   onPreview,
@@ -90,7 +91,7 @@ export function LegalHistoryPanel<T = LegalContent>({
 
         <div className="p-5">
           {error && <p className="mb-3 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
-          {!versions && !error && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {!versions && !error && <SkeletonGroup label="Loading history"><SkeletonList rows={3} avatar={false} /></SkeletonGroup>}
           {versions && versions.length === 0 && <p className="text-sm text-muted-foreground">Nothing published yet.</p>}
 
           <ul className="space-y-2.5">

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import appIcon from "@/app/icon.png";
 
 type AuthShellProps = {
   /** Accepted for call-site compatibility; no longer rendered — see below. */
@@ -26,11 +28,23 @@ type AuthShellProps = {
  * neither is rendered: the reference has no icon above the title, and a badge
  * only existed to decorate the panel that is gone. Removing the props is a
  * separate mechanical sweep.
+ *
+ * The product's logo sits above the title (product owner, 2026-10-14) — the
+ * app icon itself (`app/icon.png`, imported so it is the same file the
+ * favicon is built from) beside the name, linking back to /welcome.
  */
 export function AuthShell({ heading, subheading, footer, children }: AuthShellProps) {
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 py-12">
       <div className="animate-entrance w-full max-w-sm">
+        <Link
+          href="/welcome"
+          className="mb-8 inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
+          <img src={appIcon.src} alt="" width={40} height={40} className="size-10 object-contain" />
+          <span className="text-base font-semibold tracking-tight text-foreground">Coc Docs Platform</span>
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight text-balance">{heading}</h1>
         <p className="text-muted-foreground mt-2 text-sm text-balance">{subheading}</p>
 

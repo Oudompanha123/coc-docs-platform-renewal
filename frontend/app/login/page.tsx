@@ -535,6 +535,7 @@ function LoginForm() {
         </form>
       )}
 
+
       <p className="text-muted-foreground mt-6 text-center text-sm">
         Don&apos;t have an account?{" "}
         <Link href="/register" className="text-foreground font-medium underline underline-offset-4">

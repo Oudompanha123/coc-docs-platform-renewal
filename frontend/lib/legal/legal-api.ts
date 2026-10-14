@@ -6,7 +6,7 @@
  */
 
 import { BACKEND_URL } from "@/lib/auth/api";
-import type { LegalContent } from "./content-types";
+import type { LegalDocumentContent } from "./legal-document";
 
 export class LegalApiError extends Error {
   constructor(
@@ -21,12 +21,9 @@ export class LegalApiError extends Error {
 
 export type LegalSlug = "terms" | "privacy";
 
-/** `content`'s shape differs per slug now: Privacy keeps the original
- *  highlights/CTA shape (`LegalContent`, the default), Terms moved to the
- *  new plain-document shape (`LegalDocumentContent`) — callers pass the type
- *  explicitly where it isn't `LegalContent`, so the existing Privacy call
- *  sites below need no changes at all. */
-export type LegalVersionMeta<T = LegalContent> = {
+/** `content` is the one legal-page shape both slugs share since V81
+ *  (`LegalDocumentContent`). */
+export type LegalVersionMeta<T = LegalDocumentContent> = {
   id: string;
   slug: LegalSlug;
   status: "draft" | "published" | "archived";
@@ -81,7 +78,7 @@ async function parseJsonOrThrow<T>(response: Response, fallbackMessage: string):
 /** The public read — what `/terms` and `/privacy` render. Never throws:
  *  resolves to `undefined` so the page can fall back to its last-good
  *  content instead of showing an error for a momentary network hiccup. */
-export async function fetchPublicLegalPage<T = LegalContent>(slug: LegalSlug): Promise<T | undefined> {
+export async function fetchPublicLegalPage<T = LegalDocumentContent>(slug: LegalSlug): Promise<T | undefined> {
   try {
     const response = await fetch(`${BACKEND_URL}/api/v1/legal/${slug}`);
     if (response.ok) {
@@ -98,7 +95,7 @@ export async function fetchPublicLegalPage<T = LegalContent>(slug: LegalSlug): P
  *  version if none exists yet. GET: this almost never creates a row in
  *  practice (the seed migration always leaves one), unlike `PageService`'s
  *  own `/open`, which is a POST because it usually does. */
-export async function fetchLegalDraft<T = LegalContent>(slug: LegalSlug): Promise<LegalVersionMeta<T>> {
+export async function fetchLegalDraft<T = LegalDocumentContent>(slug: LegalSlug): Promise<LegalVersionMeta<T>> {
   let response: Response;
   try {
     response = await fetch(adminUrl(slug, "/draft"), { credentials: "include" });
@@ -108,7 +105,7 @@ export async function fetchLegalDraft<T = LegalContent>(slug: LegalSlug): Promis
   return parseJsonOrThrow(response, "Couldn't load this page's draft.");
 }
 
-export async function saveLegalDraft<T = LegalContent>(
+export async function saveLegalDraft<T = LegalDocumentContent>(
   slug: LegalSlug,
   content: T,
   versionNo: number,
@@ -130,7 +127,7 @@ export async function saveLegalDraft<T = LegalContent>(
 /** `note` is the task spec's optional "Publish note" (max 200, enforced
  *  server-side) — omitting it (every call site before that field existed)
  *  sends no request body at all, exactly as before. */
-export async function publishLegalPage<T = LegalContent>(slug: LegalSlug, note?: string): Promise<LegalVersionMeta<T>> {
+export async function publishLegalPage<T = LegalDocumentContent>(slug: LegalSlug, note?: string): Promise<LegalVersionMeta<T>> {
   let response: Response;
   try {
     response = await fetch(adminUrl(slug, "/publish"), {
@@ -155,7 +152,7 @@ export async function fetchLegalVersions(slug: LegalSlug): Promise<LegalVersionS
 }
 
 /** One specific version's full content — the History panel's "Preview", which (unlike restore) never touches the draft. */
-export async function fetchLegalVersion<T = LegalContent>(slug: LegalSlug, versionId: string): Promise<LegalVersionMeta<T>> {
+export async function fetchLegalVersion<T = LegalDocumentContent>(slug: LegalSlug, versionId: string): Promise<LegalVersionMeta<T>> {
   let response: Response;
   try {
     response = await fetch(adminUrl(slug, `/versions/${versionId}`), { credentials: "include" });
@@ -165,7 +162,7 @@ export async function fetchLegalVersion<T = LegalContent>(slug: LegalSlug, versi
   return parseJsonOrThrow(response, "Couldn't load that version.");
 }
 
-export async function restoreLegalVersion<T = LegalContent>(slug: LegalSlug, versionId: string): Promise<LegalVersionMeta<T>> {
+export async function restoreLegalVersion<T = LegalDocumentContent>(slug: LegalSlug, versionId: string): Promise<LegalVersionMeta<T>> {
   let response: Response;
   try {
     response = await fetch(adminUrl(slug, `/versions/${versionId}/restore`), {

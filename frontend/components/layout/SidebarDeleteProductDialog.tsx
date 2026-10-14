@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Modal, ModalFooter } from "@/components/users-roles/Modal";
 
 /**
  * The typed-confirmation delete dialog for a product (task spec §E) —
- * Delete only enables once the admin types the product's exact name.
+ * Delete only enables once the admin types the product's exact name. On the
+ * shared `Modal`, `Input` and `Button` (ADR-104 r2.15); it was a hand-drawn
+ * panel with raw buttons and a shadowed red pill.
  */
 export function SidebarDeleteProductDialog({
   productLabel,
@@ -23,41 +29,64 @@ export function SidebarDeleteProductDialog({
   const matches = typed === productLabel;
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Delete ${productLabel}?`} className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-[420px] rounded-2xl bg-card p-6 shadow-xl">
-        <h2 className="text-base font-bold text-foreground">Delete {productLabel}?</h2>
-        <p className="mt-2 text-sm text-muted-foreground">All docs for this product will be removed from the site. This can&rsquo;t be undone.</p>
-
-        <label className="mt-4 block text-xs font-semibold text-muted-foreground">
-          Type <span className="font-mono">{productLabel}</span> to confirm
-          <input
-            autoFocus
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-surface-border px-3 py-2 text-sm text-foreground outline-none focus:border-danger focus:ring-[3px] focus:ring-danger/10"
-          />
-        </label>
-
-        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-full border border-surface-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
-          >
+    <Modal title={`Delete ${productLabel}?`} ariaLabel={`Delete ${productLabel}?`} onClose={onCancel}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (matches && !busy) onConfirm();
+        }}
+      >
+        <p className="text-sm text-muted-foreground">All docs for this product will be removed from the site. This can&rsquo;t be undone.</p>
+        <Label htmlFor="delete-product-confirm" className="mt-4 block text-xs text-muted-foreground">
+          Type <span className="font-mono text-foreground">{productLabel}</span> to confirm
+        </Label>
+        <Input
+          id="delete-product-confirm"
+          autoFocus
+          autoComplete="off"
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          className="mt-1.5"
+        />
+        {error && (
+          <p role="alert" className="mt-2 text-xs text-destructive">
+            {error}
+          </p>
+        )}
+        <ModalFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!matches || busy}
-            onClick={onConfirm}
-            className="rounded-full bg-danger px-5 py-2 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" variant="destructive" disabled={!matches || busy}>
             {busy ? "Deleting…" : "Delete"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </ModalFooter>
+      </form>
+    </Modal>
+  );
+}
+
+/** Deleting an empty custom group — the app's dialog instead of the browser's `confirm()`. */
+export function SidebarDeleteGroupDialog({
+  groupName,
+  onConfirm,
+  onCancel,
+}: {
+  groupName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal title={`Delete "${groupName}"?`} ariaLabel={`Delete group ${groupName}`} onClose={onCancel}>
+      <p className="text-sm text-muted-foreground">The group is removed from the sidebar. It has no items, so no page moves or disappears.</p>
+      <ModalFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="button" variant="destructive" onClick={onConfirm} autoFocus>
+          Delete group
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }

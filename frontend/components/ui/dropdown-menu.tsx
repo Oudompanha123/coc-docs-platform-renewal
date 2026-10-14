@@ -15,7 +15,7 @@
  * // req: ADR-104
  */
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useThemedPortalContainer } from "@/lib/portal-container";
@@ -79,6 +79,43 @@ export function DropdownMenuLabel({ className, ...props }: ComponentProps<typeof
 
 export function DropdownMenuSeparator({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Separator>) {
   return <DropdownMenuPrimitive.Separator className={cn("-mx-1 my-1 h-px bg-surface-border", className)} {...props} />;
+}
+
+/** A nested menu ("Move to group ›"): same panel, opens to the side. */
+export const DropdownMenuSub = DropdownMenuPrimitive.Sub;
+
+export function DropdownMenuSubTrigger({ className, children, ...props }: ComponentProps<typeof DropdownMenuPrimitive.SubTrigger>) {
+  return (
+    <DropdownMenuPrimitive.SubTrigger
+      data-slot="dropdown-menu-sub-trigger"
+      className={cn(
+        "relative flex h-9 cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 text-sm outline-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
+        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronRight className="ml-auto" aria-hidden="true" />
+    </DropdownMenuPrimitive.SubTrigger>
+  );
+}
+
+export function DropdownMenuSubContent({ className, sideOffset = 6, ...props }: ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  const container = useThemedPortalContainer();
+  return (
+    <DropdownMenuPrimitive.Portal container={container}>
+      <DropdownMenuPrimitive.SubContent
+        data-slot="dropdown-menu-sub-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "animate-tab-content z-50 min-w-44 overflow-hidden rounded-xl border border-surface-border bg-popover p-1 text-popover-foreground shadow-md",
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
 }
 
 /**

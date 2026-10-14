@@ -9,7 +9,7 @@ import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { createProduct, deleteProduct, updateProduct } from "@/lib/docs/nav-api";
 import { applyProductRename, refreshNavStructure, useNavStructure } from "@/lib/docs/useNavStructure";
 import { openInNewTabWithLoadingDim } from "./LoadingDim";
-import { SidebarDeleteProductDialog } from "./SidebarDeleteProductDialog";
+import { SidebarDeleteGroupDialog, SidebarDeleteProductDialog } from "./SidebarDeleteProductDialog";
 import { SidebarGroupMenu } from "./SidebarGroupMenu";
 import { SidebarItemMenu } from "./SidebarItemMenu";
 import { SidebarRenameRow } from "./SidebarRenameRow";
@@ -17,6 +17,9 @@ import { UserAvatar } from "./UserAvatar";
 import { useSidebarNavConfig } from "./useSidebarNavConfig";
 import { NAV_BOTTOM, NAV_TOP, isNavItemActive, visibleNavSections, type NavItem } from "./nav-config";
 import { MonitorIcon, PlusIcon, XIcon } from "./icons";
+import { PanelLeft } from "lucide-react";
+import { SIDEBAR_DEFAULT_WIDTH } from "@/lib/layout/ShellContext";
+import { SidebarResizeHandle } from "./SidebarResizeHandle";
 
 function slugify(label: string): string {
   return label
@@ -33,6 +36,13 @@ type SidebarProps = {
   /** Desktop only: fold to the icon rail (ADR-104 r2.9). The mobile drawer
    *  always renders in full. */
   collapsed?: boolean;
+  /** Desktop only: the expanded width in px, and the drag that sets it
+   *  (ADR-104 r2.12). Without `onResize` there is no handle. */
+  width?: number;
+  onResize?: (width: number) => void;
+  /** Desktop only: folds to the rail. The button for it sits in the
+   *  sidebar's own header while expanded; folded, the Topbar carries it. */
+  onCollapse?: () => void;
 };
 
 function NavLink({
@@ -80,7 +90,8 @@ function NavLink({
   );
 }
 
-export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, collapsed = false, width = SIDEBAR_DEFAULT_WIDTH, onResize, onCollapse }: SidebarProps) {
+  const [resizing, setResizing] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   // Same session-backed name/role as the Topbar (GET /api/v1/auth/me) — the
@@ -210,8 +221,10 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
     }
   }
 
+  const [deletingGroup, setDeletingGroup] = useState<{ id: string; name: string } | null>(null);
+
   async function handleDeleteGroup(id: string, name: string) {
-    if (!window.confirm(`Delete "${name}"? This only works while it has no items left.`)) return;
+    setDeletingGroup(null);
     try {
       await deleteGroup(id);
       setNotice({ kind: "success", message: `${name} deleted` });
@@ -256,7 +269,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
           kind="product"
           groups={[]}
           canDelete={canDelete}
-          deleteDisabledReason="Only Super Admins can delete"
+          deleteDisabledReason="Only Super Admins can delete products"
           onRename={() => setRenamingKey(item.href)}
           onDeleteProduct={() => setDeletingProduct({ key: productKey, label: item.label })}
         />
@@ -279,7 +292,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
 
   // A function of `rail` rather than one tree, so the desktop sidebar can fold
   // while the mobile drawer — the same markup — always renders in full.
-  const renderContent = (rail: boolean) => (
+  const renderContent = (rail: boolean, desktop: boolean) => (
     <div className="admin-sidebar flex h-full flex-col border-r border-nav-border bg-nav py-3">
       <div className={`flex h-10 items-center ${rail ? "justify-center px-2" : "justify-between px-4"}`}>
         {/* Collapsed to the icon rail, the wordmark has no room — the "C"
@@ -294,10 +307,25 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
               would vanish on the light sidebar. `dark:` is the shell-scoped
               variant from globals.css. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-7 w-auto dark:hidden" />
+          <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-9 w-auto dark:hidden" />
           {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="hidden h-7 w-auto dark:block" />
+          <img src="/logo-coc-docs-platform-adminPage.png" alt="Coc Docs Platform" className="hidden h-9 w-auto dark:block" />
         </div>
+        {/* Desktop, expanded: the fold button lives beside the logo, where
+            the eye already is when deciding the menu is in the way. Folded,
+            this header has no room, so the Topbar shows it instead. */}
+        {desktop && !rail && onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Collapse sidebar"
+            aria-expanded={true}
+            aria-controls="admin-sidebar"
+            className="-mr-1.5 hidden size-8 items-center justify-center rounded-full text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+          >
+            <PanelLeft className="size-4" aria-hidden="true" />
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -351,12 +379,12 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
                   <SidebarGroupMenu
                     groupName={section.label}
                     canDelete={canDelete && section.items.length === 0}
-                    deleteDisabledReason={canDelete ? "Move items out first" : "Only Super Admins can delete"}
+                    deleteDisabledReason={canDelete ? "Move its items out first" : "Only Super Admins can delete groups"}
                     onRename={() => {
                       setNewGroupName(section.label);
                       setRenamingGroupId(group!.id);
                     }}
-                    onDelete={() => handleDeleteGroup(group!.id, section.label)}
+                    onDelete={() => setDeletingGroup({ id: group!.id, name: section.label })}
                   />
                 )}
               </div>
@@ -501,14 +529,21 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
           viewport while scrolling like `fixed` would, but unlike `fixed` it
           fully renders in full-page screenshot/print tools instead of being
           clipped to one viewport height when the page is taller than 100vh. */}
+      {/* Width is inline, not a class: dragging the edge sets any value in
+          between. The transition is off while dragging so the edge tracks
+          the pointer instead of chasing it. */}
       <aside
         id="admin-sidebar"
         data-collapsed={collapsed}
-        className={`hidden transition-[width] duration-200 ease-out lg:block lg:shrink-0 ${collapsed ? "lg:w-14" : "lg:w-64"}`}
+        style={{ width: collapsed ? 56 : width }}
+        className={`relative hidden lg:block lg:shrink-0 ${resizing ? "" : "transition-[width] duration-200 ease-out"}`}
       >
-        <div className={`sticky top-0 h-screen overflow-hidden transition-[width] duration-200 ease-out ${collapsed ? "w-14" : "w-64"}`}>
-          {renderContent(collapsed)}
+        <div className="sticky top-0 h-screen w-full overflow-hidden">
+          {renderContent(collapsed, true)}
         </div>
+        {!collapsed && onResize && onCollapse && (
+          <SidebarResizeHandle width={width} onResize={onResize} onCollapse={onCollapse} onDraggingChange={setResizing} />
+        )}
       </aside>
 
       {/* Mobile/tablet: off-canvas drawer */}
@@ -522,8 +557,16 @@ export function Sidebar({ isOpen, onClose, collapsed = false }: SidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {renderContent(false)}
+        {renderContent(false, false)}
       </aside>
+
+      {deletingGroup && (
+        <SidebarDeleteGroupDialog
+          groupName={deletingGroup.name}
+          onConfirm={() => void handleDeleteGroup(deletingGroup.id, deletingGroup.name)}
+          onCancel={() => setDeletingGroup(null)}
+        />
+      )}
 
       {deletingProduct && (
         <SidebarDeleteProductDialog

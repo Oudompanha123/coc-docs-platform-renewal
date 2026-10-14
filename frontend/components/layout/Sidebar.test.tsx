@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "./Sidebar";
@@ -212,15 +212,14 @@ describe("Sidebar — kebab menu integration", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/jex"));
   });
 
-  it("a static item's Delete row is always disabled — no dialog, no API call", async () => {
+  it("a system page has no Delete row at all — it can never be deleted", async () => {
     const user = userEvent.setup();
     renderSidebar();
     await waitFor(() => expect(fetchAdminNavConfig).toHaveBeenCalled());
 
     await user.click(screen.getAllByRole("button", { name: "More options for Legal pages" })[0]!);
-    const deleteRow = screen.getByRole("menuitem", { name: /Delete/ });
-    expect(deleteRow).toBeDisabled();
-    expect(deleteRow).toHaveAttribute("title", "System pages can't be deleted");
+    expect(screen.getByRole("menuitem", { name: /Rename/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Delete/ })).not.toBeInTheDocument();
   });
 
   it("deleting a product opens the typed-confirmation dialog, then deletes, notifies, and redirects if it was the active page", async () => {
@@ -245,7 +244,7 @@ describe("Sidebar — kebab menu integration", () => {
     expect(push).toHaveBeenCalledWith("/overview");
   });
 
-  it("an admin sees Delete disabled (not absent) on a product, with the super-admin-only tooltip", async () => {
+  it("an admin sees Delete disabled (not absent) on a product, with the reason written in the row", async () => {
     sessionRole.current = "admin";
     const user = userEvent.setup();
     renderSidebar();
@@ -253,8 +252,8 @@ describe("Sidebar — kebab menu integration", () => {
 
     await user.click(screen.getAllByRole("button", { name: "More options for Jex3.0" })[0]!);
     const deleteRow = screen.getByRole("menuitem", { name: /Delete/ });
-    expect(deleteRow).toBeDisabled();
-    expect(deleteRow).toHaveAttribute("title", "Only Super Admins can delete");
+    expect(deleteRow).toHaveAttribute("aria-disabled", "true");
+    expect(deleteRow).toHaveTextContent("Only Super Admins can delete products");
   });
 
   it("moving a static item into a group calls the item-override API with the group id", async () => {
@@ -270,8 +269,71 @@ describe("Sidebar — kebab menu integration", () => {
 
     await user.click(screen.getAllByRole("button", { name: "More options for Legal pages" })[0]!);
     await user.click(screen.getByRole("menuitem", { name: /Move to group/ }));
-    await user.click(screen.getByRole("menuitemradio", { name: /DEVELOPER/ }));
+    // fireEvent, not user.click: jsdom has no layout, so the pointer leaving
+    // "Move to group" would close the submenu before the click lands.
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /DEVELOPER/ }));
 
     await waitFor(() => expect(updateNavItemOverride).toHaveBeenCalledWith("/legal-pages", { groupId: "dev-1" }));
+  });
+});
+
+describe("Sidebar — desktop width and fold (ADR-104 r2.12)", () => {
+  function renderDesktop(props: { width?: number; collapsed?: boolean } = {}) {
+    const onResize = vi.fn();
+    const onCollapse = vi.fn();
+    const utils = render(<Sidebar isOpen={false} onClose={vi.fn()} onResize={onResize} onCollapse={onCollapse} {...props} />);
+    return { ...utils, onResize, onCollapse };
+  }
+
+  it("puts the Collapse button in the sidebar's header while expanded", async () => {
+    const user = userEvent.setup();
+    const { onCollapse } = renderDesktop();
+    await waitFor(() => expect(fetchAdminNavConfig).toHaveBeenCalled());
+    const buttons = screen.getAllByRole("button", { name: "Collapse sidebar" });
+    await user.click(buttons[0]!);
+    expect(onCollapse).toHaveBeenCalled();
+  });
+
+  it("takes its width from the drag, and has no handle or Collapse button when folded", async () => {
+    const { container, rerender, onResize, onCollapse } = renderDesktop({ width: 300 });
+    await waitFor(() => expect(fetchAdminNavConfig).toHaveBeenCalled());
+    expect(container.querySelector("#admin-sidebar")).toHaveStyle({ width: "300px" });
+    expect(screen.getByRole("separator", { name: "Resize sidebar" })).toHaveAttribute("aria-valuenow", "300");
+
+    rerender(<Sidebar isOpen={false} onClose={vi.fn()} collapsed onResize={onResize} onCollapse={onCollapse} />);
+    expect(container.querySelector("#admin-sidebar")).toHaveStyle({ width: "56px" });
+    expect(screen.queryByRole("separator", { name: "Resize sidebar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Collapse sidebar" })).not.toBeInTheDocument();
+  });
+
+  it("resizes from the keyboard and resets on double-click", async () => {
+    const user = userEvent.setup();
+    const { onResize } = renderDesktop({ width: 256 });
+    await waitFor(() => expect(fetchAdminNavConfig).toHaveBeenCalled());
+    const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+
+    handle.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(onResize).toHaveBeenLastCalledWith(272);
+    await user.keyboard("{End}");
+    expect(onResize).toHaveBeenLastCalledWith(400);
+
+    await user.dblClick(handle);
+    expect(onResize).toHaveBeenLastCalledWith(256);
+  });
+
+  it("dragging well past the minimum folds it, keeping the width it had", async () => {
+    const { onResize, onCollapse } = renderDesktop({ width: 280 });
+    await waitFor(() => expect(fetchAdminNavConfig).toHaveBeenCalled());
+    const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+
+    fireEvent.pointerDown(handle, { button: 0, clientX: 280, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 320, pointerId: 1 });
+    expect(onResize).toHaveBeenLastCalledWith(320);
+    fireEvent.pointerMove(handle, { clientX: 100, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 100, pointerId: 1 });
+
+    expect(onCollapse).toHaveBeenCalled();
+    expect(onResize).toHaveBeenLastCalledWith(280);
   });
 });

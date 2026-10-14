@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import {
@@ -104,7 +105,7 @@ export function GeneratedChangesReview({
     );
   }
   if (changes === null) {
-    return <p className="mt-3 text-sm text-muted-foreground">Loading the proposed changes…</p>;
+    return <SkeletonGroup label="Loading the proposed changes" className="mt-3"><SkeletonTable rows={4} columns={3} /></SkeletonGroup>;
   }
 
   return (

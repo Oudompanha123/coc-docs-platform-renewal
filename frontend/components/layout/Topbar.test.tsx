@@ -134,30 +134,23 @@ describe("Topbar sidebar toggle", () => {
     window.localStorage.clear();
   });
 
-  it("folds the sidebar to its icon rail and back, and says which way it will go", async () => {
+  it("has no toggle while the sidebar is expanded — that one sits in the sidebar's header", () => {
+    renderTopbar();
+    expect(screen.queryByRole("button", { name: "Expand sidebar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Collapse sidebar" })).not.toBeInTheDocument();
+  });
+
+  it("shows Expand while folded, and clicking it unfolds and remembers", async () => {
+    window.localStorage.setItem("coc-docs-sidebar-collapsed", "1");
     const user = userEvent.setup();
     renderTopbar();
 
-    const toggle = screen.getByRole("button", { name: "Collapse sidebar" });
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const toggle = await screen.findByRole("button", { name: "Expand sidebar" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveAttribute("aria-controls", "admin-sidebar");
 
     await user.click(toggle);
-    expect(screen.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute("aria-expanded", "false");
-
-    await user.click(screen.getByRole("button", { name: "Expand sidebar" }));
-    expect(screen.getByRole("button", { name: "Collapse sidebar" })).toBeInTheDocument();
-  });
-
-  it("remembers the choice for the next visit", async () => {
-    const user = userEvent.setup();
-    const { unmount } = renderTopbar();
-
-    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
-    expect(window.localStorage.getItem("coc-docs-sidebar-collapsed")).toBe("1");
-    unmount();
-
-    renderTopbar();
-    expect(await screen.findByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand sidebar" })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("coc-docs-sidebar-collapsed")).toBe("0");
   });
 });

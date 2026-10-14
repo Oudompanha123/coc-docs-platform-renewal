@@ -4,6 +4,9 @@ import localFont from "next/font/local";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
+
+const THEME_BOOT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -97,6 +100,14 @@ export default function RootLayout({
       className={`${inter.variable} ${pretendard.variable} ${calSans.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Writes the resolved theme to <html data-theme> before first paint,
+            so a dark or "system" choice doesn't flash light while the bundle
+            loads. Mirrors lib/theme.ts (same key, same resolution); that
+            module takes over, and starts following OS changes, once React
+            mounts. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <TopProgressBar />
         <Providers>{children}</Providers>

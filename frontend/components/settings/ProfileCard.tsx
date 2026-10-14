@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonForm, SkeletonGroup } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { UserAvatar } from "@/components/layout/UserAvatar";
@@ -54,7 +55,7 @@ export function ProfileCard() {
   const [error, setError] = useState<string | null>(null);
 
   if (status !== "authenticated" || !user) {
-    return <p className="text-sm text-muted-foreground">Loading your profile…</p>;
+    return <SkeletonGroup label="Loading your profile"><SkeletonForm fields={3} /></SkeletonGroup>;
   }
 
   const name = user.displayName ?? user.email ?? "";

@@ -1,3 +1,4 @@
+import { pickDate } from "@/components/ui/date-picker.test-utils";
 import userEvent from "@testing-library/user-event";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { pickOption } from "@/components/ui/select.test-utils";
@@ -80,7 +81,7 @@ describe("ScanLogsView", () => {
     fetchScanLogs.mockReturnValue(new Promise((r) => (resolve = r)));
     render(<ScanLogsView />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Loading scan logs…");
+    expect(screen.getByRole("status", { name: "Loading scan logs" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Scan Logs" })).toBeInTheDocument();
     expect(screen.getByText("View and monitor Claude usage scan activities from all users.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Scan Logs" })).toHaveAttribute("aria-current", "page");
@@ -164,9 +165,10 @@ describe("ScanLogsView", () => {
     fetchScanLogs.mockResolvedValue(list());
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
-    await pickOption(userEvent.setup(), "Date range", "Custom range");
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
-    fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
+    const user = userEvent.setup();
+    await pickOption(user, "Date range", "Custom range");
+    await pickDate(user, "From", "2026-09-01");
+    await pickDate(user, "To", "2026-09-02");
     await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02", "team"));
   });
 
@@ -196,9 +198,10 @@ describe("ScanLogsView", () => {
       fetchScanLogs.mockResolvedValue(list());
       render(<ScanLogsView />);
       await screen.findByText("Scan history");
-      await pickOption(userEvent.setup({ advanceTimers: vi.advanceTimersByTime }), "Date range", "Custom range");
-      fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } });
-      fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-02" } });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await pickOption(user, "Date range", "Custom range");
+      await pickDate(user, "From", "2026-09-01");
+      await pickDate(user, "To", "2026-09-02");
       await waitFor(() => expect(fetchScanLogs).toHaveBeenLastCalledWith("2026-09-01", "2026-09-02", "team"));
 
       const calls = fetchScanLogs.mock.calls.length;

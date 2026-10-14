@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { GoogleIcon } from "@/components/auth/icons";
 import { fetchMySecurity, type SignInEvent } from "@/lib/me/security";
@@ -59,7 +60,7 @@ export function SecurityCard() {
       <h2 className="text-base font-semibold text-foreground">Security</h2>
       <p className="mt-0.5 text-sm text-muted-foreground">How you sign in, and your recent sign-in activity.</p>
 
-      {state.status === "loading" && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {state.status === "loading" && <SkeletonGroup label="Loading security" className="mt-4"><SkeletonList rows={3} /></SkeletonGroup>}
       {state.status === "error" && <p className="mt-4 text-sm text-danger">{state.message}</p>}
 
       {state.status === "ready" && (

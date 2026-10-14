@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ScaleIcon } from "@/components/layout/icons";
-import { PrivacyLegalPageEditor } from "@/components/legal/PrivacyLegalPageEditor";
-import { TermsDocumentEditor } from "@/components/legal/TermsDocumentEditor";
+import { LegalPageEditor } from "@/components/legal/LegalPageEditor";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { canEditLegalPages } from "@/lib/legal/permissions";
 
@@ -16,65 +15,141 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 /**
- * A thin tab shell over two unrelated editors — not two views of one shared
- * form. Terms moved to the new plain-document shape and its own editor
- * (`TermsDocumentEditor`); Privacy keeps the original highlights/CTA shape
- * and editor (`PrivacyLegalPageEditor`) completely unchanged, since its
- * public `/privacy` page still reads that same shape (see the ADR note in
- * `V75__legal_pages_revert_privacy_shape.sql`). Each editor loads/saves/
- * publishes itself; this shell only decides which one is mounted and
- * confirms before switching away from one with unsaved changes.
+ * A tab shell over the two legal pages (ADR-104 r2.13). Both share one shape
+ * since V81 — title, byline and one Markdown body — and one editor
+ * (`LegalPageEditor`), mounted once per page.
+ *
+ * Both editors stay mounted and the inactive one is hidden. Switching tabs
+ * used to unmount the editor, so it asked "Switch pages without saving?" and,
+ * on yes, threw the edits away; now switching is free and each tab keeps its
+ * work, marked with a dot while unsaved.
+ *
+ * Leaving the page is guarded here, once, for both tabs: the browser's own
+ * prompt for a reload/close, and a confirm on any in-app link — each editor
+ * used to register its own, which with both mounted would ask twice.
  */
 export default function LegalPagesAdminPage() {
   const { user } = useSession();
   const canEdit = canEditLegalPages(user?.role);
 
   const [activeTab, setActiveTab] = useState<Tab>("terms");
-  const [dirty, setDirty] = useState<Record<Tab, boolean>>({ terms: false, privacy: false });
-  // Stable references, not inline arrows — each editor's own `useEffect(() =>
-  // onDirtyChange?.(unsaved), [unsaved, onDirtyChange])` depends on this
-  // callback's identity. An inline arrow is a new function every render, so
-  // the effect would re-fire every render it caused, which re-renders this
-  // page, which creates another new arrow — "Maximum update depth exceeded".
-  // `setDirty` itself is react's own stable setter, so `[]` is correct here.
-  const onTermsDirtyChange = useCallback((d: boolean) => setDirty((prev) => ({ ...prev, terms: d })), []);
-  const onPrivacyDirtyChange = useCallback((d: boolean) => setDirty((prev) => ({ ...prev, privacy: d })), []);
+  const [dirty, setDirty] = useState<Record<Tab, boolean>>({
+    terms: false,
+    privacy: false,
+  });
+  // Stable references — each editor's `useEffect(() => onDirtyChange?.(unsaved),
+  // [unsaved, onDirtyChange])` depends on this identity; an inline arrow would
+  // re-fire it every render ("Maximum update depth exceeded").
+  const onTermsDirtyChange = useCallback(
+    (d: boolean) => setDirty((prev) => ({ ...prev, terms: d })),
+    [],
+  );
+  const onPrivacyDirtyChange = useCallback(
+    (d: boolean) => setDirty((prev) => ({ ...prev, privacy: d })),
+    [],
+  );
+  const anyDirty = dirty.terms || dirty.privacy;
 
-  function selectTab(tab: Tab) {
-    if (tab === activeTab) return;
-    if (dirty[activeTab] && !window.confirm("You have unsaved changes. Switch pages without saving?")) return;
-    setActiveTab(tab);
-  }
+  useEffect(() => {
+    if (!anyDirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    // In-app navigation (a sidebar link) doesn't fire beforeunload in the App
+    // Router, so same-tab link clicks are caught in the capture phase.
+    function onClick(e: MouseEvent) {
+      const anchor = (e.target as HTMLElement | null)?.closest?.("a");
+      if (!anchor || anchor.target === "_blank" || !anchor.getAttribute("href"))
+        return;
+      if (
+        !window.confirm(
+          "You have unsaved changes on the legal pages. Leave without saving?",
+        )
+      ) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [anyDirty]);
 
   return (
     <AppShell
       pageTitle="Legal pages"
       pageSubtitle="Edit Terms of Service and Privacy Policy shown on the landing site"
-      titleIcon={<ScaleIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />}
+      titleIcon={
+        <ScaleIcon className="hidden size-5 shrink-0 text-muted-foreground sm:block" />
+      }
     >
-      <div role="tablist" className="inline-flex rounded-full border border-surface-border bg-card p-1">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={tab.key === activeTab}
-            onClick={() => selectTab(tab.key)}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-              tab.key === activeTab ? "bg-muted-surface font-medium text-foreground" : "text-muted-foreground hover:bg-accent"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <div className="mx-auto max-w-[960px]">
+        <div
+          role="tablist"
+          aria-label="Legal page"
+          className="inline-flex rounded-full bg-muted-surface p-1"
+        >
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              id={`legal-tab-${tab.key}`}
+              type="button"
+              role="tab"
+              aria-selected={tab.key === activeTab}
+              aria-controls={`legal-panel-${tab.key}`}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors ${
+                tab.key === activeTab
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+              {dirty[tab.key] && (
+                <span
+                  className="size-1.5 rounded-full bg-amber-500"
+                  aria-label="unsaved changes"
+                  role="img"
+                />
+              )}
+            </button>
+          ))}
+        </div>
 
-      <div className="mt-4">
-        {activeTab === "terms" ? (
-          <TermsDocumentEditor canEdit={canEdit} onDirtyChange={onTermsDirtyChange} />
-        ) : (
-          <PrivacyLegalPageEditor canEdit={canEdit} onDirtyChange={onPrivacyDirtyChange} />
-        )}
+        <div
+          id="legal-panel-terms"
+          role="tabpanel"
+          aria-labelledby="legal-tab-terms"
+          hidden={activeTab !== "terms"}
+          className="mt-4"
+        >
+          <LegalPageEditor
+            slug="terms"
+            pageName="Terms of Service"
+            canEdit={canEdit}
+            active={activeTab === "terms"}
+            onDirtyChange={onTermsDirtyChange}
+          />
+        </div>
+        <div
+          id="legal-panel-privacy"
+          role="tabpanel"
+          aria-labelledby="legal-tab-privacy"
+          hidden={activeTab !== "privacy"}
+          className="mt-4"
+        >
+          <LegalPageEditor
+            slug="privacy"
+            pageName="Privacy Policy"
+            canEdit={canEdit}
+            active={activeTab === "privacy"}
+            onDirtyChange={onPrivacyDirtyChange}
+          />
+        </div>
       </div>
     </AppShell>
   );

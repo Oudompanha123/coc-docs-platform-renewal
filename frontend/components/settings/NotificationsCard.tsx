@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonForm, SkeletonGroup } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { ShieldIcon } from "@/components/auth/icons";
 import { BellIcon, CheckCircleIcon, MailIcon, MegaphoneIcon, ReturnIcon, UserPlusIcon } from "@/components/layout/icons";
@@ -96,7 +97,7 @@ export function NotificationsCard() {
   }
 
   if (state.status === "loading") {
-    return <p className="py-3 text-sm text-muted-foreground">Loading…</p>;
+    return <SkeletonGroup label="Loading notification settings" className="py-3"><SkeletonForm fields={3} /></SkeletonGroup>;
   }
 
   if (state.status === "error") {
