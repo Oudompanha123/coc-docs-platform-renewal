@@ -17,6 +17,9 @@ function formatWhen(iso: string): string {
   });
 }
 
+/** Recent sign-ins shown before the list scrolls. */
+const VISIBLE_SIGN_INS = 5;
+
 function eventLabel(action: string): string {
   if (action === "auth.sign_in") return "Signed in";
   if (action === "auth.sign_out") return "Signed out";
@@ -80,7 +83,19 @@ export function SecurityCard() {
             {state.recentSignIns.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">No sign-in history yet.</p>
             ) : (
-              <div className="mt-2 divide-y divide-surface-border">
+              // About five rows tall, scrolling for the rest — the top of the
+              // sixth peeks out so it reads as "more below". Focusable only
+              // when it actually scrolls, so the keyboard can scroll it too.
+              <div
+                role={state.recentSignIns.length > VISIBLE_SIGN_INS ? "region" : undefined}
+                aria-label={state.recentSignIns.length > VISIBLE_SIGN_INS ? "Recent sign-ins" : undefined}
+                tabIndex={state.recentSignIns.length > VISIBLE_SIGN_INS ? 0 : undefined}
+                className={`mt-2 divide-y divide-surface-border ${
+                  state.recentSignIns.length > VISIBLE_SIGN_INS
+                    ? "max-h-[17.5rem] overflow-y-auto overscroll-contain pr-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 rounded-md"
+                    : ""
+                }`}
+              >
                 {state.recentSignIns.map((event, i) => (
                   <div key={i} className="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
                     <div>
