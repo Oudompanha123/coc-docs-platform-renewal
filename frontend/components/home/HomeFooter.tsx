@@ -48,6 +48,8 @@ export function HomeFooter({
               <p className="text-xs font-semibold uppercase tracking-wider text-ink">{t.footer.product}</p>
               <ul className="mt-3 space-y-2.5">
                 <li><Link href="/home" className="text-sm text-muted hover:text-ink">{t.nav.home}</Link></li>
+                {/* The header's nav is hidden below md, so this is how a phone reaches the Store. */}
+                <li><Link href="/store" className="text-sm text-muted hover:text-ink">Store</Link></li>
                 <li><Link href={productHref("jex3-0")} className="text-sm text-muted hover:text-ink">Jex3.0</Link></li>
                 <li><Link href={productHref("jex2-0")} className="text-sm text-muted hover:text-ink">Jex2.0</Link></li>
                 <li><Link href={productHref("coach")} className="text-sm text-muted hover:text-ink">Coach</Link></li>
