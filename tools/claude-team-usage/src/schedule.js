@@ -32,6 +32,13 @@
  * it in place (`/Create /F`, same name, never a second task) when its Node.js
  * or CLI path no longer matches this installation or no longer exists.
  *
+ * `npm install -g` runs bin/postinstall.js, which calls `repairExisting`: the
+ * same check and re-registration, but repair only — it never creates a task,
+ * and leaves one registered for another Windows account alone. That is what
+ * moves a 0.2.0/0.3.0 task (cmd.exe, a console window every run) onto the
+ * hidden launcher as soon as someone updates, without waiting for a `login`.
+ * Every repair attempt, from either path, leaves a `[repair]` line in the log.
+ *
  * `schedule test [MINUTES]` adds a temporary every-N-minutes trigger on top of
  * the normal 11:00/16:00 ones, for checking the setup end to end. It expires
  * by itself after TEST_HOURS, and `schedule` alone restores the normal task.
@@ -229,7 +236,45 @@ export function parseTask(xml) {
     node: paths?.[1] ?? null,
     cli: paths?.[2] ?? null,
     marker: (tag('Description') ?? '').match(/\[schedule: [^\]]*\]/)?.[0] ?? null,
+    userId: tag('UserId'),
   };
+}
+
+/** The run-hidden.jscript a task's arguments start, or null when it does not use the hidden launcher. */
+export function hiddenLauncher(args) {
+  return String(args ?? '').match(/"([^"]*[\\/]run-hidden\.jscript)"/i)?.[1] ?? null;
+}
+
+/** The account this process runs as — { name: 'DOMAIN\\user', sid: 'S-1-5-…' } — or null when Windows will not say. */
+export function currentIdentity(env = process.env) {
+  try {
+    // By full path: Git for Windows puts a GNU `whoami.exe` ahead of System32 on
+    // PATH (Git Bash, and npm run from it), which rejects `/user`. CSV values are
+    // not localized; the SID is ASCII even when the name is not.
+    const whoami = path.join(env.SystemRoot || env.windir || 'C:\\Windows', 'System32', 'whoami.exe');
+    const out = execFileSync(whoami, ['/user', '/fo', 'csv', '/nh'], { encoding: 'utf8', timeout: SCHTASKS_TIMEOUT_MS, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const m = out.trim().match(/^"([^"]*)","(S-1-[\d-]+)"/i);
+    return m ? { name: m[1], sid: m[2] } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a task's principal (`<UserId>`) is this account. Task Scheduler
+ * stores the SID for a task registered by name, so that is compared first; a
+ * name is compared without case, with or without its domain.
+ */
+export function ownedBy(userId, identity, env = process.env) {
+  const id = String(userId ?? '').trim().toLowerCase();
+  if (!id || !identity) return false;
+  if (/^s-1-/.test(id)) return Boolean(identity.sid) && id === identity.sid.toLowerCase();
+  const fromEnv = env.USERNAME ? `${env.USERDOMAIN ? `${env.USERDOMAIN}\\` : ''}${env.USERNAME}` : null;
+  const bare = (n) => n.slice(n.lastIndexOf('\\') + 1);
+  return [identity.name, fromEnv]
+    .filter(Boolean)
+    .map((n) => n.toLowerCase())
+    .some((n) => n === id || (!id.includes('\\') && bare(n) === id));
 }
 
 function schtasks(args) {
@@ -276,6 +321,32 @@ const localMinute = (d) => `${localDate(d)}T${pad(d.getHours())}:${pad(d.getMinu
 /** `schedule remove` leaves this, so a later `scan` does not quietly put the task back. */
 function optOutPath(env) {
   return path.join(configDir(env), 'schedule-disabled');
+}
+
+/** `schedule remove`, or a machine (CI, a shared runner) that should never get the task. */
+function optedOut(env) {
+  return fs.existsSync(optOutPath(env)) || String(env.CLAUDE_TEAM_USAGE_AUTO_SCHEDULE ?? '').trim().toLowerCase() === 'off';
+}
+
+const REPAIR_PREFIX = '[repair] ';
+
+/**
+ * Appends one `[repair] <time> | <source> | <outcome> | <reason>` line to the
+ * scheduled-scan log, which `schedule status` reads back. Only into a config
+ * folder that already exists (a signed-in machine), and never throws — a scan
+ * holding the log open must not turn a repair into a failure. Reasons hold
+ * paths and Task Scheduler messages, never credentials.
+ */
+export function recordRepair({ env = process.env, source, outcome, reason, now = new Date() }) {
+  try {
+    if (!fs.existsSync(configDir(env))) return false;
+    const stamp = `${localDate(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const oneLine = String(reason ?? '').replace(/\s+/g, ' ').trim();
+    fs.appendFileSync(logPath(env), `${REPAIR_PREFIX}${stamp} | ${source} | ${outcome} | ${oneLine}\n`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** `schedule test` leaves this, so `ensureScheduled` keeps the test trigger instead of "repairing" it away. */
@@ -359,7 +430,8 @@ export function staleReasons(task, planned, current, exists = fs.existsSync) {
     else if (!samePath(task.cli, current.cli)) reasons.push(`it ran the CLI at ${task.cli}, not this installation (${current.cli})`);
   }
   if (!reasons.length && (!samePath(task.command ?? '', planned.command) || (task.args ?? '').toLowerCase() !== planned.args.toLowerCase())) {
-    reasons.push('its command line is from an older version');
+    const opensConsole = path.win32.basename(task.command ?? '').toLowerCase() === 'cmd.exe';
+    reasons.push(`its command line is from an older version${opensConsole ? ' (it starts cmd.exe, which opens a console window every run)' : ''}`);
   }
   if (task.marker !== planned.marker) reasons.push(`its schedule was ${task.marker ?? 'set by an older version'}`);
   return reasons;
@@ -387,8 +459,7 @@ export function ensureScheduled({
   continues = 'This scan continues.',
 }) {
   if (platform !== 'win32') return 'unsupported';
-  // `schedule remove`, or a machine (CI, a shared runner) that should never get the task.
-  if (fs.existsSync(optOutPath(env)) || String(env.CLAUDE_TEAM_USAGE_AUTO_SCHEDULE ?? '').trim().toLowerCase() === 'off') return 'opted-out';
+  if (optedOut(env)) return 'opted-out';
 
   const xml = read();
   const task = xml ? parseTask(xml) : null;
@@ -409,6 +480,7 @@ export function ensureScheduled({
     register({ env, run, current, test, now });
   } catch (error) {
     io.err(`warning: could not ${registered ? 'repair' : 'set up'} automatic scans (${error.message}). ${continues}`);
+    if (registered) recordRepair({ env, now, source: 'scan/login', outcome: 'failed', reason: error.message });
     return 'failed';
   }
   const when = `every day at ${SCHEDULE_TIMES.join(' and ')}${test ? ` (plus the TEST run every ${test.minutes} min)` : ''}`;
@@ -417,8 +489,68 @@ export function ensureScheduled({
     return 'created';
   }
   io.info(`Automatic scans repaired — ${reasons.join('; ')}. They run ${when} with ${current.cli}.`);
+  recordRepair({ env, now, source: 'scan/login', outcome: 'repaired', reason: reasons.join('; ') });
   return 'repaired';
 }
+
+const NO_TASK = 'no scheduled task to repair';
+
+/**
+ * The repair half of `ensureScheduled`, for bin/postinstall.js: re-registers
+ * an existing task in place (`/Create /F`, same name) when `staleReasons`
+ * finds it no longer runs this installation hidden — the 0.2.0/0.3.0 cmd.exe
+ * task, another copy's paths, a moved Node.js. Refuses everything
+ * `ensureScheduled` would not do unattended, and two things it would:
+ *   - it never creates a task (a first install, CI, or `schedule remove`
+ *     leaves none, and none appears);
+ *   - it changes only a task whose principal is this Windows account, and
+ *     only when it can read the task to check.
+ * The 11:00/16:00 triggers, the saved login and the usage ledger are not
+ * touched; `register` only writes the task definition. Never throws.
+ *
+ * Task Scheduler replaces the definition of a task that is running at that
+ * moment; the running instance carries on to its end, and the next start uses
+ * the new definition (checked on Windows 11 with an InteractiveToken task).
+ *
+ * @returns {{ outcome: 'repaired' | 'current' | 'skipped' | 'failed', reason: string }}
+ */
+export function repairExisting({
+  env = process.env,
+  run = schtasks,
+  read = exportTask,
+  identity = currentIdentity,
+  platform = process.platform,
+  current = currentInstall(),
+  exists = fs.existsSync,
+  now = new Date(),
+} = {}) {
+  const skipped = (reason) => ({ outcome: 'skipped', reason });
+  try {
+    if (platform !== 'win32') return skipped('not Windows');
+    if (optedOut(env)) return skipped('automatic scans are turned off (`schedule remove` or CLAUDE_TEAM_USAGE_AUTO_SCHEDULE=off)');
+    const xml = read();
+    if (!xml) return skipped(isRegistered(run) ? 'Task Scheduler would not show the task definition, so its owner could not be checked' : NO_TASK);
+    const task = parseTask(xml);
+    const me = identity(env);
+    if (!me) return skipped('could not tell which Windows account this is, so the task was left alone');
+    if (!ownedBy(task.userId, me, env)) return skipped(`the task runs as another Windows account (${task.userId ?? 'unknown'})`);
+    if (current.unstable) return skipped(current.unstable);
+    const creds = resolveCredentials(env);
+    if (!creds) return skipped('not signed in on this account');
+    if (creds.source === 'environment') return skipped('this shell signs in through USER_EMAIL / INGEST_URL / INGEST_SECRET, which a scheduled task does not see');
+
+    const test = activeTestMode(env, now);
+    const reasons = staleReasons(task, plannedTask({ env, current, test, now }), current, exists);
+    if (!reasons.length) return { outcome: 'current', reason: `already runs ${current.cli} through the hidden launcher` };
+    register({ env, run, current, test, now });
+    return { outcome: 'repaired', reason: reasons.join('; ') };
+  } catch (error) {
+    return { outcome: 'failed', reason: error?.message ?? String(error) };
+  }
+}
+
+/** Whether `repairExisting` found nothing to do because there is no task — the one result not worth a log line. */
+export const isNoTask = (result) => result.outcome === 'skipped' && result.reason === NO_TASK;
 
 function warnShellOnly(io, env) {
   for (const name of ['CLAUDE_PROJECTS_DIR', 'CLAUDE_CONFIG_DIR', 'CLAUDE_TEAM_USAGE_CONFIG_DIR', 'COC_DOCS_URL', 'NODE_EXTRA_CA_CERTS']) {
@@ -491,7 +623,7 @@ const QUERY_PS =
   "$d = { param($x) if ($x -and $x.Year -gt 2000) { $x.ToString('yyyy-MM-dd HH:mm') } else { $null } }; " +
   '[pscustomobject]@{ state = [string]$t.State; user = $t.Principal.UserId; ' +
   'lastRun = (& $d $i.LastRunTime); lastResult = $i.LastTaskResult; nextRun = (& $d $i.NextRunTime); ' +
-  'description = $t.Description; args = $t.Actions[0].Arguments } | ConvertTo-Json -Compress';
+  'description = $t.Description; program = $t.Actions[0].Execute; args = $t.Actions[0].Arguments } | ConvertTo-Json -Compress';
 const NOT_YET_RUN = 0x41303;
 
 export function describeResult(code) {
@@ -527,6 +659,16 @@ export function status({ io, env = process.env, query = queryTask, platform = pr
   io.out(`task "${TASK_NAME}" (${task.state}, runs as ${task.user})`);
   const marker = String(task.description ?? '').match(/\[schedule: ([^\]]*)\]/)?.[1];
   if (marker) io.out(`  schedule:    ${marker}${marker.includes('every') ? '   ← TEST; `claude-team-usage schedule` ends it' : ''}`);
+  const repair = 'run `claude-team-usage login` (or `npm install -g claude-team-usage`) to repair';
+  if (task.program) {
+    const opensConsole = path.win32.basename(task.program).toLowerCase() !== 'wscript.exe';
+    io.out(`  program:     ${task.program}${opensConsole ? `   ← opens a console window every run; ${repair}` : ''}`);
+  }
+  if (task.program || task.args) {
+    const launcher = hiddenLauncher(task.args);
+    const shown = launcher ? `${launcher}${exists(launcher) ? ' (hidden window)' : `   ← MISSING: ${repair}`}` : `none — not the hidden run-hidden.jscript launcher; ${repair}`;
+    io.out(`  launcher:    ${shown}`);
+  }
   if (task.args) {
     const { node, cli } = parseTask(`<Arguments>${task.args}</Arguments>`);
     const mark = (p) => (p ? `${p}${exists(p) ? '' : '   ← MISSING: run `claude-team-usage login` from a global install to repair'}` : 'not recognised');
@@ -544,6 +686,18 @@ export function status({ io, env = process.env, query = queryTask, platform = pr
     io.out(`\nno runs logged yet (${log}).`);
     return;
   }
-  const lastRun = text.slice(text.lastIndexOf('===='));
+  // `[repair]` lines (recordRepair) can land in the middle of a run's output; they are shown on their own.
+  const lines = text.split(/\r?\n/);
+  const lastRepair = lines.filter((l) => l.startsWith(REPAIR_PREFIX)).pop();
+  if (lastRepair) {
+    const [when, source, outcome, ...why] = lastRepair.slice(REPAIR_PREFIX.length).split(' | ');
+    io.out(`  last repair: ${when} (${source}) → ${outcome}${why.length ? `: ${why.join(' | ')}` : ''}`);
+  }
+  const runs = lines.filter((l) => !l.startsWith(REPAIR_PREFIX)).join('\n');
+  if (!runs.includes('====')) {
+    io.out(`\nno runs logged yet (${log}).`);
+    return;
+  }
+  const lastRun = runs.slice(runs.lastIndexOf('===='));
   io.out(`\nlatest run, from ${log}:\n${lastRun.trimEnd()}`);
 }
