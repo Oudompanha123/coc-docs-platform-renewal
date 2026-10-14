@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisiblePolling } from "@/lib/claudeUsage/useVisiblePolling";
 
 /**
  * `claude-team-usage`'s sign-in callback lands on `/cli/signed-in`, which
@@ -11,6 +12,12 @@ export const CLI_RETURN_PARAM = "cli";
 export const CLI_RETURN_VALUE = "signed-in";
 export const CLI_POLL_INTERVAL_MS = 5_000;
 export const CLI_POLL_MAX_MS = 120_000;
+/**
+ * How often an open, visible dashboard re-reads on its own, so a scan
+ * check-in ("Last scan") or an upload shows without a reload. Scans run a
+ * few times a day, so once a minute is plenty; a hidden tab doesn't poll.
+ */
+export const DASHBOARD_POLL_INTERVAL_MS = 60_000;
 /** Focus and visibilitychange both fire on one return to the tab — fetch once. */
 const REFRESH_MIN_GAP_MS = 2_000;
 
@@ -19,13 +26,17 @@ const REFRESH_MIN_GAP_MS = 2_000;
  *
  * - re-reads whenever the tab or window regains focus, so switching back
  *   from the terminal after a `claude-team-usage scan` shows the new figures;
+ * - re-reads every DASHBOARD_POLL_INTERVAL_MS while the tab is visible, so a
+ *   new scan check-in moves "Last scan" on its own (`useVisiblePolling`:
+ *   paused while hidden, cleared on unmount);
  * - after the CLI's browser sign-in returns here (`?cli=signed-in`), drops
  *   that marker from the URL and polls every CLI_POLL_INTERVAL_MS until
  *   `fingerprint` changes from its first loaded value, or CLI_POLL_MAX_MS.
+ *   The minute poll stands down meanwhile, so the two never overlap.
  *
- * `fingerprint` is whatever changes when new usage arrives (e.g. "last
- * reported"); `undefined` until the first load. Only the CLI uploads — this
- * only re-reads.
+ * `fingerprint` is whatever changes when a scan lands — new usage, or a
+ * check-in with nothing new (e.g. "last reported" plus "last scan");
+ * `undefined` until the first load. Only the CLI uploads — this only re-reads.
  *
  * // req: FR-USAGE-005, ADR-060
  */
@@ -87,6 +98,9 @@ export function useUsageAutoRefresh(reload: () => unknown, fingerprint: string |
       window.clearTimeout(stop);
     };
   }, [awaitingCliUpload, refetch]);
+
+  // The rest of the time: a slow, visible-only poll for scans that land while the page sits open.
+  useVisiblePolling(refetch, DASHBOARD_POLL_INTERVAL_MS, !awaitingCliUpload);
 
   return { awaitingCliUpload };
 }
