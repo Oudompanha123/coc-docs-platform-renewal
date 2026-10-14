@@ -10,8 +10,8 @@ import { getMfaStatus } from "@/lib/auth/api";
 import { useSession } from "@/lib/auth/SessionProvider";
 
 /**
- * Password and two-factor authentication — the "Password & 2FA" tab of
- * `/account/settings` (`#password-2fa`), between Security and Sessions. The
+ * Password and two-factor authentication — on the Security tab of
+ * `/account/settings`, between the sign-in history and Sessions. The
  * same controls as the admin `/settings` Security accordion (`SecurityTab`),
  * which keeps its own copy: this one reaches every signed-in role, including
  * those the admin shell doesn't admit.

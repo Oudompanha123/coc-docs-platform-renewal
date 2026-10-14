@@ -19,7 +19,7 @@ function formatWhen(iso: string): string {
 /**
  * Every signed-in session of this account, with a per-device sign-out. Moved
  * out of SecurityTab unchanged so `/settings` (inside the Security accordion)
- * and `/account/settings#sessions` show the same list from one component.
+ * and `/account/settings#security` show the same list from one component.
  */
 export function ActiveSessions() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);

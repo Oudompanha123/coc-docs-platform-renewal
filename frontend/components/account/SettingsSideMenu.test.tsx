@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 
 describe("SettingsSideMenu", () => {
-  it("renders Account, Appearance, Notifications, Claude Usage, Attendance, Connected accounts, Security, Sessions, then Log out — no Profile", () => {
+  it("renders Account, Appearance, Notifications, Claude Usage, Attendance, Connected accounts, Security, then Log out — no Profile", () => {
     renderMenu();
 
     const items = screen.getAllByRole("tab").map((el) => el.textContent);
@@ -53,29 +53,18 @@ describe("SettingsSideMenu", () => {
     expect(items.some((t) => t === "Attendance")).toBe(true);
     expect(items.some((t) => t === "Connected accounts")).toBe(true);
     expect(items.some((t) => t === "Security")).toBe(true);
-    expect(items.some((t) => t === "Sessions")).toBe(true);
     expect(screen.queryByRole("tab", { name: "Profile" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /log out/i }).length).toBe(1);
   });
 
-  it("puts Password & 2FA directly below Security and above Sessions, with its own icon", () => {
+  it("puts Security last among the tabs — Password & 2FA and Sessions live inside it, not as tabs", () => {
     renderMenu();
     const items = screen.getAllByRole("tab").map((el) => el.textContent);
     const desktop = items.slice(0, items.length / 2);
-    const index = desktop.indexOf("Password & 2FA");
 
-    expect(desktop[index - 1]).toBe("Security");
-    expect(desktop[index + 1]).toBe("Sessions");
-    expect(screen.getAllByRole("tab", { name: "Password & 2FA" })[0]!.querySelector("svg")).not.toBeNull();
-  });
-
-  it("puts Sessions last among the tabs, after Security", () => {
-    renderMenu();
-    const items = screen.getAllByRole("tab").map((el) => el.textContent);
-    const securityIndex = items.indexOf("Security");
-    const sessionsIndex = items.indexOf("Sessions");
-
-    expect(sessionsIndex).toBeGreaterThan(securityIndex);
+    expect(desktop.at(-1)).toBe("Security");
+    expect(screen.queryByRole("tab", { name: "Password & 2FA" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Sessions" })).not.toBeInTheDocument();
   });
 
   it("puts Claude Usage between Notifications and Connected accounts", () => {
@@ -209,7 +198,7 @@ describe("SettingsSideMenu", () => {
       accountTab.focus();
       await user.keyboard("{ArrowUp}");
 
-      expect(screen.getAllByRole("tab", { name: "Sessions" })[0]).toHaveFocus();
+      expect(screen.getAllByRole("tab", { name: "Security" })[0]).toHaveFocus();
     });
 
     it("End moves focus to the last tab, Home back to the first", async () => {
@@ -219,7 +208,7 @@ describe("SettingsSideMenu", () => {
       const accountTab = screen.getAllByRole("tab", { name: "Account" })[0]!;
       accountTab.focus();
       await user.keyboard("{End}");
-      expect(screen.getAllByRole("tab", { name: "Sessions" })[0]).toHaveFocus();
+      expect(screen.getAllByRole("tab", { name: "Security" })[0]).toHaveFocus();
 
       await user.keyboard("{Home}");
       expect(screen.getAllByRole("tab", { name: "Account" })[0]).toHaveFocus();
