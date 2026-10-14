@@ -78,6 +78,14 @@ export function isDue(entry, payload) {
   return !was || now.requests > was.requests || now.activeSeconds > was.activeSeconds;
 }
 
+/**
+ * Whether this PC has ever had a day accepted for this account, within the
+ * days it still remembers. A day the server refused for good doesn't count.
+ */
+export function hasReportedBefore(entry) {
+  return Object.values(entry?.days ?? {}).some((day) => !day.skipped);
+}
+
 export function recordSent(entry, payload) {
   const { input, output, cacheRead, cacheCreation } = payload;
   const activity = activityOf(payload.activity);

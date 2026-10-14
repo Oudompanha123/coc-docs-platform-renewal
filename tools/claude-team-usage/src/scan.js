@@ -16,7 +16,7 @@
  */
 
 import { resolveCredentials } from './config.js';
-import { accountEntry, isDue, loadLedger, prune, recordSent, recordSkipped, saveLedger } from './ledger.js';
+import { accountEntry, hasReportedBefore, isDue, loadLedger, prune, recordSent, recordSkipped, saveLedger } from './ledger.js';
 import { login } from './login.js';
 import { ensureScheduled } from './schedule.js';
 import { announceScanStart, deliverScanLogs, ScanRecorder } from './scan-log.js';
@@ -66,6 +66,10 @@ export const scanUrl = (ingestUrl) => `${String(ingestUrl).replace(/\/+$/, '')}/
  * correct on the server, and this is only the check-in time.
  *
  * Returns whether the check-in landed, and why not, for the scan log (ADR-099).
+ * `notTracked`: the server has no roster row for this email. Only a usage
+ * report adds someone to the roster (ADR-035), so for an account that has
+ * never had usage to report this is the expected answer, not a fault — the
+ * caller decides which it is.
  */
 async function recordScanTime({ creds, io, fetchImpl, verbose }) {
   try {
@@ -77,7 +81,7 @@ async function recordScanTime({ creds, io, fetchImpl, verbose }) {
     const notTracked = res.action === 'not-tracked';
     io.info(notTracked ? '  scan time not recorded: this account has not reported any usage yet' : '  scan time recorded');
     return notTracked
-      ? { ok: false, why: 'this account has not reported any usage yet, so there is no scan time to record' }
+      ? { ok: false, notTracked: true, why: 'this account has not reported any usage yet, so there is no scan time to record' }
       : { ok: true };
   } catch (error) {
     if (error?.code === TRACKING_DISABLED) {
@@ -218,16 +222,35 @@ async function runScan({ creds, dryRun, days, verbose, io, scheduled, fetchImpl,
   };
 
   // "No new usage" is a successful scan, never a warning or an error (ADR-099).
-  const checkIn = async (nothing = 'Nothing to upload') => {
+  //
+  // `neverReported`: this scan found no usage at all, so an account the
+  // server doesn't track yet ("not-tracked") is simply one that has had
+  // nothing to report — a new user's first scans. That is a successful scan.
+  // Anywhere else "not-tracked" contradicts this PC's own record of days it
+  // already sent (e.g. the roster row was deleted), so it stays a warning.
+  const checkIn = async (nothing = 'Nothing to upload', { neverReported = false } = {}) => {
     state.step = 'upload';
     log.setCounts({ newTokens: 0, daysUploaded: 0 });
     log.uploadStatus = 'not-needed';
     const scanTime = await recordScanTime({ creds, io, fetchImpl, verbose });
-    log.step(
-      'upload',
-      scanTime.ok ? 'success' : 'warning',
-      scanTime.ok ? `${nothing} — scan check-in recorded` : `${nothing}, but the check-in was not recorded: ${scanTime.why}`,
-    );
+    if (scanTime.ok) {
+      log.step('upload', 'success', `${nothing} — scan check-in recorded`);
+    } else if (scanTime.notTracked && neverReported) {
+      log.step(
+        'upload',
+        'success',
+        `${nothing} — this account has no usage on Coc Docs yet, so there is no scan time to record. It appears with its first usage.`,
+      );
+    } else if (scanTime.notTracked) {
+      log.step(
+        'upload',
+        'warning',
+        `${nothing}, but Coc Docs has no record of this account although this PC reported usage before. ` +
+          'Run `claude-team-usage scan --days 30` to send it again.',
+      );
+    } else {
+      log.step('upload', 'warning', `${nothing}, but the check-in was not recorded: ${scanTime.why}`);
+    }
   };
 
   state.step = 'check-new-usage';
@@ -236,7 +259,7 @@ async function runScan({ creds, dryRun, days, verbose, io, scheduled, fetchImpl,
     io.out(`no usage found for ${range}`);
     if (!dryRun && creds) {
       log.step('check-new-usage', 'success', 'No usage in the scanned days — no new usage found');
-      await checkIn();
+      await checkIn('Nothing to upload', { neverReported: !hasReportedBefore(account) });
     }
     return { sent: 0, payloads, outcome: 'no-usage' };
   }
