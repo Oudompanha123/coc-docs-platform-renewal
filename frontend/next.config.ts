@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
   output: "standalone",
 
   /**
+   * The production image build (infra/frontend.Dockerfile) sets
+   * NEXT_SKIP_BUILD_CHECKS=1 and skips the lint and type-check `next build`
+   * would otherwise run inside the container. Those two steps are what ran
+   * the deploy server out of memory ("JavaScript heap out of memory" during
+   * "Linting and checking validity of types", 2026-10-14): they hold the
+   * whole TypeScript program in memory on top of the compiler. They still
+   * run everywhere else — CI's own `npx tsc --noEmit` step and its `npm run
+   * build`, and every local `next build` and `npm run check` — so nothing
+   * reaches an image unchecked.
+   */
+  eslint: { ignoreDuringBuilds: process.env.NEXT_SKIP_BUILD_CHECKS === "1" },
+  typescript: { ignoreBuildErrors: process.env.NEXT_SKIP_BUILD_CHECKS === "1" },
+
+  /**
    * `/my-claude-usage` moved into `/account/settings`'s own Claude Usage
    * section (ADR-094) rather than staying its own page. A real HTTP 308
    * here (not a client-side `router.replace`) so the redirect is permanent

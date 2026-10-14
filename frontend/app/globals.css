@@ -210,16 +210,6 @@
     font-family: var(--font-heading);
     font-synthesis-weight: none;
   }
-
-  /* Admin /legal-pages form tokens (from feature/legal-pages-admin-editor),
-     on the neutral palette: the branch introduced them brand-tinted
-     (#f8f7ff, #e8eaf1), which the r2.0 repaint retired everywhere else. */
-  --color-legal-label: #737373;
-  --color-legal-helper: #a1a1a1;
-  --color-legal-divider: #f0f0f0;
-  --color-legal-card-border: #e5e5e5;
-  --color-legal-status-border: #d4d4d4;
-  --color-legal-status-bg-selected: #f5f5f5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -406,30 +396,6 @@
    dark palette (#332e4d for hairlines, #2a2545 for a dark purple-tinted
    surface) for consistency with the rest of its dark mode rather than
    inventing new ones. */
-:root[data-theme="dark"] [data-shell="admin"] .text-legal-label {
-  color: #9ca3af;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .text-legal-helper {
-  color: #6b7280;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .divide-legal-divider {
-  border-color: #332e4d;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .border-legal-card-border {
-  border-color: #332e4d;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .border-legal-status-border {
-  border-color: #332e4d;
-}
-
-:root[data-theme="dark"] [data-shell="admin"] .bg-legal-status-bg-selected {
-  background-color: #2a2545;
-}
-
 /* The header's bell/mail icon buttons (MemberHeader.tsx) are the only
    current user of this opacity variant — easy to miss since plain
    .text-ink is covered above but an opacity-suffixed class is its own,

@@ -65,6 +65,14 @@ ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
     NEXT_TELEMETRY_DISABLED=1
 
+# Lint and type-check are skipped here (next.config.ts) — they run in CI and
+# locally, and inside this container they exhausted the server's memory. The
+# heap cap is raised for the compile itself, which on a small instance would
+# otherwise stop at Node's default (~450 MB seen on the deploy host). Keep it
+# below the machine's RAM + swap, or the kernel kills the build instead.
+ENV NEXT_SKIP_BUILD_CHECKS=1 \
+    NODE_OPTIONS=--max-old-space-size=1536
+
 RUN npm run build
 
 # ---------------------------------------------------------------------------
