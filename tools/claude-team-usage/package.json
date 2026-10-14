@@ -1,6 +1,6 @@
 {
   "name": "claude-team-usage",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Report your own Claude Code token usage to the Coc Docs team dashboard.",
   "type": "module",
   "bin": {
@@ -12,7 +12,8 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node --test test/cli.test.js test/config.test.js test/parity.test.js test/schedule.test.js test/unreported.test.js test/auto-schedule.test.js test/activity.test.js test/scan-log.test.js"
+    "postinstall": "node bin/postinstall.js",
+    "test": "node --test test/cli.test.js test/config.test.js test/parity.test.js test/schedule.test.js test/unreported.test.js test/auto-schedule.test.js test/activity.test.js test/scan-log.test.js test/repair.test.js"
   },
   "engines": {
     "node": ">=18.18"
