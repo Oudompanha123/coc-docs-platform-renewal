@@ -19,7 +19,7 @@ import { resolveCredentials } from './config.js';
 import { accountEntry, isDue, loadLedger, prune, recordSent, recordSkipped, saveLedger } from './ledger.js';
 import { login } from './login.js';
 import { ensureScheduled } from './schedule.js';
-import { deliverScanLogs, ScanRecorder } from './scan-log.js';
+import { announceScanStart, deliverScanLogs, ScanRecorder } from './scan-log.js';
 import { DISABLED_PERIOD, send, TRACKING_DISABLED } from './upload.js';
 import { buildPayloads, candidateProjectDirs, collectDays, existingDirs, lastDays } from './usage-parser.js';
 
@@ -131,6 +131,9 @@ export async function scan({
   const log = recorder ?? { ...NO_LOG };
   const state = { step: 'start' };
   log.step('start', 'success', scheduled ? 'Started by the daily schedule' : 'Started manually');
+  // Runs alongside the scan (ADR-107); awaited only so the start reaches the
+  // server before the record that completes it. Never rejects.
+  const announced = recorder ? announceScanStart({ creds, recorder, io, fetchImpl, verbose }) : null;
 
   let result;
   try {
@@ -138,11 +141,15 @@ export async function scan({
   } catch (error) {
     if (recorder) {
       recorder.fail(state.step, error);
+      await announced;
       await deliverScanLogs({ creds, record: recorder.toRecord(creds.email), io, fetchImpl, verbose });
     }
     throw error;
   }
-  if (recorder) await deliverScanLogs({ creds, record: recorder.toRecord(creds.email), io, fetchImpl, verbose });
+  if (recorder) {
+    await announced;
+    await deliverScanLogs({ creds, record: recorder.toRecord(creds.email), io, fetchImpl, verbose });
+  }
   return result;
 }
 

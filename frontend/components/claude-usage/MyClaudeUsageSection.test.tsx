@@ -9,6 +9,7 @@ import { MyClaudeUsageSection } from "./MyClaudeUsageSection";
 const { fetchMyUsage } = vi.hoisted(() => ({ fetchMyUsage: vi.fn() }));
 vi.mock("@/lib/claudeUsage/myUsage", () => ({ fetchMyUsage }));
 vi.mock("@/components/claude-usage/MyUsageHistoryChart", () => ({ MyUsageHistoryChart: () => null }));
+vi.mock("@/components/claude-usage/MyScanStatusSection", () => ({ MyScanStatusSection: () => null }));
 
 // Claude Code's usage page for one real session: Haiku 1.9k/16/0/0 $0.0020, Opus 5.5 1.4k/38.3k/5.5m/107.9k $2.73.
 const DASHBOARD: MyClaudeUsageDashboard = {

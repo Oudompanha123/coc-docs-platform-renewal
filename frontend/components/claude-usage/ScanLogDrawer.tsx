@@ -5,9 +5,11 @@ import { Modal } from "@/components/users-roles/Modal";
 import { ChevronDownIcon, XIcon } from "@/components/layout/icons";
 import { DocsCodeBlock } from "@/components/docs/DocsCodeBlock";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
+import { ScanStageList } from "@/components/claude-usage/ScanStatusPanel";
 import {
   fetchScanLogDetail,
   type ScanLogDetail,
+  type ScanLogScope,
   type ScanLogStep,
   type ScanLogSummary,
   type ScanStepStatus,
@@ -42,9 +44,22 @@ const QUEUED_AFTER_MS = 2 * 60 * 1000;
  * error, counts and step timeline sit in Technical details, collapsed, and
  * the timeline is only fetched the first time that is opened.
  *
+ * `log` is the live row: the page passes the latest copy on every refresh, so
+ * a scan that finishes while its drawer is open shows its result in place
+ * (ADR-107). `scope` is whose scans the page reads — the timeline comes from
+ * the same place.
+ *
  * Mount with `key={log.id}` so opening another scan starts fresh.
  */
-export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: () => void }) {
+export function ScanLogDrawer({
+  log,
+  onClose,
+  scope = "team",
+}: {
+  log: ScanLogSummary;
+  onClose: () => void;
+  scope?: ScanLogScope;
+}) {
   const [closing, setClosing] = useState(false);
   const requestClose = useCallback(() => setClosing(true), []);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -100,17 +115,25 @@ export function ScanLogDrawer({ log, onClose }: { log: ScanLogSummary; onClose: 
               <span className="font-semibold">{personName(log)}</span>
               {log.displayName && <span className="block text-xs text-muted-foreground">{log.email}</span>}
             </Field>
-            <Field label="Scan time">{formatTimestamp(log.startedAt)}</Field>
+            <Field label="Started at">{formatTimestamp(log.startedAt)}</Field>
+            <Field label="Completed at">{log.finishedAt ? formatTimestamp(log.finishedAt) : "Not yet"}</Field>
             <Field label="Duration">{formatDuration(log.durationMs)}</Field>
-            <Field label="Status">
-              <ScanStatusBadge outcome={outcome} />
-            </Field>
             <Field label="Started by">{log.trigger === "scheduled" ? "Daily schedule" : "Manual run"}</Field>
           </dl>
 
-          {diagnosis ? <Problem diagnosis={diagnosis} outcome={outcome} person={personName(log)} /> : <Result log={log} />}
+          <div className="mt-6">
+            <ScanStageList log={log} />
+          </div>
 
-          <TechnicalDetails log={log} diagnosis={diagnosis} />
+          {outcome === "in-progress" ? (
+            <InProgress />
+          ) : diagnosis ? (
+            <Problem diagnosis={diagnosis} outcome={outcome} pc={scope === "mine" ? "your PC" : `${personName(log)}'s PC`} />
+          ) : (
+            <Result log={log} />
+          )}
+
+          <TechnicalDetails log={log} diagnosis={diagnosis} scope={scope} />
         </div>
       </div>
     </Modal>
@@ -123,6 +146,18 @@ function Field({ label, wide = false, children }: { label: string; wide?: boolea
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
       <dd className="mt-1 break-words text-foreground">{children}</dd>
     </div>
+  );
+}
+
+/** Started, no result yet: say only that — never a guess at how it will end. */
+function InProgress() {
+  return (
+    <section className="mt-6 rounded-[10px] border border-border bg-brand-blue/10 px-4 py-3.5 text-sm">
+      <h3 className="font-bold text-dash-ink">Scan in progress</h3>
+      <p className="mt-1 text-dash-ink">
+        The reporter said this scan started and hasn&apos;t sent its result yet. This updates on its own when the result arrives.
+      </p>
+    </section>
   );
 }
 
@@ -145,7 +180,7 @@ function Result({ log }: { log: ScanLogSummary }) {
   );
 }
 
-function Problem({ diagnosis, outcome, person }: { diagnosis: ScanDiagnosis; outcome: ScanOutcome; person: string }) {
+function Problem({ diagnosis, outcome, pc }: { diagnosis: ScanDiagnosis; outcome: ScanOutcome; pc: string }) {
   const tone = outcome === "failed" ? "border-danger/30 bg-danger/5" : "border-[#f5d896] bg-[#fffbeb]";
   const heading = outcome === "failed" ? "text-danger" : "text-[#b45309]";
   return (
@@ -159,7 +194,7 @@ function Problem({ diagnosis, outcome, person }: { diagnosis: ScanDiagnosis; out
       <section className="mt-6">
         <h3 className="text-sm font-bold text-foreground">How to fix</h3>
         {diagnosis.fix.some((step) => step.command) && (
-          <p className="mt-1 text-xs text-muted-foreground">Commands run in a terminal on {person}&apos;s PC.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Commands run in a terminal on {pc}.</p>
         )}
         <ol className="mt-3 space-y-4">
           {diagnosis.fix.map((step, i) => (
@@ -183,10 +218,18 @@ function Problem({ diagnosis, outcome, person }: { diagnosis: ScanDiagnosis; out
   );
 }
 
-function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: ScanDiagnosis | null }) {
+function TechnicalDetails({
+  log,
+  diagnosis,
+  scope,
+}: {
+  log: ScanLogSummary;
+  diagnosis: ScanDiagnosis | null;
+  scope: ScanLogScope;
+}) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
-  const queuedFor = Date.parse(log.receivedAt) - Date.parse(log.finishedAt);
+  const queuedFor = log.finishedAt ? Date.parse(log.receivedAt) - Date.parse(log.finishedAt) : 0;
 
   return (
     <section className="mt-8 border-t border-surface-border pt-4">
@@ -213,7 +256,7 @@ function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: 
                 "—"
               )}
             </Field>
-            <Field label="Timestamp">{formatTimestamp(log.finishedAt)}</Field>
+            <Field label="Completed at">{formatTimestamp(log.finishedAt)}</Field>
             <Field label="Received by server">
               {formatTimestamp(log.receivedAt)}
               {queuedFor > QUEUED_AFTER_MS && (
@@ -227,21 +270,26 @@ function TechnicalDetails({ log, diagnosis }: { log: ScanLogSummary; diagnosis: 
             <Field label="Duplicates removed">{formatCount(log.duplicates)}</Field>
             <Field label="New tokens">{formatCount(log.newTokens)}</Field>
           </dl>
-          <Timeline scanId={log.id} />
+          <Timeline scanId={log.id} status={log.status} scope={scope} />
         </div>
       )}
     </section>
   );
 }
 
-/** The step timeline — the one part of the drawer that needs its own request. */
-function Timeline({ scanId }: { scanId: string }) {
+/**
+ * The step timeline — the one part of the drawer that needs its own request.
+ * Fetched again when the scan's status changes, so a scan that finishes
+ * while open shows its real steps rather than the empty ones it started with.
+ */
+function Timeline({ scanId, status, scope }: { scanId: string; status: ScanLogSummary["status"]; scope: ScanLogScope }) {
   const [detail, setDetail] = useState<ScanLogDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetchScanLogDetail(scanId)
+    setError(null);
+    fetchScanLogDetail(scanId, scope)
       .then((result) => {
         if (!cancelled) setDetail(result);
       })
@@ -251,7 +299,7 @@ function Timeline({ scanId }: { scanId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [scanId]);
+  }, [scanId, status, scope]);
 
   return (
     <div>

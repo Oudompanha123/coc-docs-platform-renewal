@@ -25,7 +25,8 @@ export function ClaudeUsageCard() {
       <h2 className="text-base font-semibold text-foreground">Claude Usage</h2>
       <p className="mt-0.5 text-sm text-muted-foreground">Track your Claude token usage.</p>
       <div className="mt-4">
-        <MyClaudeUsageSection />
+        {/* Scan Logs opens inside the admin shell, which a plain `user` can't enter (ADR-107). */}
+        <MyClaudeUsageSection scanLogsHref={user?.role === "user" ? undefined : "/claude-usage/monitoring"} />
       </div>
     </section>
   );

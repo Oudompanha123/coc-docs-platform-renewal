@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { MyScanStatusSection } from "@/components/claude-usage/MyScanStatusSection";
 import { MyUsageHistoryChart } from "@/components/claude-usage/MyUsageHistoryChart";
 import { SimpleSelect } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -195,7 +196,7 @@ function SubscriptionCard({ usdPerMonth }: { usdPerMonth: number }) {
  *
  * // req: FR-USAGE-005, ADR-052, ADR-058, ADR-060, ADR-065
  */
-export function MyClaudeUsageSection() {
+export function MyClaudeUsageSection({ scanLogsHref }: { scanLogsHref?: string } = {}) {
   const [days, setDays] = useState<MyUsageRangeDays>(7);
   const [dashboard, setDashboard] = useState<MyClaudeUsageDashboard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -279,6 +280,8 @@ export function MyClaudeUsageSection() {
               <MyUsageHistoryChart data={dashboard?.daily ?? []} today={dashboard?.today} />
             </div>
           </div>
+
+          <MyScanStatusSection scanLogsHref={scanLogsHref} />
         </>
       )}
     </div>
