@@ -54,7 +54,12 @@ beforeEach(async () => {
     (req) => {
       if (mode === 'down') return { status: 503, body: { detail: 'down' } };
       if (mode === 'disabled') return DISABLED_403;
-      if (req.url === '/api/ingest/scan') return { status: 200, body: { action: 'scan-recorded' } };
+      if (req.url === '/api/ingest/scan') {
+        // No roster row for this email (ClaudeUsageService.recordScan).
+        if (mode === 'untracked') return { status: 200, body: { action: 'not-tracked' } };
+        if (mode === 'checkin-down') return { status: 503, body: { detail: 'down' } };
+        return { status: 200, body: { action: 'scan-recorded' } };
+      }
       if (mode === 'gap') return GAP_409;
       return { status: 200, body: { action: 'updated' } };
     },
@@ -169,6 +174,49 @@ describe('scan log (ADR-099)', () => {
     await scan('--dry-run');
     assert.equal(logs().length, 0);
     assert.equal(pending().length, 0);
+  });
+});
+
+describe('check-in for an account Coc Docs does not track yet', () => {
+  const oldLine = () =>
+    usageLine({ id: 'old', requestId: 'r_old', model: 'claude-opus-5-5', input: 1, output: 1, timestamp: '2020-01-01T00:00:00Z' });
+
+  it('a new user with no usage at all: a successful scan, not a warning — and nobody is registered', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [oldLine()]);
+    mode = 'untracked';
+    const run = await scan();
+    assert.equal(run.code, 0, run.stderr);
+
+    const [record] = logs();
+    assert.ok(record.steps.every((s) => s.status === 'success' || s.status === 'skipped'), JSON.stringify(record.steps));
+    assert.equal(stepOf(record, 'upload').status, 'success');
+    assert.match(stepOf(record, 'upload').detail, /no usage on Coc Docs yet/);
+    assert.equal(record.uploadStatus, 'not-needed');
+    assert.equal(record.errorStep, null);
+    assert.equal(usageUploads().length, 0, 'checking in never sends usage, so it never adds a roster row');
+  });
+
+  it('a PC that reported before, now unknown to the server: still a warning, with how to resend', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [line('m1', 1_000)]);
+    await scan(); // uploads, so this PC's ledger holds the day
+    mode = 'untracked'; // e.g. the roster row was deleted
+    const second = await scan();
+    assert.equal(second.code, 0, second.stderr);
+
+    const upload = stepOf(logs()[1], 'upload');
+    assert.equal(upload.status, 'warning');
+    assert.match(upload.detail, /no record of this account/);
+    assert.match(upload.detail, /--days 30/);
+  });
+
+  it('a check-in that fails outright is still a warning', async () => {
+    writeTranscript(projects, 'proj/a.jsonl', [oldLine()]);
+    mode = 'checkin-down';
+    const run = await scan();
+    assert.equal(run.code, 0, run.stderr);
+    const upload = stepOf(logs()[0], 'upload');
+    assert.equal(upload.status, 'warning');
+    assert.match(upload.detail, /check-in was not recorded/);
   });
 });
 

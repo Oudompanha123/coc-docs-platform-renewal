@@ -205,7 +205,9 @@ export function MyClaudeUsageSection({ scanLogsHref }: { scanLogsHref?: string }
 
   const reload = useCallback(async (range: MyUsageRangeDays) => {
     try {
-      setDashboard(await fetchMyUsage(range));
+      const next = await fetchMyUsage(range);
+      // The usual auto-refresh brings back the same figures: keep the old object, so nothing redraws.
+      setDashboard((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       setLoadError(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Couldn't load your Claude usage.");
@@ -219,7 +221,11 @@ export function MyClaudeUsageSection({ scanLogsHref }: { scanLogsHref?: string }
   }, [reload, days]);
 
   const reloadCurrent = useCallback(() => reload(days), [reload, days]);
-  const { awaitingCliUpload } = useUsageAutoRefresh(reloadCurrent, dashboard ? dashboard.lastUpdated : undefined);
+  // A check-in with nothing new moves only "Last scan", so it counts as the scan landing too.
+  const { awaitingCliUpload } = useUsageAutoRefresh(
+    reloadCurrent,
+    dashboard ? `${dashboard.lastUpdated ?? ""}|${dashboard.lastScanAt ?? ""}` : undefined,
+  );
 
   const usage = dashboard?.usage;
   const range = RANGES.find((r) => r.days === days) ?? RANGES[1]!;
