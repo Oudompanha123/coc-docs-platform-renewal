@@ -3,6 +3,7 @@
 import { avatarSrc } from "@/lib/account/avatarSrc";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { removeAvatar, uploadAvatar } from "@/lib/auth/api";
@@ -372,9 +373,9 @@ export function ProfilePopup({ onClose }: { onClose: () => void }) {
 
           <div className="mt-4 flex w-full flex-col gap-2">
             {hrmsLink.kind === "not-linked" && (
-              <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+              <Alert variant="warning">
                 Ask an admin to link your HRMS account to see attendance.
-              </p>
+              </Alert>
             )}
 
             <Button asChild size="lg" className="w-full">

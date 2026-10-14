@@ -17,6 +17,7 @@ import {
   unpublishAnnouncement,
   type AdminAnnouncement,
 } from "@/lib/admin/announcements";
+import { Alert } from "@/components/ui/alert";
 import { SearchInput } from "@/components/ui/search-input";
 import { DropdownMenuItem, DropdownMenuSeparator, RowActions } from "@/components/ui/dropdown-menu";
 import { EyeOff, Pencil, Send } from "lucide-react";
@@ -197,15 +198,9 @@ export default function AnnouncementsPage() {
         </div>
 
         {notice && (
-          <div
-            role="status"
-            className="flex items-center justify-between gap-3 rounded-xl bg-[#e1f5ec] px-4 py-2.5 text-sm font-medium text-[#1f9d6b]"
-          >
+          <Alert variant="success" className="font-medium" onDismiss={() => setNotice(null)}>
             {notice}
-            <button type="button" onClick={() => setNotice(null)} className="text-xs font-semibold underline">
-              Dismiss
-            </button>
-          </div>
+          </Alert>
         )}
 
         <div className="overflow-hidden rounded-xl border border-surface-border bg-card">

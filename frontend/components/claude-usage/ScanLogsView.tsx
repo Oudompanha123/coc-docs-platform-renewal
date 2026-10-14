@@ -10,6 +10,7 @@ import { ScanLogTable } from "@/components/claude-usage/ScanLogTable";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
 import { ScanStatusPanel } from "@/components/claude-usage/ScanStatusPanel";
 import { UsageStatCard } from "@/components/claude-usage/UsageStatCard";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { SearchInput } from "@/components/ui/search-input";
@@ -294,18 +295,23 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
       </div>
 
       {rangeInvalid && (
-        <p role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive" className="mt-4">
           The start date must be on or before the end date.
-        </p>
+        </Alert>
       )}
 
       {loadError && (
-        <div role="alert" className="mt-4 flex flex-col gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
-          <span>Couldn&apos;t load scan logs: {loadError}</span>
-          <Button type="button" variant="link" size="inline" onClick={() => void load()} className="self-start text-destructive underline sm:self-auto">
-            Try again
-          </Button>
-        </div>
+        <Alert
+          variant="destructive"
+          className="mt-4"
+          action={
+            <Button type="button" variant="link" size="inline" onClick={() => void load()} className="text-destructive underline">
+              Try again
+            </Button>
+          }
+        >
+          Couldn&apos;t load scan logs: {loadError}
+        </Alert>
       )}
 
       {loading && !data ? (
@@ -344,9 +350,9 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
               </p>
             </div>
             {data.truncated && (
-              <p className="border-t border-surface-border bg-[#fffbeb] px-4 py-2 text-xs text-[#b45309]">
+              <Alert variant="warning" className="rounded-none border-x-0 border-b-0 py-2 text-xs">
                 Showing the newest {logs.length.toLocaleString("en-US")} scans only. Choose a shorter date range to see the rest.
-              </p>
+              </Alert>
             )}
 
             {logs.length === 0 ? (

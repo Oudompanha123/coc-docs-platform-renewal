@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordField } from "@/components/auth/FormField";
 import { LockIcon } from "@/components/auth/icons";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AuthApiError, resetPassword } from "@/lib/auth/api";
 import { isPasswordAcceptable, passwordViolations } from "@/lib/auth/passwordPolicy";
@@ -84,29 +85,23 @@ function ResetPasswordForm() {
       subheading="Create a new password for your account. Make it something you'll remember."
     >
       {!token && (
-        <div
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive mb-6 rounded-md border px-3 py-2 text-sm"
-        >
+        <Alert variant="destructive" className="mb-6">
           This reset link is missing its token. Request a new one from{" "}
           <Link href="/forgot-password" className="font-medium underline underline-offset-4">
             Forgot Password
           </Link>
           .
-        </div>
+        </Alert>
       )}
 
       {feedback && (
-        <div
+        <Alert
           role="alert"
-          className={`mb-4 rounded-md border px-3 py-2 text-sm ${
-            feedback.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-destructive/30 bg-destructive/5 text-destructive"
-          }`}
+          variant={feedback.type === "success" ? "success" : "destructive"}
+          className="mb-4"
         >
           {feedback.message}
-        </div>
+        </Alert>
       )}
 
       <form className="grid gap-4" onSubmit={handleSubmit} noValidate>

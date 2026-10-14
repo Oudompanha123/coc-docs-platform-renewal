@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -837,7 +838,7 @@ export function AttachSourceSection({
         </div>
       )}
 
-      {error && <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">{error}</p>}
+      {error && <Alert variant="destructive" className="font-medium">{error}</Alert>}
     </div>
   );
 }

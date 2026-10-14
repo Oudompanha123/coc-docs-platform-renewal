@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert } from "@/components/ui/alert";
 import { SkeletonCard, SkeletonGroup, SkeletonTable } from "@/components/ui/skeleton";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { MyScanStatusSection } from "@/components/claude-usage/MyScanStatusSection";
@@ -233,16 +234,16 @@ export function MyClaudeUsageSection({ scanLogsHref }: { scanLogsHref?: string }
   return (
     <div>
       {awaitingCliUpload && (
-        <div role="status" className="mb-4 rounded-xl border border-surface-border bg-muted-surface px-4 py-3 text-sm text-foreground">
+        <Alert variant="default" className="mb-4">
           Signed in. Your latest usage will appear here once <code className="font-mono text-xs">claude-team-usage</code>{" "}
           finishes uploading.
-        </div>
+        </Alert>
       )}
 
       {loadError && (
-        <div role="alert" className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive" className="mb-4">
           {loadError}
-        </div>
+        </Alert>
       )}
 
       {loading ? (

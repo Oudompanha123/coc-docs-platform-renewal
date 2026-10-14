@@ -11,6 +11,7 @@ import {
   UsersIcon,
   WarningIcon,
 } from "@/components/layout/icons";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
 import { DisabledMembersPanel } from "@/components/claude-usage/DisabledMembersPanel";
@@ -216,22 +217,22 @@ export function AdminClaudeUsageView() {
       </div>
 
       {awaitingCliUpload && (
-        <div role="status" className="mt-4 rounded-xl border border-surface-border bg-muted-surface px-4 py-3 text-sm text-foreground">
+        <Alert variant="default" className="mt-4">
           Signed in. Your latest usage will appear here once <code className="font-mono text-xs">claude-team-usage</code>{" "}
           finishes uploading.
-        </div>
+        </Alert>
       )}
 
       {loadError && (
-        <div role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive" className="mt-4">
           {loadError}
-        </div>
+        </Alert>
       )}
 
       {actionError && (
-        <div role="alert" className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <Alert variant="destructive" className="mt-4">
           {actionError}
-        </div>
+        </Alert>
       )}
 
       {loading ? (

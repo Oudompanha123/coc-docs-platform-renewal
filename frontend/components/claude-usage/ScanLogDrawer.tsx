@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Modal } from "@/components/users-roles/Modal";
+import { Alert } from "@/components/ui/alert";
 import { ChevronDownIcon, XIcon } from "@/components/layout/icons";
 import { DocsCodeBlock } from "@/components/docs/DocsCodeBlock";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
@@ -305,9 +306,9 @@ function Timeline({ scanId, status, scope }: { scanId: string; status: ScanLogSu
     <div>
       <h4 className="text-xs font-medium text-muted-foreground">Process timeline</h4>
       {error ? (
-        <p role="alert" className="mt-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <Alert variant="destructive" className="mt-3">
           {error}
-        </p>
+        </Alert>
       ) : !detail ? (
         <p role="status" className="mt-3 rounded-xl border border-surface-border bg-muted-surface px-4 py-6 text-center text-sm text-muted-foreground">
           Loading scan steps…

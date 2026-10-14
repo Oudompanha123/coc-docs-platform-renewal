@@ -7,6 +7,7 @@ import type { TeamRole } from "@/lib/admin/claudeUsage";
 import { inputBaseClass } from "@/components/ui/input";
 import { SimpleSelect } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 export function InviteTeammateModal({
   onClose,
@@ -102,9 +103,9 @@ export function InviteTeammateModal({
         </p>
 
         {error && (
-          <p role="alert" className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+          <Alert variant="destructive" className="mt-3">
             {error}
-          </p>
+          </Alert>
         )}
 
         <ModalFooter>

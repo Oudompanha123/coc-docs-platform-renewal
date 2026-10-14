@@ -1,5 +1,7 @@
 "use client";
 
+import { ConfirmDialog } from "@/components/ui/confirm";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { DocumentIcon, PlusIcon, TrashIcon } from "@/components/layout/icons";
@@ -160,12 +162,9 @@ export function ProjectPicker({
       )}
       {error && <p role="alert" className="mt-2 text-xs font-medium text-danger">{error}</p>}
       {deletedMessage && (
-        <p
-          role="status"
-          className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800"
-        >
+        <Alert variant="success" className="mt-2">
           {deletedMessage}
-        </p>
+        </Alert>
       )}
     </div>
   );
@@ -184,19 +183,6 @@ function DeleteProjectControl({ project, onDeleted }: { project: AxRenewalProjec
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!confirming) return;
-    document.body.style.overflow = "hidden";
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") handleCancel();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = "";
-      document.removeEventListener("keydown", onKeyDown);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirming]);
 
   async function handleConfirm() {
     setBusy(true);
@@ -207,6 +193,10 @@ function DeleteProjectControl({ project, onDeleted }: { project: AxRenewalProjec
       // source path typed into AI engine. Gone with it (ADR-072) — clearing
       // an empty value is exactly how that setting is removed.
       writeSourcePathOverride(project.id, "");
+      // Close first: an open alert dialog hides the rest of the page from
+      // assistive technology, and the success message lives out there.
+      setBusy(false);
+      setConfirming(false);
       // This component (and this modal) is about to unmount as a direct
       // consequence — `onDeleted` refreshes the project list one level up,
       // which is what makes `active` in the parent stop matching this
@@ -237,50 +227,25 @@ function DeleteProjectControl({ project, onDeleted }: { project: AxRenewalProjec
         Delete project
       </Button>
 
+      {/* An alert dialog (ADR-104 r2.16): Esc or Cancel backs out; an outside
+          click doesn't, since it isn't an answer. Held open while deleting. */}
       {confirming && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Delete project"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={handleCancel}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-xl border border-surface-border bg-card p-5 shadow-xl"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger/10 text-danger">
-              <TrashIcon className="h-5 w-5" />
-            </div>
-            <h2 className="mt-3 text-base font-semibold text-foreground">Delete project?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Delete &ldquo;{project.name}&rdquo;? Its findings, plan, comments, and implementation history all go
-              with it — <strong className="font-semibold text-foreground">this can&rsquo;t be undone.</strong>
-            </p>
-
-            {error && <p role="alert" className="mt-3 text-xs font-medium text-danger">{error}</p>}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={busy}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => void handleConfirm()}
-                disabled={busy}
-                aria-busy={busy}
-              >
-                {busy ? "Deleting…" : "Yes, delete"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          icon={<TrashIcon />}
+          title="Delete project?"
+          description={
+            <>
+              Delete &ldquo;{project.name}&rdquo;? Its findings, plan, comments, and implementation history all go with it —{" "}
+              <strong className="font-semibold text-foreground">this can&rsquo;t be undone.</strong>
+            </>
+          }
+          confirmLabel={busy ? "Deleting…" : "Yes, delete"}
+          destructive
+          busy={busy}
+          error={error}
+          onConfirm={() => void handleConfirm()}
+          onCancel={handleCancel}
+        />
       )}
     </>
   );

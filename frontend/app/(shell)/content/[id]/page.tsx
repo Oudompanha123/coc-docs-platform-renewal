@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/ui/confirm";
 import { SkeletonForm, SkeletonGroup } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -35,6 +36,7 @@ const BLANK: Record<DocContent["kind"], DocContent> = {
 };
 
 export default function ContentEditPage() {
+  const confirm = useConfirm();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { productKey, slug } = parseContentId(id);
@@ -92,10 +94,18 @@ export default function ContentEditPage() {
     );
   }
 
-  function changeKind(kind: DocContent["kind"]) {
+  async function changeKind(kind: DocContent["kind"]) {
     if (draft && kind !== draft.kind) {
       const hasData = JSON.stringify(draft) !== JSON.stringify(BLANK[draft.kind]);
-      if (hasData && !window.confirm("Switching the content type starts a blank form for that type. Continue?")) {
+      if (
+        hasData &&
+        !(await confirm({
+          title: "Switch the content type?",
+          description: "This starts a blank form for that type. What you've entered for this type will be lost.",
+          confirmLabel: "Switch",
+          destructive: true,
+        }))
+      ) {
         return;
       }
     }

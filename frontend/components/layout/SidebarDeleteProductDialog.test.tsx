@@ -7,7 +7,7 @@ describe("SidebarDeleteProductDialog", () => {
   it("shows the product name in the title, body text, and confirmation prompt", () => {
     render(<SidebarDeleteProductDialog productLabel="Jex3.0" busy={false} error={null} onConfirm={vi.fn()} onCancel={vi.fn()} />);
 
-    expect(screen.getByRole("dialog", { name: "Delete Jex3.0?" })).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog", { name: "Delete Jex3.0?" })).toBeInTheDocument();
     expect(screen.getByText(/All docs for this product will be removed/)).toBeInTheDocument();
     expect(screen.getByText("Jex3.0")).toBeInTheDocument();
   });

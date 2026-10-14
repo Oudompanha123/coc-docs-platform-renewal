@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SkeletonGroup, SkeletonList } from "@/components/ui/skeleton";
 import { LinkIcon } from "@/components/layout/icons";
 
@@ -50,17 +51,19 @@ export function ConnectedAccountsCard({ state }: { state: HrmsLinkState }) {
         )}
 
         {state.kind === "not-linked" && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f5d896] bg-[#fffbeb] px-3 py-2.5">
-            <div>
-              <p className="text-sm font-semibold text-[#b45309]">HRMS KOSIGN — not linked</p>
-              <p className="mt-0.5 text-xs text-[#b45309]">
-                Your attendance can&apos;t be shown until an admin links your account.
-              </p>
-            </div>
-            <span className="inline-flex shrink-0 items-center rounded-full bg-[#f5d896]/60 px-2.5 py-0.5 text-xs font-medium text-[#b45309]">
-              Not linked
-            </span>
-          </div>
+          <Alert
+            variant="warning"
+            action={
+              <span className="inline-flex shrink-0 items-center rounded-full bg-[#f5d896]/60 px-2.5 py-0.5 text-xs font-medium text-[#b45309]">
+                Not linked
+              </span>
+            }
+          >
+            <AlertTitle className="font-semibold">HRMS KOSIGN — not linked</AlertTitle>
+            <AlertDescription className="text-xs">
+              Your attendance can&apos;t be shown until an admin links your account.
+            </AlertDescription>
+          </Alert>
         )}
       </div>
     </section>
