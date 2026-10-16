@@ -401,6 +401,8 @@ export interface ScanLogSummary {
   email: string;
   /** Roster display name; null when the email is not on the roster. */
   displayName: string | null;
+  /** Profile picture of the platform account with that email; null shows initials. */
+  avatarUrl: string | null;
   trigger: "scheduled" | "manual";
   cliVersion: string | null;
   /** The PC's own clock. */

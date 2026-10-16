@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { ScanLogPerson } from "@/components/claude-usage/ScanLogPerson";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
 import { ChevronRightIcon } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
@@ -57,8 +58,7 @@ export const ScanLogTable = memo(function ScanLogTable({
             <TableRow key={log.id} onClick={() => onView(log)} className="cursor-pointer">
               {showUser && (
                 <TableCell className="pl-4">
-                  <span className="font-medium text-foreground">{name}</span>
-                  {log.displayName && <span className="block text-xs text-muted-foreground">{log.email}</span>}
+                  <ScanLogPerson log={log} />
                 </TableCell>
               )}
               <TableCell className={showUser ? undefined : "pl-4"}>

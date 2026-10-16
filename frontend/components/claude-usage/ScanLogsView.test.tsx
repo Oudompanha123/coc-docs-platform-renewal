@@ -563,4 +563,51 @@ describe("ScanLogsView — live scan status (ADR-107)", () => {
       expect(await screen.findByText(/once claude-team-usage runs on your PC/)).toBeInTheDocument();
     });
   });
+
+  describe("profile pictures", () => {
+    const PICTURE = "https://lh3.googleusercontent.com/a/dara";
+    const withPicture = scanLog({ id: "pic-1", email: "dara@example.com", displayName: "Dara Sok", avatarUrl: PICTURE });
+
+    async function renderLogs(logs: ReturnType<typeof scanLog>[]) {
+      fetchScanLogs.mockResolvedValue(list(logs));
+      render(<ScanLogsView />);
+      await screen.findByText("Scan history");
+      return screen.getAllByRole("row").slice(1);
+    }
+
+    it("the table row and the detail drawer show the same picture", async () => {
+      const [row] = await renderLogs([withPicture]);
+      expect(within(row!).getByRole("img", { name: "Dara Sok" })).toHaveAttribute("src", PICTURE);
+
+      fireEvent.click(row!);
+      expect(within(screen.getByRole("dialog")).getByRole("img", { name: "Dara Sok" })).toHaveAttribute("src", PICTURE);
+    });
+
+    it("someone without a picture gets their initials", async () => {
+      const [row] = await renderLogs([scanLog({ id: "pic-2", displayName: "Lina Chan", avatarUrl: null })]);
+      expect(within(row!).queryByRole("img", { name: "Lina Chan" })).not.toBeInTheDocument();
+      expect(within(row!).getByText("LC")).toBeInTheDocument();
+    });
+
+    it("a picture that will not load falls back to the initials", async () => {
+      const [row] = await renderLogs([withPicture]);
+      fireEvent.error(within(row!).getByRole("img", { name: "Dara Sok" }));
+      expect(within(row!).queryByRole("img", { name: "Dara Sok" })).not.toBeInTheDocument();
+      expect(within(row!).getByText("DS")).toBeInTheDocument();
+    });
+
+    it("one person keeps one initials colour, whatever the row or the email's case", async () => {
+      const rows = await renderLogs([
+        scanLog({ id: "c-1", email: "vanna@example.com", displayName: "Vanna", avatarUrl: null }),
+        scanLog({ id: "c-2", email: "other@example.com", displayName: "Other", avatarUrl: null }),
+        scanLog({ id: "c-3", email: "VANNA@example.com", displayName: "Vanna", avatarUrl: null }),
+      ]);
+      const colour = (row: HTMLElement, initials: string) => within(row).getByText(initials).style.backgroundColor;
+      expect(colour(rows[0]!, "V")).not.toBe("");
+      expect(colour(rows[2]!, "V")).toBe(colour(rows[0]!, "V"));
+
+      fireEvent.click(rows[0]!);
+      expect(colour(screen.getByRole("dialog"), "V")).toBe(colour(rows[0]!, "V"));
+    });
+  });
 });

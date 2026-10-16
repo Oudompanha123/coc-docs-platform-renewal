@@ -5,6 +5,7 @@ import { Modal } from "@/components/users-roles/Modal";
 import { Alert } from "@/components/ui/alert";
 import { ChevronDownIcon, XIcon } from "@/components/layout/icons";
 import { DocsCodeBlock } from "@/components/docs/DocsCodeBlock";
+import { ScanLogPerson } from "@/components/claude-usage/ScanLogPerson";
 import { ScanStatusBadge } from "@/components/claude-usage/ScanStatusBadge";
 import { ScanStageList } from "@/components/claude-usage/ScanStatusPanel";
 import {
@@ -113,8 +114,7 @@ export function ScanLogDrawer({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <Field label="User" wide>
-              <span className="font-semibold">{personName(log)}</span>
-              {log.displayName && <span className="block text-xs text-muted-foreground">{log.email}</span>}
+              <ScanLogPerson log={log} size="size-9" />
             </Field>
             <Field label="Started at">{formatTimestamp(log.startedAt)}</Field>
             <Field label="Completed at">{log.finishedAt ? formatTimestamp(log.finishedAt) : "Not yet"}</Field>
