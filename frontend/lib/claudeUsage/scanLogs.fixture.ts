@@ -8,6 +8,7 @@ export function scanLog(overrides: Partial<ScanLogSummary> = {}): ScanLogSummary
     memberId: "m-1",
     email: "sreyly@example.com",
     displayName: "Sreyly",
+    avatarUrl: null,
     trigger: "scheduled",
     cliVersion: "0.4.0",
     startedAt: new Date(2026, 9, 7, 11, 0, 1).toISOString(),

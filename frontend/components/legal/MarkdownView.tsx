@@ -1,4 +1,5 @@
 import { LEGAL_COLOR_CLASS } from "@/lib/legal/color-classes";
+import { cn } from "@/lib/utils";
 import { markdownOutline, parseMarkdown, type MdAlign, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
 
 type Variant = "inline" | "document" | "document-note";
@@ -207,7 +208,11 @@ function Span({ span, style }: { span: MdSpan; style: VariantStyle }) {
         href={span.href}
         target={span.href.startsWith("mailto:") || span.href.startsWith("/") ? undefined : "_blank"}
         rel="noopener noreferrer"
-        className={style.link}
+        // A coloured link wears its tone itself. Wrapping the anchor in the
+        // tone instead would publish the link in `text-foreground` — the
+        // link's own colour sits on the element and beats an inherited one —
+        // so the writer's colour would be stored and never seen.
+        className={cn(style.link, span.color && LEGAL_COLOR_CLASS[span.color])}
       >
         {node}
       </a>
@@ -215,6 +220,6 @@ function Span({ span, style }: { span: MdSpan; style: VariantStyle }) {
   }
   if (span.bold) node = <strong>{node}</strong>;
   if (span.italic) node = <em>{node}</em>;
-  if (span.color) node = <span className={LEGAL_COLOR_CLASS[span.color]}>{node}</span>;
+  if (span.color && !span.href) node = <span className={LEGAL_COLOR_CLASS[span.color]}>{node}</span>;
   return <>{node}</>;
 }

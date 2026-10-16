@@ -100,4 +100,20 @@ describe("text colour (ADR-114)", () => {
     render(<MarkdownView source="[Careful]{color=neon}" />);
     expect(screen.getByText(/\[Careful\]\{color=neon\}/)).toBeInTheDocument();
   });
+
+  it("paints the tone on a coloured link, which the link's own colour would otherwise win", () => {
+    render(<MarkdownView source="[write to us](mailto:legal@example.com){color=critical}" />);
+    const link = screen.getByRole("link", { name: "write to us" });
+    expect(link).toHaveAttribute("href", "mailto:legal@example.com");
+    expect(link.className).toContain("text-danger");
+    expect(link.className).not.toContain("text-foreground");
+    expect(document.body.textContent).not.toContain("color=");
+  });
+
+  it("keeps bold under a tone", () => {
+    render(<MarkdownView source="[**Never**]{color=critical} share it" />);
+    const strong = screen.getByText("Never");
+    expect(strong.tagName).toBe("STRONG");
+    expect(strong.parentElement!.className).toContain("text-danger");
+  });
 });

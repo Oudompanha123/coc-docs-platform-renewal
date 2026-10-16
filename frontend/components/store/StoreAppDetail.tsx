@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { ChevronDownIcon, ChevronLeftIcon, DownloadIcon, TrashIcon, UploadIcon } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppLogo } from "@/components/store/AppLogo";
+import { DownloadRing } from "@/components/store/DownloadRing";
+import { downloadBuild, type DownloadState } from "@/lib/store/download";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { ERROR_CLASS } from "@/components/store/form-styles";
 import {
@@ -13,7 +16,6 @@ import {
   ENVIRONMENT_LABELS,
   PLATFORM_LABELS,
   STORE_HREF,
-  absoluteUrl,
   deleteStoreApp,
   formatBytes,
   formatDate,
@@ -50,30 +52,54 @@ const ENVIRONMENT_BADGE: Record<StoreEnvironment, string> = {
 /** When an app has no builds yet, the tabs it shows — the reference layout's iOS / Android. */
 
 /** One environment cell of a version row: Download, "Removed" or "N/A", with its age underneath. */
-function EnvironmentCell({ build, environment }: { build: StoreBuild | null; environment: StoreEnvironment }) {
+function EnvironmentCell({
+  build,
+  environment,
+  download,
+  onDownload,
+}: {
+  build: StoreBuild | null;
+  environment: StoreEnvironment;
+  /** The page's one download in flight or last finished, whichever build it is for. */
+  download: DownloadState | null;
+  onDownload: (build: StoreBuild) => void;
+}) {
   const label = ENVIRONMENT_LABELS[environment];
   const base = "flex h-9 w-full items-center justify-center gap-2 rounded-control px-3 text-xs font-medium";
   let control: React.ReactNode;
   let when: { text: string; title?: string };
   if (build && isLive(build) && build.downloadUrl) {
+    const failed = download?.buildId === build.id && download.status === "error";
+    const aria = failed
+      ? `Download of the ${label} build, version ${build.version}, failed. Retry`
+      : `Download ${label} build, version ${build.version}, ${formatBytes(build.sizeBytes)}`;
+    // The button reads the same while downloading: progress lives on the app icon.
+    // A second click is ignored by the page (startDownload), so no disabled styling.
     control = (
-      <a
-        href={absoluteUrl(build.downloadUrl)}
-        download={build.fileName}
-        aria-label={`Download ${label} build, version ${build.version}, ${formatBytes(build.sizeBytes)}`}
-        className={`${base} outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 ${ENVIRONMENT_BUTTON[environment]}`}
+      <button
+        type="button"
+        onClick={() => onDownload(build)}
+        aria-label={aria}
+        className={`${base} outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+          failed ? "bg-destructive text-white hover:bg-destructive/90" : ENVIRONMENT_BUTTON[environment]
+        }`}
       >
         <DownloadIcon className="h-4 w-4" />
-        {label}
-      </a>
+        {failed ? "Retry" : label}
+      </button>
     );
     when = { text: relativeTime(build.createdAt), title: `Uploaded ${formatDate(build.createdAt)}` };
   } else if (build) {
     control = (
-      <span aria-label={`${label} build of version ${build.version} was removed`} className={`${base} bg-card text-muted-foreground`}>
+      <button
+        type="button"
+        disabled
+        aria-label={`${label} build of version ${build.version} was removed and can't be downloaded`}
+        className={`${base} cursor-not-allowed bg-card text-muted-foreground`}
+      >
         <DownloadIcon className="h-4 w-4" />
         Removed
-      </span>
+      </button>
     );
     when = { text: relativeTime(build.removedAt ?? build.createdAt), title: `Removed ${formatDate(build.removedAt ?? build.createdAt)}` };
   } else {
@@ -177,6 +203,8 @@ function VersionRowItem({
   canManage,
   busy,
   onRemove,
+  download,
+  onDownload,
 }: {
   row: VersionRow;
   expanded: boolean;
@@ -184,6 +212,8 @@ function VersionRowItem({
   canManage: boolean;
   busy: boolean;
   onRemove: (build: StoreBuild) => void;
+  download: DownloadState | null;
+  onDownload: (build: StoreBuild) => void;
 }) {
   const shown = [row.production, row.development].filter((b): b is StoreBuild => !!b);
   const size = (shown.find(isLive) ?? shown[0])?.sizeBytes;
@@ -204,8 +234,8 @@ function VersionRowItem({
             {size !== undefined && <span className="block text-xs text-muted-foreground">size: {formatBytes(size)}</span>}
           </span>
         </button>
-        <EnvironmentCell build={row.production} environment="production" />
-        <EnvironmentCell build={row.development} environment="development" />
+        <EnvironmentCell build={row.production} environment="production" download={download} onDownload={onDownload} />
+        <EnvironmentCell build={row.development} environment="development" download={download} onDownload={onDownload} />
       </div>
       {expanded && (
         <div id={panelId} className="mt-3 grid grid-cols-1 gap-3 sm:ml-6 sm:grid-cols-2">
@@ -246,7 +276,6 @@ function NoData({ canManage }: { canManage: boolean }) {
 export function StoreAppDetail({
   app,
   canManage,
-  notice,
   onChanged,
   onDeleted,
   onEdit,
@@ -254,9 +283,7 @@ export function StoreAppDetail({
 }: {
   app: StoreApp;
   canManage: boolean;
-  /** A line to show after an upload or edit, e.g. "Android v1.2.2 (Production) is uploaded." */
-  notice: string | null;
-  onChanged: (app: StoreApp, notice?: string) => void;
+  onChanged: (app: StoreApp) => void;
   onDeleted: () => void;
   onEdit: () => void;
   onNextVersion: () => void;
@@ -266,6 +293,36 @@ export function StoreAppDetail({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [download, setDownload] = useState<DownloadState | null>(null);
+  const downloadAbort = useRef<AbortController | null>(null);
+
+  // Leaving the page cancels a download still in flight.
+  useEffect(() => () => downloadAbort.current?.abort(), []);
+
+  async function startDownload(build: StoreBuild) {
+    if (download?.status === "downloading") return;
+    const controller = new AbortController();
+    downloadAbort.current = controller;
+    setDownload({ buildId: build.id, status: "downloading", loaded: 0, total: build.sizeBytes > 0 ? build.sizeBytes : null });
+    try {
+      await downloadBuild(
+        build,
+        (loaded, total) => setDownload({ buildId: build.id, status: "downloading", loaded, total }),
+        controller.signal,
+      );
+      setDownload({ buildId: build.id, status: "done" });
+      toast.success(`Downloaded ${build.fileName}.`);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      const message = err instanceof Error ? err.message : "The download failed. Try again.";
+      setDownload({
+        buildId: build.id,
+        status: "error",
+        message,
+      });
+      toast.error(message, { description: "Use Retry on the build to try again." });
+    }
+  }
 
   // A first upload for a new platform adds its tab; show it.
   useEffect(() => {
@@ -280,7 +337,8 @@ export function StoreAppDetail({
     setBusy(true);
     setError(null);
     try {
-      onChanged(await removeStoreBuild(app.id, build.id), `The ${label} was removed.`);
+      onChanged(await removeStoreBuild(app.id, build.id));
+      toast.success(`The ${label} was removed.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't remove the build.");
     } finally {
@@ -294,6 +352,7 @@ export function StoreAppDetail({
     setError(null);
     try {
       await deleteStoreApp(app.id);
+      toast.success(`${app.name} was deleted.`);
       onDeleted();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't delete the app.");
@@ -333,7 +392,9 @@ export function StoreAppDetail({
             </span>
           )}
           <div className="mt-4 flex items-start gap-4">
-            <AppLogo app={app} className="h-20 w-20" />
+            <DownloadRing state={download}>
+              <AppLogo app={app} className="h-20 w-20" />
+            </DownloadRing>
             <div className="min-w-0">
               <h1 className="break-words font-heading text-xl font-semibold leading-tight text-foreground">{app.name}</h1>
               {canManage && (
@@ -410,11 +471,10 @@ export function StoreAppDetail({
             })}
           </div>
 
-          {notice && (
-            <p role="status" className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
-              {notice}
-            </p>
-          )}
+          {/* The ring on the app icon shows progress; this announces it for screen readers, without a number. */}
+          <p role="status" aria-live="polite" className="sr-only">
+            {download?.status === "downloading" ? "Downloading." : download?.status === "done" ? "Download complete." : ""}
+          </p>
           {error && (
             <p role="alert" className={`mt-4 ${ERROR_CLASS}`}>
               {error}
@@ -441,6 +501,8 @@ export function StoreAppDetail({
                       canManage={canManage}
                       busy={busy}
                       onRemove={removeBuild}
+                      download={download}
+                      onDownload={startDownload}
                     />
                   ))}
                 </ul>

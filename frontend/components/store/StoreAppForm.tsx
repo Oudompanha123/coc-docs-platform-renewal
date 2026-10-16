@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useState } from "react";
 import Link from "next/link";
 import { Check, Monitor, Smartphone } from "lucide-react";
@@ -74,6 +75,7 @@ export function StoreAppForm({
         setIcon(null);
       }
       onSaved(saved);
+      toast.success(initialApp ? `${saved.name} was updated.` : `${saved.name} was added.`);
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Couldn't save the app.";

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ClaudeUsageMember } from "@/lib/admin/claudeUsage";
-import { UsageTable } from "./UsageTable";
+import { LAST_SCAN_HINT, UsageTable } from "./UsageTable";
 
 // req: FR-USAGE-002, ADR-097 -- the list shows one time: the last scan.
 
@@ -43,7 +43,8 @@ describe("UsageTable last-scan column", () => {
   it("shows only the scan time, not the last-reported time or a 'Scanned' line", () => {
     render(<UsageTable members={[member()]} />);
 
-    expect(screen.getByRole("columnheader", { name: "Last Scan" })).toBeInTheDocument();
+    // The header explains itself to a screen reader too, without opening the tooltip.
+    expect(screen.getByRole("columnheader", { name: /^Last Scan/ })).toHaveTextContent(LAST_SCAN_HINT);
     expect(screen.queryByRole("columnheader", { name: "Last Reported" })).not.toBeInTheDocument();
     expect(screen.getByText(`Today, ${time(8, 15)}`)).toBeInTheDocument();
     expect(screen.queryByText(/Yesterday/)).not.toBeInTheDocument();

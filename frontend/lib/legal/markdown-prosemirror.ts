@@ -112,20 +112,21 @@ function inlineRuns(nodes: JSONContent[] | undefined): Run[] {
 }
 
 function runToMarkdown(run: Run): string {
-  if (run.href) return `[${run.text}](${run.href})`;
-  // Colour is its own bracketed span, and like bold/italic it does not nest.
-  if (run.color && run.text.trim()) {
-    const lead = run.text.match(/^\s*/)![0];
-    const trail = run.text.match(/\s*$/)![0];
-    return `${lead}[${run.text.trim()}]{color=${run.color}}${trail}`;
-  }
-  // The dialect has no nesting: bold wins over italic, as the toolbar always did.
+  // Colour composes with everything else (ADR-114 as amended 2026-10-16): on
+  // a link it is a suffix after the target, and around bold or italic it is
+  // the outer bracket. Dropping it here — which is what a link used to do —
+  // means the writer sees the colour in the editor and loses it on save.
+  const colorSuffix = run.color ? `{color=${run.color}}` : "";
+  if (run.href) return `[${run.text}](${run.href})${colorSuffix}`;
+  // The dialect has no nesting between bold and italic: bold wins, as the
+  // toolbar always did.
   const marker = run.bold ? "**" : run.italic ? "*" : "";
-  if (!marker || !run.text.trim()) return run.text;
+  if ((!marker && !run.color) || !run.text.trim()) return run.text;
   // Markers must hug the text, or the parser doesn't see them.
   const lead = run.text.match(/^\s*/)![0];
   const trail = run.text.match(/\s*$/)![0];
-  return `${lead}${marker}${run.text.trim()}${marker}${trail}`;
+  const marked = `${marker}${run.text.trim()}${marker}`;
+  return `${lead}${run.color ? `[${marked}]${colorSuffix}` : marked}${trail}`;
 }
 
 function inlineToMarkdown(nodes: JSONContent[] | undefined): string {

@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import { CheckCircleIcon, ClockIcon, WarningIcon, XIcon } from "@/components/layout/icons";
+import { CheckCircleIcon, ClockIcon, QuestionIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { INDICATOR_LABELS, type ScanIndicator } from "@/lib/claudeUsage/scanLogs";
 
 /** Same pill shape as users-roles StatusBadge. Each state keeps the palette
@@ -11,6 +11,7 @@ const PILLS: Record<ScanIndicator, string> = {
   "no-usage": "bg-[#e1f5ec] text-[#1f9d6b]",
   partial: "bg-[#fffbeb] text-[#b45309]",
   failed: "bg-destructive/10 text-destructive",
+  "no-result": "bg-muted-surface text-muted-foreground",
   "no-recent": "bg-muted-surface text-muted-foreground",
 };
 
@@ -28,6 +29,7 @@ const ICONS: Record<ScanIndicator, ComponentType<SVGProps<SVGSVGElement>>> = {
   "no-usage": CheckCircleIcon,
   partial: WarningIcon,
   failed: XIcon,
+  "no-result": QuestionIcon,
   "no-recent": ClockIcon,
 };
 

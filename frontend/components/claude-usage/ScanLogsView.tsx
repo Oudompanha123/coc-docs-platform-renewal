@@ -3,7 +3,7 @@
 import { SkeletonGroup, SkeletonStatCards, SkeletonTable } from "@/components/ui/skeleton";
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, WarningIcon, XIcon } from "@/components/layout/icons";
+import { BarChartIcon, CheckCircleIcon, ClockIcon, DocumentIcon, QuestionIcon, WarningIcon, XIcon } from "@/components/layout/icons";
 import { ClaudeUsageTabs } from "@/components/claude-usage/ClaudeUsageTabs";
 import { ScanLogDrawer } from "@/components/claude-usage/ScanLogDrawer";
 import { ScanLogTable } from "@/components/claude-usage/ScanLogTable";
@@ -271,6 +271,7 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
             <option value="no-usage">No New Usage</option>
             <option value="partial">Partial Success</option>
             <option value="failed">Failed</option>
+            <option value="no-result">No Result</option>
           </SelectField>
           </div>
           <div className="flex items-center gap-2 lg:ml-auto">
@@ -316,7 +317,7 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
 
       {loading && !data ? (
         <SkeletonGroup label="Loading scan logs" className="mt-4">
-          <SkeletonStatCards count={5} className="xl:grid-cols-5" />
+          <SkeletonStatCards count={6} className="lg:grid-cols-3 2xl:grid-cols-6" />
           <SkeletonTable className="mt-4" rows={8} columns={6} />
         </SkeletonGroup>
       ) : data ? (
@@ -329,7 +330,7 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
             runningCount={runningCount}
           />
 
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             <UsageStatCard
               icon={BarChartIcon}
               label="Total Scans"
@@ -340,6 +341,13 @@ export function ScanLogsView({ scope = "team" }: { scope?: ScanLogScope }) {
             <UsageStatCard icon={ClockIcon} label="No New Usage" value={summary["no-usage"].toLocaleString("en-US")} note="Nothing new to upload" />
             <UsageStatCard icon={WarningIcon} label="Partial Success" value={summary.partial.toLocaleString("en-US")} note="Retried by the next scan" />
             <UsageStatCard icon={XIcon} label="Failed" value={summary.failed.toLocaleString("en-US")} note="Needs a fix on the PC" />
+            {/* Not a failure: the scan started and its result never arrived (ADR-107 `incomplete`). */}
+            <UsageStatCard
+              icon={QuestionIcon}
+              label="No Result"
+              value={summary["no-result"].toLocaleString("en-US")}
+              note="Started, result never arrived"
+            />
           </div>
 
           <div className="mt-4 overflow-hidden rounded-xl border border-surface-border bg-card">

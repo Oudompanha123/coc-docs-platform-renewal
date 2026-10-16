@@ -22,7 +22,18 @@ import { useSession } from "@/lib/auth/SessionProvider";
  * page makes are each gated at their own real floor). This only fixes the
  * experience for a caller who shouldn't be here at all.
  */
-export function RequireMemberSession({ children }: { children: ReactNode }) {
+export function RequireMemberSession({
+  children,
+  allowAnonymous = false,
+}: {
+  children: ReactNode;
+  /**
+   * For pages a visitor may read without signing in (the public Store). An
+   * anonymous visitor is shown the page instead of being sent to /login;
+   * a signed-in caller still goes through every check below.
+   */
+  allowAnonymous?: boolean;
+}) {
   const { status, user } = useSession();
   const router = useRouter();
   // Developer, Reviewer and Lead too: they land here after signing in
@@ -45,6 +56,9 @@ export function RequireMemberSession({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    if (status === "anonymous" && allowAnonymous) {
+      return;
+    }
     if (status === "anonymous" && !wasAuthenticated.current) {
       router.replace("/login");
     } else if (status === "authenticated" && user?.mustChangePassword) {
@@ -52,8 +66,11 @@ export function RequireMemberSession({ children }: { children: ReactNode }) {
     } else if (status === "authenticated" && !canView) {
       router.replace("/welcome");
     }
-  }, [status, user, canView, router]);
+  }, [status, user, canView, router, allowAnonymous]);
 
+  if (status === "anonymous" && allowAnonymous) {
+    return <>{children}</>;
+  }
   if (status !== "authenticated" || user?.mustChangePassword || !canView) {
     return null;
   }

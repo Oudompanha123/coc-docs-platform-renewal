@@ -10,6 +10,8 @@ import {
   SCAN_LOG_POLL_INTERVAL_MS,
   scanNotices,
   scanOutcome,
+  startedLate,
+  triggerText,
   scanStages,
   statusMessage,
   summarize,
@@ -57,8 +59,8 @@ describe("running and incomplete scans", () => {
     expect(formatDuration(running.durationMs)).toBe("—");
   });
 
-  it("incomplete is Failed with 'No result received' and a fix", () => {
-    expect(scanOutcome(incomplete)).toBe("failed");
+  it("incomplete is No Result — not Failed — with 'No result received' and a fix", () => {
+    expect(scanOutcome(incomplete)).toBe("no-result");
     const diagnosis = diagnoseScan(incomplete)!;
     expect(diagnosis.code).toBe("NO_RESULT");
     expect(diagnosis.problem).toBe("No result received");
@@ -95,7 +97,7 @@ describe("scanStages — scan, upload and the scan record, separately", () => {
 
   it("running: everything waiting; incomplete: unknown, and the record never arrived", () => {
     expect(states(running)).toEqual(["scan:waiting", "upload:waiting", "log:waiting"]);
-    expect(states(incomplete)).toEqual(["scan:unknown", "upload:unknown", "log:failed"]);
+    expect(states(incomplete)).toEqual(["scan:unknown", "upload:unknown", "log:unknown"]);
   });
 });
 
@@ -155,5 +157,32 @@ describe("pollInterval", () => {
     expect(pollInterval(1, true)).toBe(SCAN_LOG_POLL_INTERVAL_MS * 2);
     expect(pollInterval(2, false)).toBe(SCAN_LOG_POLL_INTERVAL_MS * 4);
     expect(pollInterval(10, false)).toBe(SCAN_LOG_MAX_POLL_INTERVAL_MS);
+  });
+});
+
+describe("scheduled scans that started late", () => {
+  // Times in the team's reporting zone (Asia/Phnom_Penh, UTC+7), whatever zone the test runs in.
+  const at = (time: string, trigger: "scheduled" | "manual" = "scheduled") => ({
+    trigger,
+    startedAt: `2026-10-16T${time}+07:00`,
+  });
+
+  it("on time within 15 minutes after 11:00 or 16:00, the boundary included", () => {
+    for (const time of ["11:00:01", "11:15:00", "16:00:02", "16:15:59"]) {
+      expect(startedLate(at(time)), time).toBe(false);
+      expect(triggerText(at(time))).toBe("Scheduled");
+    }
+  });
+
+  it("late otherwise — including the early-morning catch-up runs and anything before a slot", () => {
+    for (const time of ["11:16:00", "16:16:00", "07:59:26", "08:05:20", "10:59:00", "23:30:00"]) {
+      expect(startedLate(at(time)), time).toBe(true);
+      expect(triggerText(at(time))).toBe("Scheduled · started late");
+    }
+  });
+
+  it("a manual scan is just Manual, whenever it ran", () => {
+    expect(startedLate(at("08:05:20", "manual"))).toBe(false);
+    expect(triggerText(at("08:05:20", "manual"))).toBe("Manual");
   });
 });
