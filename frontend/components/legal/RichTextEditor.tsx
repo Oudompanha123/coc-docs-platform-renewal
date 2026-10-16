@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
+import { EditorContent, Extension, Mark, mergeAttributes, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
-  Bold,
-  Heading2,
-  Heading3,
-  Italic,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   Link2,
   List,
   ListOrdered,
@@ -21,9 +20,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { isAllowedLinkHref } from "@/lib/legal/markdown";
+import { LEGAL_COLOR_CLASS } from "@/lib/legal/color-classes";
+import { MD_COLORS, isAllowedLinkHref, type MdColor } from "@/lib/legal/markdown";
 import { docToMarkdown, markdownToDoc } from "@/lib/legal/markdown-prosemirror";
 import { cn } from "@/lib/utils";
+
+/**
+ * Alignment as an attribute on headings and paragraphs (ADR-113), written by
+ * hand rather than pulled in as `@tiptap/extension-text-align` — this editor
+ * and its renderer take no new dependencies (see `markdown.ts`).
+ *
+ * Only `center` and `right` exist. Left is the absence of the attribute, which
+ * is what keeps every document written before this feature serialising
+ * unchanged.
+ */
+const TextAlign = Extension.create({
+  name: "legalTextAlign",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["heading", "paragraph"],
+        attributes: {
+          textAlign: {
+            default: null,
+            parseHTML: (element) => {
+              const value = element.style.textAlign;
+              return value === "center" || value === "right" ? value : null;
+            },
+            renderHTML: (attributes) =>
+              attributes.textAlign ? { style: `text-align: ${attributes.textAlign}` } : {},
+          },
+        },
+      },
+    ];
+  },
+});
 
 /**
  * The legal pages' text editor — what you type already looks like the
@@ -32,8 +63,12 @@ import { cn } from "@/lib/utils";
  * `##` or `**` is ever on screen.
  *
  * Built on Tiptap (ProseMirror), limited to exactly what the stored Markdown
- * dialect can hold: section heading (H2), sub-heading (H3), bold, italic,
- * bullet and numbered lists (two levels), quote, divider, links. The value in
+ * dialect can hold: headings 2–4, bold, italic, bullet and numbered lists (two
+ * levels), quote, divider, links. The bar groups them the way a writer reaches
+ * for them — one paragraph-style menu, the two marks and the link, the bulleted
+ * list, and an "Insert" menu holding the blocks a legal page needs rarely. The
+ * same grouping is what makes heading 4 reachable at all: the dialect and the
+ * schema have always allowed `####`, but no button offered it. The value in
  * and out is still that Markdown (`markdown-prosemirror.ts`), so the backend,
  * its validator and the public pages are unchanged (ADR-109). Typing `## `,
  * `- `, `1. `, `> ` or `**bold**` still works — Tiptap turns them into the
@@ -48,6 +83,35 @@ import { cn } from "@/lib/utils";
  * Its styles are `.legal-prose` in globals.css, written to match
  * `MarkdownView`'s "document" variant, which the public page renders with.
  */
+/**
+ * Text colour as a mark (ADR-114). Named tones only — the attribute holds
+ * `muted` / `positive` / `caution` / `critical`, never a hex value, so a
+ * coloured clause resolves through the theme and stays legible in dark mode.
+ */
+const TextColor = Mark.create({
+  name: "textColor",
+  addAttributes() {
+    return {
+      color: {
+        default: null,
+        parseHTML: (element) => element.getAttribute("data-color"),
+        renderHTML: (attributes) => (attributes.color ? { "data-color": attributes.color } : {}),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "span[data-color]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    // Without a class here the mark is an invisible `<span data-color=…>`: the
+    // tone saves and publishes correctly while the editor shows no change at
+    // all, which reads as "colour is broken".
+    const color = HTMLAttributes["data-color"] as MdColor | undefined;
+    const painted = color && color in LEGAL_COLOR_CLASS ? { class: LEGAL_COLOR_CLASS[color] } : {};
+    return ["span", mergeAttributes(HTMLAttributes, painted), 0];
+  },
+});
+
 export function RichTextEditor({
   value,
   onChange,
@@ -88,6 +152,8 @@ export function RichTextEditor({
           HTMLAttributes: { rel: "noopener noreferrer", target: null },
         },
       }),
+      TextAlign,
+      TextColor,
       Placeholder.configure({ placeholder: placeholder ?? "Start writing…" }),
     ],
     content: markdownToDoc(value),
@@ -141,18 +207,53 @@ export function RichTextEditor({
   );
 }
 
+/**
+ * The heading levels the dialect can store, each its own button (product
+ * owner, 2026-10-14: nothing behind a menu). Clicking the pressed one toggles
+ * back to plain text, so "Text" needs no button of its own. The deepest level
+ * is here deliberately: the format and the editor schema have always allowed
+ * `####`, but until now the only way to reach it was to type the hashes.
+ *
+ * The buttons read H1–H3 because that is what they are *to the writer* — the
+ * page's only real `<h1>` is the Title field, so the body's top level is `##`
+ * and the numbering is offset by one. Storage and the published page are
+ * unaffected; this is a label, not a level. The accessible name keeps the
+ * visible text inside it (WCAG 2.5.3) so speech input still reaches them.
+ */
+const HEADINGS = [
+  { label: "H1 heading", short: "H1", level: 2 },
+  { label: "H2 heading", short: "H2", level: 3 },
+  { label: "H3 heading", short: "H3", level: 4 },
+] as const;
+
+/**
+ * The three alignments, each its own button on the bar (product owner,
+ * 2026-10-14: not behind a menu). `null` is left — stored as the absence of
+ * the attribute, never as `{align=left}`, so untouched text stays untouched,
+ * and it is the one that reads as pressed on an ordinary clause.
+ */
+const ALIGNMENTS = [
+  { label: "Align left", value: null, icon: <AlignLeft /> },
+  { label: "Align centre", value: "center", icon: <AlignCenter /> },
+  { label: "Align right", value: "right", icon: <AlignRight /> },
+] as const;
+
 function Toolbar({ editor }: { editor: Editor }) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
-      h2: e.isActive("heading", { level: 2 }),
-      h3: e.isActive("heading", { level: 3 }),
+      level: [2, 3, 4].find((l) => e.isActive("heading", { level: l })) ?? null,
+      align: (e.getAttributes("heading").textAlign ?? e.getAttributes("paragraph").textAlign ?? null) as
+        | "center"
+        | "right"
+        | null,
       bold: e.isActive("bold"),
       italic: e.isActive("italic"),
       bullet: e.isActive("bulletList"),
       ordered: e.isActive("orderedList"),
       quote: e.isActive("blockquote"),
       link: e.isActive("link"),
+      color: (e.getAttributes("textColor").color ?? null) as MdColor | null,
       canUndo: e.can().undo(),
       canRedo: e.can().redo(),
     }),
@@ -164,22 +265,43 @@ function Toolbar({ editor }: { editor: Editor }) {
     <div
       role="toolbar"
       aria-label="Formatting"
-      className="sticky top-[var(--legal-toolbar-h,0px)] z-10 flex flex-wrap items-center gap-0.5 border-b border-surface-border bg-muted-surface px-2 py-1.5"
+      className="sticky top-[var(--legal-toolbar-h,0px)] z-10 flex flex-wrap items-center gap-1.5 border-b border-surface-border bg-background px-2.5 py-2"
     >
-      <Tool label="Section heading" pressed={state.h2} onClick={() => chain().toggleHeading({ level: 2 }).run()}>
-        <Heading2 />
-      </Tool>
-      <Tool label="Sub-heading" pressed={state.h3} onClick={() => chain().toggleHeading({ level: 3 }).run()}>
-        <Heading3 />
-      </Tool>
-      <Divider />
       <Tool label="Bold (Ctrl+B)" pressed={state.bold} onClick={() => chain().toggleBold().run()}>
-        <Bold />
+        <span className="text-[15px] font-bold leading-none">B</span>
       </Tool>
       <Tool label="Italic (Ctrl+I)" pressed={state.italic} onClick={() => chain().toggleItalic().run()}>
-        <Italic />
+        <span className="font-serif text-[15px] italic leading-none">I</span>
       </Tool>
+      <ColorTool editor={editor} active={state.color} />
       <LinkTool editor={editor} active={state.link} />
+      <Divider />
+      {HEADINGS.map((heading) => (
+        <Tool
+          key={heading.level}
+          label={heading.label}
+          pressed={heading.level === state.level}
+          onClick={() => chain().toggleHeading({ level: heading.level }).run()}
+        >
+          <span className="text-[14px]">{heading.short}</span>
+        </Tool>
+      ))}
+      <Divider />
+      {ALIGNMENTS.map((alignment) => (
+        <Tool
+          key={alignment.label}
+          label={alignment.label}
+          pressed={alignment.value === state.align}
+          onClick={() =>
+            chain()
+              .updateAttributes("heading", { textAlign: alignment.value })
+              .updateAttributes("paragraph", { textAlign: alignment.value })
+              .run()
+          }
+        >
+          {alignment.icon}
+        </Tool>
+      ))}
       <Divider />
       <Tool label="Bulleted list" pressed={state.bullet} onClick={() => chain().toggleBulletList().run()}>
         <List />
@@ -231,10 +353,10 @@ function Tool({
           onMouseDown={(e) => e.preventDefault()}
           onClick={onClick}
           className={cn(
-            "flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors [&_svg]:size-4",
-            "hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+            "flex h-9 min-w-9 items-center justify-center rounded-[10px] px-2.5 text-foreground transition-colors [&_svg]:size-[18px]",
+            "hover:bg-accent disabled:pointer-events-none disabled:text-muted-foreground disabled:opacity-40",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            pressed && "bg-background text-foreground shadow-sm",
+            pressed && "bg-muted-surface",
           )}
         >
           {children}
@@ -246,7 +368,7 @@ function Tool({
 }
 
 function Divider() {
-  return <span aria-hidden="true" className="mx-1 h-5 w-px bg-surface-border" />;
+  return <span aria-hidden="true" className="mx-2 h-6 w-px bg-surface-border" />;
 }
 
 function LinkTool({ editor, active }: { editor: Editor; active: boolean }) {
@@ -288,9 +410,9 @@ function LinkTool({ editor, active }: { editor: Editor; active: boolean }) {
           aria-pressed={active}
           onMouseDown={(e) => e.preventDefault()}
           className={cn(
-            "flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors [&_svg]:size-4",
-            "hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            active && "bg-background text-foreground shadow-sm",
+            "flex h-9 min-w-9 items-center justify-center rounded-[10px] px-2.5 text-foreground transition-colors [&_svg]:size-[18px]",
+            "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            active && "bg-accent",
           )}
         >
           <Link2 />
@@ -342,3 +464,84 @@ function LinkTool({ editor, active }: { editor: Editor; active: boolean }) {
     </Popover>
   );
 }
+
+/**
+ * Text colour. The trigger is the reference bar's "A" over a coloured bar: the
+ * selection's own tone when it has one, and red otherwise, which is what the
+ * reference does (product owner, 2026-10-14) — it reads as "colour lives here",
+ * not as a claim about the current text. The surface is a row of named swatches
+ * rather than a picker, because a hex field puts colours on a legal page that
+ * fail contrast in dark mode and that nobody can find again (ADR-114).
+ */
+function ColorTool({ editor, active }: { editor: Editor; active: MdColor | null }) {
+  const [open, setOpen] = useState(false);
+
+  function apply(color: MdColor | null) {
+    const chain = editor.chain().focus().extendMarkRange("textColor");
+    if (color) chain.setMark("textColor", { color }).run();
+    else chain.unsetMark("textColor").run();
+    setOpen(false);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Text colour"
+              aria-pressed={Boolean(active)}
+              onMouseDown={(e) => e.preventDefault()}
+              className={cn(
+                "flex h-9 min-w-9 flex-col items-center justify-center gap-[3px] rounded-[10px] px-2.5 text-foreground transition-colors",
+                "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active && "bg-accent",
+              )}
+            >
+              <span className="text-[15px] font-semibold leading-none">A</span>
+              <span className={cn("h-[3px] w-5 rounded-full", active ? SWATCH[active] : "bg-danger")} />
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Text colour</TooltipContent>
+      </Tooltip>
+      <PopoverContent className="w-auto p-2">
+        <div className="flex items-center gap-1.5">
+          {([null, ...MD_COLORS] as const).map((color) => (
+            <button
+              key={color ?? "default"}
+              type="button"
+              aria-label={color ? COLOR_LABEL[color] : "Default"}
+              aria-pressed={color === active}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => apply(color)}
+              className={cn(
+                "size-7 rounded-full border transition-[box-shadow,border-color]",
+                color ? SWATCH[color] : "bg-foreground",
+                color === active ? "border-foreground ring-2 ring-ring ring-offset-1 ring-offset-background" : "border-surface-border",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** The swatch fills, and the names the swatches announce. Colour on a legal
+ *  page carries status, never decoration (ADR-104 decision 2, ADR-114). */
+const SWATCH: Record<MdColor, string> = {
+  muted: "bg-muted-foreground",
+  positive: "bg-success",
+  caution: "bg-caution",
+  critical: "bg-danger",
+};
+
+const COLOR_LABEL: Record<MdColor, string> = {
+  muted: "Muted",
+  positive: "Positive",
+  caution: "Caution",
+  critical: "Critical",
+};

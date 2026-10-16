@@ -44,7 +44,12 @@ export type LegalVersionSummary = {
   status: "draft" | "published" | "archived";
   versionNo: number;
   publishedAt: string | null;
+  /** Null when no person is recorded: the seeded first version, or a deleted account. */
   publishedByName: string | null;
+  /** The publisher's photo — the backend's `/api/v1/avatars/...` route or a Google URL; pass through `avatarSrc`. */
+  publishedByAvatarUrl: string | null;
+  /** The version created with the page itself (no one published it) — shown as "Initial version". */
+  initialVersion: boolean;
   publishNote: string | null;
 };
 

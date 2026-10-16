@@ -754,7 +754,7 @@ public final class ApiDtos {
             return new NotificationItem(
                     item.id(),
                     item.actorEmail(),
-                    item.actorAvatarUrl(),
+                    avatarHref(item.actorAvatarUrl()),
                     item.summary(),
                     item.occurredAt(),
                     item.actionType(),
@@ -883,7 +883,7 @@ public final class ApiDtos {
         public static ActivityEntryResponse of(com.coc.docs.audit.AuditEntry entry) {
             return new ActivityEntryResponse(
                     entry.actorEmail(),
-                    entry.actorAvatarUrl(),
+                    avatarHref(entry.actorAvatarUrl()),
                     entry.action(),
                     entry.targetType(),
                     entry.detail(),
@@ -1531,6 +1531,7 @@ public final class ApiDtos {
             UUID memberId,
             String email,
             String displayName,
+            String avatarUrl,
             String trigger,
             String cliVersion,
             Instant startedAt,
@@ -1549,7 +1550,7 @@ public final class ApiDtos {
 
         public static ClaudeUsageScanLogSummaryResponse of(ClaudeUsageScanLog log) {
             return new ClaudeUsageScanLogSummaryResponse(
-                    log.id(), log.scanRef(), log.memberId(), log.email(), log.displayName(), log.trigger(),
+                    log.id(), log.scanRef(), log.memberId(), log.email(), log.displayName(), log.avatarUrl(), log.trigger(),
                     log.cliVersion(), log.startedAt(), log.finishedAt(), log.receivedAt(), log.durationMs(),
                     log.status(), log.uploadStatus(), log.transcriptFiles(), log.responses(), log.duplicates(),
                     log.newTokens(), log.daysUploaded(), log.errorStep(), log.errorMessage());
@@ -2226,18 +2227,40 @@ public final class ApiDtos {
         }
     }
 
-    /** One row of the History panel — no content, so the list stays light. */
+    /**
+     * One row of the History panel — no content, so the list stays light.
+     *
+     * <p>{@code publishedByAvatarUrl} goes through {@link #avatarHref}, like
+     * every other photo, so an uploaded one loads from a private bucket; a
+     * Google picture passes through. {@code initialVersion}: no person
+     * published this — it is the version created with the table (V68), shown
+     * as "Initial version". Never set on a row that has a publisher, or on a
+     * later row whose publisher's account was deleted.
+     */
     public record LegalVersionSummaryResponse(
-            UUID id, String status, int versionNo, Instant publishedAt, String publishedByName, String publishNote) {
+            UUID id,
+            String status,
+            int versionNo,
+            Instant publishedAt,
+            String publishedByName,
+            String publishedByAvatarUrl,
+            boolean initialVersion,
+            String publishNote) {
 
+        /**
+         * @param publisher the publisher's account, or null when none is recorded or it no longer exists
+         * @param earliest  whether this is the page's earliest published version
+         */
         public static LegalVersionSummaryResponse of(
-                com.coc.docs.legal.LegalPageVersion version, String publishedByName) {
+                com.coc.docs.legal.LegalPageVersion version, Account publisher, boolean earliest) {
             return new LegalVersionSummaryResponse(
                     version.id(),
                     version.status().wire(),
                     version.versionNo(),
                     version.publishedAt(),
-                    publishedByName,
+                    publisher == null ? null : publisher.displayName(),
+                    publisher == null ? null : avatarHref(publisher.avatarUrl()),
+                    version.publishedBy() == null && earliest,
                     version.publishNote());
         }
     }

@@ -1,4 +1,6 @@
-import { markdownOutline, parseMarkdown, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
+import { LEGAL_COLOR_CLASS } from "@/lib/legal/color-classes";
+import { cn } from "@/lib/utils";
+import { markdownOutline, parseMarkdown, type MdAlign, type MdBlock, type MdSpan } from "@/lib/legal/markdown";
 
 type Variant = "inline" | "document" | "document-note";
 
@@ -96,11 +98,17 @@ export function MarkdownView({
   );
 }
 
+/** Alignment is left unless the block says otherwise (ADR-113). The classes are
+ *  written out in full so Tailwind keeps them — it does not see interpolation. */
+function alignClass(align: MdAlign | undefined): string {
+  return align === "center" ? " text-center" : align === "right" ? " text-right" : "";
+}
+
 function Block({ node, bulletStyle, style, anchor }: { node: MdBlock; bulletStyle: "circle" | "check"; style: VariantStyle; anchor?: string }) {
   switch (node.kind) {
     case "paragraph":
       return (
-        <p className={style.text}>
+        <p className={`${style.text}${alignClass(node.align)}`}>
           <Spans spans={node.spans} style={style} />
         </p>
       );
@@ -108,7 +116,7 @@ function Block({ node, bulletStyle, style, anchor }: { node: MdBlock; bulletStyl
       const Tag = node.level === 2 ? "h2" : node.level === 3 ? "h3" : "h4";
       const cls = node.level === 2 ? style.heading2 : node.level === 3 ? style.heading3 : style.heading4;
       return (
-        <Tag id={anchor} className={cls}>
+        <Tag id={anchor} className={`${cls}${alignClass(node.align)}`}>
           <Spans spans={node.spans} style={style} />
         </Tag>
       );
@@ -200,7 +208,11 @@ function Span({ span, style }: { span: MdSpan; style: VariantStyle }) {
         href={span.href}
         target={span.href.startsWith("mailto:") || span.href.startsWith("/") ? undefined : "_blank"}
         rel="noopener noreferrer"
-        className={style.link}
+        // A coloured link wears its tone itself. Wrapping the anchor in the
+        // tone instead would publish the link in `text-foreground` — the
+        // link's own colour sits on the element and beats an inherited one —
+        // so the writer's colour would be stored and never seen.
+        className={cn(style.link, span.color && LEGAL_COLOR_CLASS[span.color])}
       >
         {node}
       </a>
@@ -208,5 +220,6 @@ function Span({ span, style }: { span: MdSpan; style: VariantStyle }) {
   }
   if (span.bold) node = <strong>{node}</strong>;
   if (span.italic) node = <em>{node}</em>;
+  if (span.color && !span.href) node = <span className={LEGAL_COLOR_CLASS[span.color]}>{node}</span>;
   return <>{node}</>;
 }

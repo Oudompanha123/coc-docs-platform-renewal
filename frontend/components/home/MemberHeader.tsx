@@ -27,6 +27,7 @@ import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
+import { STORE_HREF, isStorePath } from "@/lib/store/store-api";
 import { MemberThemeSync } from "@/components/home/MemberThemeSync";
 import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import type { NavProduct } from "@/lib/docs/nav-api";
@@ -80,7 +81,7 @@ function CountIcon({
 /** Products mega-dropdown — 2-col grid with large lavender icon tiles. */
 /**
  * The signed-in Member's header for `/home`.
- * Nav: Home | Products ▾ (Attendance moved into /account/settings#attendance)
+ * Nav: Home | Store | Products ▾ (Attendance moved into /account/settings#attendance)
  * Right: Notifications, Activity, User chip.
  */
 // onOpenNotifications is gone from this header on purpose: notification
@@ -228,6 +229,17 @@ export function MemberHeader({
             }`}
           >
             Home
+          </Link>
+
+          {/* Store (ADR-108) — the listing, /store, and each app's page, /store/app-<number>. */}
+          <Link
+            href={STORE_HREF}
+            aria-current={isStorePath(pathname) ? "page" : undefined}
+            className={`inline-flex h-9 items-center rounded-3xl px-3.5 text-[15px] transition-colors outline-none hover:bg-muted-surface/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+              isStorePath(pathname) ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Store
           </Link>
 
           {/* Products — the shared NavMenu (ADR-104 r2.9): hover to open, a

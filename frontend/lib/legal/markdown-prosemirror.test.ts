@@ -74,3 +74,55 @@ describe("markdown <-> editor document", () => {
     expect(docToMarkdown(doc)).toBe("a  **bold** b");
   });
 });
+
+describe("alignment round-trip (ADR-113)", () => {
+  it("carries a centred heading into the editor and back out unchanged", () => {
+    const source = "## Signed {align=center}";
+    const doc = markdownToDoc(source);
+    expect(doc.content?.[0]).toMatchObject({ type: "heading", attrs: { level: 2, textAlign: "center" } });
+    expect(docToMarkdown(doc)).toBe(source);
+  });
+
+  it("carries a right-aligned paragraph both ways", () => {
+    const source = "For and on behalf of the Company {align=right}";
+    expect(docToMarkdown(markdownToDoc(source))).toBe(source);
+  });
+
+  it("writes nothing for left alignment, so untouched documents stay byte-identical", () => {
+    const source = "## Agreement\n\nPlain paragraph.";
+    expect(docToMarkdown(markdownToDoc(source))).toBe(source);
+    expect(docToMarkdown(markdownToDoc(source))).not.toContain("align");
+  });
+});
+
+describe("text colour round-trip (ADR-114)", () => {
+  it("carries a named tone into the editor and back out unchanged", () => {
+    const source = "[Do not share your password]{color=critical}";
+    const doc = markdownToDoc(source);
+    expect(docToMarkdown(doc)).toBe(source);
+  });
+
+  it("writes nothing for uncoloured text", () => {
+    expect(docToMarkdown(markdownToDoc("Plain clause."))).toBe("Plain clause.");
+  });
+
+  it("keeps a coloured link's colour, which is the one the editor used to drop on save", () => {
+    const source = "Write to [legal@example.com](mailto:legal@example.com){color=critical}.";
+    expect(roundTrip(source)).toBe(source);
+  });
+
+  it("keeps bold under a colour", () => {
+    const source = "[**Do not share your password**]{color=critical}";
+    expect(roundTrip(source)).toBe(source);
+  });
+
+  it("keeps italic under a colour", () => {
+    const source = "[*in confidence*]{color=muted}";
+    expect(roundTrip(source)).toBe(source);
+  });
+
+  it("colours a heading without losing its level", () => {
+    const source = "## [Termination]{color=caution}";
+    expect(roundTrip(source)).toBe(source);
+  });
+});

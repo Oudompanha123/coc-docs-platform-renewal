@@ -13,15 +13,35 @@ describe("RichTextEditor", () => {
     expect(box.textContent).not.toContain("**");
   });
 
-  it("formats with the toolbar and reports Markdown back", async () => {
+  it("formats with the heading buttons and reports Markdown back", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<RichTextEditor value="Hello" onChange={onChange} maxLength={1000} />);
     await screen.findByRole("textbox", { name: "Content" });
 
-    await user.click(screen.getByRole("button", { name: "Section heading" }));
+    await user.click(screen.getByRole("button", { name: "H1 heading" }));
     await waitFor(() => expect(onChange).toHaveBeenLastCalledWith("## Hello"));
-    expect(screen.getByRole("button", { name: "Section heading" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "H1 heading" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("offers the deepest heading, which the dialect allowed but no button reached", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor value="Detail" onChange={onChange} maxLength={1000} />);
+    await screen.findByRole("textbox", { name: "Content" });
+
+    await user.click(screen.getByRole("button", { name: "H3 heading" }));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith("#### Detail"));
+  });
+
+  it("inserts the rarely used blocks straight from the bar", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor value="Hello" onChange={onChange} maxLength={1000} />);
+    await screen.findByRole("textbox", { name: "Content" });
+
+    await user.click(screen.getByRole("button", { name: "Numbered list" }));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith("1. Hello"));
   });
 
   it("replaces its content when the value changes from outside (reload, restore)", async () => {
@@ -42,4 +62,77 @@ describe("RichTextEditor", () => {
     render(<RichTextEditor value="abcd" onChange={vi.fn()} maxLength={3} />);
     expect(await screen.findByText("4 / 3")).toHaveClass("text-danger");
   });
+
+  it("centres a paragraph from the alignment menu and stores the marker", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor value="Signed" onChange={onChange} maxLength={1000} />);
+    await screen.findByRole("textbox", { name: "Content" });
+
+    await user.click(screen.getByRole("button", { name: "Align centre" }));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith("Signed {align=center}"));
+    expect(screen.getByRole("button", { name: "Align centre" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Align left" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("colours a selection from the swatches and stores a named tone", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor value="Do not share your password" onChange={onChange} maxLength={1000} />);
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    await user.tripleClick(box);
+
+    await user.click(screen.getByRole("button", { name: "Text colour" }));
+    await user.click(await screen.findByRole("button", { name: "Critical" }));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith("[Do not share your password]{color=critical}"),
+    );
+  });
+
+  it("colours a link without dropping the link, and without dropping the colour on save", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <RichTextEditor
+        value="[legal@example.com](mailto:legal@example.com)"
+        onChange={onChange}
+        maxLength={1000}
+      />,
+    );
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    await user.tripleClick(box);
+
+    await user.click(screen.getByRole("button", { name: "Text colour" }));
+    await user.click(await screen.findByRole("button", { name: "Critical" }));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith(
+        "[legal@example.com](mailto:legal@example.com){color=critical}",
+      ),
+    );
+  });
+
+  it("keeps bold under a colour, rather than un-bolding the text on save", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor value="**Do not share**" onChange={onChange} maxLength={1000} />);
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    await user.tripleClick(box);
+
+    await user.click(screen.getByRole("button", { name: "Text colour" }));
+    await user.click(await screen.findByRole("button", { name: "Critical" }));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith("[**Do not share**]{color=critical}"));
+  });
+
+  it("paints the colour in the editor, not only on the published page", async () => {
+    render(<RichTextEditor value="[Careful]{color=critical} and on we go" onChange={vi.fn()} maxLength={1000} />);
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    await waitFor(() => expect(within(box).getByText("Careful")).toHaveClass("text-danger"));
+  });
+
+  it("shows alignment that came in with the value", async () => {
+    render(<RichTextEditor value="Signed {align=right}" onChange={vi.fn()} maxLength={1000} />);
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    expect(within(box).getByText("Signed")).toHaveStyle({ textAlign: "right" });
+  });
+
 });

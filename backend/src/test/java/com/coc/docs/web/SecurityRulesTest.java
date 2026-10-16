@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.coc.docs.account.AccountService;
@@ -188,6 +190,9 @@ class SecurityRulesTest {
     // filter chain admits, not about what the editorial path or the
     // publisher-name lookup actually does.
     @MockitoBean com.coc.docs.legal.LegalPageService legalPageService;
+
+    // StoreController/AdminStoreController (ADR-108) — same reason.
+    @MockitoBean com.coc.docs.store.StoreService storeService;
 
     @TestConfiguration
     static class Beans {
@@ -678,6 +683,159 @@ class SecurityRulesTest {
             // The editorial floor, not super_admin: an announcement is content.
             mvc.perform(get("/api/v1/admin/announcements").with(as(AppRole.ADMIN))).andExpect(status().isOk());
             mvc.perform(delete("/api/v1/admin/announcements/" + java.util.UUID.randomUUID()).with(as(AppRole.ADMIN)))
+                    .andExpect(status().isNoContent());
+        }
+    }
+
+    @Nested
+    @DisplayName("store (ADR-108, ADR-111)")
+    class StorePath {
+
+        private com.coc.docs.store.StoreService.CatalogEntry entry(long number) {
+            java.time.Instant now = java.time.Instant.now();
+            return new com.coc.docs.store.StoreService.CatalogEntry(
+                    new com.coc.docs.store.StoreApp(java.util.UUID.randomUUID(), number, "App", "", com.coc.docs.store.StoreCategory.MOBILE, true, null, null,
+                            now, now),
+                    java.util.List.of());
+        }
+
+        /** A build upload's body: 4-byte big-endian length, UTF-8 JSON header, then the file. */
+        private byte[] framed(String headerJson, byte[] file) {
+            byte[] header = headerJson.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            return java.nio.ByteBuffer.allocate(4 + header.length + file.length)
+                    .putInt(header.length).put(header).put(file).array();
+        }
+
+        @Test
+        void a_plain_user_browses_the_store() throws Exception {
+            mvc.perform(get("/api/v1/store/apps").with(as(AppRole.USER))).andExpect(status().isOk());
+        }
+
+        @Test
+        void a_plain_user_opens_an_app_page() throws Exception {
+            org.mockito.Mockito.when(storeService.entryForReader(org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(entry(7));
+            mvc.perform(get("/api/v1/store/apps/7").with(as(AppRole.USER))).andExpect(status().isOk());
+        }
+
+        @Test
+        void a_caller_with_no_session_reaches_the_public_store_reads() throws Exception {
+            org.mockito.Mockito.when(storeService.entryForReader(org.mockito.ArgumentMatchers.eq(7L), org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(entry(7));
+            mvc.perform(get("/api/v1/store/apps")).andExpect(status().isOk());
+            mvc.perform(get("/api/v1/store/apps/7")).andExpect(status().isOk());
+        }
+
+        @Test
+        void a_caller_with_no_session_writes_nothing() throws Exception {
+            mvc.perform(get("/api/v1/admin/store/apps")).andExpect(status().isUnauthorized());
+            mvc.perform(delete("/api/v1/admin/store/apps/" + java.util.UUID.randomUUID()))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void a_plain_user_cannot_upload_or_remove_builds() throws Exception {
+            String app = java.util.UUID.randomUUID().toString();
+            mvc.perform(post("/api/v1/admin/store/apps/" + app + "/builds").with(as(AppRole.USER))
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM).content(new byte[] {1}))
+                    .andExpect(status().isForbidden());
+            mvc.perform(delete("/api/v1/admin/store/apps/" + app + "/builds/" + java.util.UUID.randomUUID())
+                            .with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void an_admin_uploads_the_next_version_as_header_then_file() throws Exception {
+            java.util.concurrent.atomic.AtomicReference<byte[]> received = new java.util.concurrent.atomic.AtomicReference<>();
+            org.mockito.Mockito.when(storeService.uploadBuild(
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.eq("1.2.2"),
+                            org.mockito.ArgumentMatchers.eq(java.util.List.of("production", "development")),
+                            org.mockito.ArgumentMatchers.eq("새 기능 — fixes"),
+                            org.mockito.ArgumentMatchers.eq("app.apk"),
+                            org.mockito.ArgumentMatchers.any(),
+                            org.mockito.ArgumentMatchers.any()))
+                    .thenAnswer(invocation -> {
+                        received.set(invocation.<java.io.InputStream>getArgument(5).readAllBytes());
+                        return entry(8);
+                    });
+            byte[] body = framed("""
+                    {"version":"1.2.2","environments":["production","development"],"notes":"새 기능 — fixes","fileName":"app.apk"}
+                    """, new byte[] {9, 8, 7});
+
+            mvc.perform(post("/api/v1/admin/store/apps/" + java.util.UUID.randomUUID() + "/builds")
+                            .with(as(AppRole.ADMIN))
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .content(body))
+                    .andExpect(status().isCreated());
+            org.assertj.core.api.Assertions.assertThat(received.get()).containsExactly(9, 8, 7);
+        }
+
+        @Test
+        void a_malformed_upload_header_is_a_bad_request() throws Exception {
+            String path = "/api/v1/admin/store/apps/" + java.util.UUID.randomUUID() + "/builds";
+            byte[] tooLong = java.nio.ByteBuffer.allocate(8).putInt(1 << 20).putInt(0).array();
+            mvc.perform(post(path).with(as(AppRole.ADMIN)).contentType(MediaType.APPLICATION_OCTET_STREAM).content(tooLong))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(post(path).with(as(AppRole.ADMIN)).contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .content(framed("not json", new byte[] {1})))
+                    .andExpect(status().isBadRequest());
+            mvc.perform(post(path).with(as(AppRole.ADMIN)).contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .content(new byte[] {0, 0}))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void a_visitor_with_no_session_gets_a_presigned_link_for_a_public_build() throws Exception {
+            java.util.UUID build = java.util.UUID.randomUUID();
+            org.mockito.Mockito.doReturn(
+                    new com.coc.docs.store.StoreService.Download(
+                            new com.coc.docs.store.StoreFiles.Delivery.Presigned(
+                                    java.net.URI.create("https://s3.example.com/bucket/key?X-Amz-Expires=300"),
+                                    java.time.Instant.parse("2026-10-16T10:00:00Z")),
+                            "app.apk", "application/vnd.android.package-archive"))
+                    .when(storeService).download(org.mockito.ArgumentMatchers.eq(build), org.mockito.ArgumentMatchers.any());
+
+            mvc.perform(get("/api/v1/store/builds/" + build + "/download-link"))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                    .andExpect(jsonPath("$.presigned").value(true))
+                    .andExpect(jsonPath("$.url").value("https://s3.example.com/bucket/key?X-Amz-Expires=300"));
+            // The plain route redirects to the same URL rather than streaming through the backend.
+            mvc.perform(get("/api/v1/store/builds/" + build + "/download"))
+                    .andExpect(status().isFound())
+                    .andExpect(header().string("Location", "https://s3.example.com/bucket/key?X-Amz-Expires=300"));
+        }
+
+        @Test
+        void a_private_or_removed_build_has_no_link_for_a_visitor() throws Exception {
+            java.util.UUID build = java.util.UUID.randomUUID();
+            org.mockito.Mockito.doThrow(ApiException.notFound("build"))
+                    .when(storeService).download(org.mockito.ArgumentMatchers.eq(build), org.mockito.ArgumentMatchers.any());
+            mvc.perform(get("/api/v1/store/builds/" + build + "/download-link"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void a_logo_needs_no_session() throws Exception {
+            // Public for the <img> reason (ADR-101); a missing one is a plain 404, not a 401.
+            org.mockito.Mockito.when(storeService.logo(org.mockito.ArgumentMatchers.any()))
+                    .thenThrow(ApiException.notFound("logo"));
+            mvc.perform(get("/api/v1/store/apps/" + java.util.UUID.randomUUID() + "/logo"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void a_plain_user_cannot_manage_it() throws Exception {
+            mvc.perform(get("/api/v1/admin/store/apps").with(as(AppRole.USER))).andExpect(status().isForbidden());
+            mvc.perform(delete("/api/v1/admin/store/apps/" + java.util.UUID.randomUUID()).with(as(AppRole.USER)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void an_admin_manages_it() throws Exception {
+            mvc.perform(get("/api/v1/admin/store/apps").with(as(AppRole.ADMIN))).andExpect(status().isOk());
+            mvc.perform(delete("/api/v1/admin/store/apps/" + java.util.UUID.randomUUID()).with(as(AppRole.ADMIN)))
                     .andExpect(status().isNoContent());
         }
     }

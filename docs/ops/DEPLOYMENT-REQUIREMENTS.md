@@ -116,7 +116,7 @@ These cannot be provisioned by the deployment and must be held in advance.
 | **Google OAuth 2.0 client** (id + secret) | **Required** | Google is the only sign-in path; there is no password column anywhere in the schema |
 | **SMTP server** (`MAIL_*`) | Optional | Password-reset links are logged at WARN instead of sent and registration OTPs cannot be delivered. Google sign-in is unaffected |
 | **Firebase project** — service-account JSON + web config | Optional | Backend logs `push not configured` and starts. The bell and the live notification stream (ADR-028) work regardless; only push is lost |
-| **S3-compatible object storage** | Optional | Profile photos (ADR-026) and content-image uploads are unavailable; nothing else is affected. Either MinIO via `--profile storage`, or real S3. Only the S3 API and path-style addressing are used (`CONST-TECH-08`), so the two are interchangeable by `.env` alone |
+| **S3-compatible object storage** | Optional | Profile photos (ADR-026) and content-image uploads are unavailable; nothing else is affected. Either MinIO via `--profile storage`, or real S3. Only the S3 API and path-style addressing are used (`CONST-TECH-08`), so the two are interchangeable by `.env` alone. The **Store** (app builds, up to 2 GB) keeps its files on the backend container's disk until `COC_STORE_STORAGE=s3` — which also needs the bucket CORS rule, a multipart-cleanup lifecycle rule and the IAM permissions in `infra/README.md` (ADR-115) |
 
 **One thing Google needs from you.** The OAuth client's *Authorised redirect
 URIs* must include:
@@ -176,6 +176,7 @@ variable has a working default or degrades to a documented state:
 | Email | `MAIL_HOST` `MAIL_PORT` `MAIL_USERNAME` `MAIL_PASSWORD` |
 | Push | `FIREBASE_CREDENTIALS` and the six `NEXT_PUBLIC_FIREBASE_*` |
 | Storage | `S3_ENDPOINT` `S3_REGION` `S3_BUCKET` `S3_ACCESS_KEY_ID` `S3_SECRET_ACCESS_KEY` |
+| Store files | `COC_STORE_STORAGE` (`local` default, or `s3`) `COC_STORE_DOWNLOAD_URL_TTL_SECONDS` — see "Store files in S3" in `infra/README.md` |
 | Database | `DB_NAME` `DB_USER` `DB_SCHEMA` `DB_POOL_MAX` `DB_BIND_ADDRESS` |
 | Keycloak | `KEYCLOAK_ADMIN_USER` `KEYCLOAK_DB_NAME` `KEYCLOAK_REALM` `KEYCLOAK_VERSION` `KEYCLOAK_CLIENT_ID` |
 | Sizing / TLS | `BACKEND_MEMORY` `FRONTEND_MEMORY` `SESSION_TTL` `CERTBOT_STAGING` |

@@ -15,11 +15,40 @@
  * no-raw-HTML rule).
  */
 
-export type MdSpan = { text: string; bold?: boolean; italic?: boolean; href?: string };
+export type MdSpan = { text: string; bold?: boolean; italic?: boolean; href?: string; color?: MdColor };
+
+/**
+ * Text colour, carried as `[text]{color=…}` (ADR-114). Named tones from the
+ * design system, never a hex value: a legal page has to stay legible in both
+ * themes, and a colour nobody can name is a colour nobody can change later.
+ * Default is the absence of the marker.
+ */
+export const MD_COLORS = ["muted", "positive", "caution", "critical"] as const;
+export type MdColor = (typeof MD_COLORS)[number];
+
+/**
+ * Alignment, carried as a trailing `{align=…}` marker on a heading or
+ * paragraph (ADR-113). Left is the default and is never written, so every
+ * document that existed before this feature round-trips byte-for-byte.
+ */
+export type MdAlign = "center" | "right";
+
+const ALIGN_RE = /\s*\{align=(center|right)\}$/;
+
+/** Splits a trailing alignment marker off a block's text. */
+export function takeAlign(text: string): { text: string; align?: MdAlign } {
+  const match = ALIGN_RE.exec(text);
+  return match ? { text: text.slice(0, match.index), align: match[1] as MdAlign } : { text };
+}
+
+/** The marker to append when serialising, or "" for the default. */
+export function alignSuffix(align: string | null | undefined): string {
+  return align === "center" || align === "right" ? ` {align=${align}}` : "";
+}
 
 export type MdBlock =
-  | { kind: "paragraph"; spans: MdSpan[] }
-  | { kind: "heading"; level: 2 | 3 | 4; spans: MdSpan[] }
+  | { kind: "paragraph"; spans: MdSpan[]; align?: MdAlign }
+  | { kind: "heading"; level: 2 | 3 | 4; spans: MdSpan[]; align?: MdAlign }
   | { kind: "bulletList"; items: MdBlock[][] }
   | { kind: "orderedList"; items: MdBlock[][] }
   | { kind: "blockquote"; blocks: MdBlock[] }
@@ -38,9 +67,9 @@ export function isAllowedLinkHref(href: string): boolean {
 
 // ---------------------------------------------------------------------------
 // Inline parsing: **bold**, *italic*, [text](href) — a single flat pass,
-// left to right, first match wins; nesting marks inside one another isn't
-// supported (the toolbar never produces it, and the whitelist doesn't ask
-// for it).
+// left to right, first match wins. Bold and italic still don't nest in one
+// another (the toolbar never produces it, and the whitelist doesn't ask for
+// it), but colour does compose with all three — see below.
 // ---------------------------------------------------------------------------
 
 // The href group tolerates one level of balanced parens inside the URL
@@ -48,32 +77,73 @@ export function isAllowedLinkHref(href: string): boolean {
 // inner `)` — a bare `[^)]*` stops at the first `)`, which breaks on any
 // URL containing one.
 const HREF_PATTERN = "[^\\s()]*(?:\\([^()]*\\)[^\\s()]*)*";
-const INLINE_PATTERN = new RegExp(`\\*\\*([^*]+)\\*\\*|\\*([^*]+)\\*|\\[([^\\]]*)\\]\\((${HREF_PATTERN})\\)`, "g");
+const COLOR_PATTERN = MD_COLORS.join("|");
+const COLOR_SUFFIX = `\\{color=(${COLOR_PATTERN})\\}`;
+
+/**
+ * A fresh matcher per call. Colour spans are parsed by recursing into their
+ * own text, so one shared `g` regex would have its `lastIndex` clobbered
+ * mid-scan by the inner pass.
+ *
+ * Groups: 1 bold, 2 italic, 3 link text, 4 href, 5 the link's colour,
+ * 6 colour-span text, 7 its colour.
+ */
+function inlinePattern(): RegExp {
+  return new RegExp(
+    `\\*\\*([^*]+)\\*\\*|\\*([^*]+)\\*|\\[([^\\]]*)\\]\\((${HREF_PATTERN})\\)(?:${COLOR_SUFFIX})?|\\[([^\\]]*)\\]${COLOR_SUFFIX}`,
+    "g",
+  );
+}
 
 export function parseInline(text: string): MdSpan[] {
+  const spans = parseInlineSpans(text);
+  return spans.length > 0 ? spans : [{ text: "" }];
+}
+
+/**
+ * `color` is set when we are inside a colour span, and is applied to every
+ * span the inner pass produces — which is what lets `[**text**]{color=…}`
+ * come back as one bold *and* critical span rather than losing one of the
+ * two. Colour composes with bold, italic and links (ADR-114 as amended
+ * 2026-10-16); a colour button that silently dropped the bold under it is
+ * the same "shows formatting that is dropped on save" failure the marker
+ * exists to prevent.
+ */
+function parseInlineSpans(text: string, color?: MdColor): MdSpan[] {
+  const pattern = inlinePattern();
   const spans: MdSpan[] = [];
+  const push = (span: MdSpan) => spans.push(color ? { ...span, color } : span);
   let lastIndex = 0;
-  INLINE_PATTERN.lastIndex = 0;
   let match: RegExpExecArray | null;
-  while ((match = INLINE_PATTERN.exec(text))) {
+  while ((match = pattern.exec(text))) {
     if (match.index > lastIndex) {
-      spans.push({ text: text.slice(lastIndex, match.index) });
+      push({ text: text.slice(lastIndex, match.index) });
     }
     if (match[1] !== undefined) {
-      spans.push({ text: match[1], bold: true });
+      push({ text: match[1], bold: true });
     } else if (match[2] !== undefined) {
-      spans.push({ text: match[2], italic: true });
+      push({ text: match[2], italic: true });
+    } else if (match[6] !== undefined) {
+      // A colour span's own text holds no `]`, so the inner pass can only
+      // ever find bold and italic — colour inside colour, and a link inside
+      // colour, are unreachable rather than forbidden.
+      spans.push(...parseInlineSpans(match[6], match[7] as MdColor));
     } else {
       const linkText = match[3] ?? "";
       const href = match[4] ?? "";
-      spans.push(isAllowedLinkHref(href) ? { text: linkText, href } : { text: match[0] });
+      const linkColor = match[5] as MdColor | undefined;
+      push(
+        isAllowedLinkHref(href)
+          ? { text: linkText, href, ...(linkColor ? { color: linkColor } : {}) }
+          : { text: match[0] },
+      );
     }
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {
-    spans.push({ text: text.slice(lastIndex) });
+    push({ text: text.slice(lastIndex) });
   }
-  return spans.length > 0 ? spans : [{ text: "" }];
+  return spans;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,7 +212,13 @@ export function parseMarkdown(source: string): MdDoc {
 
     const heading = HEADING_RE.exec(line);
     if (heading) {
-      blocks.push({ kind: "heading", level: heading[1]!.length as 2 | 3 | 4, spans: parseInline(heading[2]!.trim()) });
+      const headingText = takeAlign(heading[2]!.trim());
+      blocks.push({
+        kind: "heading",
+        level: heading[1]!.length as 2 | 3 | 4,
+        spans: parseInline(headingText.text.trim()),
+        ...(headingText.align ? { align: headingText.align } : {}),
+      });
       i++;
       continue;
     }
@@ -193,7 +269,12 @@ export function parseMarkdown(source: string): MdDoc {
       paragraphLines.push(lines[i]!.trim());
       i++;
     }
-    blocks.push({ kind: "paragraph", spans: parseInline(paragraphLines.join(" ")) });
+    const paragraphText = takeAlign(paragraphLines.join(" "));
+    blocks.push({
+      kind: "paragraph",
+      spans: parseInline(paragraphText.text),
+      ...(paragraphText.align ? { align: paragraphText.align } : {}),
+    });
   }
 
   return blocks;

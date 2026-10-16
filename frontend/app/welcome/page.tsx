@@ -211,6 +211,13 @@ export default function WelcomePage() {
             >
               {HOME_LINK.label}
             </a>
+            {/* Store — the public apps are open to visitors, no sign-in. */}
+            <Link
+              href="/store"
+              className="inline-flex h-9 items-center rounded-3xl px-3.5 transition-colors outline-none hover:bg-muted-surface/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              Store
+            </Link>
             <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={setAuthGate} />
           </nav>
 
