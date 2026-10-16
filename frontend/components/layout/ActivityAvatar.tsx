@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
+import { avatarSrc } from "@/lib/account/avatarSrc";
 import { actorInitials } from "@/lib/notify/activity";
 import type { ActivityItem } from "@/lib/notify/useActivityFeed";
 
@@ -47,7 +48,7 @@ export function ActivityAvatar({ item }: { item: ActivityItem }) {
       // provider the actor signed in with.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={item.actorAvatarUrl}
+        src={avatarSrc(item.actorAvatarUrl) ?? undefined}
         alt=""
         aria-hidden="true"
         onError={() => setFailed(true)}
