@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LegalHistoryPanel } from "./LegalHistoryPanel";
 import type { LegalDocumentContent } from "@/lib/legal/legal-document";
 import type { LegalVersionMeta, LegalVersionSummary } from "@/lib/legal/legal-api";
+import { BACKEND_URL } from "@/lib/auth/api";
 
 const { fetchLegalVersion, fetchLegalVersions } = vi.hoisted(() => ({
   fetchLegalVersion: vi.fn(),
@@ -32,6 +33,8 @@ function version(overrides: Partial<LegalVersionSummary> = {}): LegalVersionSumm
     versionNo: 1,
     publishedAt: "2026-09-01T12:00:00Z",
     publishedByName: "Jane Doe",
+    publishedByAvatarUrl: null,
+    initialVersion: false,
     publishNote: null,
     ...overrides,
   };
@@ -91,7 +94,10 @@ describe("LegalHistoryPanel", () => {
   });
 
   it("lists each version's status, number, date and publisher", async () => {
-    fetchLegalVersions.mockResolvedValue([version(), version({ id: "v2", status: "draft", versionNo: 2, publishedByName: null })]);
+    fetchLegalVersions.mockResolvedValue([
+      version(),
+      version({ id: "v2", status: "draft", versionNo: 2, publishedByName: null, initialVersion: true }),
+    ]);
     renderPanel();
 
     expect(await screen.findByText("published")).toBeInTheDocument();
@@ -99,7 +105,61 @@ describe("LegalHistoryPanel", () => {
     expect(screen.getByText("v1")).toBeInTheDocument();
     expect(screen.getByText("v2")).toBeInTheDocument();
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
-    expect(screen.getByText("System")).toBeInTheDocument();
+    expect(screen.getByText("Initial version")).toBeInTheDocument();
+    expect(screen.queryByText("System")).not.toBeInTheDocument();
+  });
+
+  describe("publisher photo and label", () => {
+    const row = () => screen.getAllByRole("listitem")[0]!;
+
+    it("an uploaded photo loads from the backend's avatar route, next to the name", async () => {
+      fetchLegalVersions.mockResolvedValue([version({ publishedByAvatarUrl: "/api/v1/avatars/acc-1/photo.png" })]);
+      renderPanel();
+      await screen.findByText("Jane Doe");
+
+      expect(row().querySelector("img")).toHaveAttribute("src", `${BACKEND_URL}/api/v1/avatars/acc-1/photo.png`);
+    });
+
+    it("a Google picture is used as-is", async () => {
+      const google = "https://lh3.googleusercontent.com/a/ACg8ocK=s96-c";
+      fetchLegalVersions.mockResolvedValue([version({ publishedByAvatarUrl: google })]);
+      renderPanel();
+      await screen.findByText("Jane Doe");
+
+      expect(row().querySelector("img")).toHaveAttribute("src", google);
+    });
+
+    it("no photo, or one that fails to load: the publisher's initial", async () => {
+      fetchLegalVersions.mockResolvedValue([
+        version(),
+        version({ id: "v2", publishedByName: "Sok", publishedByAvatarUrl: "/api/v1/avatars/acc-2/gone.png" }),
+      ]);
+      renderPanel();
+      await screen.findByText("Jane Doe");
+      const [first, second] = screen.getAllByRole("listitem");
+
+      expect(first!.querySelector("img")).toBeNull();
+      expect(first!).toHaveTextContent("J");
+      fireEvent.error(second!.querySelector("img")!);
+      expect(second!.querySelector("img")).toBeNull();
+      expect(second!).toHaveTextContent("S");
+    });
+
+    it("the seeded first version reads 'Initial version', with no photo", async () => {
+      fetchLegalVersions.mockResolvedValue([version({ publishedByName: null, initialVersion: true })]);
+      renderPanel();
+
+      expect(await screen.findByText("Initial version")).toBeInTheDocument();
+      expect(row().querySelector("img")).toBeNull();
+    });
+
+    it("a later version whose publisher's account was deleted reads 'Deleted account', not 'Initial version'", async () => {
+      fetchLegalVersions.mockResolvedValue([version({ publishedByName: null, initialVersion: false })]);
+      renderPanel();
+
+      expect(await screen.findByText("Deleted account")).toBeInTheDocument();
+      expect(screen.queryByText("Initial version")).not.toBeInTheDocument();
+    });
   });
 
   it("shows a version's publish note when it has one, and nothing when it doesn't", async () => {

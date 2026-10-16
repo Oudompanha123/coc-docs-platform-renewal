@@ -15,11 +15,40 @@
  * no-raw-HTML rule).
  */
 
-export type MdSpan = { text: string; bold?: boolean; italic?: boolean; href?: string };
+export type MdSpan = { text: string; bold?: boolean; italic?: boolean; href?: string; color?: MdColor };
+
+/**
+ * Text colour, carried as `[text]{color=…}` (ADR-114). Named tones from the
+ * design system, never a hex value: a legal page has to stay legible in both
+ * themes, and a colour nobody can name is a colour nobody can change later.
+ * Default is the absence of the marker.
+ */
+export const MD_COLORS = ["muted", "positive", "caution", "critical"] as const;
+export type MdColor = (typeof MD_COLORS)[number];
+
+/**
+ * Alignment, carried as a trailing `{align=…}` marker on a heading or
+ * paragraph (ADR-113). Left is the default and is never written, so every
+ * document that existed before this feature round-trips byte-for-byte.
+ */
+export type MdAlign = "center" | "right";
+
+const ALIGN_RE = /\s*\{align=(center|right)\}$/;
+
+/** Splits a trailing alignment marker off a block's text. */
+export function takeAlign(text: string): { text: string; align?: MdAlign } {
+  const match = ALIGN_RE.exec(text);
+  return match ? { text: text.slice(0, match.index), align: match[1] as MdAlign } : { text };
+}
+
+/** The marker to append when serialising, or "" for the default. */
+export function alignSuffix(align: string | null | undefined): string {
+  return align === "center" || align === "right" ? ` {align=${align}}` : "";
+}
 
 export type MdBlock =
-  | { kind: "paragraph"; spans: MdSpan[] }
-  | { kind: "heading"; level: 2 | 3 | 4; spans: MdSpan[] }
+  | { kind: "paragraph"; spans: MdSpan[]; align?: MdAlign }
+  | { kind: "heading"; level: 2 | 3 | 4; spans: MdSpan[]; align?: MdAlign }
   | { kind: "bulletList"; items: MdBlock[][] }
   | { kind: "orderedList"; items: MdBlock[][] }
   | { kind: "blockquote"; blocks: MdBlock[] }
@@ -48,7 +77,11 @@ export function isAllowedLinkHref(href: string): boolean {
 // inner `)` — a bare `[^)]*` stops at the first `)`, which breaks on any
 // URL containing one.
 const HREF_PATTERN = "[^\\s()]*(?:\\([^()]*\\)[^\\s()]*)*";
-const INLINE_PATTERN = new RegExp(`\\*\\*([^*]+)\\*\\*|\\*([^*]+)\\*|\\[([^\\]]*)\\]\\((${HREF_PATTERN})\\)`, "g");
+const COLOR_PATTERN = MD_COLORS.join("|");
+const INLINE_PATTERN = new RegExp(
+  `\\*\\*([^*]+)\\*\\*|\\*([^*]+)\\*|\\[([^\\]]*)\\]\\((${HREF_PATTERN})\\)|\\[([^\\]]*)\\]\\{color=(${COLOR_PATTERN})\\}`,
+  "g",
+);
 
 export function parseInline(text: string): MdSpan[] {
   const spans: MdSpan[] = [];
@@ -63,6 +96,8 @@ export function parseInline(text: string): MdSpan[] {
       spans.push({ text: match[1], bold: true });
     } else if (match[2] !== undefined) {
       spans.push({ text: match[2], italic: true });
+    } else if (match[5] !== undefined) {
+      spans.push({ text: match[5], color: match[6] as MdColor });
     } else {
       const linkText = match[3] ?? "";
       const href = match[4] ?? "";
@@ -142,7 +177,13 @@ export function parseMarkdown(source: string): MdDoc {
 
     const heading = HEADING_RE.exec(line);
     if (heading) {
-      blocks.push({ kind: "heading", level: heading[1]!.length as 2 | 3 | 4, spans: parseInline(heading[2]!.trim()) });
+      const headingText = takeAlign(heading[2]!.trim());
+      blocks.push({
+        kind: "heading",
+        level: heading[1]!.length as 2 | 3 | 4,
+        spans: parseInline(headingText.text.trim()),
+        ...(headingText.align ? { align: headingText.align } : {}),
+      });
       i++;
       continue;
     }
@@ -193,7 +234,12 @@ export function parseMarkdown(source: string): MdDoc {
       paragraphLines.push(lines[i]!.trim());
       i++;
     }
-    blocks.push({ kind: "paragraph", spans: parseInline(paragraphLines.join(" ")) });
+    const paragraphText = takeAlign(paragraphLines.join(" "));
+    blocks.push({
+      kind: "paragraph",
+      spans: parseInline(paragraphText.text),
+      ...(paragraphText.align ? { align: paragraphText.align } : {}),
+    });
   }
 
   return blocks;

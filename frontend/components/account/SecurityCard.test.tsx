@@ -51,6 +51,43 @@ describe("SecurityCard", () => {
     expect(screen.queryByText(/\d+\.\d+\.\d+\.\d+/)).not.toBeInTheDocument();
   });
 
+  it("shows about five sign-ins and scrolls for the rest — every event still listed", async () => {
+    fetchMySecurity.mockResolvedValue({
+      signInMethod: "google",
+      email: "dana@example.com",
+      recentSignIns: Array.from({ length: 10 }, (_, i) => ({
+        action: i % 2 ? "auth.sign_out" : "auth.sign_in",
+        occurredAt: `2026-10-${String(14 - i).padStart(2, "0")}T06:24:00Z`,
+        device: "Chrome on Windows",
+      })),
+    });
+
+    render(<SecurityCard />);
+
+    const list = await screen.findByRole("region", { name: "Recent sign-ins" });
+    expect(list).toHaveClass("max-h-[17.5rem]", "overflow-y-auto");
+    expect(list).toHaveAttribute("tabindex", "0"); // keyboard can scroll it
+    expect(list.children).toHaveLength(10);
+  });
+
+  it("five or fewer sign-ins: no scroll box and no extra tab stop", async () => {
+    fetchMySecurity.mockResolvedValue({
+      signInMethod: "google",
+      email: "dana@example.com",
+      recentSignIns: Array.from({ length: 5 }, () => ({
+        action: "auth.sign_in",
+        occurredAt: "2026-10-14T06:24:00Z",
+        device: "Chrome on Windows",
+      })),
+    });
+
+    render(<SecurityCard />);
+
+    expect(await screen.findAllByText("Signed in")).toHaveLength(5);
+    expect(screen.queryByRole("region", { name: "Recent sign-ins" })).not.toBeInTheDocument();
+    expect(document.querySelector("[tabindex='0']")).toBeNull();
+  });
+
   it("surfaces a load failure", async () => {
     fetchMySecurity.mockRejectedValue(new Error("network down"));
 

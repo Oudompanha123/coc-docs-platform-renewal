@@ -46,6 +46,7 @@ export const RESERVED_TOP_LEVEL_SEGMENTS = new Set([
   "terms",
   "account",
   "cli",
+  "store",
 ]);
 
 /** `/docs/<this>` is one of the app's own static docs-about-the-app pages,
