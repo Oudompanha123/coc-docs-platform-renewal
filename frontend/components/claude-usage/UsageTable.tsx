@@ -4,7 +4,17 @@ import { useState } from "react";
 import { avatarColorFor, formatLastActive, type ClaudeUsageMember } from "@/lib/admin/claudeUsage";
 import { Pagination } from "@/components/users-roles/Pagination";
 import { UserAvatar } from "@/components/layout/UserAvatar";
+import { QuestionIcon } from "@/components/layout/icons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+/**
+ * "Last Scan" is the PC's latest check-in (ADR-097); the token columns are
+ * counted by the date the usage happened. The two disagree routinely — an
+ * early-morning scan usually uploads the previous day — so the header says so.
+ */
+export const LAST_SCAN_HINT =
+  "When this person's PC last checked in. Usage is counted on the day it was used, so a scan today can still show 0 tokens for today.";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -74,7 +84,23 @@ export function UsageTable({
             <TableHead>Cost</TableHead>
             <TableHead>Soft Budget</TableHead>
             {/* last_scan_at -- the reporter's last check-in, with or without new tokens (ADR-097). */}
-            <TableHead className="pr-4">Last Scan</TableHead>
+            <TableHead className="pr-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      tabIndex={0}
+                      className="inline-flex cursor-default items-center gap-1 rounded outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Last Scan
+                      <QuestionIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                      <span className="sr-only">. {LAST_SCAN_HINT}</span>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{LAST_SCAN_HINT}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

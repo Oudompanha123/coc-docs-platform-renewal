@@ -483,14 +483,29 @@ describe("ScanLogsView — live scan status (ADR-107)", () => {
     expect(within(drawer).queryByRole("heading", { name: "Scan in progress" })).not.toBeInTheDocument();
   });
 
-  it("a start whose result never came is Failed — 'No result received' — not left In Progress", async () => {
+  it("a start whose result never came is No Result — never Failed, never left In Progress", async () => {
     fetchScanLogs.mockResolvedValue(list([{ ...running, status: "incomplete" }]));
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
     const [row] = screen.getAllByRole("row").slice(1);
-    expect(within(row!).getByText("Failed")).toBeInTheDocument();
+    expect(within(row!).getByText("No Result")).toBeInTheDocument();
+    expect(within(row!).queryByText("Failed")).not.toBeInTheDocument();
     expect(within(row!).getByText("No result received")).toBeInTheDocument();
-    expect(screen.getByLabelText("Scan stages")).toHaveTextContent("Scan record: Failed");
+    expect(screen.getByLabelText("Scan stages")).toHaveTextContent("Scan record: Unknown");
+    expect(screen.getByLabelText("Scan stages")).not.toHaveTextContent("Failed");
+  });
+
+  it("No Result has its own card and filter, and the Failed card doesn't count it", async () => {
+    fetchScanLogs.mockResolvedValue(list([{ ...running, id: "nr-1", status: "incomplete" }, authFailed]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    expect(card("No Result")).toBe("1");
+    expect(card("Failed")).toBe("1"); // authFailed only
+
+    await pickOption(userEvent.setup(), "Status", "No Result");
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]!).getByText("No result received")).toBeInTheDocument();
   });
 
   it("scanned but couldn't upload: Partial Success, and the stages say which part failed", async () => {
@@ -561,6 +576,53 @@ describe("ScanLogsView — live scan status (ADR-107)", () => {
       fetchScanLogs.mockResolvedValue(list([]));
       render(<ScanLogsView scope="mine" />);
       expect(await screen.findByText(/once claude-team-usage runs on your PC/)).toBeInTheDocument();
+    });
+  });
+
+  describe("profile pictures", () => {
+    const PICTURE = "https://lh3.googleusercontent.com/a/dara";
+    const withPicture = scanLog({ id: "pic-1", email: "dara@example.com", displayName: "Dara Sok", avatarUrl: PICTURE });
+
+    async function renderLogs(logs: ReturnType<typeof scanLog>[]) {
+      fetchScanLogs.mockResolvedValue(list(logs));
+      render(<ScanLogsView />);
+      await screen.findByText("Scan history");
+      return screen.getAllByRole("row").slice(1);
+    }
+
+    it("the table row and the detail drawer show the same picture", async () => {
+      const [row] = await renderLogs([withPicture]);
+      expect(within(row!).getByRole("img", { name: "Dara Sok" })).toHaveAttribute("src", PICTURE);
+
+      fireEvent.click(row!);
+      expect(within(screen.getByRole("dialog")).getByRole("img", { name: "Dara Sok" })).toHaveAttribute("src", PICTURE);
+    });
+
+    it("someone without a picture gets their initials", async () => {
+      const [row] = await renderLogs([scanLog({ id: "pic-2", displayName: "Lina Chan", avatarUrl: null })]);
+      expect(within(row!).queryByRole("img", { name: "Lina Chan" })).not.toBeInTheDocument();
+      expect(within(row!).getByText("LC")).toBeInTheDocument();
+    });
+
+    it("a picture that will not load falls back to the initials", async () => {
+      const [row] = await renderLogs([withPicture]);
+      fireEvent.error(within(row!).getByRole("img", { name: "Dara Sok" }));
+      expect(within(row!).queryByRole("img", { name: "Dara Sok" })).not.toBeInTheDocument();
+      expect(within(row!).getByText("DS")).toBeInTheDocument();
+    });
+
+    it("one person keeps one initials colour, whatever the row or the email's case", async () => {
+      const rows = await renderLogs([
+        scanLog({ id: "c-1", email: "vanna@example.com", displayName: "Vanna", avatarUrl: null }),
+        scanLog({ id: "c-2", email: "other@example.com", displayName: "Other", avatarUrl: null }),
+        scanLog({ id: "c-3", email: "VANNA@example.com", displayName: "Vanna", avatarUrl: null }),
+      ]);
+      const colour = (row: HTMLElement, initials: string) => within(row).getByText(initials).style.backgroundColor;
+      expect(colour(rows[0]!, "V")).not.toBe("");
+      expect(colour(rows[2]!, "V")).toBe(colour(rows[0]!, "V"));
+
+      fireEvent.click(rows[0]!);
+      expect(colour(screen.getByRole("dialog"), "V")).toBe(colour(rows[0]!, "V"));
     });
   });
 });

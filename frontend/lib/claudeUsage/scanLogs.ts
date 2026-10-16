@@ -25,10 +25,12 @@ export const STEP_LABELS: Record<ScanStepKey, string> = {
  * - no-usage    — scanned fine, nothing new to upload
  * - partial     — finished with a warning, or counted usage it couldn't upload
  *                 for a passing reason (network, server); the next scan retries
- * - failed      — stopped, and stays stopped until someone fixes the cause; or
- *                 started and never sent a result (`incomplete`)
+ * - failed      — stopped, and stays stopped until someone fixes the cause
+ * - no-result   — started and never sent a result (`incomplete`). Nothing
+ *                 says it failed — the PC may simply have slept or shut down
+ *                 mid-scan — so it is neither counted nor coloured as Failed.
  */
-export type ScanOutcome = "in-progress" | "success" | "partial" | "failed" | "no-usage";
+export type ScanOutcome = "in-progress" | "success" | "partial" | "failed" | "no-usage" | "no-result";
 
 export const OUTCOME_LABELS: Record<ScanOutcome, string> = {
   "in-progress": "In Progress",
@@ -36,6 +38,7 @@ export const OUTCOME_LABELS: Record<ScanOutcome, string> = {
   partial: "Partial Success",
   failed: "Failed",
   "no-usage": "No New Usage",
+  "no-result": "No Result",
 };
 
 /** What a status badge can show: a scan's outcome, or — for a person or range with no scan — that there is none. */
@@ -67,6 +70,41 @@ export interface ScanSummary extends Record<ScanOutcome, number> {
 
 export const personKey = (log: ScanLogSummary): string => log.memberId ?? log.email;
 export const personName = (log: ScanLogSummary): string => log.displayName?.trim() || log.email;
+
+/**
+ * The reporter's daily Task Scheduler slots (`SCHEDULE_TIMES` in
+ * tools/claude-team-usage/src/schedule.js), as minutes after midnight in the
+ * team's reporting zone — the same zone the scan ID uses.
+ */
+const SCHEDULED_SLOT_MINUTES = [11 * 60, 16 * 60];
+/** A scheduled scan this long after its slot, or more, counts as started late. */
+export const SCHEDULED_GRACE_MINUTES = 15;
+const REPORT_TIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Phnom_Penh",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/**
+ * A scheduled scan that did not start within SCHEDULED_GRACE_MINUTES after
+ * 11:00 or 16:00. Only the start time is compared — the record says nothing
+ * about why, so nothing here guesses (a PC that was off, asleep, logged out…).
+ */
+export function startedLate(log: Pick<ScanLogSummary, "trigger" | "startedAt">): boolean {
+  if (log.trigger !== "scheduled") return false;
+  const when = new Date(log.startedAt);
+  if (Number.isNaN(when.getTime())) return false;
+  const parts = Object.fromEntries(REPORT_TIME.formatToParts(when).map((p) => [p.type, p.value]));
+  const minutes = Number(parts.hour) * 60 + Number(parts.minute);
+  return !SCHEDULED_SLOT_MINUTES.some((slot) => minutes >= slot && minutes - slot <= SCHEDULED_GRACE_MINUTES);
+}
+
+/** How the scan was started, as the table shows it: from the record's `trigger`, plus whether a scheduled one started late. */
+export function triggerText(log: Pick<ScanLogSummary, "trigger" | "startedAt">): string {
+  if (log.trigger !== "scheduled") return "Manual";
+  return startedLate(log) ? "Scheduled · started late" : "Scheduled";
+}
 
 /** "0.4s", "8s", "1m 05s"; "—" for a scan with no result yet. */
 export function formatDuration(ms: number | null): string {
@@ -134,6 +172,7 @@ export function summarize(logs: ScanLogSummary[]): ScanSummary {
     partial: 0,
     failed: 0,
     "no-usage": 0,
+    "no-result": 0,
     last: null,
   };
   for (const log of logs) {
@@ -163,7 +202,7 @@ export function filterLogs(logs: ScanLogSummary[], filters: ScanLogFilters): Sca
 
 export function scanOutcome(log: ScanLogSummary): ScanOutcome {
   if (log.status === "running") return "in-progress";
-  if (log.status === "incomplete") return "failed";
+  if (log.status === "incomplete") return "no-result";
   if (log.status === "failed") return diagnoseScan(log)?.retriedNextScan ? "partial" : "failed";
   if (log.status === "warning") return "partial";
   return log.uploadStatus === "not-needed" ? "no-usage" : "success";
@@ -452,7 +491,8 @@ export function scanStages(log: ScanLogSummary): ScanStage[] {
     return [
       { key: "scan", label: "Scan", state: "unknown", detail: "No result to confirm it" },
       { key: "upload", label: "Upload", state: "unknown", detail: "No result to confirm it" },
-      { key: "log", label: "Scan record", state: "failed", detail: "Never received" },
+      // Not "failed": its absence is all the server knows (see `no-result`).
+      { key: "log", label: "Scan record", state: "unknown", detail: "Never received" },
     ];
   }
   const records = recordsText(log);
@@ -493,6 +533,8 @@ export function statusMessage(log: ScanLogSummary | null): { indicator: ScanIndi
       return { indicator: outcome, title: diagnosis?.problem ?? "Completed with problems", message: diagnosis?.description ?? "" };
     case "failed":
       return { indicator: outcome, title: diagnosis?.problem ?? "Scan failed", message: diagnosis?.description ?? "" };
+    case "no-result":
+      return { indicator: outcome, title: diagnosis?.problem ?? "No result received", message: diagnosis?.description ?? "" };
   }
 }
 
@@ -536,6 +578,8 @@ function noticeMessage(log: ScanLogSummary, outcome: ScanOutcome): string {
       return `Scan partly succeeded — ${who}: ${diagnoseScan(log)?.problem ?? "completed with warnings"}`;
     case "failed":
       return `Scan failed — ${who}: ${diagnoseScan(log)?.problem ?? "scan stopped"}`;
+    case "no-result":
+      return `No result received — ${who}: the scan started but its result never arrived`;
   }
 }
 
