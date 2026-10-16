@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useThemedPortalContainer } from "@/lib/portal-container";
 import { Box, Clock, Copy } from "lucide-react";
@@ -9,6 +9,7 @@ import { GlobeIcon } from "@/components/layout/icons";
 import { AppLogo } from "@/components/store/AppLogo";
 import { GetAppDialog } from "@/components/store/GetAppDialog";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { DropdownMenuItem, RowActions } from "@/components/ui/dropdown-menu";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -42,6 +43,12 @@ export function StoreAppCard({
   // Inside the themed shell, not on <body>: out there the dark-mode tokens
   // never reach the dialog, and it opened light on a dark page.
   const portalTarget = useThemedPortalContainer();
+  const nameRef = useRef<HTMLAnchorElement>(null);
+  const [nameTipOpen, setNameTipOpen] = useState(false);
+  const isNameTruncated = () => {
+    const el = nameRef.current;
+    return !!el && el.scrollWidth > el.clientWidth;
+  };
 
   async function copyUrl() {
     try {
@@ -57,13 +64,26 @@ export function StoreAppCard({
       <div className="flex items-start gap-4">
         <AppLogo app={app} />
         <div className="min-w-0 flex-1">
-          <Link
-            href={href}
-            title={app.name}
-            className="block truncate text-base font-semibold text-foreground outline-none after:absolute after:inset-0 after:content-['']"
-          >
-            {app.name}
-          </Link>
+          {/* The full name, in the app's own tooltip rather than the browser's
+              grey `title` box, and only when the name is actually cut off —
+              the link stretches over the whole card, so a plain title showed
+              the name again wherever the pointer rested. */}
+          <TooltipProvider>
+            <Tooltip open={nameTipOpen} onOpenChange={(open) => setNameTipOpen(open && isNameTruncated())}>
+              <TooltipTrigger asChild>
+                <Link
+                  ref={nameRef}
+                  href={href}
+                  className="block truncate text-base font-semibold text-foreground outline-none after:absolute after:inset-0 after:content-['']"
+                >
+                  {app.name}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start">
+                {app.name}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {showVisibility && (
             <span
               className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${

@@ -17,7 +17,7 @@ Apps had only a square icon (`logo_path`), and nothing recorded a "featured" cho
 ## 2. Decision
 
 - **Which app**: the app an admin pinned (`store_settings.featured_app_id`, V87) when the reader can see it. Otherwise the app whose newest live, downloadable build or last edit is most recent (`featuredApp` in `lib/store/store-api.ts`). The automatic choice is computed in the browser from the list the page already loads, so no new query is needed.
-- **The picture**: an optional `banner_path` / `banner_type` per app (V87), stored like the logo through `StoreFiles`. That is `banners/{appId}.{ext}`: PNG, JPEG or WebP, magic bytes checked, 5 MB. Logo and banner share one `storeImage` / `openImage` implementation, keyed by `StoreImageKind`. With no banner picture, the background is the app's icon, enlarged and blurred.
+- **The picture**: an optional `banner_path` / `banner_type` per app (V87), stored like the logo through `StoreFiles`. That is `banners/{appId}.{ext}`: PNG, JPEG or WebP, magic bytes checked, 25 MB (raised from 5 MB on 2026-10-16). Logo and banner share one `storeImage` / `openImage` implementation, keyed by `StoreImageKind`. With no banner picture, the background is the app's icon, enlarged and blurred.
 - **Routes**:
   - `PUT` / `DELETE /api/v1/admin/store/apps/{id}/banner` and `PUT /api/v1/admin/store/featured {appId|null}` sit under the admin floor.
   - `GET /api/v1/store/apps/{id}/banner` is public, like the logo.
