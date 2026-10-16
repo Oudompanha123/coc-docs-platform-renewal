@@ -3,32 +3,29 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { AuthGateDialog } from "@/components/welcome/AuthGateDialog";
-import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
+import { PublicHeader } from "@/components/welcome/PublicHeader";
+import { ThemedLogo } from "@/components/welcome/ThemedLogo";
 import { ScrollReveal } from "@/components/welcome/ScrollReveal";
-import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
-import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";
+import { GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { TONE_STYLES } from "@/components/dashboard/tone";
-import { FALLBACK_NAV } from "@/lib/docs/nav-api";
 import type { Tone } from "@/lib/mock/overview";
+import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import {
   BarChartIcon,
   FolderIcon,
   LayersIcon,
-  MoonIcon,
   PlugIcon,
   SparklesIcon,
-  SunIcon,
 } from "@/components/layout/icons";
 
 /**
- * Public landing page. Has its own light/dark toggle, independent of the
- * admin app's data-theme + localStorage mechanism (lib/theme.ts) — a
- * visitor flipping this page's look shouldn't silently also flip the
- * authenticated admin app's dark mode. Colours are the shadcn token
+ * Public landing page. Its light/dark toggle saves the same preference as
+ * the rest of the app (lib/theme.ts), so the choice survives a refresh and
+ * matches the Store and, after sign-in, the app (product owner, 2026-10-16;
+ * it was page-local before, and a refresh undid it). Colours are the shadcn token
  * utilities (bg-background, bg-card, text-muted-foreground,
  * border-surface-border, ...), never literal hex: when the toggle is on, the
  * page root carries `.landing-dark` (globals.css), which redefines those
@@ -171,99 +168,37 @@ export default function WelcomePage() {
     return () => document.documentElement.classList.remove("welcome-dark-scroll");
   }, [isDark]);
 
-  const [scrolled, setScrolled] = useState(false);
+  // Start in the theme the visitor actually has — their stored choice, or the
+  // OS on "auto". Starting light regardless left a dark-OS visitor with a
+  // page half in each.
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 8);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    setTheme(getResolvedTheme());
   }, []);
+
+  // Saved, not just shown: a refresh used to put a dark-OS visitor straight
+  // back in dark after they chose light.
+  function toggleTheme() {
+    const next = isDark ? "light" : "dark";
+    applyTheme(next);
+    setTheme(next);
+  }
 
   return (
     // `landing-dark` re-points every shadcn token under this root at its dark
     // value (globals.css), so each element below carries one token class that
-    // is right in both themes.
-    <div className={`min-h-screen bg-background text-foreground ${isDark ? "landing-dark" : ""}`}>
-      <header
-        // No shadow. The border appearing on scroll is the whole signal that
-        // the bar has detached from the page; a shadow underneath it says the
-        // same thing twice, and says it while the page is still at the top.
-        className={`sticky top-0 z-40 border-b bg-background transition-colors duration-200 ${
-          scrolled ? "border-surface-border" : "border-transparent"
-        }`}
-      >
-        {/* The bar was 72px tall with a 55px logo and 18px nav links. Scaled
-            to the kit: a 56px bar, a 32px logo and 14px links — the header is
-            furniture, and at the old size it competed with the hero. */}
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-            <img
-              src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
-              alt="Coc Docs Platform"
-              className="h-8 w-auto rounded-md"
-            />
-            {/* Below md the nav below is hidden, so a narrow window would lose
-                Home, Store and Products altogether. The same links, in one menu. */}
-            <div className="md:hidden">
-              <NavMenu label="Menu" panelClassName="w-[280px] grid-cols-1">
-                <NavMenuItem title={HOME_LINK.label} href={HOME_LINK.href} />
-                <NavMenuItem title="Store" href="/store" />
-                {FALLBACK_NAV.map((product) => (
-                  <NavMenuItem
-                    key={product.key}
-                    title={product.label}
-                    description={productPagesBlurb(product.items) ?? "Documentation"}
-                    onSelect={() => setAuthGate(product.label)}
-                    trailing={<LockIcon className="size-3 shrink-0 text-muted-foreground" />}
-                  />
-                ))}
-              </NavMenu>
-            </div>
-          </div>
-
-          <nav className="ml-8 mr-auto hidden items-center gap-1 text-[15px] text-muted-foreground md:flex">
-            <a
-              href={HOME_LINK.href}
-              className="inline-flex h-9 items-center rounded-3xl px-3.5 transition-colors outline-none hover:bg-muted-surface/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              {HOME_LINK.label}
-            </a>
-            {/* Store — the public apps are open to visitors, no sign-in. */}
-            <Link
-              href="/store"
-              className="inline-flex h-9 items-center rounded-3xl px-3.5 transition-colors outline-none hover:bg-muted-surface/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              Store
-            </Link>
-            <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={setAuthGate} />
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {/* Signed out, so no Settings page yet — the navbar carries the
-                language choice (ADR-116). */}
-            <LanguageSwitcher />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              aria-label="Toggle dark mode"
-              aria-pressed={isDark}
-              className="size-8 text-muted-foreground hover:text-foreground"
-            >
-              {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/register">Start free</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+    // is right in both themes. `landing-auto` takes the dark or light values
+    // from <html data-theme>, which the root layout's boot script writes
+    // before first paint — so the page is never drawn a frame in the wrong
+    // theme (it was, coming from the Store in dark mode, while React state
+    // caught up).
+    <div className="landing-auto min-h-screen bg-background text-foreground">
+      <PublicHeader
+        active="home"
+        homeHref={HOME_LINK.href}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onRequireAuth={setAuthGate}
+      />
 
       <main>
         <section className="relative overflow-hidden px-6 pb-20 pt-16 sm:pt-20">
@@ -391,12 +326,7 @@ export default function WelcomePage() {
         <ScrollReveal className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-              <img
-                src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
-                alt="Coc Docs Platform"
-                className="h-7 w-auto rounded-md"
-              />
+              <ThemedLogo className="h-7 w-auto rounded-md" />
             </div>
 
             <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">

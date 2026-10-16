@@ -15,12 +15,16 @@
 
    `.landing-dark` is the fourth scope (ADR-104 r2.5): /welcome's own local
    dark toggle puts it on the page root, and it is only ever there while that
-   toggle is on, so it widens nothing on /login. */
+   toggle is on, so it widens nothing on /login. `.landing-auto` (2026-10-16)
+   is the same scope keyed on the saved theme itself (<html data-theme>,
+   written before first paint), so /welcome is dark from its first frame. */
 @custom-variant dark (&:where(
   :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]),
   :root[data-theme="dark"] :is([data-shell="admin"], [data-shell="ax-renewal"], [data-shell="home"]) *,
   .landing-dark,
-  .landing-dark *
+  .landing-dark *,
+  :root[data-theme="dark"] .landing-auto,
+  :root[data-theme="dark"] .landing-auto *
 ));
 
 :root {
@@ -308,7 +312,26 @@
    token utility inside it (`bg-card`, `text-muted-foreground`, `bg-primary`)
    now flips with no per-element condition, and it can never disagree with
    the dark mode the visitor will see after signing in. */
-.landing-dark {
+/* The other half (2026-10-16): the pages outside every shell that are light
+   — /welcome with its toggle off, and the sign-in pages, which always are.
+   The :root rules above darken --background and --foreground (and
+   --color-page) whenever the stored choice or "system" resolves to dark,
+   and those two reach every page. Out here every other token stayed light,
+   so a visitor on "auto" with a dark OS got a black page under light cards
+   and dark-on-dark buttons. This pins the three back for the subtree. */
+.landing-light,
+:root:not([data-theme="dark"]) .landing-auto {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #171717;
+  --color-page: #f5f5f5;
+}
+
+/* `.landing-auto` takes these values whenever the saved theme is dark: the
+   class names a page that follows <html data-theme> with no JavaScript, so
+   it never paints a frame in the wrong theme while React catches up. */
+.landing-dark,
+:root[data-theme="dark"] .landing-auto {
   color-scheme: dark;
   --background: #0a0a0a;
   --foreground: #fafafa;
