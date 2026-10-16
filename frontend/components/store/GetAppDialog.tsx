@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CheckCircleIcon, DownloadIcon } from "@/components/layout/icons";
 import { AppLogo } from "@/components/store/AppLogo";
-import { PlatformIcon } from "@/components/store/PlatformIcon";
+import { PlatformLogo } from "@/components/store/PlatformIcon";
 import { StoreDialog } from "@/components/store/StoreDialog";
 import { downloadBuild } from "@/lib/store/download";
 import {
@@ -94,42 +94,49 @@ export function GetAppDialog({ app, onClose }: { app: StoreApp; onClose: () => v
         </div>
 
         <div id="store-get-panel" role="tabpanel" aria-labelledby={`store-get-tab-${tab}`} className="mt-4">
-          <p className="text-sm text-muted-foreground">Choose your platform.</p>
-          <ul className="mt-3 space-y-2">
+          <p className="text-center text-sm text-muted-foreground">Tap your platform to download.</p>
+          {/* Platform tiles, App Store style: just the platform's coloured mark
+              on a rounded tile, and the tile is the download. The version and
+              size are in the tooltip and the accessible name; a download's
+              progress shows as a badge on the tile's corner (and a toast). */}
+          <ul className="mt-6 flex flex-wrap justify-center gap-10">
             {options.map(({ platform, build }) => {
               const mine = build && progress?.buildId === build.id ? progress.status : null;
+              const detail = build
+                ? `${PLATFORM_LABELS[platform]} ${build.version} · ${formatBytes(build.sizeBytes)}`
+                : `${PLATFORM_LABELS[platform]} — not available in ${ENVIRONMENT_LABELS[tab]}`;
               return (
                 <li key={platform}>
                   <button
                     type="button"
                     disabled={!build || busy}
                     onClick={() => build && get(build)}
+                    title={detail}
                     aria-label={
                       build
-                        ? `Get ${PLATFORM_LABELS[platform]} ${ENVIRONMENT_LABELS[tab]} version ${build.version}`
+                        ? `Get ${PLATFORM_LABELS[platform]} ${ENVIRONMENT_LABELS[tab]} version ${build.version}, ${formatBytes(build.sizeBytes)}`
                         : `${PLATFORM_LABELS[platform]} is not available in ${ENVIRONMENT_LABELS[tab]}`
                     }
-                    className="flex w-full items-center gap-3 rounded-2xl bg-muted-surface px-4 py-3 text-left outline-none transition-colors hover:bg-[color-mix(in_oklab,var(--muted-surface),var(--foreground)_5%)] focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-muted-surface"
+                    className="group relative flex size-24 items-center justify-center rounded-[26%] [--platform-tile:color-mix(in_oklab,var(--muted-surface),var(--foreground)_3%)] bg-(--platform-tile) shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_20px_-6px_rgba(0,0,0,0.18)] ring-1 ring-black/5 outline-none transition-[scale,box-shadow] duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:scale-105 hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_14px_28px_-8px_rgba(0,0,0,0.24)] focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.97] disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none disabled:hover:shadow-none motion-reduce:transition-none motion-reduce:hover:scale-100 dark:ring-white/10"
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-card text-foreground">
-                      <PlatformIcon platform={platform} className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-foreground">{PLATFORM_LABELS[platform]}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {build ? `Version ${build.version} · ${formatBytes(build.sizeBytes)}` : "Not available"}
-                      </span>
-                    </span>
-                    {build && (
-                      <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-control bg-primary px-3 text-xs font-medium text-primary-foreground">
+                    <PlatformLogo
+                      platform={platform}
+                      className={`size-14 ${build ? "" : "opacity-30 grayscale"}`}
+                    />
+                    {mine && (
+                      <span
+                        aria-hidden="true"
+                        className={`absolute -right-1.5 -top-1.5 flex size-7 items-center justify-center rounded-full text-white ring-2 ring-card ${
+                          mine === "done" ? "bg-emerald-600" : mine === "error" ? "bg-destructive" : "bg-sky-600 dark:bg-sky-500"
+                        }`}
+                      >
                         {mine === "downloading" ? (
-                          <span aria-hidden="true" className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         ) : mine === "done" ? (
-                          <CheckCircleIcon className="h-4 w-4" />
+                          <CheckCircleIcon className="size-4" />
                         ) : (
-                          <DownloadIcon className="h-4 w-4" />
+                          <DownloadIcon className="size-4" />
                         )}
-                        {mine === "error" ? "Retry" : mine === "done" ? "Downloaded" : "Get"}
                       </span>
                     )}
                   </button>

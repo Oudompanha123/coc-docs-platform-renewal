@@ -21,7 +21,7 @@ import { useLayoutEffect, useState } from "react";
 export function useThemedPortalContainer(): HTMLElement | undefined {
   const [container, setContainer] = useState<HTMLElement | undefined>(undefined);
   useLayoutEffect(() => {
-    setContainer((document.querySelector("[data-shell], .landing-dark") as HTMLElement | null) ?? undefined);
+    setContainer((document.querySelector("[data-shell], .landing-dark, .landing-auto") as HTMLElement | null) ?? undefined);
   }, []);
   return container;
 }

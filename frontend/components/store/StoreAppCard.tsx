@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useThemedPortalContainer } from "@/lib/portal-container";
 import Link from "next/link";
 import { Box, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
@@ -35,6 +36,9 @@ export function StoreAppCard({
 }) {
   const platforms = livePlatforms(app);
   const [getting, setGetting] = useState(false);
+  // Inside the themed shell, not on <body>: out there the dark-mode tokens
+  // never reach the dialog, and it opened light on a dark page.
+  const portalTarget = useThemedPortalContainer();
 
   async function copyUrl() {
     try {
@@ -106,19 +110,22 @@ export function StoreAppCard({
         </p>
         {hasGettableBuild(app) && (
           // Above the stretched link, so it opens the dialog instead of the app page.
+          // App Store's "Get": a small blue pill with white text. The blue is
+          // the design system's info blue (sky-600), the same one the
+          // Development download button on the app page uses.
           <Button
             type="button"
             size="sm"
             onClick={() => setGetting(true)}
             aria-label={`Get ${app.name}`}
-            className="relative z-10 shrink-0 px-5 font-semibold"
+            className="relative z-10 h-7 shrink-0 bg-sky-600 px-4 text-[13px] font-semibold text-white hover:bg-sky-700 focus-visible:ring-sky-500/40 dark:bg-sky-500 dark:hover:bg-sky-600"
           >
             Get
           </Button>
         )}
       </div>
       {/* Portalled: the card scales on hover, and a transformed ancestor would pin a fixed dialog to the card. */}
-      {getting && createPortal(<GetAppDialog app={app} onClose={() => setGetting(false)} />, document.body)}
+      {getting && createPortal(<GetAppDialog app={app} onClose={() => setGetting(false)} />, portalTarget ?? document.body)}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildUploadBody,
   compareVersions,
+  featuredApp,
+  lastActivity,
   findSameApp,
   getOptions,
   hasGettableBuild,
@@ -56,6 +58,7 @@ function app(builds: StoreBuild[] = [], overrides: Partial<StoreApp> = {}): Stor
     description: "",
     isPublic: true,
     logoUrl: null,
+    bannerUrl: null,
     createdAt: "2026-10-14T00:00:00Z",
     updatedAt: "2026-10-14T00:00:00Z",
     builds,
@@ -234,5 +237,54 @@ describe("Get on an app card", () => {
     expect(hasGettableBuild(a)).toBe(true);
     expect(hasGettableBuild(app([build("r", "ios", "production", "1.0", { removedAt: "2026-10-15T00:00:00Z" })]))).toBe(false);
     expect(hasGettableBuild(app())).toBe(false);
+  });
+});
+
+describe("featuredApp", () => {
+  it("features the app with the newest upload", () => {
+    const older = app([build("1", "android", "production", "1.0.0", { createdAt: "2026-10-10T00:00:00Z" })], { id: "old" });
+    const newer = app([build("2", "ios", "development", "2.0.0", { createdAt: "2026-10-15T00:00:00Z" })], { id: "new" });
+
+    expect(featuredApp([older, newer])?.id).toBe("new");
+  });
+
+  it("counts an edit to the app as activity too", () => {
+    const uploaded = app([build("1", "android", "production", "1.0.0", { createdAt: "2026-10-12T00:00:00Z" })], { id: "up" });
+    const edited = app([build("2", "android", "production", "1.0.0", { createdAt: "2026-10-01T00:00:00Z" })], {
+      id: "ed",
+      updatedAt: "2026-10-16T00:00:00Z",
+    });
+
+    expect(featuredApp([uploaded, edited])?.id).toBe("ed");
+  });
+
+  it("skips apps with nothing to download, and returns null when none has", () => {
+    const empty = app([], { id: "empty", updatedAt: "2026-10-20T00:00:00Z" });
+    const removed = app([build("9", "ios", "production", "1.0.0", { removedAt: "2026-10-15T00:00:00Z" })], { id: "gone" });
+
+    expect(featuredApp([empty, removed])).toBeNull();
+    expect(featuredApp([])).toBeNull();
+  });
+
+  it("ignores a removed build's date", () => {
+    const withRemoved = app([
+      build("1", "android", "production", "1.0.0", { createdAt: "2026-10-05T00:00:00Z" }),
+      build("2", "android", "production", "2.0.0", { createdAt: "2026-10-18T00:00:00Z", removedAt: "2026-10-19T00:00:00Z" }),
+    ]);
+
+    expect(lastActivity(withRemoved)).toBe("2026-10-14T00:00:00Z");
+  });
+
+  it("features the app an admin pinned, even over a newer upload", () => {
+    const pinned = app([build("1", "android", "production", "1.0.0", { createdAt: "2026-10-01T00:00:00Z" })], { id: "pin" });
+    const newer = app([build("2", "ios", "production", "2.0.0", { createdAt: "2026-10-15T00:00:00Z" })], { id: "new" });
+
+    expect(featuredApp([pinned, newer], "pin")?.id).toBe("pin");
+  });
+
+  it("falls back to the latest when the pinned app is not in the reader's list", () => {
+    const newer = app([build("2", "ios", "production", "2.0.0")], { id: "new" });
+
+    expect(featuredApp([newer], "gone-or-private")?.id).toBe("new");
   });
 });

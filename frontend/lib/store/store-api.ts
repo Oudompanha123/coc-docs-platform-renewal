@@ -88,6 +88,8 @@ export interface StoreApp {
   isPublic: boolean;
   /** Relative to the backend, or null when there is no icon. */
   logoUrl: string | null;
+  /** The wide picture for the Store banner (ADR-117), relative to the backend; null when there is none. */
+  bannerUrl: string | null;
   createdAt: string;
   updatedAt: string;
   /** Every build, removed ones included, newest first. */
@@ -390,6 +392,38 @@ export function uploadStoreLogo(id: string, file: File): Promise<StoreApp> {
   );
 }
 
+/** An app's wide banner picture for the Store's featured slot (ADR-117). The raw image is the body. */
+export function uploadStoreBanner(id: string, file: File): Promise<StoreApp> {
+  return request<StoreApp>(
+    `${ADMIN}/${encodeURIComponent(id)}/banner`,
+    { method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file },
+    "Couldn't upload the banner picture.",
+  );
+}
+
+export function removeStoreBanner(id: string): Promise<StoreApp> {
+  return request<StoreApp>(`${ADMIN}/${encodeURIComponent(id)}/banner`, { method: "DELETE" }, "Couldn't remove the banner picture.");
+}
+
+/** The app an admin pinned to the banner, or null for "the latest automatically" (ADR-117). */
+export async function fetchFeaturedAppId(): Promise<string | null> {
+  const body = await request<{ appId: string | null }>(`${BACKEND_URL}/api/v1/store/featured`, {}, "Couldn't load the banner.");
+  return body.appId ?? null;
+}
+
+/** Pins an app to the banner; `null` goes back to the latest automatically. Admin only. */
+export async function setFeaturedApp(appId: string | null): Promise<string | null> {
+  const body = await request<{ appId: string | null }>(
+    `${BACKEND_URL}/api/v1/admin/store/featured`,
+    { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appId }) },
+    "Couldn't change the banner.",
+  );
+  return body.appId ?? null;
+}
+
+/** Banner pictures: the same raster types as the icon, up to 5 MB (StoreImageKind.BANNER). */
+export const MAX_BANNER_BYTES = 5 * 1024 * 1024;
+
 export interface NextVersionInput {
   version: string;
   environments: StoreEnvironment[];
@@ -480,4 +514,31 @@ export function getOptions(app: StoreApp, environment: StoreEnvironment): Array<
 /** Whether the app has anything to Get: a live build with a download link, in any environment. */
 export function hasGettableBuild(app: StoreApp): boolean {
   return app.builds.some((b) => isLive(b) && !!b.downloadUrl);
+}
+
+/**
+ * When an app last changed for a reader: its newest live, downloadable build
+ * or its own last edit, whichever is later.
+ */
+export function lastActivity(app: StoreApp): string {
+  return app.builds
+    .filter((b) => isLive(b) && !!b.downloadUrl)
+    .reduce((latest, b) => (b.createdAt > latest ? b.createdAt : latest), app.updatedAt);
+}
+
+/**
+ * The app the Store's banner features (ADR-117): the one an admin pinned, if
+ * it is in the reader's list; otherwise the most recently uploaded or updated
+ * one that has something to download, or `null` when none has. Ties go to
+ * the first in the list, so the banner does not flicker between equals.
+ */
+export function featuredApp(apps: readonly StoreApp[], pinnedId: string | null = null): StoreApp | null {
+  const pinned = pinnedId ? apps.find((a) => a.id === pinnedId) : undefined;
+  if (pinned) return pinned;
+  let best: StoreApp | null = null;
+  for (const app of apps) {
+    if (!hasGettableBuild(app)) continue;
+    if (!best || lastActivity(app) > lastActivity(best)) best = app;
+  }
+  return best;
 }

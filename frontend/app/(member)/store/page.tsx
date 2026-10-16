@@ -6,6 +6,7 @@ import { MonitorIcon, PlusIcon } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
+import { FeaturedAppBanner } from "@/components/store/FeaturedAppBanner";
 import { StoreAppCard } from "@/components/store/StoreAppCard";
 import { StoreAppForm } from "@/components/store/StoreAppForm";
 import { StoreShell } from "@/components/store/StoreShell";
@@ -15,6 +16,8 @@ import {
   PLATFORM_LABELS,
   TAB_PLATFORMS,
   fetchAllStoreApps,
+  featuredApp,
+  fetchFeaturedAppId,
   fetchStoreApps,
   inTab,
   livePlatforms,
@@ -69,12 +72,18 @@ export default function StorePage() {
   const [platformFilter, setPlatformFilter] = useState<StorePlatform | "all">("all");
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
+  // The app an admin pinned to the banner (ADR-117), or null for the latest.
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     setLoad({ status: "loading" });
-    (canManage ? fetchAllStoreApps() : fetchStoreApps())
-      .then((list) => {
+    // The pinned banner app is a nicety: if it cannot be read, the banner
+    // simply shows the latest upload instead of failing the page.
+    const pinned = fetchFeaturedAppId().catch(() => null);
+    Promise.all([canManage ? fetchAllStoreApps() : fetchStoreApps(), pinned])
+      .then(([list, pinnedId]) => {
         setApps(list);
+        setPinnedId(pinnedId);
         setLoad({ status: "ready" });
       })
       .catch((err: unknown) =>
@@ -94,6 +103,8 @@ export default function StorePage() {
     }),
     [apps],
   );
+
+  const featured = useMemo(() => featuredApp(apps, pinnedId), [apps, pinnedId]);
 
   const chips: readonly StorePlatform[] = tab === "all" ? PLATFORMS : TAB_PLATFORMS[tab];
 
@@ -144,6 +155,18 @@ export default function StorePage() {
           </Button>
         )}
       </section>
+
+      {/* Featured: the latest upload or update, downloadable from here. */}
+      {load.status === "ready" && featured && (
+        <FeaturedAppBanner
+          app={featured}
+          pinned={pinnedId !== null && featured.id === pinnedId}
+          canManage={canManage}
+          apps={apps}
+          onAppChanged={upsert}
+          onPinnedChanged={setPinnedId}
+        />
+      )}
 
       {/* Tabs + filters */}
       <section className="mt-8 flex flex-col gap-4 border-b border-surface-border pb-5 xl:flex-row xl:items-center">
