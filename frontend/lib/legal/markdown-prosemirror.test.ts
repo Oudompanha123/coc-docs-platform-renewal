@@ -105,4 +105,24 @@ describe("text colour round-trip (ADR-114)", () => {
   it("writes nothing for uncoloured text", () => {
     expect(docToMarkdown(markdownToDoc("Plain clause."))).toBe("Plain clause.");
   });
+
+  it("keeps a coloured link's colour, which is the one the editor used to drop on save", () => {
+    const source = "Write to [legal@example.com](mailto:legal@example.com){color=critical}.";
+    expect(roundTrip(source)).toBe(source);
+  });
+
+  it("keeps bold under a colour", () => {
+    const source = "[**Do not share your password**]{color=critical}";
+    expect(roundTrip(source)).toBe(source);
+  });
+
+  it("keeps italic under a colour", () => {
+    const source = "[*in confidence*]{color=muted}";
+    expect(roundTrip(source)).toBe(source);
+  });
+
+  it("colours a heading without losing its level", () => {
+    const source = "## [Termination]{color=caution}";
+    expect(roundTrip(source)).toBe(source);
+  });
 });

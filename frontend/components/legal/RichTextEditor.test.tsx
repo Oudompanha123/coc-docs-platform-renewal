@@ -89,6 +89,40 @@ describe("RichTextEditor", () => {
     );
   });
 
+  it("colours a link without dropping the link, and without dropping the colour on save", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <RichTextEditor
+        value="[legal@example.com](mailto:legal@example.com)"
+        onChange={onChange}
+        maxLength={1000}
+      />,
+    );
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    await user.tripleClick(box);
+
+    await user.click(screen.getByRole("button", { name: "Text colour" }));
+    await user.click(await screen.findByRole("button", { name: "Critical" }));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith(
+        "[legal@example.com](mailto:legal@example.com){color=critical}",
+      ),
+    );
+  });
+
+  it("keeps bold under a colour, rather than un-bolding the text on save", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<RichTextEditor value="**Do not share**" onChange={onChange} maxLength={1000} />);
+    const box = await screen.findByRole("textbox", { name: "Content" });
+    await user.tripleClick(box);
+
+    await user.click(screen.getByRole("button", { name: "Text colour" }));
+    await user.click(await screen.findByRole("button", { name: "Critical" }));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith("[**Do not share**]{color=critical}"));
+  });
+
   it("paints the colour in the editor, not only on the published page", async () => {
     render(<RichTextEditor value="[Careful]{color=critical} and on we go" onChange={vi.fn()} maxLength={1000} />);
     const box = await screen.findByRole("textbox", { name: "Content" });
