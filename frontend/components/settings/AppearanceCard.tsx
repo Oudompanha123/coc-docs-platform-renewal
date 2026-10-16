@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { SunIcon, MoonIcon, MonitorIcon } from "@/components/layout/icons";
 import type { IconComponent } from "@/components/layout/icons";
@@ -12,81 +12,26 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: IconComponent }[] = [
 ];
 
 /**
- * A new key, not the old `coc-docs-accent-custom` (ADR-104 r2.0).
+ * The dashboard Settings page's Appearance card: the theme only.
  *
- * This card writes `--color-brand-purple` onto <html> at runtime from
- * whatever is stored, which means a browser holding the old default would
- * paint the retired purple straight back over the neutral palette on every
- * load — the repaint would appear not to have happened, and only for people
- * who had used the app before. Changing the key retires those stored values
- * with the palette they belonged to. Anyone who had deliberately chosen an
- * accent picks it again once.
+ * The Accent color picker that used to sit below it is gone, at the product
+ * owner's request — not needed for now. It was the only thing that wrote
+ * `--color-brand-purple`/`--color-brand-blue` onto <html> from the stored
+ * `coc-docs-accent-v2` value, so with it removed every browser renders the
+ * default neutral palette again; the stored value is simply never read.
  */
-const CUSTOM_KEY = "coc-docs-accent-v2";
-const DEFAULT_HEX = "#171717";
-
-/** Derive a complementary tone by shifting hue +30°. */
-function deriveBlue(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      default: h = ((r - g) / d + 4) / 6;
-    }
-  }
-  h = (h + 30 / 360) % 1;
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  function hue2rgb(t: number) {
-    if (t < 0) t += 1; if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  }
-  const toHex = (x: number) => Math.round(x * 255).toString(16).padStart(2, "0");
-  return `#${toHex(hue2rgb(h + 1 / 3))}${toHex(hue2rgb(h))}${toHex(hue2rgb(h - 1 / 3))}`;
-}
-
-function applyAccentHex(hex: string): void {
-  if (typeof document === "undefined") return;
-  document.documentElement.style.setProperty("--color-brand-purple", hex);
-  document.documentElement.style.setProperty("--color-brand-blue", deriveBlue(hex));
-  window.localStorage.setItem(CUSTOM_KEY, hex);
-}
-
 export function AppearanceCard() {
-  const [theme, setTheme]       = useState<Theme>("system");
-  const [customHex, setCustomHex] = useState(DEFAULT_HEX);
-  const colorInputRef = useRef<HTMLInputElement>(null);
+  const [theme, setTheme] = useState<Theme>("system");
 
   useEffect(() => {
     const storedTheme = getStoredTheme();
     applyTheme(storedTheme);
     setTheme(storedTheme);
-
-    const hex = (typeof window !== "undefined" && window.localStorage.getItem(CUSTOM_KEY)) || DEFAULT_HEX;
-    setCustomHex(hex);
-    applyAccentHex(hex);
   }, []);
 
   function selectTheme(next: Theme) {
     applyTheme(next);
     setTheme(next);
-  }
-
-  function handleCustomChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const hex = e.target.value;
-    setCustomHex(hex);
-    applyAccentHex(hex);
   }
 
   return (
@@ -115,45 +60,6 @@ export function AppearanceCard() {
               {label}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* Accent color */}
-      <div>
-        <p className="text-xs font-medium text-muted-foreground">Accent color</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {/* Left alone on purpose, and worth a second look when someone
-              touches this card: a <button> wrapping an <input type="color">
-              is interactive content nested inside interactive content, which
-              the HTML spec does not allow. Browsers tolerate it, assistive
-              technology is less predictable. Fixing it means deciding how the
-              swatch should open its picker, which is a design change, not a
-              primitive swap — so it is reported rather than quietly altered
-              here (ADR-104 §4.3). */}
-          {/* eslint-disable-next-line react/forbid-elements */}
-          <button
-            type="button"
-            onClick={() => colorInputRef.current?.click()}
-            className="flex h-9 items-center gap-2 rounded-control border border-surface-border px-3 text-sm font-medium transition-colors hover:bg-accent focus-visible:outline-none"
-            style={{ outline: `2px solid ${customHex}`, outlineOffset: "2px", color: customHex }}
-          >
-            <span
-              className="size-4 rounded-full ring-1 ring-black/10"
-              style={{ background: customHex }}
-              aria-hidden="true"
-            />
-            Choose color
-            {/* eslint-disable-next-line react/forbid-elements */}
-            <input
-              ref={colorInputRef}
-              type="color"
-              value={customHex}
-              onChange={handleCustomChange}
-              className="sr-only"
-              aria-hidden="true"
-              tabIndex={-1}
-            />
-          </button>
         </div>
       </div>
     </div>
