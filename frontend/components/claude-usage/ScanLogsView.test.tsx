@@ -483,14 +483,29 @@ describe("ScanLogsView — live scan status (ADR-107)", () => {
     expect(within(drawer).queryByRole("heading", { name: "Scan in progress" })).not.toBeInTheDocument();
   });
 
-  it("a start whose result never came is Failed — 'No result received' — not left In Progress", async () => {
+  it("a start whose result never came is No Result — never Failed, never left In Progress", async () => {
     fetchScanLogs.mockResolvedValue(list([{ ...running, status: "incomplete" }]));
     render(<ScanLogsView />);
     await screen.findByText("Scan history");
     const [row] = screen.getAllByRole("row").slice(1);
-    expect(within(row!).getByText("Failed")).toBeInTheDocument();
+    expect(within(row!).getByText("No Result")).toBeInTheDocument();
+    expect(within(row!).queryByText("Failed")).not.toBeInTheDocument();
     expect(within(row!).getByText("No result received")).toBeInTheDocument();
-    expect(screen.getByLabelText("Scan stages")).toHaveTextContent("Scan record: Failed");
+    expect(screen.getByLabelText("Scan stages")).toHaveTextContent("Scan record: Unknown");
+    expect(screen.getByLabelText("Scan stages")).not.toHaveTextContent("Failed");
+  });
+
+  it("No Result has its own card and filter, and the Failed card doesn't count it", async () => {
+    fetchScanLogs.mockResolvedValue(list([{ ...running, id: "nr-1", status: "incomplete" }, authFailed]));
+    render(<ScanLogsView />);
+    await screen.findByText("Scan history");
+    expect(card("No Result")).toBe("1");
+    expect(card("Failed")).toBe("1"); // authFailed only
+
+    await pickOption(userEvent.setup(), "Status", "No Result");
+    const rows = screen.getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]!).getByText("No result received")).toBeInTheDocument();
   });
 
   it("scanned but couldn't upload: Partial Success, and the stages say which part failed", async () => {

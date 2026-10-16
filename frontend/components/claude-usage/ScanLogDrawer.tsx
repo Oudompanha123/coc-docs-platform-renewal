@@ -25,6 +25,7 @@ import {
   formatTimestamp,
   personName,
   scanOutcome,
+  startedLate,
   STEP_LABELS,
   type ScanDiagnosis,
   type ScanOutcome,
@@ -119,7 +120,13 @@ export function ScanLogDrawer({
             <Field label="Started at">{formatTimestamp(log.startedAt)}</Field>
             <Field label="Completed at">{log.finishedAt ? formatTimestamp(log.finishedAt) : "Not yet"}</Field>
             <Field label="Duration">{formatDuration(log.durationMs)}</Field>
-            <Field label="Started by">{log.trigger === "scheduled" ? "Daily schedule" : "Manual run"}</Field>
+            <Field label="Started by">
+              {log.trigger !== "scheduled"
+                ? "Manual run"
+                : startedLate(log)
+                  ? "Daily schedule · started late (expected 11:00 AM or 4:00 PM)"
+                  : "Daily schedule"}
+            </Field>
           </dl>
 
           <div className="mt-6">
@@ -182,8 +189,14 @@ function Result({ log }: { log: ScanLogSummary }) {
 }
 
 function Problem({ diagnosis, outcome, pc }: { diagnosis: ScanDiagnosis; outcome: ScanOutcome; pc: string }) {
-  const tone = outcome === "failed" ? "border-danger/30 bg-danger/5" : "border-[#f5d896] bg-[#fffbeb]";
-  const heading = outcome === "failed" ? "text-danger" : "text-[#b45309]";
+  // A scan with no result is unknown, not failed: neutral, never the danger tone.
+  const tone =
+    outcome === "failed"
+      ? "border-danger/30 bg-danger/5"
+      : outcome === "no-result"
+        ? "border-surface-border bg-muted-surface"
+        : "border-[#f5d896] bg-[#fffbeb]";
+  const heading = outcome === "failed" ? "text-danger" : outcome === "no-result" ? "text-muted-foreground" : "text-[#b45309]";
   return (
     <>
       <section className={`mt-6 rounded-xl border px-4 py-3.5 text-sm ${tone}`}>

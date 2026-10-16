@@ -7,7 +7,7 @@ import { ChevronRightIcon } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ScanLogSummary } from "@/lib/admin/claudeUsage";
-import { diagnoseScan, formatDuration, formatScanTime, personName, recordsText, scanOutcome } from "@/lib/claudeUsage/scanLogs";
+import { diagnoseScan, formatDuration, formatScanTime, personName, recordsText, scanOutcome, triggerText } from "@/lib/claudeUsage/scanLogs";
 
 /**
  * The Scan Logs table — one row per scan, newest first. Same compact
@@ -66,7 +66,7 @@ export const ScanLogTable = memo(function ScanLogTable({
               </TableCell>
               <TableCell className="whitespace-nowrap text-foreground">
                 {formatScanTime(log.startedAt)}
-                <span className="block text-xs text-muted-foreground">{log.trigger === "scheduled" ? "Scheduled" : "Manual"}</span>
+                <span className="block text-xs text-muted-foreground">{triggerText(log)}</span>
               </TableCell>
               <TableCell className="whitespace-nowrap text-foreground">
                 {log.finishedAt ? formatScanTime(log.finishedAt) : <span className="text-muted-foreground">Not yet</span>}
@@ -75,7 +75,13 @@ export const ScanLogTable = memo(function ScanLogTable({
               <TableCell className="whitespace-nowrap text-foreground">{recordsText(log)}</TableCell>
               <TableCell>
                 {problem ? (
-                  <span className={outcome === "failed" ? "text-destructive" : "text-[#b45309]"}>{problem}</span>
+                  <span
+                    className={
+                      outcome === "failed" ? "text-destructive" : outcome === "no-result" ? "text-muted-foreground" : "text-[#b45309]"
+                    }
+                  >
+                    {problem}
+                  </span>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}

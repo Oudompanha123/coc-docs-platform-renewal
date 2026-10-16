@@ -44,6 +44,16 @@ function formatTokensFull(n: number): string {
   return String(n);
 }
 
+/**
+ * The Day table lists only people with usage dated that day, so an empty one
+ * says nothing about who scanned or who is active — and says so, pointing at
+ * Scan Logs, since a morning scan typically uploads the previous day's usage.
+ */
+function dayEmptyMessage(offset: number): string {
+  const when = offset === 0 ? "today yet" : "on this day";
+  return `No usage dated ${when}. A scan early in the day often uploads the previous day's usage — see Scan Logs for scan activity.`;
+}
+
 /** "Today"/"This week"/"This month" for the current period; the actual date range once it's a past one. */
 function rangeLabel(period: Period, offset: number, from: string, to: string): string {
   if (offset === 0) return RANGE_LABEL[period];
@@ -279,7 +289,11 @@ export function AdminClaudeUsageView() {
 
           <section className="mt-4 overflow-hidden rounded-xl border border-surface-border bg-card">
             <h2 className="px-4 pb-3 pt-4 text-sm font-semibold text-foreground">Per-user usage</h2>
-            <UsageTable members={members} onSelect={(member, avatarColor) => setDetail({ member, avatarColor })} />
+            <UsageTable
+              members={members}
+              emptyMessage={period === "day" ? dayEmptyMessage(offset) : undefined}
+              onSelect={(member, avatarColor) => setDetail({ member, avatarColor })}
+            />
           </section>
 
           <DisabledMembersPanel
