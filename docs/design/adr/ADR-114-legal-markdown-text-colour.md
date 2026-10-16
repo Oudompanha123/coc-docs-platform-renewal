@@ -43,7 +43,18 @@ Text colour is stored as a **bracketed inline span with a named tone**:
 - Colour carries status, never decoration, which is ADR-104 decision 2 applied
   to content rather than chrome. The editor offers swatches with names, and
   there is **no hex field and no picker**.
-- Like bold and italic in this dialect, colour does not nest with other marks.
+- **Colour composes with the other marks** (amended 2026-10-16, see below).
+  Around bold or italic it is the outer bracket; on a link it is a suffix
+  after the target:
+
+  ```
+  [**Do not share your password**]{color=critical}
+  [write to us](mailto:legal@example.com){color=critical}
+  ```
+
+  Bold and italic still do not nest in each other, and colour does not nest in
+  colour — a colour span's text holds no `]`, so the inner marker is simply
+  not reachable.
 
 Two theme tokens were missing and are added in `app/globals.css` beside
 `--color-danger`: `--color-success` and `--color-caution`, each with a
@@ -54,7 +65,7 @@ Implemented across the same four stages as ADR-113:
 
 | Stage | File | Change |
 |---|---|---|
-| Parse | `lib/legal/markdown.ts` | `MD_COLORS`, `MdColor`, `color?` on `MdSpan`, a fourth alternative in the inline pattern |
+| Parse | `lib/legal/markdown.ts` | `MD_COLORS`, `MdColor`, `color?` on `MdSpan`, a fourth alternative in the inline pattern, and an optional colour suffix on the link alternative |
 | Editor bridge | `lib/legal/markdown-prosemirror.ts` | `textColor` mark both directions; colour joins the run-merge key |
 | Editor | `components/legal/RichTextEditor.tsx` | A hand-written `textColor` mark and the swatch control |
 | Public page | `components/legal/MarkdownView.tsx` | Tone → theme token class |
@@ -69,6 +80,27 @@ Recorded here because it was decided at the same time: every control sits on
 the bar — marks, colour, link, the three heading levels, the three alignments,
 both lists, quote and divider. Nothing is behind a menu. Clicking a pressed
 heading returns the block to plain text, so "Text" needs no button of its own.
+
+### Amendment, 2026-10-16 — colour composes
+
+As first written this ADR said colour "does not nest with other marks", and
+the implementation honoured that by precedence: a run that had both a link and
+a tone serialised as the link alone, and a run that had both bold and a tone
+serialised as the tone alone. Both are the silent-drop failure this ADR exists
+to prevent — the editor showed the colour (and the bold), save wrote neither,
+and the writer learned about it from the published page. It was reported
+against a coloured mailto link the day after the feature landed: the trailing
+full stop outside the link kept its colour, the link did not.
+
+Precedence is not available as a fix, because there is no order of these marks
+that is not someone's data loss. So the dialect carries both. A document
+written before this amendment still parses and serialises unchanged — the new
+forms are additions, and uncoloured text is still the absence of a marker.
+
+A corollary, since the tone now reaches a link: the rendered `<a>` wears the
+tone class itself. The anchor's own `text-foreground` beats a colour inherited
+from a wrapping span, so wrapping the link would have stored the tone and
+published it invisibly — the same bug one layer further down.
 
 ## Consequences
 
@@ -86,7 +118,8 @@ heading returns the block to plain text, so "Text" needs no button of its own.
   read as a limitation to anyone comparing against the reference editor.
 - The dialect drifts further from standard Markdown: `{align=…}` and now
   `{color=…}` are both ours. A stock Markdown reader shows both as literal text.
-- Text that literally ends in `[word]{color=critical}` cannot be written.
+- Text that literally ends in `[word]{color=critical}`, or in
+  `](href){color=critical}`, cannot be written.
 - Colour in a content format is presentation, which the block model exists to
   avoid. Same trade as ADR-113, same destination.
 

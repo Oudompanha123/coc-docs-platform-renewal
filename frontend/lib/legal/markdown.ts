@@ -67,9 +67,9 @@ export function isAllowedLinkHref(href: string): boolean {
 
 // ---------------------------------------------------------------------------
 // Inline parsing: **bold**, *italic*, [text](href) — a single flat pass,
-// left to right, first match wins; nesting marks inside one another isn't
-// supported (the toolbar never produces it, and the whitelist doesn't ask
-// for it).
+// left to right, first match wins. Bold and italic still don't nest in one
+// another (the toolbar never produces it, and the whitelist doesn't ask for
+// it), but colour does compose with all three — see below.
 // ---------------------------------------------------------------------------
 
 // The href group tolerates one level of balanced parens inside the URL
@@ -78,37 +78,72 @@ export function isAllowedLinkHref(href: string): boolean {
 // URL containing one.
 const HREF_PATTERN = "[^\\s()]*(?:\\([^()]*\\)[^\\s()]*)*";
 const COLOR_PATTERN = MD_COLORS.join("|");
-const INLINE_PATTERN = new RegExp(
-  `\\*\\*([^*]+)\\*\\*|\\*([^*]+)\\*|\\[([^\\]]*)\\]\\((${HREF_PATTERN})\\)|\\[([^\\]]*)\\]\\{color=(${COLOR_PATTERN})\\}`,
-  "g",
-);
+const COLOR_SUFFIX = `\\{color=(${COLOR_PATTERN})\\}`;
+
+/**
+ * A fresh matcher per call. Colour spans are parsed by recursing into their
+ * own text, so one shared `g` regex would have its `lastIndex` clobbered
+ * mid-scan by the inner pass.
+ *
+ * Groups: 1 bold, 2 italic, 3 link text, 4 href, 5 the link's colour,
+ * 6 colour-span text, 7 its colour.
+ */
+function inlinePattern(): RegExp {
+  return new RegExp(
+    `\\*\\*([^*]+)\\*\\*|\\*([^*]+)\\*|\\[([^\\]]*)\\]\\((${HREF_PATTERN})\\)(?:${COLOR_SUFFIX})?|\\[([^\\]]*)\\]${COLOR_SUFFIX}`,
+    "g",
+  );
+}
 
 export function parseInline(text: string): MdSpan[] {
+  const spans = parseInlineSpans(text);
+  return spans.length > 0 ? spans : [{ text: "" }];
+}
+
+/**
+ * `color` is set when we are inside a colour span, and is applied to every
+ * span the inner pass produces — which is what lets `[**text**]{color=…}`
+ * come back as one bold *and* critical span rather than losing one of the
+ * two. Colour composes with bold, italic and links (ADR-114 as amended
+ * 2026-10-16); a colour button that silently dropped the bold under it is
+ * the same "shows formatting that is dropped on save" failure the marker
+ * exists to prevent.
+ */
+function parseInlineSpans(text: string, color?: MdColor): MdSpan[] {
+  const pattern = inlinePattern();
   const spans: MdSpan[] = [];
+  const push = (span: MdSpan) => spans.push(color ? { ...span, color } : span);
   let lastIndex = 0;
-  INLINE_PATTERN.lastIndex = 0;
   let match: RegExpExecArray | null;
-  while ((match = INLINE_PATTERN.exec(text))) {
+  while ((match = pattern.exec(text))) {
     if (match.index > lastIndex) {
-      spans.push({ text: text.slice(lastIndex, match.index) });
+      push({ text: text.slice(lastIndex, match.index) });
     }
     if (match[1] !== undefined) {
-      spans.push({ text: match[1], bold: true });
+      push({ text: match[1], bold: true });
     } else if (match[2] !== undefined) {
-      spans.push({ text: match[2], italic: true });
-    } else if (match[5] !== undefined) {
-      spans.push({ text: match[5], color: match[6] as MdColor });
+      push({ text: match[2], italic: true });
+    } else if (match[6] !== undefined) {
+      // A colour span's own text holds no `]`, so the inner pass can only
+      // ever find bold and italic — colour inside colour, and a link inside
+      // colour, are unreachable rather than forbidden.
+      spans.push(...parseInlineSpans(match[6], match[7] as MdColor));
     } else {
       const linkText = match[3] ?? "";
       const href = match[4] ?? "";
-      spans.push(isAllowedLinkHref(href) ? { text: linkText, href } : { text: match[0] });
+      const linkColor = match[5] as MdColor | undefined;
+      push(
+        isAllowedLinkHref(href)
+          ? { text: linkText, href, ...(linkColor ? { color: linkColor } : {}) }
+          : { text: match[0] },
+      );
     }
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {
-    spans.push({ text: text.slice(lastIndex) });
+    push({ text: text.slice(lastIndex) });
   }
-  return spans.length > 0 ? spans : [{ text: "" }];
+  return spans;
 }
 
 // ---------------------------------------------------------------------------
