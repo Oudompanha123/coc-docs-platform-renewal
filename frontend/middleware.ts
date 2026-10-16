@@ -62,7 +62,23 @@ function productKeyCandidate(segments: string[]): { key: string; index: number }
   return null;
 }
 
+/**
+ * Earlier addresses of a Store app's page — `/store-<number>` and
+ * `/store/<number>`. The page now lives at `/store/app-<number>`
+ * (`app/(member)/store/[slug]`); these redirect there so old links work.
+ */
+const STORE_APP_LEGACY = /^\/store(?:-|\/)(\d+)\/?$/;
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
+  // Ahead of the product-key logic below: `/store-3` is one top-level
+  // segment, so it would otherwise be looked up as a product key.
+  const legacy = STORE_APP_LEGACY.exec(request.nextUrl.pathname);
+  if (legacy) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/store/app-${legacy[1]}`;
+    return NextResponse.redirect(url, 308);
+  }
+
   const segments = request.nextUrl.pathname.split("/").filter(Boolean);
   const candidate = productKeyCandidate(segments);
   if (!candidate) {

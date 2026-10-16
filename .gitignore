@@ -4,6 +4,10 @@ harness-standards/
 # Backend
 backend/target/
 backend/.idea/
+# Store uploads (ADR-108) — the default `coc.store.root` when run from backend/
+# or the repo root. Installers, not source.
+backend/store-files/
+/store-files/
 # Personal local overrides (real DB/OAuth values) — see application.yml's header.
 backend/src/main/resources/application-local.yml
 

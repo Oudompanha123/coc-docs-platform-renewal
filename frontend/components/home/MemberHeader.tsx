@@ -27,6 +27,7 @@ import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
 import { productHref } from "@/lib/home/product-links";
+import { STORE_HREF, isStorePath } from "@/lib/store/store-api";
 import { MemberThemeSync } from "@/components/home/MemberThemeSync";
 import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import type { NavProduct } from "@/lib/docs/nav-api";
@@ -250,6 +251,17 @@ export function MemberHeader({
                 );
               })}
           </NavMenu>
+
+          {/* Store (ADR-108) — the listing, /store, and each app's page, /store-<number>. */}
+          <Link
+            href={STORE_HREF}
+            aria-current={isStorePath(pathname) ? "page" : undefined}
+            className={`inline-flex h-9 items-center rounded-3xl px-3.5 text-[15px] transition-colors outline-none hover:bg-muted-surface/60 focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+              isStorePath(pathname) ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Store
+          </Link>
 
           {/* Claude Usage's own nav link retired: the personal view moved
               into /account/settings's own Claude Usage section instead of
