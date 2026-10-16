@@ -209,7 +209,7 @@ export default function StorePage() {
         {load.status === "loading" && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-48 animate-pulse rounded-xl border border-surface-border bg-muted-surface/60" />
+              <div key={i} className="h-48 animate-pulse rounded-2xl bg-muted-surface" />
             ))}
           </div>
         )}

@@ -60,7 +60,7 @@ export function AppIconPicker({
     <div className="flex flex-col items-center">
       <label
         htmlFor={inputId}
-        className={`group relative block h-32 w-32 overflow-hidden rounded-[28px] border border-surface-border shadow-sm outline-none focus-within:ring-[3px] focus-within:ring-ring/50 ${
+        className={`group relative block h-32 w-32 overflow-hidden rounded-[28px] border border-surface-border shadow-sm outline-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 ${
           disabled ? "cursor-not-allowed" : "cursor-pointer"
         }`}
       >

@@ -69,7 +69,7 @@ export default function StoreAppPage() {
       {state.status === "loading" && (
         <div aria-busy="true" className="space-y-6">
           <div className="h-5 w-24 animate-pulse rounded-full bg-muted-surface/60" />
-          <div className="h-80 max-w-3xl animate-pulse rounded-xl bg-muted-surface/60" />
+          <div className="h-80 max-w-3xl animate-pulse rounded-2xl bg-muted-surface" />
         </div>
       )}
 
