@@ -3,6 +3,7 @@
 import { LockIcon } from "@/components/auth/icons";
 import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";
 import type { NavProduct } from "@/lib/docs/nav-api";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 /**
  * A single "Products ▾" menu holding one grid of every product — not one
@@ -21,13 +22,14 @@ export function ProductsNavDropdown({
   products: NavProduct[];
   onRequireAuth: (productLabel: string) => void;
 }) {
+  const { t } = useLanguage();
   return (
-    <NavMenu label="Products" panelClassName="w-[440px] grid-cols-2">
+    <NavMenu label={t.nav.products} panelClassName="w-[440px] grid-cols-2">
       {products.map((product) => (
         <NavMenuItem
           key={product.key}
           title={product.label}
-          description={productPagesBlurb(product.items) ?? "Documentation"}
+          description={productPagesBlurb(product.items) ?? t.nav.documentation}
           onSelect={() => onRequireAuth(product.label)}
           trailing={
             <LockIcon className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

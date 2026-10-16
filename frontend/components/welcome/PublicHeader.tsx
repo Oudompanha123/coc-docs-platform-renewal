@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Link } from "@/lib/i18n/navigation";
 import { LockIcon } from "@/components/auth/icons";
 import { MoonIcon, SunIcon } from "@/components/layout/icons";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
@@ -44,6 +45,7 @@ export function PublicHeader({
   /** The bar's background — the page's own surface, so the bar never reads as a band of a different shade. */
   surfaceClassName?: string;
 }) {
+  const { t } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     function onScroll() {
@@ -66,14 +68,14 @@ export function PublicHeader({
             <ThemedLogo className="h-8 w-auto rounded-md" />
           </Link>
           <div className="md:hidden">
-            <NavMenu label="Menu" panelClassName="w-[280px] grid-cols-1">
-              <NavMenuItem title="Home" href={homeHref} active={active === "home"} />
-              <NavMenuItem title="Store" href="/store" active={active === "store"} />
+            <NavMenu label={t.nav.menu} panelClassName="w-[280px] grid-cols-1">
+              <NavMenuItem title={t.nav.home} href={homeHref} active={active === "home"} />
+              <NavMenuItem title={t.nav.store} href="/store" active={active === "store"} />
               {FALLBACK_NAV.map((product) => (
                 <NavMenuItem
                   key={product.key}
                   title={product.label}
-                  description={productPagesBlurb(product.items) ?? "Documentation"}
+                  description={productPagesBlurb(product.items) ?? t.nav.documentation}
                   onSelect={() => onRequireAuth(product.label)}
                   trailing={<LockIcon className="size-3 shrink-0 text-muted-foreground" />}
                 />
@@ -88,14 +90,14 @@ export function PublicHeader({
             aria-current={active === "home" ? "page" : undefined}
             className={`${LINK_CLASS} ${active === "home" ? "text-foreground" : ""}`}
           >
-            Home
+            {t.nav.home}
           </Link>
           <Link
             href="/store"
             aria-current={active === "store" ? "page" : undefined}
             className={`${LINK_CLASS} ${active === "store" ? "text-foreground" : ""}`}
           >
-            Store
+            {t.nav.store}
           </Link>
           <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={onRequireAuth} />
         </nav>
@@ -108,7 +110,7 @@ export function PublicHeader({
             variant="ghost"
             size="icon"
             onClick={onToggleTheme}
-            aria-label="Toggle dark mode"
+            aria-label={t.nav.toggleDarkMode}
             aria-pressed={isDark}
             className="size-8 text-muted-foreground hover:text-foreground"
           >
@@ -117,10 +119,10 @@ export function PublicHeader({
             <MoonIcon className="h-4 w-4 dark:hidden" />
           </Button>
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{t.nav.logIn}</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/register">Start free</Link>
+            <Link href="/register">{t.welcome.startFree}</Link>
           </Button>
         </div>
       </div>

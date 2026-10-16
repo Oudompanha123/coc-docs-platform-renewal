@@ -20,6 +20,7 @@ import { ProfilePopup } from "@/components/home/ProfilePopup";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { productHref } from "@/lib/home/product-links";
 import { STORE_HREF, isStorePath } from "@/lib/store/store-api";
 import { MemberThemeSync } from "@/components/home/MemberThemeSync";
@@ -102,6 +103,7 @@ export function MemberHeader({
   const pathname = usePathname();
   const user = useCurrentUser();
   const { signOut, isSigningOut } = useSession();
+  const { t } = useLanguage();
   // The announcement a bell row was clicked to open (ADR-098) — the one kind
   // of bell row on this header that has something behind it to read.
   const [openAnnouncement, setOpenAnnouncement] = useState<string | null>(null);
@@ -201,7 +203,7 @@ export function MemberHeader({
               pathname === "/home" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Home
+            {t.nav.home}
           </Link>
 
           {/* Store (ADR-108) — the listing, /store, and each app's page, /store/app-<number>. */}
@@ -212,14 +214,14 @@ export function MemberHeader({
               isStorePath(pathname) ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Store
+            {t.nav.store}
           </Link>
 
           {/* Products — the shared NavMenu (ADR-104 r2.9): hover to open, a
               two-column grid of each product over its first few pages. It
               keeps its own open state, separate from the right-hand cluster's
               `openMenu`, since it now opens on hover as well as click. */}
-          <NavMenu label="Products" active={isProductsActive} panelClassName="w-[440px] grid-cols-2">
+          <NavMenu label={t.nav.products} active={isProductsActive} panelClassName="w-[440px] grid-cols-2">
             {products
               .filter((p) => p.key !== "ax-renewal")
               .map((product) => {
@@ -229,7 +231,7 @@ export function MemberHeader({
                     key={product.key}
                     href={href}
                     title={product.label}
-                    description={productPagesBlurb(product.items) ?? "Documentation"}
+                    description={productPagesBlurb(product.items) ?? t.nav.documentation}
                     active={pathname === href || (pathname?.startsWith(`${href}/`) ?? false)}
                   />
                 );
@@ -255,7 +257,7 @@ export function MemberHeader({
           <button
             type="button"
             onClick={toggleTheme}
-            aria-label="Toggle dark mode"
+            aria-label={t.nav.toggleDarkMode}
             aria-pressed={darkMode}
             className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -266,7 +268,7 @@ export function MemberHeader({
           <div className="relative">
             <CountIcon
               count={notifications.unreadCount}
-              label="Notifications"
+              label={t.notifications.title}
               active={openMenu === "bell"}
               onClick={() => toggleMenu("bell")}
             >
@@ -276,7 +278,7 @@ export function MemberHeader({
             {openMenu === "bell" && (
               <div role="menu" className={`${PANEL_CLASSES} w-80`}>
                 <div className="border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Notifications</p>
+                  <p className="text-sm font-semibold text-foreground">{t.notifications.title}</p>
                   <div className="mt-2.5 flex items-center gap-1.5">
                     {(["unread", "all"] as const).map((key) => (
                       <button
@@ -289,7 +291,7 @@ export function MemberHeader({
                             : "border border-border text-muted hover:bg-page"
                         }`}
                       >
-                        {key}
+                        {t.notifications[key]}
                       </button>
                     ))}
                     <button
@@ -298,7 +300,7 @@ export function MemberHeader({
                       disabled={notifications.unreadCount === 0}
                       className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
                     >
-                      Read all
+                      {t.notifications.readAll}
                     </button>
                   </div>
                 </div>
@@ -306,8 +308,8 @@ export function MemberHeader({
                   {visibleNotifications.length === 0 ? (
                     <p className="px-4 py-6 text-center text-sm text-muted">
                       {notificationFilter === "unread"
-                        ? "You're all caught up."
-                        : "Nothing needs your attention."}
+                        ? t.activity.caughtUp
+                        : t.notifications.empty}
                     </p>
                   ) : (
                     visibleNotifications.map((n) => (
@@ -352,7 +354,7 @@ export function MemberHeader({
                         </span>
                         {!n.read && (
                           <span
-                            aria-label="Unread"
+                            aria-label={t.notifications.unread}
                             className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
                           />
                         )}
@@ -416,7 +418,7 @@ export function MemberHeader({
                     className="flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-foreground transition-colors outline-none hover:bg-accent focus-visible:bg-accent"
                   >
                     <PersonIcon className="size-4 text-muted-foreground" />
-                    Profile
+                    {t.menu.profile}
                   </button>
                   <Link
                     href="/account/settings"
@@ -427,7 +429,7 @@ export function MemberHeader({
                     }`}
                   >
                     <SettingsIcon className="size-4 text-muted-foreground" />
-                    Settings
+                    {t.nav.settings}
                   </Link>
                 </div>
                 <div aria-hidden="true" className="-mx-1 my-1 h-px bg-surface-border" />
@@ -441,7 +443,7 @@ export function MemberHeader({
                     className="flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-left text-sm text-destructive transition-colors outline-none hover:bg-destructive/10 focus-visible:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSigningOut ? <Spinner /> : <LogOutIcon className="size-4" />}
-                    {isSigningOut ? "Logging out…" : "Log out"}
+                    {isSigningOut ? t.menu.loggingOut : t.menu.logout}
                   </button>
                 </div>
               </div>
