@@ -109,7 +109,7 @@ export function FeaturedAppBanner({
       return;
     }
     if (file.size > MAX_BANNER_BYTES) {
-      toast.error("A banner picture must be 5 MB or smaller.");
+      toast.error("A banner picture must be 25 MB or smaller.");
       return;
     }
     void run(() => uploadStoreBanner(app.id, file), onAppChanged, "Banner picture updated.");

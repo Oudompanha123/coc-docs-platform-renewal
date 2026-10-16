@@ -444,8 +444,8 @@ export async function setFeaturedApp(appId: string | null): Promise<string | nul
   return body.appId ?? null;
 }
 
-/** Banner pictures: the same raster types as the icon, up to 5 MB (StoreImageKind.BANNER). */
-export const MAX_BANNER_BYTES = 5 * 1024 * 1024;
+/** Banner pictures: the same raster types as the icon, up to 25 MB (StoreImageKind.BANNER). */
+export const MAX_BANNER_BYTES = 25 * 1024 * 1024;
 
 export interface NextVersionInput {
   version: string;
