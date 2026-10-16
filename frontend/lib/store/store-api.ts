@@ -110,7 +110,22 @@ export interface StoreAppInput {
   isPublic: boolean;
 }
 
-export class StoreApiError extends AuthApiError {}
+/**
+ * Where a Store error's message came from, so the page can say it in the
+ * reader's language: `server` is the backend's own `detail`, shown as sent;
+ * every other code is one of this file's fixed English strings, which the
+ * UI replaces with its translation (`lib/store/store-i18n.ts`).
+ */
+export type StoreErrorCode = "network" | "forbidden" | "tooLarge" | "fallback" | "server";
+
+export class StoreApiError extends AuthApiError {
+  constructor(
+    message: string,
+    readonly code: StoreErrorCode = "server",
+  ) {
+    super(message);
+  }
+}
 
 /** A 404: the app or build does not exist, or the caller may not see it — the backend does not say which. */
 export class StoreNotFoundError extends StoreApiError {}
@@ -282,18 +297,25 @@ const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60],
 ];
 
-/** "7 days ago", "last month", "2 years ago" — how long ago, at a glance. The exact date goes in a tooltip. */
-export function relativeTime(iso: string, now: Date = new Date()): string {
+/**
+ * "7 days ago", "last month", "2 years ago" — how long ago, at a glance. The exact date goes in a tooltip.
+ * `locale` is the page's (`en`, `km`, `ko`); without one, the browser's. `justNow` is what under a minute reads.
+ */
+export function relativeTime(
+  iso: string,
+  now: Date = new Date(),
+  { locale, justNow = "just now" }: { locale?: string; justNow?: string } = {},
+): string {
   const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   for (const [unit, size] of RELATIVE_UNITS) {
     if (Math.abs(seconds) >= size) return format.format(Math.round(seconds / size), unit);
   }
-  return "just now";
+  return justNow;
 }
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+export function formatDate(iso: string, locale?: string): string {
+  return new Date(iso).toLocaleString(locale, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export function formatBytes(bytes: number): string {
@@ -317,13 +339,13 @@ async function request<T>(url: string, init: RequestInit, fallback: string): Pro
   try {
     response = await fetch(url, { credentials: "include", ...init });
   } catch {
-    throw new StoreApiError("Couldn't reach the server. Check your connection and try again.");
+    throw new StoreApiError("Couldn't reach the server. Check your connection and try again.", "network");
   }
   if (response.status === 401) {
     throw new SessionExpiredError("Your session has ended. Please sign in again.");
   }
   if (response.status === 403) {
-    throw new StoreApiError("Only an admin can manage the Store.");
+    throw new StoreApiError("Only an admin can manage the Store.", "forbidden");
   }
   if (!response.ok) {
     let detail: string | null = null;
@@ -333,7 +355,8 @@ async function request<T>(url: string, init: RequestInit, fallback: string): Pro
       // Not a problem document — use the fallback.
     }
     const message = problemMessage(detail, fallback);
-    throw response.status === 404 ? new StoreNotFoundError(message) : new StoreApiError(message);
+    const code = detail ? "server" : "fallback";
+    throw response.status === 404 ? new StoreNotFoundError(message, code) : new StoreApiError(message, code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
@@ -459,11 +482,11 @@ export function uploadNextVersion(appId: string, input: NextVersionInput, onProg
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress?.(e.loaded / e.total);
     };
-    xhr.onerror = () => reject(new StoreApiError("Couldn't reach the server. Check your connection and try again."));
+    xhr.onerror = () => reject(new StoreApiError("Couldn't reach the server. Check your connection and try again.", "network"));
     xhr.onload = () => {
       if (xhr.status === 401) return reject(new SessionExpiredError("Your session has ended. Please sign in again."));
-      if (xhr.status === 403) return reject(new StoreApiError("Only an admin can manage the Store."));
-      if (xhr.status === 413) return reject(new StoreApiError("The file is larger than the Store allows."));
+      if (xhr.status === 403) return reject(new StoreApiError("Only an admin can manage the Store.", "forbidden"));
+      if (xhr.status === 413) return reject(new StoreApiError("The file is larger than the Store allows.", "tooLarge"));
       let body: unknown = null;
       try {
         body = JSON.parse(xhr.responseText);
@@ -471,7 +494,8 @@ export function uploadNextVersion(appId: string, input: NextVersionInput, onProg
         // Fall through to the generic message below.
       }
       if (xhr.status >= 200 && xhr.status < 300 && body) return resolve(body as StoreApp);
-      reject(new StoreApiError(problemMessage((body as { detail?: string } | null)?.detail, "Couldn't upload the file.")));
+      const detail = (body as { detail?: string } | null)?.detail;
+      reject(new StoreApiError(problemMessage(detail, "Couldn't upload the file."), detail ? "server" : "fallback"));
     };
     xhr.send(buildUploadBody(input));
   });
