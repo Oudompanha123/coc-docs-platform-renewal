@@ -1,5 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
-import { isAllowedLinkHref, parseMarkdown, type MdBlock, type MdSpan } from "./markdown";
+import { MD_COLORS, alignSuffix, isAllowedLinkHref, parseMarkdown, type MdBlock, type MdColor, type MdSpan } from "./markdown";
 
 /**
  * Converts between the legal pages' Markdown dialect (`markdown.ts`) and the
@@ -27,22 +27,25 @@ function spansToInline(spans: MdSpan[]): JSONContent[] {
       if (s.bold) marks.push({ type: "bold" });
       if (s.italic) marks.push({ type: "italic" });
       if (s.href) marks.push({ type: "link", attrs: { href: s.href } });
+      if (s.color) marks.push({ type: "textColor", attrs: { color: s.color } });
       return marks.length ? { type: "text", text: s.text, marks } : { type: "text", text: s.text };
     });
 }
 
-function paragraph(spans: MdSpan[]): JSONContent {
+function paragraph(spans: MdSpan[], align?: string): JSONContent {
   const content = spansToInline(spans);
-  return content.length ? { type: "paragraph", content } : { type: "paragraph" };
+  const attrs = align ? { attrs: { textAlign: align } } : {};
+  return content.length ? { type: "paragraph", ...attrs, content } : { type: "paragraph", ...attrs };
 }
 
 function blockToNode(block: MdBlock): JSONContent {
   switch (block.kind) {
     case "paragraph":
-      return paragraph(block.spans);
+      return paragraph(block.spans, block.align);
     case "heading": {
       const content = spansToInline(block.spans);
-      return { type: "heading", attrs: { level: block.level }, ...(content.length ? { content } : {}) };
+      const attrs = { level: block.level, ...(block.align ? { textAlign: block.align } : {}) };
+      return { type: "heading", attrs, ...(content.length ? { content } : {}) };
     }
     case "bulletList":
     case "orderedList":
@@ -67,32 +70,42 @@ export function markdownToDoc(source: string): JSONContent {
 // Editor document -> Markdown
 // ---------------------------------------------------------------------------
 
-type Run = { text: string; bold: boolean; italic: boolean; href: string | null };
+type Run = { text: string; bold: boolean; italic: boolean; href: string | null; color: MdColor | null };
 
 function inlineRuns(nodes: JSONContent[] | undefined): Run[] {
   const runs: Run[] = [];
   for (const node of nodes ?? []) {
     if (node.type === "hardBreak") {
       // The dialect joins a paragraph's lines with a space.
-      runs.push({ text: " ", bold: false, italic: false, href: null });
+      runs.push({ text: " ", bold: false, italic: false, href: null, color: null });
       continue;
     }
     if (node.type !== "text" || !node.text) continue;
     const marks = node.marks ?? [];
     const link = marks.find((m) => m.type === "link");
     const href = typeof link?.attrs?.href === "string" && isAllowedLinkHref(link.attrs.href) ? link.attrs.href : null;
+    const colorMark = marks.find((m) => m.type === "textColor");
+    const color = MD_COLORS.includes(colorMark?.attrs?.color as MdColor) ? (colorMark!.attrs!.color as MdColor) : null;
     runs.push({
       text: node.text,
       bold: marks.some((m) => m.type === "bold"),
       italic: marks.some((m) => m.type === "italic"),
       href,
+      color,
     });
   }
   // Merge neighbours with the same formatting, so "**ab**" never becomes "**a****b**".
   const merged: Run[] = [];
   for (const run of runs) {
     const last = merged[merged.length - 1];
-    if (last && last.bold === run.bold && last.italic === run.italic && last.href === run.href) last.text += run.text;
+    if (
+      last &&
+      last.bold === run.bold &&
+      last.italic === run.italic &&
+      last.href === run.href &&
+      last.color === run.color
+    )
+      last.text += run.text;
     else merged.push({ ...run });
   }
   return merged;
@@ -100,6 +113,12 @@ function inlineRuns(nodes: JSONContent[] | undefined): Run[] {
 
 function runToMarkdown(run: Run): string {
   if (run.href) return `[${run.text}](${run.href})`;
+  // Colour is its own bracketed span, and like bold/italic it does not nest.
+  if (run.color && run.text.trim()) {
+    const lead = run.text.match(/^\s*/)![0];
+    const trail = run.text.match(/\s*$/)![0];
+    return `${lead}[${run.text.trim()}]{color=${run.color}}${trail}`;
+  }
   // The dialect has no nesting: bold wins over italic, as the toolbar always did.
   const marker = run.bold ? "**" : run.italic ? "*" : "";
   if (!marker || !run.text.trim()) return run.text;
@@ -137,12 +156,14 @@ function listToMarkdown(list: JSONContent, depth: number): string[] {
 
 function nodeToMarkdown(node: JSONContent): string {
   switch (node.type) {
-    case "paragraph":
-      return inlineToMarkdown(node.content);
+    case "paragraph": {
+      const text = inlineToMarkdown(node.content);
+      return text ? `${text}${alignSuffix(node.attrs?.textAlign)}` : "";
+    }
     case "heading": {
       const level = Math.min(4, Math.max(2, Number(node.attrs?.level) || 2));
       const text = inlineToMarkdown(node.content);
-      return text ? `${"#".repeat(level)} ${text}` : "";
+      return text ? `${"#".repeat(level)} ${text}${alignSuffix(node.attrs?.textAlign)}` : "";
     }
     case "bulletList":
     case "orderedList":

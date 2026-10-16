@@ -72,3 +72,32 @@ describe("MarkdownView", () => {
     expect(screen.getByText("<script>alert(1)</script>")).toBeInTheDocument();
   });
 });
+
+describe("alignment (ADR-113)", () => {
+  it("publishes a centred heading centred, with the marker nowhere on screen", () => {
+    render(<MarkdownView source="## Signed {align=center}" />);
+    const heading = screen.getByRole("heading", { level: 2, name: "Signed" });
+    expect(heading.className).toContain("text-center");
+    expect(heading.textContent).not.toContain("align");
+  });
+
+  it("leaves an unaligned paragraph with no alignment class", () => {
+    const { container } = render(<MarkdownView source="Plain paragraph." />);
+    expect(container.querySelector("p")!.className).not.toContain("text-center");
+    expect(container.querySelector("p")!.className).not.toContain("text-right");
+  });
+});
+
+describe("text colour (ADR-114)", () => {
+  it("publishes a critical tone through the theme token, with no marker on screen", () => {
+    render(<MarkdownView source="[Do not share this]{color=critical}" />);
+    const span = screen.getByText("Do not share this");
+    expect(span.className).toContain("text-danger");
+    expect(document.body.textContent).not.toContain("color=");
+  });
+
+  it("ignores a tone the dialect does not define", () => {
+    render(<MarkdownView source="[Careful]{color=neon}" />);
+    expect(screen.getByText(/\[Careful\]\{color=neon\}/)).toBeInTheDocument();
+  });
+});

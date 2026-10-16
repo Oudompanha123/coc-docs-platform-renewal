@@ -223,3 +223,31 @@ describe("validateMarkdown", () => {
     expect(validateMarkdown("[email](mailto:a@b.com)", 100, "Body")).toBeNull();
   });
 });
+
+describe("alignment (ADR-113)", () => {
+  it("reads a centred heading and strips the marker from the text", () => {
+    const [block] = parseMarkdown("## Signed {align=center}");
+    expect(block).toEqual({ kind: "heading", level: 2, spans: [{ text: "Signed" }], align: "center" });
+  });
+
+  it("reads a right-aligned paragraph", () => {
+    const [block] = parseMarkdown("For and on behalf of the Company {align=right}");
+    expect(block).toMatchObject({ kind: "paragraph", align: "right" });
+    expect((block as { spans: { text: string }[] }).spans[0]!.text).toBe("For and on behalf of the Company");
+  });
+
+  it("leaves an unaligned block with no align key at all", () => {
+    expect(parseMarkdown("Plain text")[0]).toEqual({ kind: "paragraph", spans: [{ text: "Plain text" }] });
+  });
+
+  it("ignores a marker that is not a real alignment", () => {
+    const [block] = parseMarkdown("Fees apply {align=middle}");
+    expect(block).toMatchObject({ kind: "paragraph" });
+    expect(block).not.toHaveProperty("align");
+  });
+
+  it("only takes the marker at the end of a block, not mid-sentence", () => {
+    const [block] = parseMarkdown("The {align=center} token is literal here, mid-sentence");
+    expect(block).not.toHaveProperty("align");
+  });
+});
