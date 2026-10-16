@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Inter } from "next/font/google";
+import { Inter, Noto_Sans_Khmer } from "next/font/google";
 import localFont from "next/font/local";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { Providers } from "@/components/layout/Providers";
@@ -14,6 +14,19 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+});
+
+/** Khmer face — Noto Sans Khmer (SIL OFL 1.1), self-hosted by next/font like
+ *  Inter, so the reader's browser never calls Google. Khmer subset only:
+ *  Latin text stays Inter. It is the Khmer step of the body stack on Khmer
+ *  pages and of `--font-heading` everywhere (globals.css). Not preloaded —
+ *  an English or Korean page has no Khmer to draw, and the browser fetches
+ *  it only when Khmer text appears (the face's unicode-range). */
+const notoSansKhmer = Noto_Sans_Khmer({
+  subsets: ["khmer"],
+  variable: "--font-noto-khmer",
+  display: "swap",
+  preload: false,
 });
 
 /** Opt-in secondary font — not the default anywhere. Inter (above) stays
@@ -105,7 +118,7 @@ export default async function RootLayout({
     // never its descendants. A real mismatch inside the app still reports.
     <html
       lang={LOCALE_HTML_LANG[locale]}
-      className={`${inter.variable} ${pretendard.variable} ${calSans.variable}`}
+      className={`${inter.variable} ${pretendard.variable} ${calSans.variable} ${notoSansKhmer.variable}`}
       suppressHydrationWarning
     >
       <head>

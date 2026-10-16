@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { ShieldIcon } from "@/components/auth/icons";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Link } from "@/lib/i18n/navigation";
+import { fill } from "@/lib/i18n/translations";
 
 /**
  * The "Sign in to access X" prompt a signed-out visitor gets from a product
@@ -11,6 +13,7 @@ import { Button } from "@/components/ui/button";
  * `product` is the name clicked; null hides the dialog.
  */
 export function AuthGateDialog({ product, onClose }: { product: string | null; onClose: () => void }) {
+  const { t } = useLanguage();
   if (product === null) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" onClick={onClose}>
@@ -25,25 +28,23 @@ export function AuthGateDialog({ product, onClose }: { product: string | null; o
           <ShieldIcon className="size-5" />
         </div>
         <h2 id="welcome-auth-gate-title" className="text-lg font-semibold tracking-tight">
-          Sign in to access {product}
+          {fill(t.authGate.title, { product })}
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {product} documentation is only available to signed-in members. Create a free account or log in to continue.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{fill(t.authGate.body, { product })}</p>
         <div className="mt-6 flex flex-col gap-2">
           <Button asChild className="w-full">
             <Link href="/register" onClick={onClose}>
-              Get started free
+              {t.authGate.getStartedFree}
             </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
             <Link href="/login" onClick={onClose}>
-              Log in
+              {t.authGate.logIn}
             </Link>
           </Button>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose} className="mt-2 w-full text-muted-foreground hover:text-foreground">
-          Maybe later
+          {t.authGate.maybeLater}
         </Button>
       </div>
     </div>

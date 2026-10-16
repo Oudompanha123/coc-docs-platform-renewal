@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { SessionExpiredError } from "@/lib/auth/api";
+import { translations } from "@/lib/i18n/translations";
+import { storeErrorMessage } from "@/lib/store/store-i18n";
 import {
+  StoreApiError,
   buildUploadBody,
+  fetchStoreApps,
   compareVersions,
   findSameApp,
   getOptions,
@@ -193,6 +198,39 @@ describe("relativeTime", () => {
     expect(relativeTime("2026-10-07T12:00:00Z", now)).toMatch(/7 days ago|last week|1 week ago/);
     expect(relativeTime("2024-10-14T12:00:00Z", now)).toMatch(/2 years ago/);
     expect(relativeTime("2026-10-14T11:59:30Z", now)).toBe("just now");
+  });
+  it("speaks the page's language when given one", () => {
+    expect(relativeTime("2026-10-07T12:00:00Z", now, { locale: "ko" })).toMatch(/일 전|지난주|주 전/);
+    expect(relativeTime("2026-10-14T11:59:30Z", now, { locale: "km", justNow: "អម្បាញ់មិញ" })).toBe("អម្បាញ់មិញ");
+  });
+});
+
+describe("Store errors say where their message came from, so the page can translate it", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const failWith = (response: Response | Error) =>
+    vi.stubGlobal("fetch", vi.fn(() => (response instanceof Error ? Promise.reject(response) : Promise.resolve(response))));
+
+  it("tags a network failure, a 403, a bare failure and a backend detail", async () => {
+    failWith(new TypeError("offline"));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "network" });
+    failWith(new Response(null, { status: 403 }));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "forbidden" });
+    failWith(new Response("oops", { status: 500 }));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "fallback" });
+    failWith(new Response(JSON.stringify({ detail: "name already used" }), { status: 409 }));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "server", message: "Name already used" });
+  });
+
+  it("words each in the reader's language, keeping only the backend's own text as sent", () => {
+    const ko = translations.ko;
+    expect(storeErrorMessage(new StoreApiError("x", "network"), ko, "fb")).toBe(ko.storeErrors.network);
+    expect(storeErrorMessage(new StoreApiError("x", "forbidden"), ko, "fb")).toBe(ko.storeErrors.forbidden);
+    expect(storeErrorMessage(new StoreApiError("x", "tooLarge"), ko, "fb")).toBe(ko.storeErrors.tooLarge);
+    expect(storeErrorMessage(new StoreApiError("x", "fallback"), ko, "fb")).toBe("fb");
+    expect(storeErrorMessage(new StoreApiError("Name already used", "server"), ko, "fb")).toBe("Name already used");
+    expect(storeErrorMessage(new SessionExpiredError("x"), ko, "fb")).toBe(ko.storeErrors.sessionExpired);
+    expect(storeErrorMessage(new Error("boom"), ko, "fb")).toBe("fb");
   });
 });
 

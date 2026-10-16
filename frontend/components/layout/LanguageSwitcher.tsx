@@ -17,13 +17,13 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
  * picker: a reader looking for Khmer recognises "ភាសាខ្មែរ", not "Khmer".
  */
 export function LanguageSwitcher({ align = "end" }: { align?: "start" | "center" | "end" }) {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   return (
     <NavMenu
       align={align}
       panelClassName="w-44 grid-cols-1"
       label={
-        <span className="flex items-center gap-1.5" aria-label={`Language: ${LOCALE_LABELS[language]}`}>
+        <span className="flex items-center gap-1.5" aria-label={`${t.profile.language}: ${LOCALE_LABELS[language]}`}>
           <Languages className="size-4" aria-hidden="true" />
           <span aria-hidden="true">{LOCALE_SHORT_LABELS[language]}</span>
         </span>

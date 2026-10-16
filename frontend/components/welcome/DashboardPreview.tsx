@@ -23,6 +23,13 @@ import { EmptyContentIllustration } from "@/components/docs/editor/EmptyContentI
 import { NAV_BOTTOM, NAV_TOP, PRODUCT_ICONS, visibleNavSections } from "@/components/layout/nav-config";
 import { FALLBACK_NAV, type NavProduct } from "@/lib/docs/nav-api";
 import { QUICK_ACTIONS, type Tone } from "@/lib/mock/overview";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { renderBold } from "@/lib/i18n/rich";
+import { fill, type Translations } from "@/lib/i18n/translations";
+
+/** The preview's own catalogue section (`translations.ts`, FR-I18N-001). */
+type PreviewText = Translations["welcomePreview"];
+type PreviewKey = keyof PreviewText;
 
 /** A hardcoded exception, not read from FALLBACK_NAV — "ssss" is local test
  *  data an admin created in this dev environment's real database, not a
@@ -66,11 +73,34 @@ const SIDEBAR_ITEMS = [
 
 /** The standalone workspace-dashboard link above PRODUCTS is labelled
  *  "Overview" in the real admin sidebar (NAV_TOP) — this public page uses
- *  "Home" instead, since a visitor here isn't inside the admin workspace
- *  the word "Overview" refers to. The icon is still NAV_TOP's own, just the
- *  text is overridden locally; NAV_TOP itself (and the real sidebar) is
- *  untouched. */
-const HOME_LABEL = "Home";
+ *  "Home" (`t.nav.home`) instead, since a visitor here isn't inside the admin
+ *  workspace the word "Overview" refers to. The icon is still NAV_TOP's own,
+ *  just the text is overridden locally; NAV_TOP itself (and the real
+ *  sidebar) is untouched. */
+
+/** The ADMINISTRATION items' labels in the reader's language, keyed by href
+ *  so the real sidebar's English labels stay the one source of the list. An
+ *  item added there later shows its English label here until it gets a key. */
+const ADMIN_LABEL_KEYS: Record<string, PreviewKey> = {
+  "/users-roles": "usersRoles",
+  "/attendance": "attendance",
+  "/claude-usage": "claudeUsage",
+  "/announcements": "announcements",
+  "/legal-pages": "legalPages",
+};
+
+function adminLabel(item: { href: string; label: string }, p: PreviewText): string {
+  const key = ADMIN_LABEL_KEYS[item.href];
+  return key ? p[key] : item.label;
+}
+
+/** QUICK_ACTIONS (lib/mock/overview.ts) titles, by id — same fallback rule as above. */
+const QUICK_ACTION_KEYS: Record<string, PreviewKey> = {
+  "new-document": "newDocument",
+  "invite-teammate": "inviteTeammate",
+  "connect-integration": "connectIntegration",
+  "view-reports": "viewReports",
+};
 
 /** How many of a product's sub-items the content panel's document-list
  *  step shows — capped so a product with a long item list (Jex3.0 has 12)
@@ -87,27 +117,33 @@ const EXPANDED_ITEM_COUNT = 6;
 type PreviewStat = {
   key: string;
   label: string;
-  value: string;
-  trend: string;
+  written: number;
+  total: number;
   icon: typeof LayersIcon;
   tone: Tone;
 };
 
 const PREVIEW_STATS: PreviewStat[] = [
-  { key: "jex3-0", label: "Jex3.0", value: "8 / 11", trend: "3 not written", icon: LayersIcon, tone: "purple" },
-  { key: "jex2-0", label: "Jex2.0", value: "5 / 5", trend: "All written", icon: FolderIcon, tone: "green" },
-  { key: "coach", label: "Coach", value: "0 / 10", trend: "10 not written", icon: PersonIcon, tone: "orange" },
-  { key: "team", label: "Team", value: "0 / 7", trend: "7 not written", icon: PulseIcon, tone: "pink" },
-  { key: "usage", label: "Usage", value: "0 / 3", trend: "3 not written", icon: BarChartIcon, tone: "purple" },
-  { key: "ssss", label: "ssss", value: "0 / 0", trend: "0 not written", icon: DocumentIcon, tone: "green" },
+  { key: "jex3-0", label: "Jex3.0", written: 8, total: 11, icon: LayersIcon, tone: "purple" },
+  { key: "jex2-0", label: "Jex2.0", written: 5, total: 5, icon: FolderIcon, tone: "green" },
+  { key: "coach", label: "Coach", written: 0, total: 10, icon: PersonIcon, tone: "orange" },
+  { key: "team", label: "Team", written: 0, total: 7, icon: PulseIcon, tone: "pink" },
+  { key: "usage", label: "Usage", written: 0, total: 3, icon: BarChartIcon, tone: "purple" },
+  { key: "ssss", label: "ssss", written: 0, total: 0, icon: DocumentIcon, tone: "green" },
 ];
+
+/** "3 not written", or "All written" once a product with pages has every one written. */
+function statTrend(stat: PreviewStat, p: PreviewText): string {
+  const missing = stat.total - stat.written;
+  return missing === 0 && stat.total > 0 ? p.allWritten : fill(p.notWrittenCount, { n: missing });
+}
 
 /** The sidebar footer and header user chip show the real signed-in
  *  account's name/role rather than lib/mock/overview.ts's CURRENT_USER
  *  ("System Admin"), matching the real Overview page's current chip. Kept
  *  local to this component rather than changed on CURRENT_USER itself,
  *  since that constant also backs the unrelated Settings → Profile card. */
-const PREVIEW_ACCOUNT = { initials: "NC", name: "Neo Chanthy", role: "Super Admin", tone: "purple" as Tone };
+const PREVIEW_ACCOUNT = { initials: "NC", name: "Neo Chanthy", role: "roleSuperAdmin" as PreviewKey, tone: "purple" as Tone };
 
 type PreviewActivityStatus = "signIn" | "signOut";
 
@@ -118,18 +154,18 @@ const PREVIEW_ACTIVITY: {
   email: string;
   initials: string;
   tone: Tone;
-  description: string;
   status: PreviewActivityStatus;
-  timeAgo: string;
+  minutesAgo: number;
 }[] = [
-  { email: "admin@cocdocs.example", initials: "A", tone: "purple", description: "Signed in successfully", status: "signIn", timeAgo: "4m ago" },
-  { email: "admin@cocdocs.example", initials: "A", tone: "purple", description: "Signed out", status: "signOut", timeAgo: "5m ago" },
-  { email: "teammate@cocdocs.example", initials: "T", tone: "green", description: "Signed in successfully", status: "signIn", timeAgo: "6m ago" },
+  { email: "admin@cocdocs.example", initials: "A", tone: "purple", status: "signIn", minutesAgo: 4 },
+  { email: "admin@cocdocs.example", initials: "A", tone: "purple", status: "signOut", minutesAgo: 5 },
+  { email: "teammate@cocdocs.example", initials: "T", tone: "green", status: "signIn", minutesAgo: 6 },
 ];
 
-const ACTIVITY_STATUS_STYLE: Record<PreviewActivityStatus, { icon: typeof CheckCircleIcon; className: string }> = {
-  signIn: { icon: CheckCircleIcon, className: "text-emerald-600" },
-  signOut: { icon: RingIcon, className: "text-amber-600" },
+/** Each status's icon, colour and description ("Signed in successfully" / "Signed out"). */
+const ACTIVITY_STATUS_STYLE: Record<PreviewActivityStatus, { icon: typeof CheckCircleIcon; className: string; description: PreviewKey }> = {
+  signIn: { icon: CheckCircleIcon, className: "text-emerald-600", description: "signedIn" },
+  signOut: { icon: RingIcon, className: "text-amber-600", description: "signedOut" },
 };
 
 /** Illustrative accounts for the "Users & Roles" step's own content layout
@@ -137,10 +173,10 @@ const ACTIVITY_STATUS_STYLE: Record<PreviewActivityStatus, { icon: typeof CheckC
  *  convention every other mock row in this file already uses. Shape
  *  mirrors AccountsTable's real columns (Name, Email, Role, Status, Last
  *  Login) condensed into one row each. */
-const PREVIEW_ACCOUNTS: { name: string; email: string; role: string; status: string; lastLogin: string; tone: Tone }[] = [
-  { name: "Neo Chanthy", email: "neo.chanthy@cocdocs.example", role: "Super Admin", status: "Active", lastLogin: "Today, 9:04", tone: "purple" },
-  { name: "Admin User", email: "admin@cocdocs.example", role: "Admin", status: "Active", lastLogin: "Yesterday, 17:10", tone: "orange" },
-  { name: "Sam Reader", email: "sam@cocdocs.example", role: "User", status: "Pending", lastLogin: "Never", tone: "green" },
+const PREVIEW_ACCOUNTS: { name: string; email: string; role: PreviewKey; status: "statusActive" | "statusPending"; lastLogin: string; tone: Tone }[] = [
+  { name: "Neo Chanthy", email: "neo.chanthy@cocdocs.example", role: "roleSuperAdmin", status: "statusActive", lastLogin: "Today, 9:04", tone: "purple" },
+  { name: "Admin User", email: "admin@cocdocs.example", role: "roleAdmin", status: "statusActive", lastLogin: "Yesterday, 17:10", tone: "orange" },
+  { name: "Sam Reader", email: "sam@cocdocs.example", role: "roleUser", status: "statusPending", lastLogin: "Never", tone: "green" },
 ];
 
 /** Illustrative per-teammate token usage for the "Claude Usage" step's own
@@ -155,28 +191,32 @@ const PREVIEW_USAGE_ROWS: { name: string; email: string; tokens: string; tone: T
 
 /** The condensed stat row for the "Claude Usage" step — same 4 metrics the
  *  real page leads with, illustrative numbers. */
-const CLAUDE_USAGE_STATS: { label: string; value: string }[] = [
-  { label: "Total tokens", value: "360.6K" },
-  { label: "API cost", value: "$29.47" },
-  { label: "Active users", value: "5 of 5" },
-  { label: "Near limit", value: "0" },
+const CLAUDE_USAGE_STATS: { label: PreviewKey; value: string | { n: number; total: number } }[] = [
+  { label: "totalTokens", value: "360.6K" },
+  { label: "apiCost", value: "$29.47" },
+  { label: "activeUsers", value: { n: 5, total: 5 } },
+  { label: "nearLimit", value: "0" },
 ];
 
 /** The condensed "Daily tokens by user" mini bar chart's days and legend —
  *  illustrative, not a real week's data. */
-const CLAUDE_USAGE_CHART_DAYS: { day: string; pct: number }[] = [
-  { day: "Mon", pct: 18 },
-  { day: "Tue", pct: 32 },
-  { day: "Wed", pct: 14 },
-  { day: "Thu", pct: 95 },
-  { day: "Fri", pct: 40 },
+const CLAUDE_USAGE_CHART_DAYS: { day: PreviewKey; pct: number }[] = [
+  { day: "mon", pct: 18 },
+  { day: "tue", pct: 32 },
+  { day: "wed", pct: 14 },
+  { day: "thu", pct: 95 },
+  { day: "fri", pct: 40 },
 ];
 
-const CLAUDE_USAGE_LEGEND: { name: string; tone: Tone }[] = [
-  { name: "Teammate A", tone: "purple" },
-  { name: "Teammate B", tone: "green" },
-  { name: "Teammate C", tone: "orange" },
+/** "Teammate A" … — the letter is the sample name; the word around it is translated. */
+const CLAUDE_USAGE_LEGEND: { id: string; tone: Tone }[] = [
+  { id: "A", tone: "purple" },
+  { id: "B", tone: "green" },
+  { id: "C", tone: "orange" },
 ];
+
+/** The default weekly soft budget the budget note quotes. */
+const DEFAULT_WEEKLY_BUDGET = "1.2M";
 
 const QUICK_ACTION_ICONS = {
   plus: PlusIcon,
@@ -208,16 +248,14 @@ const SIDEBAR_DWELL_MS = 2600;
  *  data field). Products get the same "Manage X's knowledge base content"
  *  wording the real per-product admin page uses; Administration items get
  *  their own real page's subtitle; Overview keeps its existing copy. */
-function subtitleForNavIndex(index: number): string {
-  if (index === 0) return "Your documentation workspace at a glance";
+function subtitleForNavIndex(index: number, p: PreviewText): string {
+  if (index === 0) return p.subtitleOverview;
   const productIndex = index - 1;
   const product = MOCK_PRODUCTS[productIndex];
-  if (product) return `Manage ${product.label}'s knowledge base content`;
+  if (product) return fill(p.subtitleProduct, { product: product.label });
   const adminItem = ADMINISTRATION_SECTION?.items[index - 1 - MOCK_PRODUCTS.length];
-  if (adminItem?.label === "Users & Roles") return "Manage who has access to Coc Docs Platform and what they can do";
-  if (adminItem?.label === "Claude Usage") {
-    return "Track opt-in Claude Code usage and estimated API-equivalent cost across your team";
-  }
+  if (adminItem?.label === "Users & Roles") return p.subtitleUsers;
+  if (adminItem?.label === "Claude Usage") return p.subtitleUsage;
   return "";
 }
 
@@ -244,6 +282,8 @@ function highlightStatKeyForNavIndex(index: number): string {
  * on its root with no theme prop of its own (ADR-104).
  */
 export function DashboardPreview() {
+  const { t } = useLanguage();
+  const p = t.welcomePreview;
   const navColumnRef = useRef<HTMLDivElement>(null);
   // Keyed by each item's index in SIDEBAR_ITEMS rather than one named ref
   // per item — the list is built dynamically from real nav data, so its
@@ -292,13 +332,17 @@ export function DashboardPreview() {
   // word longer than the sidebar nav label ("Claude Usage") that links to
   // it. The sidebar row below reads `item.label` directly, so this override
   // only affects the content header, never the nav link's own text.
+  // Products keep their names; Administration items read in the reader's language.
+  const isAdminStep = activeNavIndex > MOCK_PRODUCTS.length;
   const frameTitle =
     activeNavIndex === 0
-      ? HOME_LABEL
+      ? t.nav.home
       : activeItem.label === "Claude Usage"
-        ? "Claude Code Usage"
-        : activeItem.label;
-  const frameSubtitle = subtitleForNavIndex(activeNavIndex);
+        ? p.claudeCodeUsage
+        : isAdminStep
+          ? adminLabel(activeItem, p)
+          : activeItem.label;
+  const frameSubtitle = subtitleForNavIndex(activeNavIndex, p);
   const highlightStatKey = highlightStatKeyForNavIndex(activeNavIndex);
 
   // Which of the three content layouts is active — the stat-card dashboard
@@ -347,11 +391,11 @@ export function DashboardPreview() {
               }`}
             >
               <NAV_TOP.icon className="h-3.5 w-3.5" />
-              {HOME_LABEL}
+              {t.nav.home}
             </span>
 
             <div className="flex flex-col gap-1">
-              <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">PRODUCTS</p>
+              <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">{t.products.label}</p>
               {MOCK_PRODUCTS.map((product, productIndex) => {
                 const Icon = PRODUCT_ICONS[product.icon] ?? LayersIcon;
                 // +1: index 0 in SIDEBAR_ITEMS is Home/Overview, so the
@@ -377,14 +421,14 @@ export function DashboardPreview() {
                   never one of the animated steps. */}
               <span className="flex items-center gap-2 rounded-lg border border-dashed border-white/15 px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted">
                 <PlusIcon className="h-3.5 w-3.5" />
-                Add product
+                {p.addProduct}
               </span>
             </div>
 
             {ADMINISTRATION_SECTION && (
               <div className="flex flex-col gap-1">
                 <p className="px-2.5 text-[9px] font-semibold tracking-wider text-sidebar-muted/70">
-                  {ADMINISTRATION_SECTION.label}
+                  {p.administration}
                 </p>
                 {ADMINISTRATION_SECTION.items.map((item, itemIndex) => {
                   // +1 for Home, + MOCK_PRODUCTS.length for the PRODUCTS
@@ -400,7 +444,7 @@ export function DashboardPreview() {
                       }`}
                     >
                       <item.icon className="h-3.5 w-3.5" />
-                      {item.label}
+                      {adminLabel(item, p)}
                     </span>
                   );
                 })}
@@ -411,7 +455,7 @@ export function DashboardPreview() {
           <div className="space-y-2 border-t border-white/10 pt-3">
             <span className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted">
               <NAV_BOTTOM.icon className="h-3.5 w-3.5" />
-              {NAV_BOTTOM.label}
+              {t.nav.settings}
             </span>
 
             <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5">
@@ -422,7 +466,7 @@ export function DashboardPreview() {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold text-white">{PREVIEW_ACCOUNT.name}</p>
-                <p className="truncate text-[9px] text-sidebar-muted">{PREVIEW_ACCOUNT.role}</p>
+                <p className="truncate text-[9px] text-sidebar-muted">{p[PREVIEW_ACCOUNT.role]}</p>
               </div>
             </div>
           </div>
@@ -480,7 +524,7 @@ export function DashboardPreview() {
                   <p className="truncate text-[8px] font-semibold text-foreground">
                     {PREVIEW_ACCOUNT.name}
                   </p>
-                  <p className="truncate text-[7px] text-muted-foreground">{PREVIEW_ACCOUNT.role}</p>
+                  <p className="truncate text-[7px] text-muted-foreground">{p[PREVIEW_ACCOUNT.role]}</p>
                 </div>
                 <ChevronDownIcon className="hidden h-2.5 w-2.5 shrink-0 sm:block text-muted-foreground" />
               </div>
@@ -513,10 +557,10 @@ export function DashboardPreview() {
                     </p>
                   </div>
                   <p className="mt-1.5 truncate text-xs font-bold text-foreground">
-                    {stat.value}
+                    {stat.written} / {stat.total}
                   </p>
                   <p className="truncate text-[8px] font-semibold text-emerald-600">
-                    {stat.trend}
+                    {statTrend(stat, p)}
                   </p>
                 </div>
               );
@@ -536,7 +580,7 @@ export function DashboardPreview() {
                     <Icon className="h-3 w-3" />
                   </div>
                   <p className="truncate text-[9px] font-semibold text-foreground">
-                    {action.title}
+                    {QUICK_ACTION_KEYS[action.id] ? p[QUICK_ACTION_KEYS[action.id]!] : action.title}
                   </p>
                 </div>
               );
@@ -546,8 +590,8 @@ export function DashboardPreview() {
           <div className="mt-3 grid grid-cols-[65fr_35fr] gap-2.5">
             <div className="rounded-xl border p-3 border-surface-border bg-card">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-foreground">Recent Documents</p>
-                <span className="text-[9px] font-semibold text-foreground">View all</span>
+                <p className="text-xs font-bold text-foreground">{p.recentDocuments}</p>
+                <span className="text-[9px] font-semibold text-foreground">{p.viewAll}</span>
               </div>
               <div className="mt-2 divide-y divide-surface-border">
                 {PREVIEW_DOCS.map((doc) => (
@@ -566,7 +610,7 @@ export function DashboardPreview() {
                     <span
                       className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold bg-emerald-600/15 text-emerald-600"
                     >
-                      Has content
+                      {p.hasContent}
                     </span>
                   </div>
                 ))}
@@ -574,7 +618,7 @@ export function DashboardPreview() {
             </div>
 
             <div className="rounded-xl border p-3 border-surface-border bg-card">
-              <p className="text-xs font-bold text-foreground">Recent Activity</p>
+              <p className="text-xs font-bold text-foreground">{p.recentActivity}</p>
               <div className="mt-2 divide-y divide-surface-border">
                 {PREVIEW_ACTIVITY.map((activity, i) => {
                   const StatusIcon = ACTIVITY_STATUS_STYLE[activity.status].icon;
@@ -589,10 +633,10 @@ export function DashboardPreview() {
                         <p className="truncate text-[10px] font-semibold text-foreground">
                           {activity.email}
                         </p>
-                        <p className="truncate text-[9px] text-muted-foreground">{activity.description}</p>
+                        <p className="truncate text-[9px] text-muted-foreground">{p[ACTIVITY_STATUS_STYLE[activity.status].description]}</p>
                         <p className="mt-0.5 flex items-center gap-1 text-[8px] text-muted-foreground">
                           <StatusIcon className={`h-2.5 w-2.5 shrink-0 ${ACTIVITY_STATUS_STYLE[activity.status].className}`} />
-                          {activity.timeAgo}
+                          {fill(p.minutesAgo, { n: activity.minutesAgo })}
                         </p>
                       </div>
                     </div>
@@ -607,10 +651,10 @@ export function DashboardPreview() {
           {activeProduct && (
             <div className="rounded-xl border p-3 border-surface-border bg-card">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-foreground">{activeProduct.label} items</p>
+                <p className="text-xs font-bold text-foreground">{fill(p.productItems, { product: activeProduct.label })}</p>
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[9px] font-semibold text-primary-foreground">
                   <PlusIcon className="h-2.5 w-2.5" />
-                  Add Item
+                  {p.addItem}
                 </span>
               </div>
               {/* Empty state matches the real per-product admin page's own
@@ -620,10 +664,9 @@ export function DashboardPreview() {
               {activeProduct.items.length === 0 && (
                 <div className="scale-[0.55] py-1 text-center [transform-origin:top]">
                   <EmptyContentIllustration />
-                  <h4 className="mt-3 text-sm font-bold text-foreground">No content found</h4>
+                  <h4 className="mt-3 text-sm font-bold text-foreground">{p.noContent}</h4>
                   <p className="mx-auto mt-1 max-w-[220px] text-xs text-muted-foreground">
-                    Start building &quot;{activeProduct.label}&quot;&apos;s knowledge base by adding your first content
-                    item. You can create a new page, upload a document, or embed a resource.
+                    {fill(p.noContentBody, { product: activeProduct.label })}
                   </p>
                 </div>
               )}
@@ -642,12 +685,12 @@ export function DashboardPreview() {
                             hasContent ? "bg-emerald-600/15 text-emerald-600" : "bg-muted-surface text-muted-foreground"
                           }`}
                         >
-                          {hasContent ? "Has content" : "Not written"}
+                          {hasContent ? p.hasContent : p.notWritten}
                         </span>
                         <span
                           className="rounded-full border px-2 py-0.5 text-[9px] font-semibold border-surface-border text-foreground"
                         >
-                          {hasContent ? "Edit" : "+ Write"}
+                          {hasContent ? p.edit : p.write}
                         </span>
                       </div>
                     </div>
@@ -662,11 +705,11 @@ export function DashboardPreview() {
               {/* Tab row — Users active, matching the real page's tab bar */}
               <div className="flex items-center gap-4 border-b px-3 pt-2.5 border-surface-border">
                 <span className="relative pb-2 text-[10px] font-bold text-foreground">
-                  Users
+                  {p.tabUsers}
                   <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
                 </span>
-                <span className="pb-2 text-[10px] font-medium text-muted-foreground">Pending</span>
-                <span className="pb-2 text-[10px] font-medium text-muted-foreground">Roles</span>
+                <span className="pb-2 text-[10px] font-medium text-muted-foreground">{p.tabPending}</span>
+                <span className="pb-2 text-[10px] font-medium text-muted-foreground">{p.tabRoles}</span>
               </div>
 
               {/* Search + Add user row */}
@@ -674,10 +717,10 @@ export function DashboardPreview() {
                 <span
                   className="flex-1 truncate rounded-lg border px-2 py-1 text-[8px] border-surface-border text-muted-foreground"
                 >
-                  Search by name, email, or role…
+                  {p.searchUsers}
                 </span>
                 <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[8px] font-semibold text-primary-foreground">
-                  + Add user
+                  {p.addUser}
                 </span>
               </div>
 
@@ -700,15 +743,15 @@ export function DashboardPreview() {
                     </div>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                        account.status === "Active" ? "bg-emerald-600/15 text-emerald-600" : "bg-amber-600/15 text-amber-600"
+                        account.status === "statusActive" ? "bg-emerald-600/15 text-emerald-600" : "bg-amber-600/15 text-amber-600"
                       }`}
                     >
-                      {account.status}
+                      {p[account.status]}
                     </span>
                     <span
                       className="hidden shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold sm:inline-block bg-secondary text-secondary-foreground"
                     >
-                      {account.role}
+                      {p[account.role]}
                     </span>
                   </div>
                 ))}
@@ -722,24 +765,23 @@ export function DashboardPreview() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   <span className="rounded-full px-2 py-1 text-[9px] font-semibold text-muted-foreground">
-                    Day
+                    {p.periodDay}
                   </span>
                   <span className="rounded-full bg-primary px-2 py-1 text-[9px] font-semibold text-primary-foreground">
-                    Week
+                    {p.periodWeek}
                   </span>
                   <span className="rounded-full px-2 py-1 text-[9px] font-semibold text-muted-foreground">
-                    Month
+                    {p.periodMonth}
                   </span>
                 </div>
-                <span className="text-[9px] text-muted-foreground">This week</span>
+                <span className="text-[9px] text-muted-foreground">{p.thisWeek}</span>
               </div>
 
               {/* Disclaimer — real wording, not paraphrased */}
               <div
                 className="rounded-lg border px-2.5 py-1.5 text-[8px] leading-relaxed border-surface-border bg-secondary text-secondary-foreground"
               >
-                Token counts and API-equivalent cost below are <strong>soft-budget estimates</strong>, not a real invoice
-                or a hard usage limit — actual billing depends on the plan and models each person uses.
+                {renderBold(p.disclaimer)}
               </div>
 
               {/* Stat cards */}
@@ -752,16 +794,18 @@ export function DashboardPreview() {
                     <p
                       className="truncate text-[7px] font-medium text-muted-foreground"
                     >
-                      {stat.label}
+                      {p[stat.label]}
                     </p>
-                    <p className="mt-1 truncate text-xs font-bold text-foreground">{stat.value}</p>
+                    <p className="mt-1 truncate text-xs font-bold text-foreground">
+                      {typeof stat.value === "string" ? stat.value : fill(p.countOf, stat.value)}
+                    </p>
                   </div>
                 ))}
               </div>
 
               {/* Daily tokens by user — mini bar chart, div-based (no charting library) */}
               <div className="rounded-xl border p-3 border-surface-border bg-card">
-                <p className="text-xs font-bold text-foreground">Daily tokens by user</p>
+                <p className="text-xs font-bold text-foreground">{p.dailyTokens}</p>
                 <div className="mt-3 flex h-16 items-end gap-2">
                   {CLAUDE_USAGE_CHART_DAYS.map((d) => (
                     <div key={d.day} className="flex flex-1 flex-col items-center gap-1">
@@ -769,18 +813,18 @@ export function DashboardPreview() {
                         className="w-full rounded-t bg-gradient-to-t bg-primary"
                         style={{ height: `${d.pct}%` }}
                       />
-                      <span className="text-[7px] text-muted-foreground">{d.day}</span>
+                      <span className="text-[7px] text-muted-foreground">{p[d.day]}</span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2.5">
                   {CLAUDE_USAGE_LEGEND.map((legendItem) => (
                     <span
-                      key={legendItem.name}
+                      key={legendItem.id}
                       className="flex items-center gap-1 text-[8px] text-muted-foreground"
                     >
                       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${AVATAR_GRADIENTS[legendItem.tone]}`} />
-                      {legendItem.name}
+                      {fill(p.teammate, { id: legendItem.id })}
                     </span>
                   ))}
                 </div>
@@ -788,7 +832,7 @@ export function DashboardPreview() {
 
               {/* Per-user usage — condensed to name/tokens/status, not every real column */}
               <div className="rounded-xl border p-3 border-surface-border bg-card">
-                <p className="text-xs font-bold text-foreground">Per-user usage</p>
+                <p className="text-xs font-bold text-foreground">{p.perUserUsage}</p>
                 <div className="mt-2 divide-y divide-surface-border">
                   {PREVIEW_USAGE_ROWS.map((row) => (
                     <div key={row.email} className="flex items-center gap-2 py-1.5">
@@ -804,12 +848,12 @@ export function DashboardPreview() {
                         <p className="truncate text-[10px] font-semibold text-foreground">
                           {row.name}
                         </p>
-                        <p className="truncate text-[8px] text-muted-foreground">{row.tokens} tokens · Member</p>
+                        <p className="truncate text-[8px] text-muted-foreground">{fill(p.tokensRole, { tokens: row.tokens, role: p.roleMember })}</p>
                       </div>
                       <span
                         className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold bg-emerald-600/15 text-emerald-600"
                       >
-                        Active
+                        {p.statusActive}
                       </span>
                     </div>
                   ))}
@@ -820,7 +864,7 @@ export function DashboardPreview() {
                   full editable-per-person section, per this task's own
                   "may be summarized in one line" allowance. */}
               <p className="text-[8px] text-muted-foreground">
-                Soft budget overrides available per person — defaults to 1.2M tokens/week, takes effect immediately.
+                {fill(p.budgetNote, { tokens: DEFAULT_WEEKLY_BUDGET })}
               </p>
             </div>
           )}

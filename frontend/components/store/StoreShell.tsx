@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { LockIcon } from "@/components/auth/icons";
 import { MemberHeader } from "@/components/home/MemberHeader";
@@ -10,6 +9,8 @@ import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-men
 import { AuthGateDialog } from "@/components/welcome/AuthGateDialog";
 import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
 import { useSession } from "@/lib/auth/SessionProvider";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Link } from "@/lib/i18n/navigation";
 import { FALLBACK_NAV } from "@/lib/docs/nav-api";
 import { useProductStats } from "@/lib/docs/useProductStats";
 
@@ -29,6 +30,7 @@ function MemberStoreHeader() {
  * md the links collapse into one "Menu" so a narrow window keeps them.
  */
 function PublicStoreHeader({ onRequireAuth }: { onRequireAuth: (product: string) => void }) {
+  const { t } = useLanguage();
   return (
     <header className="sticky top-0 z-40 border-b border-surface-border bg-background">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
@@ -38,14 +40,14 @@ function PublicStoreHeader({ onRequireAuth }: { onRequireAuth: (product: string)
             <img src="/logo-coc-docs-platform.png" alt="Coc Docs Platform" className="h-8 w-auto rounded-md" />
           </Link>
           <div className="md:hidden">
-            <NavMenu label="Menu" panelClassName="w-[280px] grid-cols-1">
-              <NavMenuItem title="Home" href="/welcome" />
-              <NavMenuItem title="Store" href="/store" active />
+            <NavMenu label={t.nav.menu} panelClassName="w-[280px] grid-cols-1">
+              <NavMenuItem title={t.nav.home} href="/welcome" />
+              <NavMenuItem title={t.nav.store} href="/store" active />
               {FALLBACK_NAV.map((product) => (
                 <NavMenuItem
                   key={product.key}
                   title={product.label}
-                  description={productPagesBlurb(product.items) ?? "Documentation"}
+                  description={productPagesBlurb(product.items) ?? t.nav.documentation}
                   onSelect={() => onRequireAuth(product.label)}
                   trailing={<LockIcon className="size-3 shrink-0 text-muted-foreground" />}
                 />
@@ -55,24 +57,24 @@ function PublicStoreHeader({ onRequireAuth }: { onRequireAuth: (product: string)
         </div>
         <nav className="ml-8 mr-auto hidden items-center gap-1 text-[15px] md:flex">
           <Link href="/welcome" className={LINK_CLASS}>
-            Home
+            {t.nav.home}
           </Link>
           <Link
             href="/store"
             aria-current="page"
             className="inline-flex h-9 items-center rounded-3xl px-3.5 text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            Store
+            {t.nav.store}
           </Link>
           <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={onRequireAuth} />
         </nav>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Log in</Link>
+            <Link href="/login">{t.nav.logIn}</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/register">Get started</Link>
+            <Link href="/register">{t.nav.getStarted}</Link>
           </Button>
         </div>
       </div>

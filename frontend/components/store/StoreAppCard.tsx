@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
 import { Box, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { GlobeIcon } from "@/components/layout/icons";
@@ -11,6 +10,9 @@ import { GetAppDialog } from "@/components/store/GetAppDialog";
 import { Button } from "@/components/ui/button";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { DropdownMenuItem, RowActions } from "@/components/ui/dropdown-menu";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Link } from "@/lib/i18n/navigation";
+import { fill } from "@/lib/i18n/translations";
 import { PLATFORM_LABELS, formatDate, hasGettableBuild, livePlatforms, relativeTime, type StoreApp } from "@/lib/store/store-api";
 
 /**
@@ -33,15 +35,16 @@ export function StoreAppCard({
   /** The app's page — `/store-<number>`. */
   href: string;
 }) {
+  const { t, language } = useLanguage();
   const platforms = livePlatforms(app);
   const [getting, setGetting] = useState(false);
 
   async function copyUrl() {
     try {
       await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success("Link copied to the clipboard.");
+      toast.success(t.store.linkCopied);
     } catch {
-      toast.error("Couldn't copy the link.");
+      toast.error(t.store.copyFailed);
     }
   }
 
@@ -64,15 +67,15 @@ export function StoreAppCard({
               }`}
             >
               <GlobeIcon className="size-3.5" />
-              {app.isPublic ? "Public" : "Private"}
+              {app.isPublic ? t.store.public : t.store.private}
             </span>
           )}
         </div>
         <div className="relative z-10 -mr-2 -mt-1">
-          <RowActions label={`Actions for ${app.name}`}>
+          <RowActions label={fill(t.store.actionsFor, { name: app.name })}>
             <DropdownMenuItem onSelect={copyUrl}>
               <Copy className="size-4" aria-hidden="true" />
-              <span>Copy URL</span>
+              <span>{t.store.copyUrl}</span>
             </DropdownMenuItem>
           </RowActions>
         </div>
@@ -81,7 +84,7 @@ export function StoreAppCard({
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Box className="size-4 shrink-0" aria-hidden="true" />
         {platforms.length === 0 ? (
-          <span>No builds yet</span>
+          <span>{t.store.noBuilds}</span>
         ) : (
           <span className="flex flex-wrap gap-1.5">
             {platforms.map((p) => (
@@ -97,12 +100,14 @@ export function StoreAppCard({
         )}
       </div>
 
-      <p className="line-clamp-3 text-sm text-muted-foreground">{app.description || "No description yet."}</p>
+      <p className="line-clamp-3 text-sm text-muted-foreground">{app.description || t.store.noDescription}</p>
 
       <div className="mt-auto flex items-center justify-between gap-3">
-        <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground" title={formatDate(app.updatedAt)}>
+        <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground" title={formatDate(app.updatedAt, language)}>
           <Clock className="size-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">Updated {relativeTime(app.updatedAt)}</span>
+          <span className="truncate">
+            {fill(t.store.updated, { time: relativeTime(app.updatedAt, undefined, { locale: language, justNow: t.store.justNow }) })}
+          </span>
         </p>
         {hasGettableBuild(app) && (
           // Above the stretched link, so it opens the dialog instead of the app page.

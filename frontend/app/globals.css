@@ -123,9 +123,10 @@
   --font-pretendard: var(--font-pretendard);
   /* Headings — Cal Sans, per the coc-docs design system (ADR-104 r2.6).
      Cal Sans only carries Latin glyphs, so the stack falls through to Inter
-     and then Pretendard: a Korean or Khmer heading still renders in a real
-     font rather than the platform default. */
-  --font-heading: var(--font-cal-sans), var(--font-inter), var(--font-pretendard), ui-sans-serif, system-ui, sans-serif;
+     and then Pretendard (Korean) and Noto Sans Khmer (Khmer): a Korean or
+     Khmer heading still renders in a real font rather than the platform
+     default. */
+  --font-heading: var(--font-cal-sans), var(--font-inter), var(--font-pretendard), var(--font-noto-khmer), ui-sans-serif, system-ui, sans-serif;
 
   /* The legacy palette, repointed at shadcn's neutrals (ADR-104 r2.0).
      Every one of these used to be brand-tinted: ink was #28226d (a deep
@@ -1800,13 +1801,15 @@ select:autofill {
 /* Body text on Korean and Khmer pages (ADR-116). Inter carries neither
    script, so without this the browser picks whatever system font it finds
    for each run of Korean or Khmer. Korean falls through to Pretendard, which
-   this app already ships; Khmer to the Khmer faces Windows, macOS and Android
-   provide. Latin text in the same paragraph stays Inter. Keyed on <html lang>,
-   which the root layout sets from the URL prefix. */
+   this app already ships; Khmer to Noto Sans Khmer, which the root layout
+   loads, so Khmer looks the same on every OS. The system Khmer faces after it
+   only cover the moment before it arrives. Latin text in the same paragraph
+   stays Inter. Keyed on <html lang>, which the root layout sets from the URL
+   prefix. */
 html:lang(ko) body {
   font-family: var(--font-inter), var(--font-pretendard), ui-sans-serif, system-ui, sans-serif;
 }
 
 html:lang(km) body {
-  font-family: var(--font-inter), "Khmer UI", "Leelawadee UI", "Khmer Sangam MN", "Noto Sans Khmer", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), var(--font-noto-khmer), "Khmer UI", "Leelawadee UI", "Khmer Sangam MN", ui-sans-serif, system-ui, sans-serif;
 }
