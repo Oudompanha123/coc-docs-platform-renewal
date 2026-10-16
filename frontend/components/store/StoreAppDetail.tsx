@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDownIcon, ChevronLeftIcon, DownloadIcon, TrashIcon, UploadIcon } from "@/components/layout/icons";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppLogo } from "@/components/store/AppLogo";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { ERROR_CLASS } from "@/components/store/form-styles";
@@ -38,6 +39,9 @@ const ENVIRONMENT_BUTTON: Record<StoreEnvironment, string> = {
   development: "bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600",
 };
 
+/** A filled surface with no border or shadow — the same look as the listing's `StoreAppCard`. */
+const PANEL_CLASS = "rounded-2xl bg-muted-surface p-6";
+
 const ENVIRONMENT_BADGE: Record<StoreEnvironment, string> = {
   production: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
   development: "bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400",
@@ -66,7 +70,7 @@ function EnvironmentCell({ build, environment }: { build: StoreBuild | null; env
     when = { text: relativeTime(build.createdAt), title: `Uploaded ${formatDate(build.createdAt)}` };
   } else if (build) {
     control = (
-      <span aria-label={`${label} build of version ${build.version} was removed`} className={`${base} bg-muted-surface text-muted-foreground`}>
+      <span aria-label={`${label} build of version ${build.version} was removed`} className={`${base} bg-card text-muted-foreground`}>
         <DownloadIcon className="h-4 w-4" />
         Removed
       </span>
@@ -74,7 +78,7 @@ function EnvironmentCell({ build, environment }: { build: StoreBuild | null; env
     when = { text: relativeTime(build.removedAt ?? build.createdAt), title: `Removed ${formatDate(build.removedAt ?? build.createdAt)}` };
   } else {
     control = (
-      <span aria-label={`No ${label} build of this version`} className={`${base} border border-dashed border-surface-border text-muted-foreground`}>
+      <span aria-label={`No ${label} build of this version`} className={`${base} border border-dashed border-foreground/15 text-muted-foreground`}>
         N/A
       </span>
     );
@@ -106,23 +110,30 @@ function BuildDetails({
   onRemove: (build: StoreBuild) => void;
 }) {
   return (
-    <div className="rounded-xl border border-surface-border bg-background p-3">
+    <div className="rounded-xl bg-card p-3">
       <div className="flex items-center justify-between gap-2">
         <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${ENVIRONMENT_BADGE[environment]}`}>
           {ENVIRONMENT_LABELS[environment]}
         </span>
         {canManage && build && isLive(build) && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => onRemove(build)}
-            className="h-8 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            <TrashIcon className="h-4 w-4" />
-            Remove
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={busy}
+                  onClick={() => onRemove(build)}
+                  aria-label={`Remove ${ENVIRONMENT_LABELS[environment]} build`}
+                  className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/20"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Remove build</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
       {build ? (
@@ -309,14 +320,15 @@ export function StoreAppDetail({
         All apps
       </Link>
 
-      <div className="mt-4 grid grid-cols-1 gap-6 rounded-xl border border-surface-border bg-card p-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-10">
+      {/* Two filled panels, App Store style — no borders or shadows, like the listing's cards. */}
+      <div className="mt-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         {/* App's information */}
-        <section aria-labelledby="store-app-info">
+        <section aria-labelledby="store-app-info" className={PANEL_CLASS}>
           <h2 id="store-app-info" className="text-sm text-muted-foreground">
             App&apos;s Information
           </h2>
           {canManage && (
-            <span className="mt-3 inline-flex rounded-full bg-muted-surface px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <span className="mt-3 inline-flex rounded-full bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
               {app.isPublic ? "Public" : "Private"}
             </span>
           )}
@@ -349,7 +361,7 @@ export function StoreAppDetail({
                 variant="ghost"
                 onClick={removeApp}
                 disabled={busy}
-                className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="w-full bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive focus-visible:ring-destructive/20"
               >
                 <TrashIcon className="h-4 w-4" />
                 Delete app
@@ -357,7 +369,7 @@ export function StoreAppDetail({
             </div>
           )}
 
-          <dl className="mt-6 space-y-1 border-t border-surface-border pt-4 text-xs text-muted-foreground">
+          <dl className="mt-6 space-y-1 border-t border-foreground/10 pt-4 text-xs text-muted-foreground">
             <div className="flex justify-between gap-3">
               <dt>Added</dt>
               <dd title={formatDate(app.createdAt)}>{relativeTime(app.createdAt)}</dd>
@@ -370,12 +382,12 @@ export function StoreAppDetail({
         </section>
 
         {/* Version Control */}
-        <section aria-labelledby="store-version-control" className="min-w-0">
+        <section aria-labelledby="store-version-control" className={`min-w-0 ${PANEL_CLASS}`}>
           <h2 id="store-version-control" className="text-sm text-muted-foreground">
             Version Control
           </h2>
 
-          <div role="tablist" aria-label="Platform" className="mt-3 flex border-b border-surface-border">
+          <div role="tablist" aria-label="Platform" className="mt-3 flex gap-1 rounded-full bg-foreground/5 p-1">
             {tabs.map((p) => {
               const active = p === tab;
               return (
@@ -387,8 +399,8 @@ export function StoreAppDetail({
                   aria-selected={active}
                   aria-controls="store-platform-panel"
                   onClick={() => setTab(p)}
-                  className={`-mb-px flex flex-1 items-center justify-center gap-1.5 border-b-2 px-3 py-2.5 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
-                    active ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+                  className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
+                    active ? "bg-card font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <PlatformIcon platform={p} className="h-4 w-4" />
@@ -419,7 +431,7 @@ export function StoreAppDetail({
                   <span className="text-center">{ENVIRONMENT_LABELS.production}</span>
                   <span className="text-center">{ENVIRONMENT_LABELS.development}</span>
                 </div>
-                <ul className="divide-y divide-surface-border">
+                <ul className="divide-y divide-foreground/10">
                   {rows.map((row) => (
                     <VersionRowItem
                       key={row.version}

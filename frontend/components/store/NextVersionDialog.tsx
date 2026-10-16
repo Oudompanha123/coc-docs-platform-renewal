@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/store/AppLogo";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { StoreDialog } from "@/components/store/StoreDialog";
-import { ERROR_CLASS, INPUT_CLASS, LABEL_CLASS } from "@/components/store/form-styles";
+import { ERROR_CLASS, INPUT_CLASS, LABEL_CLASS, TEXTAREA_CLASS } from "@/components/store/form-styles";
 import {
   PLATFORM_EXTENSIONS,
   categoryPlatforms,
@@ -272,7 +272,7 @@ export function NextVersionDialog({
               rows={4}
               disabled={busy}
               placeholder="What changed in this version"
-              className={INPUT_CLASS}
+              className={TEXTAREA_CLASS}
             />
             <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
               {notes.length}/{MAX_NOTES} characters

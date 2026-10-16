@@ -11,7 +11,9 @@ import { PLATFORM_LABELS, formatDate, livePlatforms, relativeTime, type StoreApp
 
 /**
  * One app on the Store listing: icon, name, visibility, the platforms it has
- * builds for, description and when it last changed. The whole card opens the
+ * builds for, description and when it last changed. App Store style: a filled
+ * surface with no border or shadow, so the chips inside sit on `bg-card` to
+ * stay visible. The whole card opens the
  * app's page (`/store-<number>`) through a stretched link; the "⋯" menu sits
  * above it so it stays clickable. Its "Copy URL" puts the full page address
  * on the clipboard.
@@ -43,7 +45,7 @@ export function StoreAppCard({
   }
 
   return (
-    <div className="group relative flex flex-col gap-4 rounded-xl border border-surface-border bg-card p-5 shadow-xs transition-colors focus-within:ring-[3px] focus-within:ring-ring/50 hover:bg-muted-surface/40">
+    <div className="group relative flex flex-col gap-4 rounded-2xl bg-muted-surface p-5 transition-[background-color,scale] duration-300 ease-[cubic-bezier(.16,1,.3,1)] will-change-[scale] has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50 hover:scale-[1.02] hover:bg-[color-mix(in_oklab,var(--muted-surface),var(--foreground)_5%)] active:scale-[0.99] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100">
       <div className="flex items-start gap-4">
         <AppLogo app={app} />
         <div className="min-w-0 flex-1">
@@ -57,7 +59,7 @@ export function StoreAppCard({
           {showVisibility && (
             <span
               className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                app.isPublic ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" : "bg-muted-surface text-muted-foreground"
+                app.isPublic ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" : "bg-card text-muted-foreground"
               }`}
             >
               <GlobeIcon className="size-3.5" />
@@ -84,7 +86,7 @@ export function StoreAppCard({
             {platforms.map((p) => (
               <span
                 key={p}
-                className="inline-flex items-center gap-1 rounded-full bg-muted-surface px-2 py-0.5 text-[11px] font-medium text-foreground"
+                className="inline-flex items-center gap-1 rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-foreground"
               >
                 <PlatformIcon platform={p} className="h-3 w-3" />
                 {PLATFORM_LABELS[p]}

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Check, Monitor, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppIconPicker, iconProblem } from "@/components/store/AppIconPicker";
 import { StoreDialog } from "@/components/store/StoreDialog";
-import { ERROR_CLASS, INPUT_CLASS, LABEL_CLASS } from "@/components/store/form-styles";
+import { ERROR_CLASS, INPUT_CLASS, LABEL_CLASS, TEXTAREA_CLASS } from "@/components/store/form-styles";
 import { createStoreApp, findSameApp, STORE_CATEGORIES, storeAppHref, updateStoreApp, uploadStoreLogo, type StoreApp, type StoreCategory } from "@/lib/store/store-api";
 
 const TITLE_ID = "store-app-form-title";
@@ -123,10 +124,12 @@ export function StoreAppForm({
             <legend className={LABEL_CLASS}>Platform</legend>
             <div className="grid grid-cols-2 gap-3">
               {STORE_CATEGORIES.map((c) => (
+                // Filled tiles like the Store cards: the chosen one gets a strong
+                // ring and a filled check, the other stays a quiet grey surface.
                 <label
                   key={c.value}
-                  className={`flex cursor-pointer flex-col rounded-xl border px-4 py-3 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 ${
-                    category === c.value ? "border-primary bg-muted-surface" : "border-surface-border"
+                  className={`relative flex cursor-pointer items-center gap-3 rounded-2xl bg-muted-surface p-3 transition-shadow duration-150 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 ${
+                    category === c.value ? "ring-2 ring-primary" : "hover:ring-1 hover:ring-foreground/15"
                   }`}
                 >
                   <input
@@ -137,8 +140,21 @@ export function StoreAppForm({
                     onChange={() => setCategory(c.value)}
                     className="sr-only"
                   />
-                  <span className="text-sm font-medium text-foreground">{c.label}</span>
-                  <span className="text-xs text-muted-foreground">{c.hint}</span>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-card text-foreground">
+                    {c.value === "mobile" ? <Smartphone className="size-5" aria-hidden="true" /> : <Monitor className="size-5" aria-hidden="true" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-foreground">{c.label}</span>
+                    <span className="block text-xs text-muted-foreground">{c.hint}</span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`flex size-5 shrink-0 items-center justify-center rounded-full ${
+                      category === c.value ? "bg-primary text-primary-foreground" : "border border-foreground/20 bg-card"
+                    }`}
+                  >
+                    {category === c.value && <Check className="size-3" strokeWidth={3} />}
+                  </span>
                 </label>
               ))}
             </div>
@@ -159,11 +175,11 @@ export function StoreAppForm({
               maxLength={2000}
               disabled={busy}
               placeholder="What the app does and who it is for"
-              className={INPUT_CLASS}
+              className={TEXTAREA_CLASS}
             />
           </div>
 
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-surface-border px-4 py-3">
+          <div className="flex items-center justify-between gap-4 rounded-2xl bg-muted-surface px-4 py-3">
             <div>
               <p id="store-app-visibility-label" className="text-sm font-medium text-foreground">
                 {isPublic ? "Public" : "Private"}
@@ -180,7 +196,7 @@ export function StoreAppForm({
               onClick={() => setIsPublic(!isPublic)}
               disabled={busy}
               className={`relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
-                isPublic ? "bg-primary" : "bg-muted-surface"
+                isPublic ? "bg-primary" : "bg-foreground/15"
               }`}
             >
               <span
@@ -190,7 +206,7 @@ export function StoreAppForm({
           </div>
 
           {sameApp && (
-            <div role="status" className="rounded-xl border border-surface-border bg-muted-surface/40 px-4 py-3 text-sm">
+            <div role="status" className="rounded-2xl bg-muted-surface px-4 py-3 text-sm">
               <p className="font-medium text-foreground">{sameApp.name} is already on the Store.</p>
               <p className="mt-1 text-muted-foreground">To add a new build of it, open it and choose Next version.</p>
               <Link
