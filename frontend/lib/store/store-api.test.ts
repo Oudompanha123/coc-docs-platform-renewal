@@ -3,6 +3,9 @@ import {
   buildUploadBody,
   compareVersions,
   findSameApp,
+  getOptions,
+  hasGettableBuild,
+  latestLiveBuild,
   hasLiveBuild,
   appPlatforms,
   categoryPlatforms,
@@ -198,5 +201,38 @@ describe("platform tabs follow the app's category", () => {
     expect(appPlatforms({ ...app(), category: "mobile" })).toEqual(["ios", "android"]);
     expect(appPlatforms({ ...app(), category: "pc" })).toEqual(["windows", "macos"]);
     expect(categoryPlatforms("pc")).toEqual(["windows", "macos"]);
+  });
+});
+
+describe("Get on an app card", () => {
+  const a = app([
+    build("a1", "android", "production", "1.9.0"),
+    build("a2", "android", "production", "1.10.0"),
+    build("a3", "android", "production", "2.0.0", { removedAt: "2026-10-15T00:00:00Z" }),
+    build("a4", "android", "development", "1.11.0-beta"),
+  ]);
+
+  it("takes the highest live version, not the last upload and not a removed one", () => {
+    expect(latestLiveBuild(a, "android", "production")?.id).toBe("a2");
+    expect(latestLiveBuild(a, "android", "development")?.id).toBe("a4");
+    expect(latestLiveBuild(a, "ios", "production")).toBeNull();
+  });
+
+  it("offers a Mobile app both platforms in each environment, with a build only where one is live", () => {
+    expect(getOptions(a, "production").map((o) => [o.platform, o.build?.id ?? null])).toEqual([
+      ["ios", null],
+      ["android", "a2"],
+    ]);
+  });
+
+  it("offers a PC app Windows and macOS, plus any other platform it has a live build for", () => {
+    const pc = app([build("w1", "windows", "development", "1.0.0"), build("i1", "ios", "development", "1.0.0")], { category: "pc" });
+    expect(getOptions(pc, "development").map((o) => o.platform)).toEqual(["ios", "windows", "macos"]);
+  });
+
+  it("has something to Get only with a live build", () => {
+    expect(hasGettableBuild(a)).toBe(true);
+    expect(hasGettableBuild(app([build("r", "ios", "production", "1.0", { removedAt: "2026-10-15T00:00:00Z" })]))).toBe(false);
+    expect(hasGettableBuild(app())).toBe(false);
   });
 });
