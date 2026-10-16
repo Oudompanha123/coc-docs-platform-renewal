@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import { HomeIcon, PlayIcon, QuestionIcon, SparklesIcon, TagIcon } from "@/components/layout/icons";
 import { hrefFor, productForPathname } from "@/lib/docs/nav-routing";
 import { useNavStructure } from "@/lib/docs/useNavStructure";

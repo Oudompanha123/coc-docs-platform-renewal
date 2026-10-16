@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import { SunIcon, MoonIcon, MonitorIcon } from "@/components/layout/icons";
 import type { IconComponent } from "@/components/layout/icons";
+import { LanguagePicker } from "@/components/settings/LanguagePicker";
 
 const THEME_OPTIONS: { value: Theme; label: string; Icon: IconComponent }[] = [
   { value: "light",  label: "Light",  Icon: SunIcon },
@@ -12,7 +13,8 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: IconComponent }[] = [
 ];
 
 /**
- * The dashboard Settings page's Appearance card: the theme only.
+ * The dashboard Settings page's Appearance card: the theme and the language
+ * (ADR-116).
  *
  * The Accent color picker that used to sit below it is gone, at the product
  * owner's request — not needed for now. It was the only thing that wrote
@@ -62,6 +64,8 @@ export function AppearanceCard() {
           ))}
         </div>
       </div>
+
+      <LanguagePicker />
     </div>
   );
 }

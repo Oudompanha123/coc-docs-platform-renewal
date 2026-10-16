@@ -1,11 +1,13 @@
 // req: UI-LANG-01
-export type Language = "en" | "ko" | "km";
+// The UI message catalogue, keyed by locale. Which locale a page is in comes
+// from its URL (lib/i18n/config.ts, ADR-116); this file only holds the text.
+import { LOCALE_LABELS, type Locale } from "./config";
 
-export const LANGUAGE_LABELS: Record<Language, string> = {
-  en: "English",
-  ko: "한국어",
-  km: "ភាសាខ្មែរ",
-};
+/** @deprecated The locale type lives in `./config` as `Locale`. */
+export type Language = Locale;
+
+/** @deprecated Use `LOCALE_LABELS` from `./config`. */
+export const LANGUAGE_LABELS: Record<Language, string> = LOCALE_LABELS;
 
 export const translations = {
   en: {
@@ -371,3 +373,8 @@ export type Translations = {
     readonly [P in keyof typeof translations.en[K]]: string;
   };
 };
+
+// Compile-time check: every locale carries every key the English catalogue
+// has, so a missing Khmer or Korean string fails the build, not the page.
+const everyLocaleComplete: Record<Locale, Translations> = translations;
+void everyLocaleComplete;

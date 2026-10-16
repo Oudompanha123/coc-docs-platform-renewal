@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import appIcon from "@/app/icon.png";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
 type AuthShellProps = {
   /** Accepted for call-site compatibility; no longer rendered — see below. */
@@ -35,7 +36,12 @@ type AuthShellProps = {
  */
 export function AuthShell({ heading, subheading, footer, children }: AuthShellProps) {
   return (
-    <div className="bg-background flex min-h-svh flex-col items-center justify-center px-6 py-12">
+    <div className="bg-background relative flex min-h-svh flex-col items-center justify-center px-6 py-12">
+      {/* Before sign-in there is no Settings page to choose a language in,
+          so these pages carry the switcher themselves (ADR-116). */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="animate-entrance w-full max-w-sm">
         <Link
           href="/welcome"

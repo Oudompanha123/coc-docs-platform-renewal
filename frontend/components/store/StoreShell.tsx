@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type ReactNode } from "react";
 import { MemberHeader } from "@/components/home/MemberHeader";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useProductStats } from "@/lib/docs/useProductStats";
 
@@ -42,6 +43,7 @@ function PublicStoreHeader() {
           </Link>
         </nav>
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <Button asChild variant="ghost" size="sm">
             <Link href="/login">Log in</Link>
           </Button>

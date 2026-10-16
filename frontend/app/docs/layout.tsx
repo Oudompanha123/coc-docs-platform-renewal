@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import type { ReactNode } from "react";
 import { DocsSidebar } from "@/components/docs/DocsSidebar";
 import { DocsMobileNav } from "@/components/docs/DocsMobileNav";
