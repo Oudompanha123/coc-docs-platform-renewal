@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MonitorIcon, MoonIcon, SunIcon } from "@/components/layout/icons";
 import type { IconComponent } from "@/components/layout/icons";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
+import { LanguagePicker } from "@/components/settings/LanguagePicker";
 
 const THEME_OPTIONS: { value: Theme; label: string; Icon: IconComponent }[] = [
   { value: "light", label: "Light", Icon: SunIcon },
@@ -83,7 +84,7 @@ export function AppearanceCard() {
   return (
     <section id="appearance" className="scroll-mt-24 rounded-xl border border-surface-border bg-card p-5">
       <h2 className="text-base font-semibold text-foreground">Appearance</h2>
-      <p className="mt-0.5 text-sm text-muted-foreground">Choose how the site looks for you.</p>
+      <p className="mt-0.5 text-sm text-muted-foreground">Choose how the site looks for you, and its language.</p>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {THEME_OPTIONS.map(({ value, label, Icon }) => (
@@ -129,6 +130,10 @@ export function AppearanceCard() {
             </div>
           </button>
         ))}
+      </div>
+
+      <div className="mt-5">
+        <LanguagePicker />
       </div>
     </section>
   );

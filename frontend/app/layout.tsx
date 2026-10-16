@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { TopProgressBar } from "@/components/layout/TopProgressBar";
 import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { DEFAULT_LOCALE, LOCALE_HEADER, LOCALE_HTML_LANG, isLocale } from "@/lib/i18n/config";
 
 const THEME_BOOT_SCRIPT = `try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){}`;
 
@@ -74,11 +76,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The reader's locale, from the URL prefix, as middleware.ts resolved it
+  // (ADR-116). Reading a request header makes every page render per request,
+  // which they already effectively did: almost all of them are client
+  // components fetching from the backend after mount.
+  const requested = (await headers()).get(LOCALE_HEADER);
+  const locale = isLocale(requested) ? requested : DEFAULT_LOCALE;
   return (
     // suppressHydrationWarning on <html> for the same reason <body> already has
     // it, and for one more.
@@ -96,7 +104,7 @@ export default function RootLayout({
     // It suppresses one level only: the attributes and text of <html> itself,
     // never its descendants. A real mismatch inside the app still reports.
     <html
-      lang="en"
+      lang={LOCALE_HTML_LANG[locale]}
       className={`${inter.variable} ${pretendard.variable} ${calSans.variable}`}
       suppressHydrationWarning
     >
@@ -110,7 +118,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <TopProgressBar />
-        <Providers>{children}</Providers>
+        <Providers locale={locale}>{children}</Providers>
       </body>
     </html>
   );

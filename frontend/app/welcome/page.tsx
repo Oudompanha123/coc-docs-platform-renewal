@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
@@ -222,6 +223,9 @@ export default function WelcomePage() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* Signed out, so no Settings page yet — the navbar carries the
+                language choice (ADR-116). */}
+            <LanguageSwitcher />
             <Button
               variant="ghost"
               size="icon"

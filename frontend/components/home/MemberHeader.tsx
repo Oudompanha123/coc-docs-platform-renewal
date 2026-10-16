@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { UserAvatar } from "@/components/layout/UserAvatar";

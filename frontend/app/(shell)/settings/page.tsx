@@ -129,7 +129,7 @@ export default function SettingsPage() {
           </section>
 
           <section id="appearance" className="scroll-mt-6">
-            <SettingsCard icon={SunIcon} title="Appearance" description="Light, dark or match your system">
+            <SettingsCard icon={SunIcon} title="Appearance" description="Theme and language">
               <AppearanceCard />
             </SettingsCard>
           </section>
