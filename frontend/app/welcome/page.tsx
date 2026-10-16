@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
+import { AuthGateDialog } from "@/components/welcome/AuthGateDialog";
 import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
 import { ScrollReveal } from "@/components/welcome/ScrollReveal";
-import { GoogleIcon, ShieldIcon } from "@/components/auth/icons";
+import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
+import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";
 import { TONE_STYLES } from "@/components/dashboard/tone";
 import { FALLBACK_NAV } from "@/lib/docs/nav-api";
 import type { Tone } from "@/lib/mock/overview";
@@ -203,6 +205,23 @@ export default function WelcomePage() {
               alt="Coc Docs Platform"
               className="h-8 w-auto rounded-md"
             />
+            {/* Below md the nav below is hidden, so a narrow window would lose
+                Home, Store and Products altogether. The same links, in one menu. */}
+            <div className="md:hidden">
+              <NavMenu label="Menu" panelClassName="w-[280px] grid-cols-1">
+                <NavMenuItem title={HOME_LINK.label} href={HOME_LINK.href} />
+                <NavMenuItem title="Store" href="/store" />
+                {FALLBACK_NAV.map((product) => (
+                  <NavMenuItem
+                    key={product.key}
+                    title={product.label}
+                    description={productPagesBlurb(product.items) ?? "Documentation"}
+                    onSelect={() => setAuthGate(product.label)}
+                    trailing={<LockIcon className="size-3 shrink-0 text-muted-foreground" />}
+                  />
+                ))}
+              </NavMenu>
+            </div>
           </div>
 
           <nav className="ml-8 mr-auto hidden items-center gap-1 text-[15px] text-muted-foreground md:flex">
@@ -425,53 +444,8 @@ export default function WelcomePage() {
         </ScrollReveal>
       </footer>
 
-      {/* Auth-gate modal — shown when a visitor clicks a product nav item.
-          Rendered inside the page root, so it inherits `.landing-dark` and
-          its popover tokens flip with the rest of the page. */}
-      {authGate !== null && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
-          onClick={() => setAuthGate(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="welcome-auth-gate-title"
-            className="w-full max-w-sm rounded-xl border border-surface-border bg-popover p-6 text-popover-foreground shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex size-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-              <ShieldIcon className="size-5" />
-            </div>
-            <h2 id="welcome-auth-gate-title" className="text-lg font-semibold tracking-tight">
-              Sign in to access {authGate}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {authGate} documentation is only available to signed-in members. Create a free account or log in to continue.
-            </p>
-            <div className="mt-6 flex flex-col gap-2">
-              <Button asChild className="w-full">
-                <Link href="/register" onClick={() => setAuthGate(null)}>
-                  Get started free
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/login" onClick={() => setAuthGate(null)}>
-                  Log in
-                </Link>
-              </Button>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setAuthGate(null)}
-              className="mt-2 w-full text-muted-foreground hover:text-foreground"
-            >
-              Maybe later
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Auth gate — shown when a visitor clicks a product nav item. */}
+      <AuthGateDialog product={authGate} onClose={() => setAuthGate(null)} />
     </div>
   );
 }
