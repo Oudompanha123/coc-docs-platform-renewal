@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Box, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { GlobeIcon } from "@/components/layout/icons";
 import { AppLogo } from "@/components/store/AppLogo";
+import { GetAppDialog } from "@/components/store/GetAppDialog";
+import { Button } from "@/components/ui/button";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { DropdownMenuItem, RowActions } from "@/components/ui/dropdown-menu";
-import { PLATFORM_LABELS, formatDate, livePlatforms, relativeTime, type StoreApp } from "@/lib/store/store-api";
+import { PLATFORM_LABELS, formatDate, hasGettableBuild, livePlatforms, relativeTime, type StoreApp } from "@/lib/store/store-api";
 
 /**
  * One app on the Store listing: icon, name, visibility, the platforms it has
@@ -30,6 +34,7 @@ export function StoreAppCard({
   href: string;
 }) {
   const platforms = livePlatforms(app);
+  const [getting, setGetting] = useState(false);
 
   async function copyUrl() {
     try {
@@ -94,10 +99,26 @@ export function StoreAppCard({
 
       <p className="line-clamp-3 text-sm text-muted-foreground">{app.description || "No description yet."}</p>
 
-      <p className="mt-auto flex items-center gap-2 text-xs text-muted-foreground" title={formatDate(app.updatedAt)}>
-        <Clock className="size-4 shrink-0" aria-hidden="true" />
-        Updated {relativeTime(app.updatedAt)}
-      </p>
+      <div className="mt-auto flex items-center justify-between gap-3">
+        <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground" title={formatDate(app.updatedAt)}>
+          <Clock className="size-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">Updated {relativeTime(app.updatedAt)}</span>
+        </p>
+        {hasGettableBuild(app) && (
+          // Above the stretched link, so it opens the dialog instead of the app page.
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setGetting(true)}
+            aria-label={`Get ${app.name}`}
+            className="relative z-10 shrink-0 px-5 font-semibold"
+          >
+            Get
+          </Button>
+        )}
+      </div>
+      {/* Portalled: the card scales on hover, and a transformed ancestor would pin a fixed dialog to the card. */}
+      {getting && createPortal(<GetAppDialog app={app} onClose={() => setGetting(false)} />, document.body)}
     </div>
   );
 }

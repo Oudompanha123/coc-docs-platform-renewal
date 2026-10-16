@@ -451,3 +451,33 @@ export function removeStoreBuild(appId: string, buildId: string): Promise<StoreA
     "Couldn't remove the build.",
   );
 }
+
+/**
+ * The newest live build of a platform in an environment — what "Get" on an
+ * app card downloads. The highest version wins (1.10.0 beats 1.9.0), and a
+ * version whose build in this environment was removed is skipped. Null when
+ * there is none.
+ */
+export function latestLiveBuild(app: StoreApp, platform: StorePlatform, environment: StoreEnvironment): StoreBuild | null {
+  const build = latestByEnvironment(app, platform)[environment];
+  return build?.downloadUrl ? build : null;
+}
+
+/**
+ * The platforms offered in the Get dialog for an environment: the ones the
+ * app's category covers (iOS / Android for Mobile, Windows / macOS for PC),
+ * plus any other it has a live build for — each with its latest live build,
+ * or null when that platform has nothing in this environment yet.
+ */
+export function getOptions(app: StoreApp, environment: StoreEnvironment): Array<{ platform: StorePlatform; build: StoreBuild | null }> {
+  const own = categoryPlatforms(app.category);
+  return PLATFORMS.filter((p) => own.includes(p) || latestLiveBuild(app, p, environment) !== null).map((platform) => ({
+    platform,
+    build: latestLiveBuild(app, platform, environment),
+  }));
+}
+
+/** Whether the app has anything to Get: a live build with a download link, in any environment. */
+export function hasGettableBuild(app: StoreApp): boolean {
+  return app.builds.some((b) => isLive(b) && !!b.downloadUrl);
+}
