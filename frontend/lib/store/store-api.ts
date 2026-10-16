@@ -88,6 +88,8 @@ export interface StoreApp {
   isPublic: boolean;
   /** Relative to the backend, or null when there is no icon. */
   logoUrl: string | null;
+  /** The wide picture for the Store banner (ADR-117), relative to the backend; null when there is none. */
+  bannerUrl: string | null;
   createdAt: string;
   updatedAt: string;
   /** Every build, removed ones included, newest first. */
@@ -108,7 +110,22 @@ export interface StoreAppInput {
   isPublic: boolean;
 }
 
-export class StoreApiError extends AuthApiError {}
+/**
+ * Where a Store error's message came from, so the page can say it in the
+ * reader's language: `server` is the backend's own `detail`, shown as sent;
+ * every other code is one of this file's fixed English strings, which the
+ * UI replaces with its translation (`lib/store/store-i18n.ts`).
+ */
+export type StoreErrorCode = "network" | "forbidden" | "tooLarge" | "fallback" | "server";
+
+export class StoreApiError extends AuthApiError {
+  constructor(
+    message: string,
+    readonly code: StoreErrorCode = "server",
+  ) {
+    super(message);
+  }
+}
 
 /** A 404: the app or build does not exist, or the caller may not see it — the backend does not say which. */
 export class StoreNotFoundError extends StoreApiError {}
@@ -280,18 +297,25 @@ const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["minute", 60],
 ];
 
-/** "7 days ago", "last month", "2 years ago" — how long ago, at a glance. The exact date goes in a tooltip. */
-export function relativeTime(iso: string, now: Date = new Date()): string {
+/**
+ * "7 days ago", "last month", "2 years ago" — how long ago, at a glance. The exact date goes in a tooltip.
+ * `locale` is the page's (`en`, `km`, `ko`); without one, the browser's. `justNow` is what under a minute reads.
+ */
+export function relativeTime(
+  iso: string,
+  now: Date = new Date(),
+  { locale, justNow = "just now" }: { locale?: string; justNow?: string } = {},
+): string {
   const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
-  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const format = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   for (const [unit, size] of RELATIVE_UNITS) {
     if (Math.abs(seconds) >= size) return format.format(Math.round(seconds / size), unit);
   }
-  return "just now";
+  return justNow;
 }
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+export function formatDate(iso: string, locale?: string): string {
+  return new Date(iso).toLocaleString(locale, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 export function formatBytes(bytes: number): string {
@@ -315,13 +339,13 @@ async function request<T>(url: string, init: RequestInit, fallback: string): Pro
   try {
     response = await fetch(url, { credentials: "include", ...init });
   } catch {
-    throw new StoreApiError("Couldn't reach the server. Check your connection and try again.");
+    throw new StoreApiError("Couldn't reach the server. Check your connection and try again.", "network");
   }
   if (response.status === 401) {
     throw new SessionExpiredError("Your session has ended. Please sign in again.");
   }
   if (response.status === 403) {
-    throw new StoreApiError("Only an admin can manage the Store.");
+    throw new StoreApiError("Only an admin can manage the Store.", "forbidden");
   }
   if (!response.ok) {
     let detail: string | null = null;
@@ -331,7 +355,8 @@ async function request<T>(url: string, init: RequestInit, fallback: string): Pro
       // Not a problem document — use the fallback.
     }
     const message = problemMessage(detail, fallback);
-    throw response.status === 404 ? new StoreNotFoundError(message) : new StoreApiError(message);
+    const code = detail ? "server" : "fallback";
+    throw response.status === 404 ? new StoreNotFoundError(message, code) : new StoreApiError(message, code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
@@ -390,6 +415,38 @@ export function uploadStoreLogo(id: string, file: File): Promise<StoreApp> {
   );
 }
 
+/** An app's wide banner picture for the Store's featured slot (ADR-117). The raw image is the body. */
+export function uploadStoreBanner(id: string, file: File): Promise<StoreApp> {
+  return request<StoreApp>(
+    `${ADMIN}/${encodeURIComponent(id)}/banner`,
+    { method: "PUT", headers: { "Content-Type": file.type || "application/octet-stream" }, body: file },
+    "Couldn't upload the banner picture.",
+  );
+}
+
+export function removeStoreBanner(id: string): Promise<StoreApp> {
+  return request<StoreApp>(`${ADMIN}/${encodeURIComponent(id)}/banner`, { method: "DELETE" }, "Couldn't remove the banner picture.");
+}
+
+/** The app an admin pinned to the banner, or null for "the latest automatically" (ADR-117). */
+export async function fetchFeaturedAppId(): Promise<string | null> {
+  const body = await request<{ appId: string | null }>(`${BACKEND_URL}/api/v1/store/featured`, {}, "Couldn't load the banner.");
+  return body.appId ?? null;
+}
+
+/** Pins an app to the banner; `null` goes back to the latest automatically. Admin only. */
+export async function setFeaturedApp(appId: string | null): Promise<string | null> {
+  const body = await request<{ appId: string | null }>(
+    `${BACKEND_URL}/api/v1/admin/store/featured`,
+    { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appId }) },
+    "Couldn't change the banner.",
+  );
+  return body.appId ?? null;
+}
+
+/** Banner pictures: the same raster types as the icon, up to 25 MB (StoreImageKind.BANNER). */
+export const MAX_BANNER_BYTES = 25 * 1024 * 1024;
+
 export interface NextVersionInput {
   version: string;
   environments: StoreEnvironment[];
@@ -425,11 +482,11 @@ export function uploadNextVersion(appId: string, input: NextVersionInput, onProg
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress?.(e.loaded / e.total);
     };
-    xhr.onerror = () => reject(new StoreApiError("Couldn't reach the server. Check your connection and try again."));
+    xhr.onerror = () => reject(new StoreApiError("Couldn't reach the server. Check your connection and try again.", "network"));
     xhr.onload = () => {
       if (xhr.status === 401) return reject(new SessionExpiredError("Your session has ended. Please sign in again."));
-      if (xhr.status === 403) return reject(new StoreApiError("Only an admin can manage the Store."));
-      if (xhr.status === 413) return reject(new StoreApiError("The file is larger than the Store allows."));
+      if (xhr.status === 403) return reject(new StoreApiError("Only an admin can manage the Store.", "forbidden"));
+      if (xhr.status === 413) return reject(new StoreApiError("The file is larger than the Store allows.", "tooLarge"));
       let body: unknown = null;
       try {
         body = JSON.parse(xhr.responseText);
@@ -437,7 +494,8 @@ export function uploadNextVersion(appId: string, input: NextVersionInput, onProg
         // Fall through to the generic message below.
       }
       if (xhr.status >= 200 && xhr.status < 300 && body) return resolve(body as StoreApp);
-      reject(new StoreApiError(problemMessage((body as { detail?: string } | null)?.detail, "Couldn't upload the file.")));
+      const detail = (body as { detail?: string } | null)?.detail;
+      reject(new StoreApiError(problemMessage(detail, "Couldn't upload the file."), detail ? "server" : "fallback"));
     };
     xhr.send(buildUploadBody(input));
   });
@@ -450,4 +508,61 @@ export function removeStoreBuild(appId: string, buildId: string): Promise<StoreA
     { method: "DELETE" },
     "Couldn't remove the build.",
   );
+}
+
+/**
+ * The newest live build of a platform in an environment — what "Get" on an
+ * app card downloads. The highest version wins (1.10.0 beats 1.9.0), and a
+ * version whose build in this environment was removed is skipped. Null when
+ * there is none.
+ */
+export function latestLiveBuild(app: StoreApp, platform: StorePlatform, environment: StoreEnvironment): StoreBuild | null {
+  const build = latestByEnvironment(app, platform)[environment];
+  return build?.downloadUrl ? build : null;
+}
+
+/**
+ * The platforms offered in the Get dialog for an environment: the ones the
+ * app's category covers (iOS / Android for Mobile, Windows / macOS for PC),
+ * plus any other it has a live build for — each with its latest live build,
+ * or null when that platform has nothing in this environment yet.
+ */
+export function getOptions(app: StoreApp, environment: StoreEnvironment): Array<{ platform: StorePlatform; build: StoreBuild | null }> {
+  const own = categoryPlatforms(app.category);
+  return PLATFORMS.filter((p) => own.includes(p) || latestLiveBuild(app, p, environment) !== null).map((platform) => ({
+    platform,
+    build: latestLiveBuild(app, platform, environment),
+  }));
+}
+
+/** Whether the app has anything to Get: a live build with a download link, in any environment. */
+export function hasGettableBuild(app: StoreApp): boolean {
+  return app.builds.some((b) => isLive(b) && !!b.downloadUrl);
+}
+
+/**
+ * When an app last changed for a reader: its newest live, downloadable build
+ * or its own last edit, whichever is later.
+ */
+export function lastActivity(app: StoreApp): string {
+  return app.builds
+    .filter((b) => isLive(b) && !!b.downloadUrl)
+    .reduce((latest, b) => (b.createdAt > latest ? b.createdAt : latest), app.updatedAt);
+}
+
+/**
+ * The app the Store's banner features (ADR-117): the one an admin pinned, if
+ * it is in the reader's list; otherwise the most recently uploaded or updated
+ * one that has something to download, or `null` when none has. Ties go to
+ * the first in the list, so the banner does not flicker between equals.
+ */
+export function featuredApp(apps: readonly StoreApp[], pinnedId: string | null = null): StoreApp | null {
+  const pinned = pinnedId ? apps.find((a) => a.id === pinnedId) : undefined;
+  if (pinned) return pinned;
+  let best: StoreApp | null = null;
+  for (const app of apps) {
+    if (!hasGettableBuild(app)) continue;
+    if (!best || lastActivity(app) > lastActivity(best)) best = app;
+  }
+  return best;
 }

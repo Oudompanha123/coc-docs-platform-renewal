@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { absoluteUrl } from "@/lib/store/store-api";
 
 export const ICON_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -40,6 +41,7 @@ export function AppIconPicker({
   disabled: boolean;
   onChange: (file: File | null) => void;
 }) {
+  const { t } = useLanguage();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -66,12 +68,12 @@ export function AppIconPicker({
       >
         {shown ? (
           // eslint-disable-next-line @next/next/no-img-element -- a local preview or a backend URL, not a Next image
-          <img src={shown} alt="App icon" className="h-full w-full object-cover" />
+          <img src={shown} alt={t.storeForm.iconAlt} className="h-full w-full object-cover" />
         ) : (
           <IconTemplate className="h-full w-full" />
         )}
         <span className="absolute inset-x-2 bottom-2 rounded-lg bg-primary/85 px-2 py-1.5 text-center text-xs font-medium text-primary-foreground transition-colors group-hover:bg-primary">
-          {shown ? "Change App Icon" : "Upload App Icon"}
+          {shown ? t.storeForm.iconChange : t.storeForm.iconUpload}
         </span>
         <input
           ref={inputRef}
@@ -83,15 +85,18 @@ export function AppIconPicker({
           className="sr-only"
         />
       </label>
-      <p className="mt-2 text-xs text-muted-foreground">PNG, JPEG or WebP, up to 2 MB</p>
+      <p className="mt-2 text-xs text-muted-foreground">{t.storeForm.iconHint}</p>
     </div>
   );
 }
 
-/** The advisory check of a chosen icon; the backend re-checks. */
-export function iconProblem(file: File | null): string | null {
+/**
+ * The advisory check of a chosen icon; the backend re-checks. Returns what is
+ * wrong, not a sentence — the form words it in the reader's language.
+ */
+export function iconProblem(file: File | null): "wrongType" | "tooLarge" | null {
   if (!file) return null;
-  if (!ICON_TYPES.includes(file.type)) return "The app icon must be a PNG, JPEG or WebP image.";
-  if (file.size > MAX_ICON_BYTES) return "The app icon must be 2 MB or smaller.";
+  if (!ICON_TYPES.includes(file.type)) return "wrongType";
+  if (file.size > MAX_ICON_BYTES) return "tooLarge";
   return null;
 }

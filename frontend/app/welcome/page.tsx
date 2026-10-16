@@ -1,34 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardPreview } from "@/components/welcome/DashboardPreview";
 import { AuthGateDialog } from "@/components/welcome/AuthGateDialog";
-import { ProductsNavDropdown } from "@/components/welcome/ProductsNavDropdown";
+import { PublicHeader } from "@/components/welcome/PublicHeader";
+import { ThemedLogo } from "@/components/welcome/ThemedLogo";
 import { ScrollReveal } from "@/components/welcome/ScrollReveal";
-import { GoogleIcon, LockIcon, ShieldIcon } from "@/components/auth/icons";
-import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";
+import { GoogleIcon, ShieldIcon } from "@/components/auth/icons";
 import { TONE_STYLES } from "@/components/dashboard/tone";
-import { FALLBACK_NAV } from "@/lib/docs/nav-api";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Link } from "@/lib/i18n/navigation";
+import { renderBold } from "@/lib/i18n/rich";
+import type { Translations } from "@/lib/i18n/translations";
 import type { Tone } from "@/lib/mock/overview";
+import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import {
   BarChartIcon,
   FolderIcon,
   LayersIcon,
-  MoonIcon,
   PlugIcon,
   SparklesIcon,
-  SunIcon,
 } from "@/components/layout/icons";
 
 /**
- * Public landing page. Has its own light/dark toggle, independent of the
- * admin app's data-theme + localStorage mechanism (lib/theme.ts) — a
- * visitor flipping this page's look shouldn't silently also flip the
- * authenticated admin app's dark mode. Colours are the shadcn token
+ * Public landing page. Its light/dark toggle saves the same preference as
+ * the rest of the app (lib/theme.ts), so the choice survives a refresh and
+ * matches the Store and, after sign-in, the app (product owner, 2026-10-16;
+ * it was page-local before, and a refresh undid it). Colours are the shadcn token
  * utilities (bg-background, bg-card, text-muted-foreground,
  * border-surface-border, ...), never literal hex: when the toggle is on, the
  * page root carries `.landing-dark` (globals.css), which redefines those
@@ -53,14 +53,23 @@ import {
 
 /** "Home" is the only nav link with no dropdown — the 5 products each get
  *  one via NavDropdown, reading FALLBACK_NAV directly rather than a second
- *  copy of the product list. */
-const HOME_LINK = { label: "Home", href: "/login" };
+ *  copy of the product list. Its label is `t.nav.home`. */
+const HOME_HREF = "/login";
 
-const FOOTER_LEGAL_LINKS = [
-  { label: "Privacy", href: "/privacy" },
-  { label: "Contact", href: "#" },
-  { label: "Status", href: "#" },
+type WelcomeKey = keyof Translations["welcome"];
+
+const FOOTER_LEGAL_LINKS: { key: WelcomeKey; href: string }[] = [
+  { key: "privacy", href: "/privacy" },
+  { key: "contact", href: "#" },
+  { key: "status", href: "#" },
 ];
+
+/**
+ * A footer link's text: a catalogue key, or — for a product — its name,
+ * which reads the same in every language. `auth` marks the two links that
+ * go straight to sign-up / sign-in; every other one opens the sign-in prompt.
+ */
+type FooterLink = { href: string; auth?: boolean } & ({ key: WelcomeKey | "home" | "settings" | "logIn" } | { name: string });
 
 /**
  * Real 4-column footer nav, built only from routes that actually exist in
@@ -70,92 +79,68 @@ const FOOTER_LEGAL_LINKS = [
  * /login since those pages are part of the authenticated admin app, not
  * standalone public pages.
  */
-const FOOTER_COLUMNS = [
+const FOOTER_COLUMNS: { heading: WelcomeKey; links: FooterLink[] }[] = [
   {
-    heading: "Product",
+    heading: "footerProduct",
     links: [
-      { label: "Home", href: "/login" },
-      { label: "Jex3.0", href: "/login" },
-      { label: "Jex2.0", href: "/login" },
-      { label: "Coach", href: "/login" },
+      { key: "home", href: "/login" },
+      { name: "Jex3.0", href: "/login" },
+      { name: "Jex2.0", href: "/login" },
+      { name: "Coach", href: "/login" },
     ],
   },
   {
-    heading: "Team",
+    heading: "footerTeam",
     links: [
-      { label: "Team", href: "/login" },
-      { label: "Usage", href: "/login" },
-      { label: "Users & Roles", href: "/login" },
+      { name: "Team", href: "/login" },
+      { name: "Usage", href: "/login" },
+      { key: "usersRoles", href: "/login" },
     ],
   },
   {
-    heading: "Administration",
+    heading: "footerAdministration",
     links: [
-      { label: "Settings", href: "/login" },
-      { label: "System Admin", href: "/login" },
+      { key: "settings", href: "/login" },
+      { key: "systemAdmin", href: "/login" },
     ],
   },
   {
-    heading: "Get Started",
+    heading: "footerGetStarted",
     links: [
-      { label: "Create an account", href: "/register" },
-      { label: "Log in", href: "/login" },
-      { label: "Docs", href: "/docs" },
+      { key: "createAccount", href: "/register", auth: true },
+      { key: "logIn", href: "/login", auth: true },
+      { key: "docs", href: "/docs" },
     ],
   },
 ];
 
+function footerLinkText(link: FooterLink, t: Translations): string {
+  if ("name" in link) return link.name;
+  if (link.key === "home" || link.key === "settings" || link.key === "logIn") return t.nav[link.key];
+  return t.welcome[link.key];
+}
+
 const TRUSTED_BY = ["Nexora", "Vantix", "Brightloop", "Corevia", "Pathframe"];
 
+/** Title and description are catalogue keys; a description's `**bold**` runs render as <strong>. */
 type FeatureCard = {
   icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: React.ReactNode;
+  title: WelcomeKey;
+  description: WelcomeKey;
   tone: Tone;
 };
 
 const FEATURES: FeatureCard[] = [
-  {
-    icon: LayersIcon,
-    title: "Per-product tracking",
-    description: "Each product gets its own space, its own written/unwritten count, and its own contributors.",
-    tone: "purple",
-  },
-  {
-    icon: FolderIcon,
-    title: "Coverage at a glance",
-    description: (
-      <>See what&apos;s written and what&apos;s missing across <strong>Jex3.0</strong>, <strong>Jex2.0</strong>, <strong>Coach</strong>, <strong>Team</strong>, and <strong>Usage</strong> from one screen.</>
-    ),
-    tone: "green",
-  },
-  {
-    icon: ShieldIcon,
-    title: "Roles & permissions",
-    description: <><strong>Super Admin</strong>, <strong>Admin</strong>, or <strong>Viewer</strong> — control who can edit and who can only read.</>,
-    tone: "orange",
-  },
-  {
-    icon: BarChartIcon,
-    title: "Usage reports",
-    description: "Track documents added, storage used, and team activity without asking for a status update.",
-    tone: "pink",
-  },
-  {
-    icon: PlugIcon,
-    title: "Integrations",
-    description: "Connect the tools your team already uses so nothing lives in a silo.",
-    tone: "purple",
-  },
-  {
-    icon: GoogleIcon,
-    title: "Google-only auth",
-    description: <>Sign in with the <strong>Google</strong> account your team already has — no extra passwords to manage.</>,
-    tone: "green",
-  },
+  { icon: LayersIcon, title: "perProductTitle", description: "perProductBody", tone: "purple" },
+  { icon: FolderIcon, title: "coverageTitle", description: "coverageBody", tone: "green" },
+  { icon: ShieldIcon, title: "rolesTitle", description: "rolesBody", tone: "orange" },
+  { icon: BarChartIcon, title: "reportsTitle", description: "reportsBody", tone: "pink" },
+  { icon: PlugIcon, title: "integrationsTitle", description: "integrationsBody", tone: "purple" },
+  { icon: GoogleIcon, title: "googleTitle", description: "googleBody", tone: "green" },
 ];
 
 export default function WelcomePage() {
+  const { t } = useLanguage();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const isDark = theme === "dark";
   const [authGate, setAuthGate] = useState<string | null>(null);
@@ -171,99 +156,37 @@ export default function WelcomePage() {
     return () => document.documentElement.classList.remove("welcome-dark-scroll");
   }, [isDark]);
 
-  const [scrolled, setScrolled] = useState(false);
+  // Start in the theme the visitor actually has — their stored choice, or the
+  // OS on "auto". Starting light regardless left a dark-OS visitor with a
+  // page half in each.
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 8);
-    }
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    setTheme(getResolvedTheme());
   }, []);
+
+  // Saved, not just shown: a refresh used to put a dark-OS visitor straight
+  // back in dark after they chose light.
+  function toggleTheme() {
+    const next = isDark ? "light" : "dark";
+    applyTheme(next);
+    setTheme(next);
+  }
 
   return (
     // `landing-dark` re-points every shadcn token under this root at its dark
     // value (globals.css), so each element below carries one token class that
-    // is right in both themes.
-    <div className={`min-h-screen bg-background text-foreground ${isDark ? "landing-dark" : ""}`}>
-      <header
-        // No shadow. The border appearing on scroll is the whole signal that
-        // the bar has detached from the page; a shadow underneath it says the
-        // same thing twice, and says it while the page is still at the top.
-        className={`sticky top-0 z-40 border-b bg-background transition-colors duration-200 ${
-          scrolled ? "border-surface-border" : "border-transparent"
-        }`}
-      >
-        {/* The bar was 72px tall with a 55px logo and 18px nav links. Scaled
-            to the kit: a 56px bar, a 32px logo and 14px links — the header is
-            furniture, and at the old size it competed with the hero. */}
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-            <img
-              src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
-              alt="Coc Docs Platform"
-              className="h-8 w-auto rounded-md"
-            />
-            {/* Below md the nav below is hidden, so a narrow window would lose
-                Home, Store and Products altogether. The same links, in one menu. */}
-            <div className="md:hidden">
-              <NavMenu label="Menu" panelClassName="w-[280px] grid-cols-1">
-                <NavMenuItem title={HOME_LINK.label} href={HOME_LINK.href} />
-                <NavMenuItem title="Store" href="/store" />
-                {FALLBACK_NAV.map((product) => (
-                  <NavMenuItem
-                    key={product.key}
-                    title={product.label}
-                    description={productPagesBlurb(product.items) ?? "Documentation"}
-                    onSelect={() => setAuthGate(product.label)}
-                    trailing={<LockIcon className="size-3 shrink-0 text-muted-foreground" />}
-                  />
-                ))}
-              </NavMenu>
-            </div>
-          </div>
-
-          <nav className="ml-8 mr-auto hidden items-center gap-1 text-[15px] text-muted-foreground md:flex">
-            <a
-              href={HOME_LINK.href}
-              className="inline-flex h-9 items-center rounded-3xl px-3.5 transition-colors outline-none hover:bg-muted-surface/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              {HOME_LINK.label}
-            </a>
-            {/* Store — the public apps are open to visitors, no sign-in. */}
-            <Link
-              href="/store"
-              className="inline-flex h-9 items-center rounded-3xl px-3.5 transition-colors outline-none hover:bg-muted-surface/60 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              Store
-            </Link>
-            <ProductsNavDropdown products={FALLBACK_NAV} onRequireAuth={setAuthGate} />
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {/* Signed out, so no Settings page yet — the navbar carries the
-                language choice (ADR-116). */}
-            <LanguageSwitcher />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              aria-label="Toggle dark mode"
-              aria-pressed={isDark}
-              className="size-8 text-muted-foreground hover:text-foreground"
-            >
-              {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/register">Start free</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+    // is right in both themes. `landing-auto` takes the dark or light values
+    // from <html data-theme>, which the root layout's boot script writes
+    // before first paint — so the page is never drawn a frame in the wrong
+    // theme (it was, coming from the Store in dark mode, while React state
+    // caught up).
+    <div className="landing-auto min-h-screen bg-background text-foreground">
+      <PublicHeader
+        active="home"
+        homeHref={HOME_HREF}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onRequireAuth={setAuthGate}
+      />
 
       <main>
         <section className="relative overflow-hidden px-6 pb-20 pt-16 sm:pt-20">
@@ -283,7 +206,7 @@ export default function WelcomePage() {
           <div className="animate-hero-entrance relative mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-border bg-muted-surface px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               <SparklesIcon className="h-3 w-3" />
-              Now tracking documentation coverage
+              {t.welcome.badge}
             </span>
 
             {/* Was `text-4xl sm:text-5xl font-extrabold`. The kit's headings
@@ -293,24 +216,21 @@ export default function WelcomePage() {
                 left of that span would be the same colour as the rest of the
                 line, so it is underlined instead of recoloured. */}
             <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              One workspace for every product&apos;s{" "}
+              {t.welcome.heroBefore}
               <span className="decoration-muted-foreground/40 underline decoration-2 underline-offset-4">
-                documentation
+                {t.welcome.heroHighlight}
               </span>
-              .
+              {t.welcome.heroAfter}
             </h1>
 
-            <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
-              Coc Docs Platform tracks what&apos;s written, what&apos;s missing, and who&apos;s behind it — across
-              every product your team ships.
-            </p>
+            <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">{t.welcome.heroBody}</p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg">
-                <Link href="/register">Get started free</Link>
+                <Link href="/register">{t.welcome.getStartedFree}</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/login">View live workspace</Link>
+                <Link href="/login">{t.welcome.viewWorkspace}</Link>
               </Button>
             </div>
           </div>
@@ -323,7 +243,7 @@ export default function WelcomePage() {
         <section className="border-y border-surface-border bg-background px-6 py-10">
           <ScrollReveal>
             <p className="text-center text-xs font-medium text-muted-foreground">
-              Trusted by teams at
+              {t.welcome.trustedBy}
             </p>
             <div className="mx-auto mt-5 flex max-w-4xl flex-wrap items-center justify-center gap-x-10 gap-y-3">
               {TRUSTED_BY.map((name) => (
@@ -338,12 +258,9 @@ export default function WelcomePage() {
         <section id="features" className="mx-auto max-w-5xl px-6 py-16">
           <ScrollReveal>
             <h2 className="text-center text-2xl font-semibold tracking-tight text-foreground">
-              Every product, one coverage view.
+              {t.welcome.featuresTitle}
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted-foreground">
-              Coc Docs Platform keeps every product&apos;s documentation in one place, so gaps get noticed before
-              someone hits them.
-            </p>
+            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted-foreground">{t.welcome.featuresBody}</p>
           </ScrollReveal>
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -358,9 +275,9 @@ export default function WelcomePage() {
                         <Icon className="h-4 w-4" />
                       </div>
                       <CardTitle className="mt-3 text-sm">
-                        <h3>{feature.title}</h3>
+                        <h3>{t.welcome[feature.title]}</h3>
                       </CardTitle>
-                      <CardDescription className="mt-1">{feature.description}</CardDescription>
+                      <CardDescription className="mt-1">{renderBold(t.welcome[feature.description])}</CardDescription>
                     </CardHeader>
                   </Card>
                 </ScrollReveal>
@@ -377,11 +294,11 @@ export default function WelcomePage() {
                 rather than tokens. */}
             <div aria-hidden="true" className="absolute inset-0 bg-black/60" />
             <h2 className="relative text-xl font-semibold tracking-tight text-white sm:text-2xl">
-              Bring your docs into one workspace.
+              {t.welcome.ctaTitle}
             </h2>
-            <p className="relative mt-2 text-sm text-white/80">Start free — no credit card required.</p>
+            <p className="relative mt-2 text-sm text-white/80">{t.welcome.ctaBody}</p>
             <Button asChild size="lg" className="relative mt-6 bg-white text-neutral-900 hover:bg-white/90">
-              <Link href="/register">Get started free</Link>
+              <Link href="/register">{t.welcome.getStartedFree}</Link>
             </Button>
           </ScrollReveal>
         </section>
@@ -391,35 +308,30 @@ export default function WelcomePage() {
         <ScrollReveal className="mx-auto max-w-6xl px-6">
           <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- fixed local asset, not user content */}
-              <img
-                src={isDark ? "/logo-coc-docs-platform-dark-mode.png" : "/logo-coc-docs-platform.png"}
-                alt="Coc Docs Platform"
-                className="h-7 w-auto rounded-md"
-              />
+              <ThemedLogo className="h-7 w-auto rounded-md" />
             </div>
 
             <div className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4">
               {FOOTER_COLUMNS.map((column) => (
                 <div key={column.heading}>
-                  <p className="text-xs font-medium text-foreground">{column.heading}</p>
+                  <p className="text-xs font-medium text-foreground">{t.welcome[column.heading]}</p>
                   <ul className="mt-3 space-y-2">
                     {column.links.map((link) => {
-                      const isAuthLink = link.label === "Create an account" || link.label === "Log in";
+                      const label = footerLinkText(link, t);
                       const linkClass = "text-sm text-muted-foreground transition-colors hover:text-foreground";
                       return (
-                        <li key={link.label}>
-                          {isAuthLink ? (
+                        <li key={"name" in link ? link.name : link.key}>
+                          {link.auth ? (
                             <Link href={link.href} className={linkClass}>
-                              {link.label}
+                              {label}
                             </Link>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setAuthGate(link.label)}
+                              onClick={() => setAuthGate(label)}
                               className={linkClass}
                             >
-                              {link.label}
+                              {label}
                             </button>
                           )}
                         </li>
@@ -432,11 +344,11 @@ export default function WelcomePage() {
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-surface-border pt-6 sm:flex-row">
-            <span className="text-xs text-muted-foreground">© 2026 Coc Docs Platform</span>
+            <span className="text-xs text-muted-foreground">{t.footer.copyright}</span>
             <div className="flex items-center gap-5 text-xs font-medium text-muted-foreground">
               {FOOTER_LEGAL_LINKS.map((link) => (
-                <a key={link.label} href={link.href} className="transition-colors hover:text-foreground">
-                  {link.label}
+                <a key={link.key} href={link.href} className="transition-colors hover:text-foreground">
+                  {t.welcome[link.key]}
                 </a>
               ))}
             </div>

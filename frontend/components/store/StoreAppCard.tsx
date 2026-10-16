@@ -1,13 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useThemedPortalContainer } from "@/lib/portal-container";
 import { Box, Clock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { GlobeIcon } from "@/components/layout/icons";
 import { AppLogo } from "@/components/store/AppLogo";
+import { GetAppDialog } from "@/components/store/GetAppDialog";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
 import { DropdownMenuItem, RowActions } from "@/components/ui/dropdown-menu";
-import { PLATFORM_LABELS, formatDate, livePlatforms, relativeTime, type StoreApp } from "@/lib/store/store-api";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Link } from "@/lib/i18n/navigation";
+import { fill } from "@/lib/i18n/translations";
+import { PLATFORM_LABELS, formatDate, hasGettableBuild, livePlatforms, relativeTime, type StoreApp } from "@/lib/store/store-api";
 
 /**
  * One app on the Store listing: icon, name, visibility, the platforms it has
@@ -29,14 +37,25 @@ export function StoreAppCard({
   /** The app's page — `/store-<number>`. */
   href: string;
 }) {
+  const { t, language } = useLanguage();
   const platforms = livePlatforms(app);
+  const [getting, setGetting] = useState(false);
+  // Inside the themed shell, not on <body>: out there the dark-mode tokens
+  // never reach the dialog, and it opened light on a dark page.
+  const portalTarget = useThemedPortalContainer();
+  const nameRef = useRef<HTMLAnchorElement>(null);
+  const [nameTipOpen, setNameTipOpen] = useState(false);
+  const isNameTruncated = () => {
+    const el = nameRef.current;
+    return !!el && el.scrollWidth > el.clientWidth;
+  };
 
   async function copyUrl() {
     try {
       await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success("Link copied to the clipboard.");
+      toast.success(t.store.linkCopied);
     } catch {
-      toast.error("Couldn't copy the link.");
+      toast.error(t.store.copyFailed);
     }
   }
 
@@ -45,13 +64,26 @@ export function StoreAppCard({
       <div className="flex items-start gap-4">
         <AppLogo app={app} />
         <div className="min-w-0 flex-1">
-          <Link
-            href={href}
-            title={app.name}
-            className="block truncate text-base font-semibold text-foreground outline-none after:absolute after:inset-0 after:content-['']"
-          >
-            {app.name}
-          </Link>
+          {/* The full name, in the app's own tooltip rather than the browser's
+              grey `title` box, and only when the name is actually cut off —
+              the link stretches over the whole card, so a plain title showed
+              the name again wherever the pointer rested. */}
+          <TooltipProvider>
+            <Tooltip open={nameTipOpen} onOpenChange={(open) => setNameTipOpen(open && isNameTruncated())}>
+              <TooltipTrigger asChild>
+                <Link
+                  ref={nameRef}
+                  href={href}
+                  className="block truncate text-base font-semibold text-foreground outline-none after:absolute after:inset-0 after:content-['']"
+                >
+                  {app.name}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start">
+                {app.name}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {showVisibility && (
             <span
               className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -59,15 +91,15 @@ export function StoreAppCard({
               }`}
             >
               <GlobeIcon className="size-3.5" />
-              {app.isPublic ? "Public" : "Private"}
+              {app.isPublic ? t.store.public : t.store.private}
             </span>
           )}
         </div>
         <div className="relative z-10 -mr-2 -mt-1">
-          <RowActions label={`Actions for ${app.name}`}>
+          <RowActions label={fill(t.store.actionsFor, { name: app.name })}>
             <DropdownMenuItem onSelect={copyUrl}>
               <Copy className="size-4" aria-hidden="true" />
-              <span>Copy URL</span>
+              <span>{t.store.copyUrl}</span>
             </DropdownMenuItem>
           </RowActions>
         </div>
@@ -76,7 +108,7 @@ export function StoreAppCard({
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Box className="size-4 shrink-0" aria-hidden="true" />
         {platforms.length === 0 ? (
-          <span>No builds yet</span>
+          <span>{t.store.noBuilds}</span>
         ) : (
           <span className="flex flex-wrap gap-1.5">
             {platforms.map((p) => (
@@ -92,12 +124,33 @@ export function StoreAppCard({
         )}
       </div>
 
-      <p className="line-clamp-3 text-sm text-muted-foreground">{app.description || "No description yet."}</p>
+      <p className="line-clamp-3 text-sm text-muted-foreground">{app.description || t.store.noDescription}</p>
 
-      <p className="mt-auto flex items-center gap-2 text-xs text-muted-foreground" title={formatDate(app.updatedAt)}>
-        <Clock className="size-4 shrink-0" aria-hidden="true" />
-        Updated {relativeTime(app.updatedAt)}
-      </p>
+      <div className="mt-auto flex items-center justify-between gap-3">
+        <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground" title={formatDate(app.updatedAt, language)}>
+          <Clock className="size-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">
+            {fill(t.store.updated, { time: relativeTime(app.updatedAt, undefined, { locale: language, justNow: t.store.justNow }) })}
+          </span>
+        </p>
+        {hasGettableBuild(app) && (
+          // Above the stretched link, so it opens the dialog instead of the app page.
+          // App Store's "Get": a small blue pill with white text. The blue is
+          // the design system's info blue (sky-600), the same one the
+          // Development download button on the app page uses.
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setGetting(true)}
+            aria-label={`Get ${app.name}`}
+            className="relative z-10 h-7 shrink-0 bg-sky-600 px-4 text-[13px] font-semibold text-white hover:bg-sky-700 focus-visible:ring-sky-500/40 dark:bg-sky-500 dark:hover:bg-sky-600"
+          >
+            Get
+          </Button>
+        )}
+      </div>
+      {/* Portalled: the card scales on hover, and a transformed ancestor would pin a fixed dialog to the card. */}
+      {getting && createPortal(<GetAppDialog app={app} onClose={() => setGetting(false)} />, portalTarget ?? document.body)}
     </div>
   );
 }

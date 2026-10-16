@@ -36,7 +36,9 @@ type AuthShellProps = {
  */
 export function AuthShell({ heading, subheading, footer, children }: AuthShellProps) {
   return (
-    <div className="bg-background relative flex min-h-svh flex-col items-center justify-center px-6 py-12">
+    <div className="landing-light bg-background relative flex min-h-svh flex-col items-center justify-center px-6 py-12">
+      {/* `landing-light`: these pages are always light (ADR-104 decision 3),
+          but :root darkens the page background on a dark OS — this pins it. */}
       {/* Before sign-in there is no Settings page to choose a language in,
           so these pages carry the switcher themselves (ADR-116). */}
       <div className="absolute top-4 right-4">

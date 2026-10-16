@@ -1,8 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { SessionExpiredError } from "@/lib/auth/api";
+import { translations } from "@/lib/i18n/translations";
+import { storeErrorMessage } from "@/lib/store/store-i18n";
 import {
+  StoreApiError,
   buildUploadBody,
+  fetchStoreApps,
   compareVersions,
+  featuredApp,
+  lastActivity,
   findSameApp,
+  getOptions,
+  hasGettableBuild,
+  latestLiveBuild,
   hasLiveBuild,
   appPlatforms,
   categoryPlatforms,
@@ -53,6 +63,7 @@ function app(builds: StoreBuild[] = [], overrides: Partial<StoreApp> = {}): Stor
     description: "",
     isPublic: true,
     logoUrl: null,
+    bannerUrl: null,
     createdAt: "2026-10-14T00:00:00Z",
     updatedAt: "2026-10-14T00:00:00Z",
     builds,
@@ -191,6 +202,39 @@ describe("relativeTime", () => {
     expect(relativeTime("2024-10-14T12:00:00Z", now)).toMatch(/2 years ago/);
     expect(relativeTime("2026-10-14T11:59:30Z", now)).toBe("just now");
   });
+  it("speaks the page's language when given one", () => {
+    expect(relativeTime("2026-10-07T12:00:00Z", now, { locale: "ko" })).toMatch(/일 전|지난주|주 전/);
+    expect(relativeTime("2026-10-14T11:59:30Z", now, { locale: "km", justNow: "អម្បាញ់មិញ" })).toBe("អម្បាញ់មិញ");
+  });
+});
+
+describe("Store errors say where their message came from, so the page can translate it", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const failWith = (response: Response | Error) =>
+    vi.stubGlobal("fetch", vi.fn(() => (response instanceof Error ? Promise.reject(response) : Promise.resolve(response))));
+
+  it("tags a network failure, a 403, a bare failure and a backend detail", async () => {
+    failWith(new TypeError("offline"));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "network" });
+    failWith(new Response(null, { status: 403 }));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "forbidden" });
+    failWith(new Response("oops", { status: 500 }));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "fallback" });
+    failWith(new Response(JSON.stringify({ detail: "name already used" }), { status: 409 }));
+    await expect(fetchStoreApps()).rejects.toMatchObject({ code: "server", message: "Name already used" });
+  });
+
+  it("words each in the reader's language, keeping only the backend's own text as sent", () => {
+    const ko = translations.ko;
+    expect(storeErrorMessage(new StoreApiError("x", "network"), ko, "fb")).toBe(ko.storeErrors.network);
+    expect(storeErrorMessage(new StoreApiError("x", "forbidden"), ko, "fb")).toBe(ko.storeErrors.forbidden);
+    expect(storeErrorMessage(new StoreApiError("x", "tooLarge"), ko, "fb")).toBe(ko.storeErrors.tooLarge);
+    expect(storeErrorMessage(new StoreApiError("x", "fallback"), ko, "fb")).toBe("fb");
+    expect(storeErrorMessage(new StoreApiError("Name already used", "server"), ko, "fb")).toBe("Name already used");
+    expect(storeErrorMessage(new SessionExpiredError("x"), ko, "fb")).toBe(ko.storeErrors.sessionExpired);
+    expect(storeErrorMessage(new Error("boom"), ko, "fb")).toBe("fb");
+  });
 });
 
 describe("platform tabs follow the app's category", () => {
@@ -198,5 +242,87 @@ describe("platform tabs follow the app's category", () => {
     expect(appPlatforms({ ...app(), category: "mobile" })).toEqual(["ios", "android"]);
     expect(appPlatforms({ ...app(), category: "pc" })).toEqual(["windows", "macos"]);
     expect(categoryPlatforms("pc")).toEqual(["windows", "macos"]);
+  });
+});
+
+describe("Get on an app card", () => {
+  const a = app([
+    build("a1", "android", "production", "1.9.0"),
+    build("a2", "android", "production", "1.10.0"),
+    build("a3", "android", "production", "2.0.0", { removedAt: "2026-10-15T00:00:00Z" }),
+    build("a4", "android", "development", "1.11.0-beta"),
+  ]);
+
+  it("takes the highest live version, not the last upload and not a removed one", () => {
+    expect(latestLiveBuild(a, "android", "production")?.id).toBe("a2");
+    expect(latestLiveBuild(a, "android", "development")?.id).toBe("a4");
+    expect(latestLiveBuild(a, "ios", "production")).toBeNull();
+  });
+
+  it("offers a Mobile app both platforms in each environment, with a build only where one is live", () => {
+    expect(getOptions(a, "production").map((o) => [o.platform, o.build?.id ?? null])).toEqual([
+      ["ios", null],
+      ["android", "a2"],
+    ]);
+  });
+
+  it("offers a PC app Windows and macOS, plus any other platform it has a live build for", () => {
+    const pc = app([build("w1", "windows", "development", "1.0.0"), build("i1", "ios", "development", "1.0.0")], { category: "pc" });
+    expect(getOptions(pc, "development").map((o) => o.platform)).toEqual(["ios", "windows", "macos"]);
+  });
+
+  it("has something to Get only with a live build", () => {
+    expect(hasGettableBuild(a)).toBe(true);
+    expect(hasGettableBuild(app([build("r", "ios", "production", "1.0", { removedAt: "2026-10-15T00:00:00Z" })]))).toBe(false);
+    expect(hasGettableBuild(app())).toBe(false);
+  });
+});
+
+describe("featuredApp", () => {
+  it("features the app with the newest upload", () => {
+    const older = app([build("1", "android", "production", "1.0.0", { createdAt: "2026-10-10T00:00:00Z" })], { id: "old" });
+    const newer = app([build("2", "ios", "development", "2.0.0", { createdAt: "2026-10-15T00:00:00Z" })], { id: "new" });
+
+    expect(featuredApp([older, newer])?.id).toBe("new");
+  });
+
+  it("counts an edit to the app as activity too", () => {
+    const uploaded = app([build("1", "android", "production", "1.0.0", { createdAt: "2026-10-12T00:00:00Z" })], { id: "up" });
+    const edited = app([build("2", "android", "production", "1.0.0", { createdAt: "2026-10-01T00:00:00Z" })], {
+      id: "ed",
+      updatedAt: "2026-10-16T00:00:00Z",
+    });
+
+    expect(featuredApp([uploaded, edited])?.id).toBe("ed");
+  });
+
+  it("skips apps with nothing to download, and returns null when none has", () => {
+    const empty = app([], { id: "empty", updatedAt: "2026-10-20T00:00:00Z" });
+    const removed = app([build("9", "ios", "production", "1.0.0", { removedAt: "2026-10-15T00:00:00Z" })], { id: "gone" });
+
+    expect(featuredApp([empty, removed])).toBeNull();
+    expect(featuredApp([])).toBeNull();
+  });
+
+  it("ignores a removed build's date", () => {
+    const withRemoved = app([
+      build("1", "android", "production", "1.0.0", { createdAt: "2026-10-05T00:00:00Z" }),
+      build("2", "android", "production", "2.0.0", { createdAt: "2026-10-18T00:00:00Z", removedAt: "2026-10-19T00:00:00Z" }),
+    ]);
+
+    expect(lastActivity(withRemoved)).toBe("2026-10-14T00:00:00Z");
+  });
+
+  it("features the app an admin pinned, even over a newer upload", () => {
+    const pinned = app([build("1", "android", "production", "1.0.0", { createdAt: "2026-10-01T00:00:00Z" })], { id: "pin" });
+    const newer = app([build("2", "ios", "production", "2.0.0", { createdAt: "2026-10-15T00:00:00Z" })], { id: "new" });
+
+    expect(featuredApp([pinned, newer], "pin")?.id).toBe("pin");
+  });
+
+  it("falls back to the latest when the pinned app is not in the reader's list", () => {
+    const newer = app([build("2", "ios", "production", "2.0.0")], { id: "new" });
+
+    expect(featuredApp([newer], "gone-or-private")?.id).toBe("new");
   });
 });

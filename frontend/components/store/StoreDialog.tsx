@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { XIcon } from "@/components/layout/icons";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -27,6 +28,7 @@ export function StoreDialog({
   maxWidth?: string;
   children: ReactNode;
 }) {
+  const { t } = useLanguage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(busy);
   busyRef.current = busy;
@@ -83,7 +85,7 @@ export function StoreDialog({
           type="button"
           onClick={onClose}
           disabled={busy}
-          aria-label="Close"
+          aria-label={t.storeForm.close}
           className="absolute right-3.5 top-3.5 z-10 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted-surface hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed"
         >
           <XIcon className="h-4 w-4" />
