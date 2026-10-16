@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
@@ -76,10 +77,11 @@ function NavLink({
         rel={item.newTab ? "noopener noreferrer" : undefined}
         aria-current={active ? "page" : undefined}
         title={rail ? item.label : undefined}
-        className={`flex h-10 items-center gap-2.5 rounded-full text-sm transition-colors ${rail ? "mx-auto w-10 justify-center px-0" : "px-3"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-          active
-            ? "bg-nav-accent font-medium text-nav-foreground"
-            : "text-nav-muted hover:bg-nav-accent hover:text-nav-foreground"
+        // Same row as the /account/settings side menu (SettingsSideMenu): a
+        // 36px rounded rectangle, medium-weight text in the foreground colour,
+        // and a filled background on the selected row.
+        className={`flex h-9 items-center gap-2.5 rounded-md text-sm font-medium text-nav-foreground transition-colors ${rail ? "mx-auto w-9 justify-center px-0" : "px-3"} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+          active ? "bg-nav-accent" : "hover:bg-nav-accent"
         }`}
       >
         <Icon className="size-4 shrink-0" />
@@ -428,7 +430,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, width = SIDEBAR_DE
                   <button
                     type="button"
                     onClick={() => setAddingProduct(true)}
-                    className="flex h-10 w-full items-center gap-2.5 rounded-full border border-dashed border-nav-border px-3 text-sm text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground"
+                    className="flex h-9 w-full items-center gap-2.5 rounded-md border border-dashed border-nav-border px-3 text-sm font-medium text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground"
                   >
                     <PlusIcon className="size-4 shrink-0" />
                     Add product
@@ -499,7 +501,7 @@ export function Sidebar({ isOpen, onClose, collapsed = false, width = SIDEBAR_DE
             openInNewTabWithLoadingDim("/home");
           }}
           title={rail ? "View site" : undefined}
-          className={`flex h-10 items-center gap-2.5 rounded-full text-sm text-nav-muted transition-colors hover:bg-nav-accent hover:text-nav-foreground ${rail ? "mx-auto w-10 justify-center px-0" : "px-3"}`}
+          className={`flex h-9 items-center gap-2.5 rounded-md text-sm font-medium text-nav-foreground transition-colors hover:bg-nav-accent ${rail ? "mx-auto w-9 justify-center px-0" : "px-3"}`}
         >
           <MonitorIcon className="size-4 shrink-0" />
           <span className={rail ? "sr-only" : undefined}>View site</span>

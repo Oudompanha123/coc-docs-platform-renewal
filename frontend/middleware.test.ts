@@ -158,3 +158,83 @@ describe("middleware — Store routes (ADR-108)", () => {
     expect(fetchNavStructure).toHaveBeenCalled();
   });
 });
+
+describe("middleware — locale prefixes (ADR-116)", () => {
+  function withCookie(path: string, locale: string): NextRequest {
+    const req = request(path);
+    req.cookies.set("coc-docs-locale", locale);
+    return req;
+  }
+
+  it("serves an unprefixed path as English, with no rewrite", async () => {
+    const response = await middleware(request("/home"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.headers.get("x-middleware-request-x-coc-locale")).toBe("en");
+  });
+
+  it("rewrites /km/... to the unprefixed page, passes km on, and remembers it", async () => {
+    const response = await middleware(request("/km/home"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/home");
+    expect(response.headers.get("x-middleware-request-x-coc-locale")).toBe("km");
+    expect(response.cookies.get("coc-docs-locale")?.value).toBe("km");
+  });
+
+  it("maps the /kr prefix to the ko locale", async () => {
+    const response = await middleware(request("/kr/store"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/store");
+    expect(response.headers.get("x-middleware-request-x-coc-locale")).toBe("ko");
+  });
+
+  it("treats a bare /km as the Khmer home of the site", async () => {
+    const response = await middleware(request("/km"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe("http://localhost:3000/");
+  });
+
+  it("308s /en/... to the unprefixed address, keeping the query", async () => {
+    const response = await middleware(request("/en/docs/jex?tab=a"));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/docs/jex?tab=a");
+    expect(response.cookies.get("coc-docs-locale")?.value).toBe("en");
+  });
+
+  it("307s an unprefixed path to the remembered locale", async () => {
+    const response = await middleware(withCookie("/home", "ko"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/kr/home");
+  });
+
+  it("does not move the sign-in callback onto a prefix", async () => {
+    const response = await middleware(withCookie("/auth/callback?code=x", "km"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("keeps the locale on a renamed product's redirect", async () => {
+    fetchCurrentKeyForOldSlug.mockResolvedValue("jex");
+
+    const response = await middleware(request("/km/docs/jex3-0/get-started"));
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/km/docs/jex/get-started");
+  });
+
+  it("keeps the locale on a legacy Store app address", async () => {
+    const response = await middleware(request("/kr/store-4"));
+
+    expect(response.headers.get("location")).toBe("http://localhost:3000/kr/store/app-4");
+  });
+
+  it("never looks a locale prefix up as a product key", async () => {
+    await middleware(request("/km"));
+
+    expect(fetchNavStructure).not.toHaveBeenCalled();
+  });
+});

@@ -44,7 +44,8 @@ export function NavMenu({
   label: ReactNode;
   /** The current page lives under this menu — the label reads as current. */
   active?: boolean;
-  align?: "start" | "center";
+  /** `end` lines the panel up with the trigger's right edge, for a menu near the right of the page. */
+  align?: "start" | "center" | "end";
   /** Width and grid of the panel's item area, e.g. `w-[440px] grid-cols-2`. */
   panelClassName?: string;
   children: ReactNode;
@@ -135,7 +136,7 @@ export function NavMenu({
         <div
           className={cn(
             "absolute top-full z-50 pt-2",
-            align === "center" ? "left-1/2 -translate-x-1/2" : "left-0",
+            align === "center" ? "left-1/2 -translate-x-1/2" : align === "end" ? "right-0" : "left-0",
           )}
         >
           <div

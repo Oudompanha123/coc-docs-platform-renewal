@@ -47,6 +47,10 @@ export const RESERVED_TOP_LEVEL_SEGMENTS = new Set([
   "account",
   "cli",
   "store",
+  // Locale prefixes (ADR-116): `/km/...` is Khmer, never a product called "km".
+  "en",
+  "km",
+  "kr",
 ]);
 
 /** `/docs/<this>` is one of the app's own static docs-about-the-app pages,

@@ -1,6 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchCurrentKeyForOldSlug, fetchNavStructure } from "@/lib/docs/nav-api";
 import { RESERVED_DOCS_SUBROUTES, RESERVED_TOP_LEVEL_SEGMENTS } from "@/lib/docs/reserved-product-keys";
+import {
+  DEFAULT_LOCALE,
+  LOCALE_COOKIE,
+  LOCALE_HEADER,
+  isLocale,
+  localizePath,
+  splitLocale,
+  type Locale,
+} from "@/lib/i18n/config";
 
 /**
  * Permanent (308) redirects from a product's old URL slug to its current
@@ -69,42 +78,105 @@ function productKeyCandidate(segments: string[]): { key: string; index: number }
  */
 const STORE_APP_LEGACY = /^\/store(?:-|\/)(\d+)\/?$/;
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+/**
+ * Where an app path (locale already removed) should permanently move to, or
+ * `null` to serve it as it is — the Store's legacy app addresses and renamed
+ * product slugs.
+ */
+async function permanentRedirectFor(pathname: string): Promise<string | null> {
   // Ahead of the product-key logic below: `/store-3` is one top-level
   // segment, so it would otherwise be looked up as a product key.
-  const legacy = STORE_APP_LEGACY.exec(request.nextUrl.pathname);
+  const legacy = STORE_APP_LEGACY.exec(pathname);
   if (legacy) {
-    const url = request.nextUrl.clone();
-    url.pathname = `/store/app-${legacy[1]}`;
-    return NextResponse.redirect(url, 308);
+    return `/store/app-${legacy[1]}`;
   }
 
-  const segments = request.nextUrl.pathname.split("/").filter(Boolean);
+  const segments = pathname.split("/").filter(Boolean);
   const candidate = productKeyCandidate(segments);
   if (!candidate) {
-    return NextResponse.next();
+    return null;
   }
   const { key, index } = candidate;
   if (RESERVED_TOP_LEVEL_SEGMENTS.has(key)) {
-    return NextResponse.next();
+    return null;
   }
 
   const liveKeys = await liveProductKeys();
   if (liveKeys.has(key)) {
-    return NextResponse.next();
+    return null;
   }
 
   const currentKey = await fetchCurrentKeyForOldSlug(key);
   if (!currentKey) {
     // Never a product key at all, live or retired — an ordinary 404, not
     // this middleware's concern.
-    return NextResponse.next();
+    return null;
   }
 
   segments[index] = currentKey;
-  const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname = "/" + segments.join("/");
-  return NextResponse.redirect(redirectUrl, 308);
+  return "/" + segments.join("/");
+}
+
+/**
+ * Paths whose address is fixed by something outside the app — the Google
+ * OIDC callback and the CLI's sign-in hand-off — and so are never moved
+ * onto a locale prefix because of the remembered-locale cookie.
+ */
+const LOCALE_FIXED_PATHS = /^\/(auth|cli)(\/|$)/;
+
+/**
+ * Locale routing (ADR-116), then the redirects above.
+ *
+ * - `/km/...` and `/kr/...` are served by the same page files as the
+ *   unprefixed path: the prefix is removed by a rewrite, and the locale goes
+ *   to the root layout in the `x-coc-locale` request header. Visiting one
+ *   also remembers that locale in a cookie.
+ * - `/en/...` is the default spelled out; it 308s to the unprefixed path.
+ * - An unprefixed path is English, unless the cookie remembers Khmer or
+ *   Korean — then it 307s to that locale's address. This is what keeps a
+ *   reader in their language when they follow one of the app's many links
+ *   that do not carry a prefix yet; a link built with `localizePath` skips
+ *   the hop. Temporary (307), because it depends on who is asking.
+ */
+export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const { locale: prefixed, prefix, pathname } = splitLocale(request.nextUrl.pathname);
+  const remembered = request.cookies.get(LOCALE_COOKIE)?.value;
+
+  // The default spelled out (`/en/...`) — its canonical address has no prefix.
+  if (prefixed === DEFAULT_LOCALE && prefix !== null) {
+    return remember(redirectTo(request, pathname, 308), DEFAULT_LOCALE);
+  }
+
+  if (!prefixed && isLocale(remembered) && remembered !== DEFAULT_LOCALE && !LOCALE_FIXED_PATHS.test(pathname)) {
+    return redirectTo(request, localizePath(pathname, remembered), 307);
+  }
+
+  const locale = prefixed ?? DEFAULT_LOCALE;
+
+  const moved = await permanentRedirectFor(pathname);
+  if (moved) {
+    return redirectTo(request, localizePath(moved, locale), 308);
+  }
+
+  const headers = new Headers(request.headers);
+  headers.set(LOCALE_HEADER, locale);
+  if (!prefixed) {
+    return NextResponse.next({ request: { headers } });
+  }
+  const rewritten = request.nextUrl.clone();
+  rewritten.pathname = pathname;
+  return remember(NextResponse.rewrite(rewritten, { request: { headers } }), locale);
+}
+
+function redirectTo(request: NextRequest, pathname: string, status: 307 | 308): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  return NextResponse.redirect(url, status);
+}
+
+function remember(response: NextResponse, locale: Locale): NextResponse {
+  response.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  return response;
 }
 
 export const config = {

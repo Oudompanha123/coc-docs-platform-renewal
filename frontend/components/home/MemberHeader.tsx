@@ -1,28 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/lib/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AVATAR_GRADIENTS } from "@/components/dashboard/tone";
-import { ActivityAvatar } from "@/components/layout/ActivityAvatar";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
   BellIcon,
   LogOutIcon,
-  MailIcon,
   MoonIcon,
   PersonIcon,
   SettingsIcon,
   SunIcon,
 } from "@/components/layout/icons";
-import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";
-import { Spinner } from "@/components/layout/Spinner";
-import { actorName, isHrmsReport, timeAgo, type NotificationItem } from "@/lib/notify/activity";
-import { HrmsReportModal } from "@/components/layout/HrmsReportModal";
+import { NavMenu, NavMenuItem, productPagesBlurb } from "@/components/ui/nav-menu";import { Spinner } from "@/components/layout/Spinner";
 import { AnnouncementModal } from "@/components/announcements/AnnouncementModal";
 import { AnnouncementBellIcon } from "@/components/announcements/AnnouncementBellIcon";
 import { ProfilePopup } from "@/components/home/ProfilePopup";
-import { useActivityFeed } from "@/lib/notify/useActivityFeed";
 import { useNotifications } from "@/lib/notify/useNotifications";
 import { useSession } from "@/lib/auth/SessionProvider";
 import { useCurrentUser } from "@/lib/auth/useCurrentUser";
@@ -32,12 +26,11 @@ import { MemberThemeSync } from "@/components/home/MemberThemeSync";
 import { applyTheme, getResolvedTheme } from "@/lib/theme";
 import type { NavProduct } from "@/lib/docs/nav-api";
 
-type MenuKey = "bell" | "mail" | "user";
+type MenuKey = "bell" | "user";
 
 /**
  * Which half of a panel's list is showing. Mirrors the admin Topbar's, and is
- * shared by both panels here — the bell and the activity feed answer the same
- * question and should not answer it in two different shapes.
+ * used by the bell panel here.
  */
 type PanelFilter = "unread" | "all";
 
@@ -82,7 +75,8 @@ function CountIcon({
 /**
  * The signed-in Member's header for `/home`.
  * Nav: Home | Store | Products ▾ (Attendance moved into /account/settings#attendance)
- * Right: Notifications, Activity, User chip.
+ * Right: Notifications, User chip. The Activity feed (mail icon) is admin
+ * dashboard only — it lives on the admin Topbar, not on this header.
  */
 // onOpenNotifications is gone from this header on purpose: notification
 // settings now live on /account/settings, so the user menu here is
@@ -114,17 +108,6 @@ export function MemberHeader({
   const notifications = useNotifications({
     onOpenAnnouncement: (announcementId) => setOpenAnnouncement(announcementId),
   });
-  const activity = useActivityFeed();
-  // Same rule as the admin Topbar's panel: this lists what the badge counts and
-  // nothing else. A `user` never sees that header — /home is where this role
-  // lands — so a fix made only there is a fix most of the people using this
-  // product never get.
-  const [activityFilter, setActivityFilter] = useState<PanelFilter>("all");
-  // "Unread" is live, not a snapshot: a clicked row is read, so it leaves this
-  // list at once. "All" is where it can still be read back.
-  const visibleActivity =
-    activityFilter === "unread" ? activity.items.filter((item) => !item.read) : activity.items;
-
   const [notificationFilter, setNotificationFilter] = useState<PanelFilter>("all");
   const visibleNotifications =
     notificationFilter === "unread"
@@ -133,27 +116,17 @@ export function MemberHeader({
 
   // See the open-effect below: read through refs so choosing a tab does not
   // re-run every time a count moves.
-  const activityCountRef = useRef(activity.count);
-  activityCountRef.current = activity.count;
   const unreadCountRef = useRef(notifications.unreadCount);
   unreadCountRef.current = notifications.unreadCount;
 
-  // The HRMS report a feed row was clicked to open. Held here only while the
-  // dialog is up; the report itself never reaches this component (ADR-042).
-  const [openReport, setOpenReport] = useState<NotificationItem | null>(null);
-
   /**
-   * Opens the activity panel on whichever tab has something in it — "Unread"
-   * while anything is unread, "All" once nothing is. Without this, clearing
-   * the last row while on "Unread" left every later open showing an empty
-   * panel over a feed that still had rows in it. Only on open, and the count
-   * is read through a ref so the tab cannot move mid-click. The bell opens the
-   * same way, for the same reason.
+   * Opens the bell on whichever tab has something in it — "Unread" while
+   * anything is unread, "All" once nothing is. Without this, clearing the last
+   * row while on "Unread" left every later open showing an empty panel over a
+   * list that still had rows in it. Only on open, and the count is read
+   * through a ref so the tab cannot move mid-click.
    */
   useEffect(() => {
-    if (openMenu === "mail") {
-      setActivityFilter(activityCountRef.current > 0 ? "unread" : "all");
-    }
     if (openMenu === "bell") {
       setNotificationFilter(unreadCountRef.current > 0 ? "unread" : "all");
     }
@@ -278,7 +251,7 @@ export function MemberHeader({
         {/* Right-side chrome */}
         <div className="flex items-center gap-2" ref={clusterRef}>
 
-          {/* Theme toggle — the same round ghost button as the bell and mail beside it */}
+          {/* Theme toggle — the same round ghost button as the bell beside it */}
           <button
             type="button"
             onClick={toggleTheme}
@@ -391,101 +364,6 @@ export function MemberHeader({
             )}
           </div>
 
-          {/* Activity */}
-          <div className="relative">
-            <CountIcon
-              count={activity.count}
-              label="Activity"
-              active={openMenu === "mail"}
-              onClick={() => toggleMenu("mail")}
-            >
-              <MailIcon className="size-[18px]" />
-            </CountIcon>
-
-            {openMenu === "mail" && (
-              <div role="menu" className={`${PANEL_CLASSES} w-80`}>
-                <div className="border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Activity</p>
-                  <div className="mt-2.5 flex items-center gap-1.5">
-                    {(["unread", "all"] as const).map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setActivityFilter(key)}
-                        className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
-                          activityFilter === key
-                            ? "bg-secondary text-foreground"
-                            : "border border-border text-muted hover:bg-page"
-                        }`}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                    {/* Not a filter, so it never shows "active" — a one-shot
-                        action grouped with the tabs because that is where the
-                        person is already looking when they want it. */}
-                    <button
-                      type="button"
-                      onClick={() => activity.markAllRead()}
-                      disabled={activity.count === 0}
-                      className="ml-auto rounded-full px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:text-muted disabled:hover:bg-transparent"
-                    >
-                      Read all
-                    </button>
-                  </div>
-                </div>
-                <div className="max-h-80 overflow-y-auto py-1">
-                  {visibleActivity.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-xs text-muted">
-                      {activityFilter === "unread" ? "You're all caught up." : "Nothing recent."}
-                    </p>
-                  ) : (
-                    visibleActivity.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                        activity.markRead(item.id);
-                        // An HRMS row has a report behind it; every other row
-                        // is the whole of what happened and has nothing to open.
-                        if (isHrmsReport(item)) {
-                          setOpenReport(item);
-                          setOpenMenu(null);
-                        }
-                      }}
-                        className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-page ${
-                          item.read ? "" : "bg-secondary"
-                        }`}
-                      >
-                        <ActivityAvatar item={item} />
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className={`block truncate text-sm text-ink ${
-                              item.read ? "font-medium" : "font-semibold"
-                            }`}
-                          >
-                            {actorName(item)}
-                          </span>
-                          <span className="block truncate text-xs text-muted">{item.summary}</span>
-                          <span className="mt-0.5 block text-[11px] text-muted">{timeAgo(item.occurredAt)}</span>
-                        </span>
-                        {/* A status now that "All" exists: under that tab it is
-                            what tells the two kinds of row apart. */}
-                        {!item.read && (
-                          <span
-                            aria-label="Unread"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
-                          />
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* User chip */}
           <div className="relative ml-1">
             <button
@@ -577,7 +455,6 @@ export function MemberHeader({
         `backdrop-filter` makes an element the containing block for its
         `position: fixed` descendants — inside it, these full-screen dialogs
         were sized to the 60px bar and stuck to the top of the page. */}
-    {openReport && <HrmsReportModal item={openReport} onClose={() => setOpenReport(null)} />}
     {openAnnouncement && <AnnouncementModal id={openAnnouncement} onClose={() => setOpenAnnouncement(null)} />}
     {showProfilePopup && (
       <ProfilePopup
