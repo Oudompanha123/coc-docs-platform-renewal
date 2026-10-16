@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Box, Check, Clock, Copy } from "lucide-react";
+import { Box, Clock, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { GlobeIcon } from "@/components/layout/icons";
 import { AppLogo } from "@/components/store/AppLogo";
 import { PlatformIcon } from "@/components/store/PlatformIcon";
@@ -30,18 +30,14 @@ export function StoreAppCard({
   href: string;
 }) {
   const platforms = livePlatforms(app);
-  const [copy, setCopy] = useState<"idle" | "done" | "failed">("idle");
 
-  async function copyUrl(e: Event) {
-    // Keep the menu open so the label can say what happened.
-    e.preventDefault();
+  async function copyUrl() {
     try {
       await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      setCopy("done");
+      toast.success("Link copied to the clipboard.");
     } catch {
-      setCopy("failed");
+      toast.error("Couldn't copy the link.");
     }
-    setTimeout(() => setCopy("idle"), 1500);
   }
 
   return (
@@ -70,8 +66,8 @@ export function StoreAppCard({
         <div className="relative z-10 -mr-2 -mt-1">
           <RowActions label={`Actions for ${app.name}`}>
             <DropdownMenuItem onSelect={copyUrl}>
-              {copy === "done" ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
-              <span role="status">{copy === "done" ? "Copied!" : copy === "failed" ? "Couldn't copy" : "Copy URL"}</span>
+              <Copy className="size-4" aria-hidden="true" />
+              <span>Copy URL</span>
             </DropdownMenuItem>
           </RowActions>
         </div>

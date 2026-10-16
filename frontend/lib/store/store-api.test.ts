@@ -38,6 +38,7 @@ function build(
     sha256: "0".repeat(64),
     createdAt,
     removedAt,
+    status: removedAt ? "removed" : "active",
     uploadedBy: "Admin",
     downloadUrl: removedAt ? null : `/api/v1/store/builds/${id}/download`,
   };

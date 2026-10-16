@@ -285,6 +285,13 @@ services:
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
 
+      # Where the Store keeps build files and logos (ADR-115): `local` (the
+      # container's disk -- lost when the container is recreated) or `s3`,
+      # which reuses the S3_* bucket above. Never inferred from S3_* being
+      # set, so enabling it is a deliberate step.
+      COC_STORE_STORAGE: ${COC_STORE_STORAGE:-local}
+      COC_STORE_DOWNLOAD_URL_TTL_SECONDS: ${COC_STORE_DOWNLOAD_URL_TTL_SECONDS:-300}
+
       # The HRMS attendance mailbox (ADR-042, ADR-057). Reads IMAP; unrelated
       # to MAIL_* above, which sends SMTP. Default off: absent, nothing is
       # polled, the Attendance page is empty and no "Attendance on ..." lines
