@@ -179,6 +179,70 @@ or point at real S3 with `S3_ENDPOINT=https://s3.<region>.amazonaws.com`. The
 application uses nothing but the S3 API and path-style addressing
 (`CONST-TECH-08`), so moving between them is `.env` and nothing else.
 
+### Store files in S3 (`COC_STORE_STORAGE=s3`)
+
+The Store (app builds up to 2 GB, and app logos) keeps its files on the
+backend container's disk by default, which is lost when the container is
+recreated. To keep them in the same bucket as the avatars instead (ADR-115):
+
+1. **Bucket.** Use the bucket already in `S3_BUCKET` (private, *Block all public
+   access* on). Store objects are under `android/`, `ios/`, `windows/`,
+   `macos/` and `logos/`; they do not collide with avatars or content images.
+2. **Permissions.** Whoever the backend runs as needs, on that bucket:
+   `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject` on `arn:aws:s3:::BUCKET/*`,
+   `s3:ListBucket` on `arn:aws:s3:::BUCKET`, and `s3:AbortMultipartUpload`.
+3. **CORS** (bucket → Permissions → CORS). Downloads are fetched by the
+   browser straight from S3 so the page can show progress; without this the
+   browser blocks them:
+
+   ```json
+   [{
+     "AllowedOrigins": ["https://YOUR-DOMAIN"],
+     "AllowedMethods": ["GET"],
+     "AllowedHeaders": ["*"],
+     "ExposeHeaders": ["Content-Length"],
+     "MaxAgeSeconds": 3000
+   }]
+   ```
+
+4. **Lifecycle rule** (bucket → Management): *Delete incomplete multipart
+   uploads* after 1 day. A cancelled 2 GB upload otherwise leaves billed parts.
+5. **Switch it on** in `.env` and recreate the backend:
+
+   ```bash
+   COC_STORE_STORAGE=s3          # `local` (default) until you do this
+   docker compose up -d backend
+   ```
+
+   It is a deliberate switch, not inferred from `S3_*`: the avatars already
+   use that bucket, and an upgrade must not move the Store by surprise. The
+   backend refuses to start if `s3` is chosen without `S3_ENDPOINT` and
+   `S3_BUCKET`. Downloads are signed for 5 minutes
+   (`COC_STORE_DOWNLOAD_URL_TTL_SECONDS`).
+6. **Existing builds.** Files already on the container's disk are *not* moved
+   by the switch; their database rows point at keys that do not exist in S3
+   yet, so they show as unavailable. Copy them once, keeping the paths:
+
+   ```bash
+   docker compose cp backend:/app/store-files ./store-files   # path is coc.store.root
+   aws s3 sync ./store-files s3://BUCKET/ --exclude ".upload-*"
+   ```
+
+   If the Store has no builds you need to keep, skip this.
+
+**Use the instance role instead of keys (recommended).** Create an IAM role
+with the permissions in step 2, attach it to the EC2 instance, set
+`HttpPutResponseHopLimit` to **2** on the instance's metadata options (the
+backend runs in Docker, one network hop away), and leave
+`S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` empty. The Store then signs and
+uploads with the role. Avatars and content images still require the keys
+today, so keep them set until those are moved too.
+
+**Uploads through nginx.** The edge allows 10 MB request bodies, except on
+`POST /api/v1/admin/store/apps/{id}/builds`, which allows 2 GB and is not
+buffered (`infra/nginx/templates/default.conf.template`). After pulling this
+change, recreate nginx: `docker compose up -d --force-recreate nginx`.
+
 ## Connecting a database tool
 
 Two ways, and the difference is where the access control lives.

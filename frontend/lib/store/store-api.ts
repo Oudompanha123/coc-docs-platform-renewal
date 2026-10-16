@@ -69,6 +69,8 @@ export interface StoreBuild {
   createdAt: string;
   /** Set once an admin removed this build. Its file is gone; the row stays for the history. */
   removedAt: string | null;
+  /** "removed" once an admin removed it (file deleted, row kept); the UI reads `isLive`, which agrees. */
+  status: "active" | "removed";
   /** Display name of the uploader; null if that account no longer exists. */
   uploadedBy: string | null;
   /** Relative to the backend (see {@link absoluteUrl}); null for a removed build. */

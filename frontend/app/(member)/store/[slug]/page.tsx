@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -36,7 +37,6 @@ export default function StoreAppPage() {
   const [state, setState] = useState<State>({ status: "loading" });
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (number === null) {
@@ -105,17 +105,10 @@ export default function StoreAppPage() {
         <StoreAppDetail
           app={state.app}
           canManage={canManage}
-          notice={notice}
-          onChanged={(app, message) => {
-            setState({ status: "ready", app });
-            setNotice(message ?? null);
-          }}
+          onChanged={(app) => setState({ status: "ready", app })}
           onDeleted={() => router.replace(STORE_HREF)}
           onEdit={() => setEditing(true)}
-          onNextVersion={() => {
-            setNotice(null);
-            setUploading(true);
-          }}
+          onNextVersion={() => setUploading(true)}
         />
       )}
 
@@ -132,7 +125,7 @@ export default function StoreAppPage() {
           app={state.app}
           onUploaded={(app, summary) => {
             setState({ status: "ready", app });
-            setNotice(summary);
+            toast.success(summary);
           }}
           onClose={() => setUploading(false)}
         />
