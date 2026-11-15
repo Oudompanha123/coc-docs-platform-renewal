@@ -1,15 +1,17 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { attachManifest, runAnalysis, fetchEngineStatus } = vi.hoisted(() => ({
+const { attachManifest, runAnalysis, fetchEngineStatus, uploadProjectSource } = vi.hoisted(() => ({
   attachManifest: vi.fn(),
+  // The source upload that follows every attach (ADR-118).
+  uploadProjectSource: vi.fn().mockResolvedValue(undefined),
   runAnalysis: vi.fn(),
   // Added with the analysing panel (ADR-043): the section asks on mount what
   // is doing the analysis, to label the progress card. "Not connected" keeps
   // these tests on the branch they were written for.
   fetchEngineStatus: vi.fn().mockResolvedValue({ connected: false, readsSource: false }),
 }));
-vi.mock("@/lib/ax-renewal/api", () => ({ attachManifest, runAnalysis, fetchEngineStatus }));
+vi.mock("@/lib/ax-renewal/api", () => ({ attachManifest, runAnalysis, fetchEngineStatus, uploadProjectSource }));
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));

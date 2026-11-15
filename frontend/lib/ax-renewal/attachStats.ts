@@ -145,6 +145,11 @@ function yieldToUi(): Promise<void> {
 const SKIPPED_PATH_SEGMENT =
   /(^|\/)(node_modules|\.git|\.next|dist|build|out|target|vendor|\.venv|__pycache__|\.gradle|\.idea|\.vscode)\//;
 
+/** Whether `path` is inside a dependency tree, build output or VCS folder — shared with the source upload (zipSource.ts), so what is counted and what is uploaded are the same files. */
+export function isSkippedPath(path: string): boolean {
+  return SKIPPED_PATH_SEGMENT.test(path);
+}
+
 export async function computeAttachStats(
   files: FileList | File[],
   onStage?: (stage: AttachStageIndex, detail: string) => void,

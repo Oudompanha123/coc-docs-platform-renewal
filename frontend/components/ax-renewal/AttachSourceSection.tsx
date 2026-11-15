@@ -20,10 +20,11 @@ import {
   type AttachStageIndex,
   type AxRenewalAttachStats,
 } from "@/lib/ax-renewal/attachStats";
-import { attachManifest, fetchEngineStatus, runAnalysis, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
+import { attachManifest, fetchEngineStatus, runAnalysis, uploadProjectSource, type AxRenewalEngineStatus, type AxRenewalProjectDetail } from "@/lib/ax-renewal/api";
 import { AnalysisProgress } from "@/components/ax-renewal/AnalysisProgress";
 import { readSourcePathOverride, readUseModel, writeSourcePathOverride } from "@/lib/ax-renewal/engine-preference";
 import { inputBaseClass } from "@/components/ui/input";
+import { zipSource } from "@/lib/ax-renewal/zipSource";
 import {
   readDroppedFiles,
   readPickedDirectory,
@@ -225,7 +226,7 @@ export function AttachSourceSection({
     if (!sourcePath.trim() && stats.rootFolderName) {
       handleSourcePathChange(stats.rootFolderName);
     }
-    await attach(stats, manifestFile);
+    await attach(stats, manifestFile, files);
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -331,7 +332,12 @@ export function AttachSourceSection({
   //
   // On failure this falls back to the empty dropzone rather than leaving the
   // reviewing panel stranded with no button left to retry or back out from.
-  async function attach(stats: AxRenewalAttachStats, manifestFile: File | null) {
+  //
+  // The source itself is uploaded right after (ADR-118), as one zip the
+  // backend keeps on its own disk. Its failure is reported but does not undo
+  // the attach: the manifest and stats are already recorded, and "Replace
+  // source" is the retry.
+  async function attach(stats: AxRenewalAttachStats, manifestFile: File | null, files: FileList | File[]) {
     setPhase("attaching");
     setError(null);
     try {
@@ -342,11 +348,20 @@ export function AttachSourceSection({
       } else {
         await attachManifest(detail.project.id, null, null, stats);
       }
+      let uploadError: string | null = null;
+      try {
+        await uploadProjectSource(detail.project.id, await zipSource(files));
+      } catch (err) {
+        uploadError =
+          "The project was attached, but its source could not be uploaded" +
+          (err instanceof Error ? `: ${err.message}` : ".");
+      }
       setPendingFile(null);
       setScannedCount(0);
       setPickedStats(null);
       setPhase("empty");
       await onChanged();
+      if (uploadError) setError(uploadError);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't attach that project.");
       setPendingFile(null);
@@ -410,9 +425,10 @@ export function AttachSourceSection({
       <div>
         <h2 className="text-sm font-semibold text-foreground">Attach source</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Choose the project&apos;s folder — nothing is uploaded except the one dependency manifest found inside it
-          (e.g. <code>package.json</code>), which is what analysis reads. A project with no recognized manifest (a
-          static site, say) can still be attached; analysis will note that none was found.
+          Choose the project&apos;s folder — its source is uploaded to the server as one archive (dependency
+          trees, build output and version-control folders are left out), along with the dependency manifest found
+          inside it (e.g. <code>package.json</code>), which is what analysis reads. A project with no recognized
+          manifest (a static site, say) can still be attached; analysis will note that none was found.
         </p>
       </div>
 
@@ -669,6 +685,14 @@ export function AttachSourceSection({
                   <span className="text-muted-foreground">Manifest</span>
                   <b className="font-semibold text-foreground">{shownStats.manifestFilename ?? "none found"}</b>
                 </div>
+                {!pickedStats && (
+                  <div className="flex items-center justify-between border-b border-surface-border py-1.5">
+                    <span className="text-muted-foreground">Stored source</span>
+                    <b className="font-mono text-xs font-semibold text-foreground">
+                      {detail.project.sourceFilename ?? "not uploaded"}
+                    </b>
+                  </div>
+                )}
                 <div className="flex items-center justify-between py-1.5">
                   <span className="text-muted-foreground">Mode</span>
                   <b className="font-semibold text-foreground">read only — never modified</b>

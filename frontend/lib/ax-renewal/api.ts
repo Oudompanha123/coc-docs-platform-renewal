@@ -34,6 +34,11 @@ export interface AxRenewalProject {
   manifestFilename: string | null;
   manifestAttachedAt: string | null;
   attachStats: AxRenewalAttachStats | null;
+  /**
+   * File name of the uploaded source archive on the backend (ADR-118), e.g.
+   * `<uuid>.zip` — null or absent until a source has been uploaded.
+   */
+  sourceFilename?: string | null;
   createdAt: string;
   updatedAt: string;
   /**
@@ -387,6 +392,30 @@ export function attachManifest(
   return request<AxRenewalProject>(`/projects/${projectId}/manifest`, {
     method: "POST",
     body: JSON.stringify({ filename, content, stats }),
+  });
+}
+
+/**
+ * Uploads the project's source as one zip archive (ADR-118). The backend
+ * writes it under its configured `file.server-path` and records the file
+ * name on the project; a second upload replaces the first.
+ *
+ * Sent as `FormData` with the archive in its `file` field. `headers` is
+ * passed empty on purpose: `request` would otherwise label the body JSON,
+ * and a multipart body's Content-Type — boundary included — has to be the
+ * browser's own.
+ */
+export function uploadProjectSource(
+  projectId: string,
+  archive: Blob,
+  fileName = "source.zip",
+): Promise<AxRenewalProject> {
+  const formData = new FormData();
+  formData.append("file", archive, fileName);
+  return request<AxRenewalProject>(`/projects/${projectId}/source`, {
+    method: "PATCH",
+    headers: {},
+    body: formData,
   });
 }
 

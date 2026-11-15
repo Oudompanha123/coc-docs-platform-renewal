@@ -87,6 +87,11 @@ public final class ApiDtos {
         if (storedUrl == null) {
             return null;
         }
+        // A photo kept on local disk is stored as its file name alone
+        // (ADR-119); ImageController serves it.
+        if (com.coc.docs.storage.LocalAvatarStorage.isStoredName(storedUrl)) {
+            return "/api/v1/image/" + storedUrl;
+        }
         int at = storedUrl.indexOf("/avatars/");
         return at < 0 ? storedUrl : "/api/v1/avatars/" + storedUrl.substring(at + "/avatars/".length());
     }
@@ -1777,6 +1782,7 @@ public final class ApiDtos {
             String manifestFilename,
             Instant manifestAttachedAt,
             JsonNode attachStats,
+            String sourceFilename,
             Instant createdAt,
             Instant updatedAt,
             int revision,
@@ -1792,6 +1798,7 @@ public final class ApiDtos {
                     project.manifestFilename(),
                     project.manifestAttachedAt(),
                     project.attachStats(),
+                    project.sourceFilename(),
                     project.createdAt(),
                     project.updatedAt(),
                     project.revision(),

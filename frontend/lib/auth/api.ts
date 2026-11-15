@@ -657,8 +657,9 @@ export async function updateProfile(displayName: string): Promise<MeResponse> {
 }
 
 /**
- * POST /api/v1/auth/me/avatar (ADR-026). Uploads the caller's own profile
- * photo — multipart, since this is a binary file, not a JSON field. Once
+ * PATCH /api/v1/auth/me/avatar (ADR-026, ADR-119). Uploads the caller's own
+ * profile photo as FormData — multipart, since this is a binary file, not a
+ * JSON field. Once
  * set, this survives a later Google/Keycloak sign-in; only {@link
  * removeAvatar} reverts to the identity provider's picture.
  *
@@ -672,7 +673,7 @@ export async function uploadAvatar(file: File): Promise<MeResponse> {
     const body = new FormData();
     body.append("file", file);
     response = await fetch(`${BACKEND_URL}/api/v1/auth/me/avatar`, {
-      method: "POST",
+      method: "PATCH",
       credentials: "include",
       // No Content-Type header: the browser sets multipart/form-data with
       // the correct boundary itself, and overriding it here would drop
